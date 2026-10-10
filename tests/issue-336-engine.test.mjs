@@ -112,7 +112,7 @@ const cast = (spellId, targetId = "goblin", slotLevel) => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
   ...(slotLevel === undefined ? {} : { slotLevel }),
 });
 
@@ -130,7 +130,7 @@ test("a spell attack rolls d20 + the spell attack bonus against AC", () => {
     spell: "Fire Bolt",
     level: 0,
     castingTime: "action",
-    targetId: "goblin",
+    targetIds: ["goblin"],
   });
   assert.equal(attack.type, "attack");
   assert.equal(attack.spell, true);

@@ -19,8 +19,10 @@
  *   concentrates on it: a die added to attack rolls and saving throws
  *   (Bless), a bonus to AC (Shield of Faith, Shield) or a base AC (Mage
  *   Armor).
+ * - An area spell (#338) declares its shape and size, and so the most
+ *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  *
- * Without positions or a clock, ranges and areas are left out and
+ * Without positions or a clock, ranges are left out and areas and
  * durations are abstracted; the rules document lists what that omits.
  */
 import type { Ability } from "./class-5e.js";
@@ -124,6 +126,13 @@ export type SpellEffect = Readonly<
  */
 export type Upcast = Readonly<{ dice: number } | { missiles: number }>;
 
+/** An area spell's shape and size in feet (SRD 5.2, #338). */
+export type SpellArea = Readonly<{
+  shape: "cone" | "line" | "sphere" | "emanation";
+  /** A cone's or line's length, a sphere's or emanation's radius. */
+  feet: number;
+}>;
+
 export type SpellDefinition = Readonly<{
   id: string;
   name: string;
@@ -132,11 +141,36 @@ export type SpellDefinition = Readonly<{
   school: SpellSchool;
   castingTime: CastingTime;
   effect: SpellEffect;
+  /** An area spell's shape and size (#338): it may catch several opponents. */
+  area?: SpellArea;
   /** A cantrip's damage dice from character level 5 (SRD 5.2). */
   cantripDice?: number;
   /** A levelled spell's gain from each slot level above its own. */
   upcast?: Upcast;
 }>;
+
+/**
+ * The feet of an area that each opponent it catches stands for (D4, #338):
+ * a cone's length ÷ 10, a line's ÷ 30, a sphere's or emanation's radius ÷ 5.
+ */
+const FEET_PER_TARGET: Readonly<Record<SpellArea["shape"], number>> = {
+  cone: 10,
+  line: 30,
+  sphere: 5,
+  emanation: 5,
+};
+
+/**
+ * The most opponents `spell` can catch (#338): an area spell's size ÷ its
+ * shape's feet per target (D4), rounded up and at least 1; any other spell
+ * has one target.
+ */
+export function maxTargets(spell: SpellDefinition): number {
+  const { area } = spell;
+  return area === undefined
+    ? 1
+    : Math.max(1, Math.ceil(area.feet / FEET_PER_TARGET[area.shape]));
+}
 
 /** The character level at which a cantrip's damage grows (SRD 5.2). */
 export const CANTRIP_UPGRADE_LEVEL = 5;
@@ -265,6 +299,52 @@ export const SPELLS = {
       buff: { kind: "base-armor-class", base: 13 },
       duration: { minutes: 480 },
     },
+  },
+  // Area spells (#338): a 15-foot cone, 10- and 20-foot spheres.
+  "burning-hands": {
+    id: "burning-hands",
+    name: "Burning Hands",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 6, type: "fire" },
+    },
+    area: { shape: "cone", feet: 15 },
+    upcast: { dice: 1 },
+  },
+  shatter: {
+    id: "shatter",
+    name: "Shatter",
+    level: 2,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "constitution",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 8, type: "thunder" },
+    },
+    area: { shape: "sphere", feet: 10 },
+    upcast: { dice: 1 },
+  },
+  fireball: {
+    id: "fireball",
+    name: "Fireball",
+    level: 3,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "half",
+      damage: { dice: 8, sides: 6, type: "fire" },
+    },
+    area: { shape: "sphere", feet: 20 },
+    upcast: { dice: 1 },
   },
   // A reaction to being hit by an attack roll (#337): +5 AC until the start
   // of the caster's next turn, against that attack too.

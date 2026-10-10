@@ -217,6 +217,7 @@ import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   effectEnds,
   isSpellId,
+  maxTargets,
   ordinal,
   slotUsesId,
   spellAtLevel,
@@ -258,7 +259,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v25";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v26";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1375,7 +1376,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, target and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -2082,7 +2083,10 @@ const titleCase = (value: string) =>
 function spellText(
   event: Extract<
     FifthEvent,
-    { type: "cast" | "spell-save" | "spell-damage" | "spell-healing" }
+    {
+      type:
+        "cast" | "spell-area" | "spell-save" | "spell-damage" | "spell-healing";
+    }
   >,
   name: (id: string) => string,
   maxHp: (id: string) => number,
@@ -2096,13 +2100,20 @@ function spellText(
       const bonus =
         event.castingTime === "bonus-action" ? " as a bonus action" : "";
       const player = event.combatantId === PLAYER_ID;
+      const [first] = event.targetIds;
       const target =
-        event.targetId === event.combatantId
+        event.targetIds.length === 1 && first === event.combatantId
           ? player
             ? " on yourself"
             : " on itself"
-          : ` at ${name(event.targetId)}`;
+          : ` at ${listed(event.targetIds.map(name), "and")}`;
       return `${player ? "You cast" : `${name(event.combatantId)} casts`} ${event.spell}${target}${bonus}${slot}.`;
+    }
+    case "spell-area": {
+      // One damage roll for every target (#338), each saving for itself.
+      const full = event.damageRolls.reduce((sum, value) => sum + value, 0);
+      const count = event.targetIds.length;
+      return `${event.spell}: damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}, ${count === 1 ? "and its target saves" : `and each of its ${count} targets saves`} against it.`;
     }
     case "spell-save": {
       const { save } = event;
@@ -2116,6 +2127,15 @@ function spellText(
         return `${rolled}: no damage.`;
       }
       const full = event.damageRolls.reduce((sum, value) => sum + value, 0);
+      // An area spell's target (#338): its share of the one roll.
+      if (event.area === true) {
+        const share = !save.success
+          ? `the full ${full}`
+          : event.onSuccess === "half"
+            ? `half of ${full}, ${Math.floor(full / 2)},`
+            : "none of it";
+        return `${rolled}: ${target} takes ${share} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+      }
       const halved = save.success
         ? `, halved to ${Math.floor(full / 2)} by the save`
         : "";
@@ -2294,6 +2314,7 @@ export function renderFifthEvent(
       return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "cast":
+    case "spell-area":
     case "spell-save":
     case "spell-damage":
     case "spell-healing":
@@ -3083,9 +3104,22 @@ export function describeFifthResult(
             outcome: event.interrupted ? "success" : "failure",
           },
         ];
+      case "spell-area":
+        // An area spell's one damage roll (#338), before each target's save.
+        return [
+          {
+            purpose: "damage",
+            roller: name(event.actorId),
+            dice: take(event.damageRolls),
+            modifier: 0,
+            total: event.damageRolls.reduce((sum, value) => sum + value, 0),
+            damageType: event.damageType,
+          },
+        ];
       case "spell-save": {
         // The target's save (none rolled when a condition fails it), then
-        // the damage, unless a success takes none (#336).
+        // the damage, unless a success takes none (#336); an area spell's
+        // damage was rolled once, before its targets' saves (#338).
         const { save } = event;
         return [
           ...(save.autoFail !== undefined
@@ -3097,7 +3131,9 @@ export function describeFifthResult(
                   save,
                 ),
               ]),
-          ...(event.damageRolls.length === 0 ? [] : [spellDamageGroup(event)]),
+          ...(event.damageRolls.length === 0 || event.area === true
+            ? []
+            : [spellDamageGroup(event)]),
         ];
       }
       case "spell-damage":
@@ -3377,7 +3413,15 @@ export type ActionView = Readonly<{
     name: string;
     level: number;
     slotLevel?: number;
+    /** An area spell's most targets (#338), when above 1. */
+    maxTargets?: number;
   }>;
+  /**
+   * An area spell's cast (#338): the foes it may catch, up to its
+   * `maxTargets`, chosen by the player. The entry has no `target`, and
+   * stands for the cast at the first of them.
+   */
+  targets?: readonly Readonly<{ id: string; name: string }>[];
   /**
    * A short rest (#334), listed while it would restore something: the
    * numbers of hit dice it may spend now, fewest first. The action spends
@@ -3399,6 +3443,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-combatant": "Not in this fight",
   "not-your-turn": "Not your turn",
   "no-target": "No such target",
+  "too-many-targets": "Too many targets",
+  "duplicate-target": "Target named twice",
   "same-side": "On your side",
   "already-defeated": "Already defeated",
   "action-used": "Action used",
@@ -6047,19 +6093,20 @@ export function createFifthRuntime(
         return { type: "long-rest" };
       case "cast": {
         // A cantrip names no slot level; a levelled spell names a whole one.
+        // Its targets are a list of ids (#338).
         const spellId = field("spellId");
-        const targetId = field("targetId");
-        const { slotLevel } = action;
+        const { slotLevel, targetIds } = action;
         return actorId === undefined ||
           spellId === undefined ||
-          targetId === undefined ||
+          !Array.isArray(targetIds) ||
+          !targetIds.every((id) => typeof id === "string") ||
           (slotLevel !== undefined && !Number.isInteger(slotLevel))
           ? undefined
           : {
               type: "cast",
               actorId,
               spellId,
-              targetId,
+              targetIds: targetIds as string[],
               ...(slotLevel === undefined
                 ? {}
                 : { slotLevel: slotLevel as number }),
@@ -7626,6 +7673,10 @@ export function createFifthRuntime(
                 ...(action.slotLevel === undefined
                   ? {}
                   : { slotLevel: action.slotLevel }),
+                // An area spell's most targets (#338).
+                ...(maxTargets(SPELLS[action.spellId]) === 1
+                  ? {}
+                  : { maxTargets: maxTargets(SPELLS[action.spellId]) }),
               },
             }
           : {}),
@@ -7671,25 +7722,47 @@ export function createFifthRuntime(
                 ["rest", "long-rest"].includes(effectEnds(effect.duration)))),
         )
         .flatMap((spell) =>
-          slotLevels(caster, spell).flatMap((slotLevel) =>
-            (spell.effect.kind === "healing" || spell.effect.kind === "buff"
-              ? [{ id: PLAYER_ID, name: caster.name }]
-              : foes
-            ).map((target) =>
-              view(
-                "cast",
-                {
-                  type: "cast",
-                  actorId: PLAYER_ID,
-                  spellId: spell.id,
-                  targetId: target.id,
-                  ...(slotLevel === undefined ? {} : { slotLevel }),
-                },
-                target,
-              ),
-            ),
-          ),
+          slotLevels(caster, spell).flatMap((slotLevel) => {
+            const cast = (targetIds: readonly string[]): CastAction => ({
+              type: "cast",
+              actorId: PLAYER_ID,
+              spellId: spell.id,
+              targetIds,
+              ...(slotLevel === undefined ? {} : { slotLevel }),
+            });
+            // An area spell (#338): one entry, its targets chosen from the
+            // foes, up to its most; it dry-runs the first of them.
+            if (spell.area !== undefined) {
+              return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
+            }
+            return (
+              spell.effect.kind === "healing" || spell.effect.kind === "buff"
+                ? [{ id: PLAYER_ID, name: caster.name }]
+                : foes
+            ).map((target) => view("cast", cast([target.id]), target));
+          }),
         );
+    /**
+     * An area spell's entry (#338): the foes it may catch (`targets`), and
+     * the action it dry-runs, at the first of them up to its most.
+     */
+    const areaCast = (
+      spell: SpellDefinition,
+      foes: readonly Combatant[],
+      cast: (targetIds: readonly string[]) => CastAction,
+    ): ActionView => {
+      const action = cast(foes.slice(0, maxTargets(spell)).map(({ id }) => id));
+      const entry = view("cast", action);
+      if (unasked.has(entry)) {
+        return entry;
+      }
+      const offered: ActionView = {
+        ...entry,
+        targets: foes.map(({ id, name }) => ({ id, name })),
+      };
+      projectedActions.set(offered, action);
+      return offered;
+    };
     /**
      * A short rest (#334), listed while it would restore something, with the
      * numbers of hit dice it may spend; the action spends the most.
@@ -7869,7 +7942,7 @@ export function createFifthRuntime(
                     type: "cast",
                     actorId: PLAYER_ID,
                     spellId: spell.id,
-                    targetId: PLAYER_ID,
+                    targetIds: [PLAYER_ID],
                     ...(slotLevel === undefined ? {} : { slotLevel }),
                   },
                   { id: PLAYER_ID, name: pc.name },
@@ -8922,14 +8995,22 @@ export function createFifthRuntime(
     }
     const spells = [...new Set(offers.map(({ spell }) => spell!.id))];
     const unique = <T>(values: readonly T[]) => [...new Set(values)];
+    // Each entry's targets: its one, or an area spell's choice (#338).
+    const targetsOf = ({ target, targets }: ActionView) => targets ?? [target!];
     const described = spells.map((id) => {
       const mine = offers.filter(({ spell }) => spell!.id === id);
-      const { name, level } = mine[0]!.spell!;
+      const { name, level, maxTargets: most } = mine[0]!.spell!;
       const slots = unique(mine.map(({ spell }) => spell!.slotLevel));
       const targets = unique(
-        mine.map(({ target }) => `${target!.id} (${target!.name})`),
+        mine.flatMap((offer) =>
+          targetsOf(offer).map((target) => `${target.id} (${target.name})`),
+        ),
       );
-      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; target ${listed(targets)})`;
+      const whom =
+        most === undefined
+          ? `one target: ${listed(targets)}`
+          : `up to ${most} different targets from ${listed(targets, "and")}`;
+      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom})`;
     });
     const slotLevelsOffered = unique(
       offers.flatMap(({ spell }) =>
@@ -8940,7 +9021,7 @@ export function createFifthRuntime(
       {
         type: "function",
         name: "cast",
-        description: `Only when the player asks to cast a spell: cast it at its target. The engine spends the slot (only one a turn, though a reaction spell's slot isn't the turn's) and the action, bonus action or reaction, and rolls the attack, save, damage or healing, or puts the spell's effect on its target until it ends. Spells: ${described.join("; ")}.`,
+        description: `Only when the player asks to cast a spell: cast it at its targets, one unless an area spell lists more. The engine spends the slot (only one a turn, though a reaction spell's slot isn't the turn's) and the action, bonus action or reaction, and rolls the attack, save, damage or healing, or puts the spell's effect on its target until it ends. Spells: ${described.join("; ")}.`,
         strict: true,
         parameters: {
           type: "object",
@@ -8956,13 +9037,21 @@ export function createFifthRuntime(
               description:
                 "The spell slot level to spend: null for a cantrip; for a levelled spell its lowest listed unless the player asks for a higher one.",
             },
-            target: {
-              type: "string",
-              enum: unique(offers.map(({ target }) => target!.id)),
-              description: "The id of the spell's target.",
+            targets: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: unique(
+                  offers.flatMap((offer) =>
+                    targetsOf(offer).map(({ id }) => id),
+                  ),
+                ),
+              },
+              description:
+                "The ids of the spell's targets: one, or for an area spell up to its most, each once, as the player chose them.",
             },
           },
-          required: ["spell", "slot_level", "target"],
+          required: ["spell", "slot_level", "targets"],
           additionalProperties: false,
         },
       },
@@ -9074,15 +9163,18 @@ export function createFifthRuntime(
     // The rest tool (#334) takes only its whole number of hit dice.
     const isRest = call.name === "rest";
     const hitDice = isRecord(parsed) ? parsed.hit_dice : undefined;
-    // The cast tool (#336) takes its spell, slot level (or null) and target.
+    // The cast tool (#336) takes its spell, slot level (or null) and
+    // targets (#338).
     const isCast = call.name === "cast";
     const slotLevel = isRecord(parsed) ? parsed.slot_level : undefined;
+    const castTargets = isRecord(parsed) ? parsed.targets : undefined;
     if (
       !isRecord(parsed) ||
       (isCast &&
-        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,target" ||
+        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,targets" ||
           typeof parsed.spell !== "string" ||
-          typeof parsed.target !== "string" ||
+          !Array.isArray(castTargets) ||
+          !castTargets.every((id) => typeof id === "string") ||
           (slotLevel !== null && !Number.isInteger(slotLevel)))) ||
       (isCast
         ? false
@@ -9111,7 +9203,7 @@ export function createFifthRuntime(
           type: "cast",
           actorId: PLAYER_ID,
           spellId: parsed.spell as string,
-          targetId: parsed.target as string,
+          targetIds: castTargets as string[],
           ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
         }
       : isRest

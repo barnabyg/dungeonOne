@@ -55,6 +55,10 @@ _Avoid_: Buff (in player text), Aura
 **Concentration**:
 Holding one spell going (#337): a caster concentrates on one at a time, and casting another concentration spell ends the first. Damage calls for a Constitution saving throw to keep it; being incapacitated or falling ends it.
 
+**Area spell**:
+A spell whose effect fills an area (#338), such as Burning Hands. Without positions it catches up to a most number of opponents, set by its shape and size (D4), chosen by the caster; its damage is rolled once and each target saves for itself.
+_Avoid_: AoE, Splash
+
 **Reaction spell**:
 A spell cast as a reaction (#337), such as Shield: offered only while an opponent's hit waits for the caster's answer, as Uncanny Dodge is.
 

@@ -47,7 +47,7 @@ const castAt = (spellId, targetId, slotLevel) => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
   ...(slotLevel === undefined ? {} : { slotLevel }),
 });
 
@@ -333,17 +333,21 @@ function castingSession() {
 test("scripted DM: the cast tool lists what the engine would take", () => {
   const session = castingSession();
   const tool = castTool(session);
-  assert.deepEqual(tool.parameters.required, ["spell", "slot_level", "target"]);
+  assert.deepEqual(tool.parameters.required, [
+    "spell",
+    "slot_level",
+    "targets",
+  ]);
   assert.deepEqual(tool.parameters.properties.spell.enum, [
     "fire-bolt",
     "sacred-flame",
     "magic-missile",
   ]);
   assert.deepEqual(tool.parameters.properties.slot_level.enum, [1, null]);
-  assert.deepEqual(tool.parameters.properties.target.enum, ["goblin"]);
+  assert.deepEqual(tool.parameters.properties.targets.items.enum, ["goblin"]);
   assert.match(
     tool.description,
-    /magic-missile \(Magic Missile, 1st level: slot_level 1; target goblin \(Goblin Warrior\)\)/u,
+    /magic-missile \(Magic Missile, 1st level: slot_level 1; one target: goblin \(Goblin Warrior\)\)/u,
   );
   assert.ok(offeredToolsMatchActions(session));
   assert.match(
@@ -359,22 +363,22 @@ test("scripted DM: the DM can't invent a spell or cast without a slot", async ()
   const session = castingSession();
   const cases = [
     [
-      { spell: "fireball", slot_level: 3, target: "goblin" },
+      { spell: "wish", slot_level: 3, targets: ["goblin"] },
       "unknown-spell",
       "There is no such spell for you to cast.",
     ],
     [
-      { spell: "inflict-wounds", slot_level: 1, target: "goblin" },
+      { spell: "inflict-wounds", slot_level: 1, targets: ["goblin"] },
       "unprepared-spell",
       "You haven't prepared Inflict Wounds.",
     ],
     [
-      { spell: "magic-missile", slot_level: 2, target: "goblin" },
+      { spell: "magic-missile", slot_level: 2, targets: ["goblin"] },
       "no-slot",
       "You have no 2nd-level spell slots.",
     ],
     [
-      { spell: "magic-missile", slot_level: null, target: "goblin" },
+      { spell: "magic-missile", slot_level: null, targets: ["goblin"] },
       "slot-level",
       "Magic Missile needs a spell slot of 1st level or higher.",
     ],
@@ -392,9 +396,9 @@ test("scripted DM: the DM can't invent a spell or cast without a slot", async ()
   }
   // Malformed arguments never reach the engine.
   for (const args of [
-    { spell: "magic-missile", target: "goblin" },
-    { spell: "magic-missile", slot_level: 1.5, target: "goblin" },
-    { spell: "magic-missile", slot_level: 1, target: "goblin", extra: 1 },
+    { spell: "magic-missile", targets: ["goblin"] },
+    { spell: "magic-missile", slot_level: 1.5, targets: ["goblin"] },
+    { spell: "magic-missile", slot_level: 1, targets: ["goblin"], extra: 1 },
   ]) {
     const { turn } = await session.converse(
       "I cast a spell.",
@@ -428,7 +432,7 @@ test("scripted DM: the DM can't invent a spell or cast without a slot", async ()
     scriptedDm("cast", {
       spell: "magic-missile",
       slot_level: 1,
-      target: "goblin",
+      targets: ["goblin"],
     }),
   );
   assert.deepEqual(attempt(turn).result.engineResult.rejection, {
@@ -462,7 +466,7 @@ test("a trace replays casts, and a saved session reloads them", async () => {
         scriptedDm("cast", {
           spell: "magic-missile",
           slot_level: 1,
-          target: "goblin",
+          targets: ["goblin"],
         }),
       );
     }

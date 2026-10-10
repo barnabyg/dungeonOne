@@ -42,6 +42,9 @@ export const TEST_CASTER_SPELLCASTING: SpellcastingDefinition = {
     "shield-of-faith",
     "mage-armor",
     "shield",
+    "burning-hands",
+    "shatter",
+    "fireball",
   ],
 };
 

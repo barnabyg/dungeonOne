@@ -112,7 +112,7 @@ export function engineAction(view) {
   };
 }
 
-function madeAction({ action, target, rest, spell }) {
+function madeAction({ action, target, targets, rest, spell }) {
   switch (action) {
     case "attack":
     case "light-attack":
@@ -170,13 +170,17 @@ function madeAction({ action, target, rest, spell }) {
     // A long rest at a rest site (#335).
     case "long-rest":
       return { type: "long-rest" };
-    // A spell (#336), with the slot level the bar offers it at.
+    // A spell (#336), with the slot level the bar offers it at; an area
+    // spell (#338) at the first of its targets, up to its most.
     case "cast":
       return {
         type: "cast",
         actorId: PLAYER,
         spellId: spell.id,
-        targetId: target.id,
+        targetIds:
+          targets === undefined
+            ? [target.id]
+            : targets.slice(0, spell.maxTargets).map(({ id }) => id),
         ...(spell.slotLevel === undefined
           ? {}
           : { slotLevel: spell.slotLevel }),
@@ -193,6 +197,12 @@ const BUFFED = {
   prepared: ["bless", "shield-of-faith", "shield"],
 };
 
+/** The test caster with area spells prepared (#338). */
+const AREAS = {
+  cantrips: ["fire-bolt", "sacred-flame"],
+  prepared: ["burning-hands", "shatter", "cure-wounds"],
+};
+
 /**
  * The playthroughs' modules, each with the fighters that play it in turn:
  * every fixture module with Ada at level 1 and the veteran (#156), then
@@ -201,8 +211,8 @@ const BUFFED = {
  * few arrows to sell, and more tries at the sealed crypt's trap; then a
  * level-3 Thief's fights with Hide and Steady Aim (#307); then a level-5
  * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
- * test caster's, with 1st- and 2nd-level slots (#336), and with buffs and
- * Shield prepared (#337).
+ * test caster's, with 1st- and 2nd-level slots (#336), with buffs and
+ * Shield prepared (#337), and with area spells (#338).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -217,6 +227,7 @@ const PLAYTHROUGHS = [
   { adventure: goblinTrio, fighters: [rogueAt5()] },
   { adventure: goblinTrio, fighters: [testCasterAt(3)] },
   { adventure: goblinTrio, fighters: [testCasterAt(3, BUFFED)] },
+  { adventure: goblinTrio, fighters: [testCasterAt(3, AREAS)] },
 ];
 
 /**

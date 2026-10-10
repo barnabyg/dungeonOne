@@ -89,7 +89,7 @@ const blessHolds = (session) => {
       type: "cast",
       actorId: "pc",
       spellId: "bless",
-      targetId: "pc",
+      targetIds: ["pc"],
       slotLevel: 1,
     },
     "click",
@@ -165,7 +165,7 @@ for (const viewport of [
           type: "cast",
           actorId: "pc",
           spellId: "bless",
-          targetId: "pc",
+          targetIds: ["pc"],
           slotLevel: 1,
         });
         assert.deepEqual(

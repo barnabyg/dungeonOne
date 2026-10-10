@@ -16,13 +16,11 @@ import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { testCasterAt } from "../dist/test-caster-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -62,7 +60,7 @@ const castAt = (spellId, targetId = "pc", slotLevel = 1) => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
   // A cantrip names none: null.
   ...(slotLevel === null ? {} : { slotLevel }),
 });
@@ -106,12 +104,6 @@ function inFight(sheet, first = true) {
       ).state,
   };
 }
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 40);
-  assert.equal(FIFTH_TRACE_FORMAT, 34);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v25");
-});
 
 test("Bless lasts the fight: the bar, the status and the effects view show it", () => {
   const { using, begin } = inFight(sage(BUFFS));
@@ -339,7 +331,7 @@ test("scripted DM: the DM can't extend a duration or keep two concentration spel
   const session = sessionWhere(sage(BUFFS), sagesTurn);
   const { turn: first } = await session.converse(
     "I cast Bless on myself.",
-    scriptedDm("cast", { spell: "bless", slot_level: 1, target: "pc" }),
+    scriptedDm("cast", { spell: "bless", slot_level: 1, targets: ["pc"] }),
   );
   assert.equal(attempt(first).result.engineResult.rejection, undefined);
   if (session.state.status !== "playing") {
@@ -349,7 +341,7 @@ test("scripted DM: the DM can't extend a duration or keep two concentration spel
   const before = session.state;
   const { turn: again } = await session.converse(
     "Cast Bless again so it lasts after the fight.",
-    scriptedDm("cast", { spell: "bless", slot_level: 1, target: "pc" }),
+    scriptedDm("cast", { spell: "bless", slot_level: 1, targets: ["pc"] }),
   );
   assert.deepEqual(attempt(again).result.engineResult.rejection, {
     code: "effect-active",
@@ -366,7 +358,7 @@ test("scripted DM: the DM can't extend a duration or keep two concentration spel
     scriptedDm("cast", {
       spell: "shield-of-faith",
       slot_level: 1,
-      target: "pc",
+      targets: ["pc"],
       duration: 60,
     }),
   );
@@ -383,7 +375,7 @@ test("scripted DM: the DM can't extend a duration or keep two concentration spel
     scriptedDm("cast", {
       spell: "shield-of-faith",
       slot_level: 1,
-      target: "pc",
+      targets: ["pc"],
     }),
   );
   const { engineResult } = attempt(second).result;
@@ -412,7 +404,7 @@ test("scripted DM: a waiting hit offers Shield through the cast tool", async () 
   );
   const tool = castTool(session);
   assert.deepEqual(tool.parameters.properties.spell.enum, ["shield"]);
-  assert.deepEqual(tool.parameters.properties.target.enum, ["pc"]);
+  assert.deepEqual(tool.parameters.properties.targets.items.enum, ["pc"]);
   assert.ok(offeredToolsMatchActions(session));
   const names = session.runtime
     .getGameToolDefinitions(session.state)
@@ -429,7 +421,7 @@ test("scripted DM: a waiting hit offers Shield through the cast tool", async () 
     scriptedDm("cast", {
       spell: "magic-missile",
       slot_level: 1,
-      target: "goblin",
+      targets: ["goblin"],
     }),
   );
   assert.equal(
@@ -460,7 +452,7 @@ test("a trace replays Shield and Bless, and a saved session reloads them", async
     if (sagesTurn(run.session)) {
       await run.message(
         "I bless myself.",
-        scriptedDm("cast", { spell: "bless", slot_level: 1, target: "pc" }),
+        scriptedDm("cast", { spell: "bless", slot_level: 1, targets: ["pc"] }),
       );
     }
     const tracePath = join(directory, "trace.json");

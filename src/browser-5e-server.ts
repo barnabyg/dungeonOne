@@ -715,17 +715,19 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         return click(body, { type: "rest", hitDice: body.hitDice as number });
       case "/api/5e/session/cast":
         // A spell (#337) with its slot level (null for a cantrip) and its
-        // target; the runtime and the engine refuse what they wouldn't take.
+        // targets (#338); the runtime and the engine refuse what they
+        // wouldn't take.
         if (
           !hasExactKeys(body, [
             "sessionId",
             "sequence",
             "spellId",
             "slotLevel",
-            "targetId",
+            "targetIds",
           ]) ||
           typeof body.spellId !== "string" ||
-          typeof body.targetId !== "string" ||
+          !Array.isArray(body.targetIds) ||
+          !body.targetIds.every((id) => typeof id === "string") ||
           (body.slotLevel !== null && !Number.isInteger(body.slotLevel))
         ) {
           throw new Error("Invalid cast request.");
@@ -734,7 +736,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           type: "cast",
           actorId: PLAYER_ID,
           spellId: body.spellId,
-          targetId: body.targetId,
+          targetIds: body.targetIds as string[],
           ...(body.slotLevel === null
             ? {}
             : { slotLevel: body.slotLevel as number }),

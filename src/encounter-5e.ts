@@ -106,6 +106,10 @@
  *   it standing calls for a Constitution saving throw against the higher of
  *   10 and half the damage (at most 30); a failure ends the spell, as do
  *   being incapacitated and falling.
+ * - Area spells (#338): an area spell catches up to its `maxTargets`
+ *   opponents (D4), chosen by the caster, each once. Its damage is rolled
+ *   once; then each target, in the order chosen, saves for itself and takes
+ *   the damage, or half on a success, through its own defences.
  * - Reaction spells (#337): an opponent's hit on a combatant that can cast
  *   one (Shield, its reaction free and a slot left) pauses as Uncanny Dodge
  *   does, and the combatant answers with Uncanny Dodge, the spell or the
@@ -159,6 +163,7 @@ import type { RandomSource } from "./random.js";
 import {
   effectAtSlot,
   effectEnds,
+  maxTargets,
   ordinal,
   type Buff,
   type CastingTime,
@@ -743,15 +748,16 @@ export type EncounterAction =
     }>;
 
 /**
- * Casting a spell (#336) the combatant can cast, at a target: a cantrip with
- * no slot, a levelled spell with a slot of its level or higher.
+ * Casting a spell (#336) the combatant can cast, at its targets: a cantrip
+ * with no slot, a levelled spell with a slot of its level or higher. Only an
+ * area spell (#338) takes more than one target, up to its most.
  */
 export type CastAction = Readonly<{
   type: "cast";
   actorId: string;
   spellId: string;
   slotLevel?: number;
-  targetId: string;
+  targetIds: readonly string[];
 }>;
 
 export type AttackEvent = Readonly<{
@@ -943,7 +949,8 @@ export type SavingThrow = Readonly<
 /**
  * A spell cast (#336): the spell, its level and casting time, the slot it
  * spent (a levelled spell's) with the slots of that level left, and its
- * target. Its effect's event follows.
+ * targets, several only for an area spell (#338). Its effect's events
+ * follow.
  */
 export type CastEvent = Readonly<{
   type: "cast";
@@ -953,7 +960,20 @@ export type CastEvent = Readonly<{
   level: number;
   castingTime: CastingTime;
   slot?: Readonly<{ level: number; left: number; max: number }>;
-  targetId: string;
+  targetIds: readonly string[];
+}>;
+
+/**
+ * An area spell's one damage roll (#338), before each target's save
+ * (`SpellSaveEvent`, marked `area`).
+ */
+export type SpellAreaEvent = Readonly<{
+  type: "spell-area";
+  actorId: string;
+  spell: string;
+  targetIds: readonly string[];
+  damageRolls: readonly number[];
+  damageType: DamageType;
 }>;
 
 /** A spell's damage as dealt, after any resistance, vulnerability or immunity. */
@@ -979,6 +999,11 @@ export type SpellSaveEvent = Readonly<{
   spell: string;
   save: SavingThrow;
   onSuccess: "half" | "none";
+  /**
+   * An area spell's target (#338): `damageRolls` were rolled once, in the
+   * `spell-area` event before it.
+   */
+  area?: true;
 }> &
   SpellDamageDealt;
 
@@ -1097,6 +1122,7 @@ export type EncounterEvent =
   | ReactionOfferedEvent
   | PotionEvent
   | CastEvent
+  | SpellAreaEvent
   | SpellSaveEvent
   | SpellDamageEvent
   | SpellHealingEvent
@@ -1129,6 +1155,8 @@ export type EncounterRefusalCode =
   | "no-combatant"
   | "not-your-turn"
   | "no-target"
+  | "too-many-targets"
+  | "duplicate-target"
   | "same-side"
   | "already-defeated"
   | "action-used"
@@ -3330,26 +3358,44 @@ function spellTarget(
 function castRefusal(
   state: EncounterState,
   actor: Combatant,
-  action: Pick<CastAction, "spellId" | "slotLevel" | "targetId">,
+  action: Pick<CastAction, "spellId" | "slotLevel" | "targetIds">,
   reacting = false,
 ): EncounterRejection | undefined {
   const refusal = spellRefusal(state, actor, action, reacting);
   if (refusal !== undefined) {
     return refusal;
   }
-  if (reacting && action.targetId !== actor.id) {
+  const spell = spellOf(actor, action.spellId)!;
+  const { targetIds } = action;
+  // One target, or an area spell's chosen few (#338), each once.
+  if (targetIds.length === 0) {
+    return refused("no-target", `Name ${spell.name}'s target.`);
+  }
+  if (new Set(targetIds).size !== targetIds.length) {
     return refused(
-      "self-target",
-      `${spellOf(actor, action.spellId)!.name} is cast on yourself.`,
+      "duplicate-target",
+      `${spell.name} can't catch the same creature twice.`,
     );
   }
-  const target = spellTarget(
-    state,
-    actor,
-    spellOf(actor, action.spellId)!,
-    action.targetId,
-  );
-  return "code" in target ? target : undefined;
+  const most = maxTargets(spell);
+  if (targetIds.length > most) {
+    return refused(
+      "too-many-targets",
+      most === 1
+        ? `${spell.name} has one target.`
+        : `${spell.name} catches at most ${most} opponents.`,
+    );
+  }
+  if (reacting && targetIds[0] !== actor.id) {
+    return refused("self-target", `${spell.name} is cast on yourself.`);
+  }
+  for (const targetId of targetIds) {
+    const target = spellTarget(state, actor, spell, targetId);
+    if ("code" in target) {
+      return target;
+    }
+  }
+  return undefined;
 }
 
 /** Whether `actor` can cast any of its spells at anyone now (#336). */
@@ -3361,7 +3407,7 @@ function canCast(state: EncounterState, actor: Combatant): boolean {
           castRefusal(state, actor, {
             spellId: spell.id,
             ...(slotLevel === undefined ? {} : { slotLevel }),
-            targetId: target.id,
+            targetIds: [target.id],
           }) === undefined,
       ),
     ),
@@ -3493,9 +3539,10 @@ function castSpell(
             max: slots[slotIndex]!.max,
           },
         }),
-    targetId: action.targetId,
+    targetIds: action.targetIds,
   });
-  const target = combatant(spent, action.targetId);
+  // Every spell but an area spell (#338) has one target.
+  const target = combatant(spent, action.targetIds[0]!);
   switch (effect.kind) {
     case "attack": {
       const resolved = resolveAttack(spent, caster, target, random, {
@@ -3506,6 +3553,12 @@ function castSpell(
       return resolved.state;
     }
     case "save": {
+      if (spell.area !== undefined) {
+        return areaDamage(spent, caster, spell, effect, action.targetIds, {
+          random,
+          events,
+        });
+      }
       const save = savingThrow(
         spent,
         target,
@@ -3627,6 +3680,70 @@ function castSpell(
       };
     }
   }
+}
+
+/**
+ * An area spell's damage (#338): rolled once, then each target, in the
+ * order chosen, saves against the caster's DC and takes the damage, or on
+ * a success half of it (rounded down) or none, through its own defences.
+ */
+function areaDamage(
+  state: EncounterState,
+  caster: Combatant,
+  spell: SpellDefinition,
+  effect: Extract<SpellEffect, { kind: "save" }>,
+  targetIds: readonly string[],
+  { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
+): EncounterState {
+  const { damage } = effect;
+  const damageRolls = rollDice(random, damage.dice, damage.sides);
+  const full = sum(damageRolls);
+  events.push({
+    type: "spell-area",
+    actorId: caster.id,
+    spell: spell.name,
+    targetIds,
+    damageRolls,
+    damageType: damage.type,
+  });
+  let next = state;
+  for (const targetId of targetIds) {
+    const target = combatant(next, targetId);
+    const save = savingThrow(
+      next,
+      target,
+      { ability: effect.ability, dc: caster.spellcasting!.saveDc },
+      random,
+    );
+    const taken = !save.success
+      ? full
+      : effect.onSuccess === "half"
+        ? Math.floor(full / 2)
+        : 0;
+    next = spellDamage(
+      next,
+      caster,
+      target,
+      taken,
+      damage.type,
+      random,
+      events,
+      (dealt) => ({
+        type: "spell-save",
+        actorId: caster.id,
+        targetId,
+        spell: spell.name,
+        save,
+        onSuccess: effect.onSuccess,
+        area: true,
+        damageRolls,
+        damageModifier: 0,
+        damageType: damage.type,
+        ...dealt,
+      }),
+    );
+  }
+  return next;
 }
 
 /**

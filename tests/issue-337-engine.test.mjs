@@ -139,7 +139,7 @@ const cast = (spellId, targetId = "pc", slotLevel = 1) => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
   slotLevel,
 });
 
@@ -147,7 +147,7 @@ const cantrip = (spellId, targetId = "goblin") => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
 });
 
 function accepted(state, action, random = dice()) {
