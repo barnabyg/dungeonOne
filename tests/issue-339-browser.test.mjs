@@ -181,12 +181,12 @@ for (const viewport of [
           .locator("#preview-body")
           .filter({ hasText: "AC:" })
           .waitFor();
-        // Creation offers the Fighter, the Rogue and the Cleric.
+        // Creation offers the Fighter, the Rogue, the Cleric and the Wizard.
         assert.deepEqual(
           await page
             .locator("#class-fields input")
             .evaluateAll((radios) => radios.map(({ id }) => id)),
-          ["class-fighter", "class-rogue", "class-cleric"],
+          ["class-fighter", "class-rogue", "class-cleric", "class-wizard"],
         );
         assert.equal(await page.locator("#spells").isHidden(), true);
         await page.locator("#class-cleric").check();

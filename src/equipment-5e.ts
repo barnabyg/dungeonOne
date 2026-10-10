@@ -24,9 +24,12 @@ export const TIERS = ["common", "uncommon", "rare"] as const;
 export type Tier = (typeof TIERS)[number];
 
 /** SRD 5.2 weapon mastery properties of the catalogue's weapons. */
-export type MasteryName = "Graze" | "Nick" | "Sap" | "Slow" | "Vex";
-/** The masteries the game uses: Slow needs positions. */
-export type UsedMastery = Exclude<MasteryName, "Slow">;
+export type MasteryName = "Graze" | "Nick" | "Sap" | "Slow" | "Topple" | "Vex";
+/**
+ * The masteries the game uses: Slow needs positions, and Topple (#340, the
+ * quarterstaff's) waits for a class that masters a quarterstaff.
+ */
+export type UsedMastery = Exclude<MasteryName, "Slow" | "Topple">;
 
 export type WeaponProperty =
   | "ammunition"
@@ -161,6 +164,19 @@ export const WEAPONS = {
     damageType: "bludgeoning",
     properties: [],
     mastery: "Sap",
+    tier: "common",
+  },
+  // The Wizard's staff (#340).
+  quarterstaff: {
+    name: "Quarterstaff",
+    category: "simple",
+    price: 20,
+    weight: 4,
+    damage: { dice: 1, sides: 6 },
+    versatile: { dice: 1, sides: 8 },
+    damageType: "bludgeoning",
+    properties: ["versatile"],
+    mastery: "Topple",
     tier: "common",
   },
   shortsword: {
@@ -467,6 +483,10 @@ export const MASTERIES: Readonly<
     text: "Slow reduces a creature's speed; with no positions it is omitted.",
     used: false,
   },
+  Topple: {
+    text: "A creature it hits makes a Constitution saving throw or falls prone; not yet used, since no class here masters a quarterstaff.",
+    used: false,
+  },
   Vex: {
     text: "When it hits and deals damage, you have advantage on your next attack roll against that creature before the end of your next turn.",
     used: true,
@@ -475,7 +495,8 @@ export const MASTERIES: Readonly<
 
 /**
  * The weapons a character can choose a mastery for: every catalogue weapon
- * whose mastery is used. The club's Slow needs positions.
+ * whose mastery is used. The club's Slow needs positions; the quarterstaff's
+ * Topple is not used yet (#340).
  */
 export const MASTERY_WEAPONS = (Object.keys(WEAPONS) as WeaponId[]).filter(
   (id) => MASTERIES[WEAPONS[id].mastery].used,
@@ -1028,8 +1049,9 @@ export type KitData = Readonly<{
  * levels are dangerous, so better gear is found, bought or earned. Each
  * class offers its own (`ClassDefinition.kits`): the Fighter the first
  * three, the Rogue (#306) the shortsword kits, each with thieves' tools
- * (#309), and the Cleric (#339) the mace kit, its daggers stowed, and the
- * club and shield kit.
+ * (#309), the Cleric (#339) the mace kit, its daggers stowed, and the
+ * club and shield kit, and the Wizard (#340), with no armour training, a
+ * quarterstaff with a dagger stowed or two daggers.
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -1060,6 +1082,12 @@ export const STARTING_KITS = {
     name: "Club, shield and leather",
     equipment: ["leather", "shield", "club"],
   },
+  "quarterstaff-and-dagger": {
+    name: "Quarterstaff and dagger",
+    equipment: ["quarterstaff"],
+    stowed: ["dagger"],
+  },
+  daggers: { name: "Two daggers", equipment: ["dagger", "dagger"] },
 } as const satisfies Record<string, KitData>;
 export type KitId = keyof typeof STARTING_KITS;
 /** Every starting kit's id, in the order creation offers them. */

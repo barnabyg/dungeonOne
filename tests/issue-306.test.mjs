@@ -753,6 +753,7 @@ test("the API offers both classes and creates a Rogue; another class's choices a
         ["fighter", "Fighter", 2, 0, true],
         ["rogue", "Rogue", 4, 2, false],
         ["cleric", "Cleric", 2, 0, false],
+        ["wizard", "Wizard", 2, 0, false],
       ],
     );
     const rogueEntry = classes.find(({ id }) => id === "rogue");
@@ -766,7 +767,7 @@ test("the API offers both classes and creates a Rogue; another class's choices a
       ...rogueEntry.defaults,
     };
     const refused = [
-      { ...choices, class: "wizard" },
+      { ...choices, class: "warlock" },
       { ...choices, fightingStyle: "defense" },
       { ...choices, class: "fighter" },
       { ...choices, cunning: true },

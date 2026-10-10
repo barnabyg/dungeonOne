@@ -121,7 +121,7 @@ test("the sheet names its class by id, and only a known class is valid", () => {
     /Unsupported character class/u,
   );
   assert.throws(
-    () => validateCharacter({ ...TEST_FIGHTER, class: "wizard" }),
+    () => validateCharacter({ ...TEST_FIGHTER, class: "warlock" }),
     /Unsupported character class/u,
   );
 });

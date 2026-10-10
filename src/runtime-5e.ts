@@ -235,6 +235,8 @@ import {
 import {
   abilityDisadvantages,
   abilityModifier,
+  ARCANE_RECOVERY,
+  arcaneRecovery,
   initiativeAdvantages,
   tacticalMindDie,
   hasExpertise,
@@ -265,7 +267,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v27";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v28";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1010,6 +1012,20 @@ export type FifthEvent =
       interrupted: boolean;
       opponents?: readonly string[];
     }>
+  /**
+   * Arcane Recovery (#340) on a short rest: the spell slots it regained by
+   * level, each with its uses after, and its own uses left.
+   */
+  | Readonly<{
+      type: "arcane-recovery";
+      slots: readonly Readonly<{
+        level: number;
+        count: number;
+        uses: number;
+        max: number;
+      }>[];
+      usesLeft: number;
+    }>
   /** The feature uses a rest restored (#334), each with its uses after. */
   | Readonly<{
       type: "uses-regained";
@@ -1382,7 +1398,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn: while it is offered, cast takes damage_type, the type the player chooses from those listed (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool. Prepared spells change only between adventures, in the character library: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1981,6 +1997,8 @@ export function spellSummary(spell: SpellDefinition): string {
       return `${buffText(effect.buff)}${effect.concentration === true ? ", concentration" : ""}`;
     case "flavour":
       return "flavour only: no effect in play";
+    case "control":
+      return `${titleCase(effect.ability)} save or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration; a creature immune to exhaustion is unaffected`;
   }
 }
 
@@ -2000,6 +2018,8 @@ export function buffText(buff: Buff, damageType?: string): string {
       return `+1d${buff.sides} to the next ability check`;
     case "damage-reduction":
       return `1d${buff.sides} off ${damageType ?? "the chosen"} damage, once a turn`;
+    case "control":
+      return "asleep while its conditions last; damage wakes it";
   }
 }
 
@@ -2053,6 +2073,9 @@ function effectText(
         "concentration-broken": `${your} concentration is broken`,
         incapacitated: `${caster ? "you can't" : `${name(event.casterId)} can't`} concentrate while incapacitated`,
         fell: `${caster ? "you have" : `${name(event.casterId)} has`} fallen`,
+        woke: "the damage wakes it",
+        saved: "it shakes the spell off",
+        lapsed: "it has run its course",
       }[event.reason];
       return `${event.spell} ends on ${who(event.targetId)}: ${why}.`;
     }
@@ -2134,7 +2157,12 @@ function spellText(
     FifthEvent,
     {
       type:
-        "cast" | "spell-area" | "spell-save" | "spell-damage" | "spell-healing";
+        | "cast"
+        | "spell-area"
+        | "spell-save"
+        | "spell-condition"
+        | "spell-damage"
+        | "spell-healing";
     }
   >,
   name: (id: string) => string,
@@ -2190,6 +2218,20 @@ function spellText(
         : "";
       return `${rolled}. Damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}${halved}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
     }
+    case "spell-condition": {
+      // A control spell's save (#340): Sleep's.
+      const target = name(event.targetId);
+      if (event.immune !== undefined) {
+        return `${target} succeeds on its saving throw against ${event.spell} without a roll: it is immune to exhaustion.`;
+      }
+      const { save } = event;
+      const ability = titleCase(save.ability);
+      const rolled =
+        save.autoFail === undefined
+          ? `${target} makes a ${ability} saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a ${ability} saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
+      return `${rolled}${event.success ? ": the spell has no effect." : "."}`;
+    }
     case "spell-damage": {
       const target = name(event.targetId);
       const rolled =
@@ -2220,6 +2262,13 @@ function conditionText(
         ? "until the end of its next turn"
         : `for ${turns}`
       : `until it succeeds on a DC ${event.save.dc} ${titleCase(event.save.ability)} saving throw at the end of one of its turns, for up to ${turns}`;
+  // Sleep's conditions (#340) last while the spell does.
+  if (event.kind === "unconscious") {
+    return "it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until it takes damage or the spell ends.";
+  }
+  if (event.kind === "incapacitated") {
+    return `it can't act until the end of its next turn, when it makes a DC ${event.save?.dc ?? 0} ${titleCase(event.save?.ability ?? "wisdom")} saving throw or falls unconscious; damage wakes it.`;
+  }
   const effects =
     event.kind === "paralysed"
       ? "it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit,"
@@ -2240,6 +2289,8 @@ function conditionEndedText(
       return `${who} is no longer ${event.kind}: it has run its course.`;
     case "fight-over":
       return `${who} is no longer ${event.kind}: the fight is over.`;
+    case "spell-ended":
+      return `${who} is no longer ${event.kind}: the spell has ended.`;
   }
 }
 
@@ -2318,7 +2369,8 @@ export function renderFifthEvent(
         event.guided === true
           ? ` The next attack roll against ${target.name} has advantage before the end of ${event.actorId === PLAYER_ID ? "your" : `${name(event.actorId)}'s`} next turn (${GUIDING_BOLT}).`
           : "";
-      return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
+      // Paralysed, or unconscious (#340): every hit is critical.
+      return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
     }
     case "reaction-offered": {
       // Uncanny Dodge (#308) or a reaction spell (#337): the hit waits for
@@ -2382,6 +2434,7 @@ export function renderFifthEvent(
     case "cast":
     case "spell-area":
     case "spell-save":
+    case "spell-condition":
     case "spell-damage":
     case "spell-healing":
       return spellText(
@@ -2553,6 +2606,14 @@ export function renderFifthEvent(
             "and",
           )} ${(event.opponents ?? []).length === 1 ? "comes" : "come"} upon you. Your ${event.rest} rest is interrupted and restores nothing.`
         : `You keep watch as you rest: d100 ${event.roll}, over ${event.chance}: nothing disturbs you.`;
+    case "arcane-recovery":
+      return `Arcane Recovery: you regain ${listed(
+        event.slots.map(
+          ({ level, count, uses, max }) =>
+            `${count === 1 ? "a" : count} ${ordinal(level)}-level spell ${count === 1 ? "slot" : "slots"} (${uses} of ${max} left)`,
+        ),
+        "and",
+      )}. It comes back with a long rest.`;
     case "uses-regained":
       return event.features
         .map(
@@ -3220,6 +3281,17 @@ export function describeFifthResult(
             : [spellDamageGroup(event)]),
         ];
       }
+      case "spell-condition":
+        // A control spell's save (#340), unless it succeeded without one.
+        return event.save === undefined || event.save.autoFail !== undefined
+          ? []
+          : [
+              saveGroup(
+                name(event.targetId),
+                `${titleCase(event.save.ability)} saving throw (${event.spell})`,
+                event.save,
+              ),
+            ];
       case "spell-damage":
         return [spellDamageGroup(event)];
       case "spell-healing":
@@ -3499,8 +3571,12 @@ export type ActionView = Readonly<{
     slotLevel?: number;
     /** An area spell's most targets (#338), when above 1. */
     maxTargets?: number;
-    /** The damage type Resistance resists (#339). */
+    /**
+     * The damage type chosen for it: the one Resistance resists (#339), or
+     * the one Chromatic Orb deals (#340), as `damageTypeUse` says.
+     */
     damageType?: string;
+    damageTypeUse?: "resisted" | "dealt";
   }>;
   /**
    * An area spell's cast (#338): the foes it may catch, up to its
@@ -5317,10 +5393,13 @@ export function createFifthRuntime(
     );
   };
 
-  /** `state` with each recovered feature's uses (#334, #335) set. */
+  /**
+   * `state` with each recovered feature's uses (#334, #335) set, and
+   * Arcane Recovery's (#340).
+   */
   const recover = (
     state: FifthState,
-    recovered: ReturnType<typeof restRecovery>,
+    recovered: readonly Readonly<{ featureId: string; uses: number }>[],
   ): FifthState => ({
     ...state,
     character: {
@@ -5379,13 +5458,27 @@ export function createFifthRuntime(
    */
   const restCounts = (state: FifthState): readonly number[] => {
     const left = state.character.hitDice;
-    const recovers = restRecovery(state).length > 0;
+    const recovers =
+      restRecovery(state).length > 0 || arcaneRecovered(state) !== undefined;
     const hurt = state.character.hp < maxHp && left > 0;
     if (!hurt) {
       // At full HP no die is spent: only a rest that spends none.
       return recovers ? [0] : [];
     }
     return [...Array(left + 1).keys()].filter((count) => count > 0 || recovers);
+  };
+
+  /**
+   * What Arcane Recovery (#340) would regain on a short rest now, after the
+   * rest's own recovery, or undefined when it would regain nothing.
+   */
+  const arcaneRecovered = (state: FifthState) => {
+    const recovered = arcaneRecovery(
+      characterProfile(sheet),
+      recover(state, restRecovery(state)).character.featureUses,
+      "short",
+    );
+    return "regained" in recovered ? recovered.regained : undefined;
   };
 
   /**
@@ -5419,6 +5512,11 @@ export function createFifthRuntime(
         maxHp,
       });
     }
+    // Arcane Recovery (#340) regains slots once per long rest.
+    const arcane = arcaneRecovered(state);
+    const arcaneUses =
+      (state.character.featureUses[ARCANE_RECOVERY] ?? 0) -
+      (arcane === undefined ? 0 : 1);
     const next = recover(
       {
         ...state,
@@ -5429,7 +5527,13 @@ export function createFifthRuntime(
           hitDice: state.character.hitDice - spent.length,
         },
       },
-      recovered,
+      [
+        ...recovered,
+        ...(arcane ?? []).map(({ featureId, uses }) => ({ featureId, uses })),
+        ...(arcane === undefined
+          ? []
+          : [{ featureId: ARCANE_RECOVERY, uses: arcaneUses }]),
+      ],
     );
     const ended = restEndsEffects(next, "short");
     return {
@@ -5443,6 +5547,20 @@ export function createFifthRuntime(
         },
         ...spent,
         ...regainedEvents(recovered),
+        ...(arcane === undefined
+          ? []
+          : [
+              {
+                type: "arcane-recovery" as const,
+                slots: arcane.map(({ level, count, uses, max }) => ({
+                  level,
+                  count,
+                  uses,
+                  max,
+                })),
+                usesLeft: arcaneUses,
+              },
+            ]),
         ...ended.events,
       ],
     };
@@ -7830,10 +7948,15 @@ export function createFifthRuntime(
                 ...(maxTargets(SPELLS[action.spellId]) === 1
                   ? {}
                   : { maxTargets: maxTargets(SPELLS[action.spellId]) }),
-                // Resistance's damage type (#339).
+                // Resistance's damage type (#339), Chromatic Orb's (#340).
                 ...(action.damageType === undefined
                   ? {}
-                  : { damageType: action.damageType }),
+                  : {
+                      damageType: action.damageType,
+                      damageTypeUse: isResistance(SPELLS[action.spellId])
+                        ? ("resisted" as const)
+                        : ("dealt" as const),
+                    }),
               },
             }
           : {}),
@@ -7885,10 +8008,12 @@ export function createFifthRuntime(
         .flatMap((spell) =>
           slotLevels(caster, spell).flatMap((slotLevel) =>
             // Resistance (#339): an entry for each damage type the foes'
-            // attacks deal.
-            (isResistance(spell) ? foeDamageTypes(foes) : [undefined]).flatMap(
-              (damageType) =>
-                spellCasts(caster, foes, spell, slotLevel, damageType),
+            // attacks deal; Chromatic Orb (#340): for each it may deal.
+            (isResistance(spell)
+              ? foeDamageTypes(foes)
+              : (spell.damageTypes ?? [undefined])
+            ).flatMap((damageType) =>
+              spellCasts(caster, foes, spell, slotLevel, damageType),
             ),
           ),
         );
@@ -7928,8 +8053,9 @@ export function createFifthRuntime(
         ...(damageType === undefined ? {} : { damageType }),
       });
       // An area spell (#338): one entry, its targets chosen from the
-      // foes, up to its most; it dry-runs the first of them.
-      if (spell.area !== undefined) {
+      // foes, up to its most; it dry-runs the first of them. One that
+      // catches only one (Sleep, #340) is offered at each foe instead.
+      if (spell.area !== undefined && maxTargets(spell) > 1) {
         return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
       }
       return (
@@ -9206,7 +9332,8 @@ export function createFifthRuntime(
         most === undefined
           ? `one target: ${listed(targets)}`
           : `up to ${most} different targets from ${listed(targets, "and")}`;
-      // Resistance (#339) resists a damage type the player chooses.
+      // Resistance (#339) resists a damage type the player chooses, and
+      // Chromatic Orb (#340) deals one.
       const types = unique(
         mine.flatMap(({ spell }) =>
           spell!.damageType === undefined ? [] : [spell!.damageType],
@@ -9260,7 +9387,7 @@ export function createFifthRuntime(
               description:
                 "The ids of the spell's targets: one, or for an area spell up to its most, each once, as the player chose them.",
             },
-            // Only while Resistance is offered (#339).
+            // Only while Resistance (#339) or Chromatic Orb (#340) is offered.
             ...(damageTypes.length === 0
               ? {}
               : {
@@ -9268,7 +9395,7 @@ export function createFifthRuntime(
                     type: ["string", "null"],
                     enum: [...damageTypes, null],
                     description:
-                      "The damage type Resistance resists, as the player chose it from those listed; null for every other spell.",
+                      "The damage type the player chose from those listed for the spell: the one Resistance resists, or the one Chromatic Orb deals; null for every other spell.",
                   },
                 }),
           },

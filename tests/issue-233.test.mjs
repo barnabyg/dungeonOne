@@ -416,7 +416,8 @@ test("the bestiary's undead carry their SRD defences, and the Zombie Undead Fort
   const zombie = monster("zombie").statBlock;
   assert.deepEqual(zombie.traits, ["Undead Fortitude"]);
   assert.deepEqual(zombie.damageImmunities, ["poison"]);
-  assert.deepEqual(zombie.conditionImmunities, ["poisoned"]);
+  // Exhaustion (#340), which makes it succeed on Sleep's saves.
+  assert.deepEqual(zombie.conditionImmunities, ["exhaustion", "poisoned"]);
   // Wisdom 6 (−2) with proficiency (+2 at CR 1/4): +0; Constitution 16: +3.
   assert.deepEqual(zombie.saveProficiencies, ["wisdom"]);
   assert.equal(statBlockSaves(zombie).wisdom, 0);
@@ -424,10 +425,10 @@ test("the bestiary's undead carry their SRD defences, and the Zombie Undead Fort
   const skeleton = monster("skeleton").statBlock;
   assert.deepEqual(skeleton.damageVulnerabilities, ["bludgeoning"]);
   assert.deepEqual(skeleton.damageImmunities, ["poison"]);
-  assert.deepEqual(skeleton.conditionImmunities, ["poisoned"]);
+  assert.deepEqual(skeleton.conditionImmunities, ["exhaustion", "poisoned"]);
   const ghoul = monster("ghoul").statBlock;
   assert.deepEqual(ghoul.damageImmunities, ["poison"]);
-  assert.deepEqual(ghoul.conditionImmunities, ["poisoned"]);
+  assert.deepEqual(ghoul.conditionImmunities, ["exhaustion", "poisoned"]);
   // A save proficiency adds the challenge rating's proficiency bonus.
   assert.equal(
     statBlockSaves({ ...zombie, challengeRating: "5" }).wisdom,
@@ -477,9 +478,9 @@ test("the bestiary and module validators refuse a damage type outside SRD 5.2", 
   );
   assert.throws(
     entry((block) => {
-      block.conditionImmunities = ["exhaustion"];
+      block.conditionImmunities = ["charmed"];
     }),
-    /condition immunity 1 must be one of poisoned, prone, paralysed\./,
+    /condition immunity 1 must be one of poisoned, prone, paralysed, exhaustion\./,
   );
   assert.throws(
     entry((block) => {

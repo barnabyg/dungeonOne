@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 9,
+  "formatVersion": 10,
   "monsters": [
     {
       "id": "zombie",
@@ -45,7 +45,7 @@
         "traits": ["Undead Fortitude"],
         "saveProficiencies": ["wisdom"],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"],
+        "conditionImmunities": ["exhaustion", "poisoned"],
         "morale": "never"
       }
     },
@@ -91,7 +91,7 @@
         ],
         "damageVulnerabilities": ["bludgeoning"],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"],
+        "conditionImmunities": ["exhaustion", "poisoned"],
         "morale": "never"
       }
     },
@@ -217,7 +217,7 @@
           }
         ],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"],
+        "conditionImmunities": ["exhaustion", "poisoned"],
         "morale": "never"
       }
     },

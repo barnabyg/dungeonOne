@@ -23,14 +23,20 @@
  * - `flavour` (#339): no effect in play (Thaumaturgy); it is never cast.
  * - An attack may give the next attack roll against its target advantage
  *   (Guiding Bolt, #339).
+ * - `control` (#340): the target saves or has a condition until the end
+ *   of its next turn, then saves again or has a worse one for as long as
+ *   the caster concentrates (Sleep). Damage ends it on the target, and a
+ *   creature immune to exhaustion succeeds without a roll.
  * - An area spell (#338) declares its shape and size, and so the most
  *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
+ * - A spell may take a damage type chosen at casting (`damageTypes`, #339,
+ *   #340): the one Resistance resists, or the one Chromatic Orb deals.
  *
  * Without positions or a clock, ranges are left out and areas and
  * durations are abstracted; the rules document lists what that omits.
  */
 import type { Ability } from "./class-5e.js";
-import type { DamageType } from "./encounter-5e.js";
+import type { ConditionKind, DamageType } from "./encounter-5e.js";
 
 /** How long a spell takes to cast: the Magic action, a bonus action or a reaction. */
 export type CastingTime = "action" | "bonus-action" | "reaction";
@@ -65,6 +71,11 @@ export type Buff = Readonly<
   | { kind: "base-armor-class"; base: number }
   | { kind: "check-die"; sides: number }
   | { kind: "damage-reduction"; sides: number }
+  /**
+   * A control spell's hold on an opponent (#340): Sleep's, while its
+   * conditions last. It ends when the target takes damage.
+   */
+  | { kind: "control" }
 >;
 
 /**
@@ -82,6 +93,19 @@ export const RESISTANCE_DAMAGE_TYPES = [
   "poison",
   "radiant",
   "slashing",
+  "thunder",
+] as const satisfies readonly DamageType[];
+
+/**
+ * The damage types Chromatic Orb may deal (SRD 5.2, #340), chosen at
+ * casting.
+ */
+export const CHROMATIC_ORB_DAMAGE_TYPES = [
+  "acid",
+  "cold",
+  "fire",
+  "lightning",
+  "poison",
   "thunder",
 ] as const satisfies readonly DamageType[];
 
@@ -164,6 +188,20 @@ export type SpellEffect = Readonly<
     }
   /** No effect in play (#339): flavour only, so never cast. */
   | { kind: "flavour" }
+  /**
+   * A control spell (#340, Sleep): the target makes an `ability` save or
+   * has `condition` until the end of its next turn, then saves again or has
+   * `then` for as long as the caster concentrates. Damage ends it on the
+   * target. A creature immune to exhaustion succeeds without a roll.
+   */
+  | {
+      kind: "control";
+      ability: Ability;
+      condition: ConditionKind;
+      then: ConditionKind;
+      duration: SpellDuration;
+      concentration: true;
+    }
 >;
 
 /**
@@ -174,8 +212,11 @@ export type Upcast = Readonly<{ dice: number } | { missiles: number }>;
 
 /** An area spell's shape and size in feet (SRD 5.2, #338). */
 export type SpellArea = Readonly<{
-  shape: "cone" | "line" | "sphere" | "emanation";
-  /** A cone's or line's length, a sphere's or emanation's radius. */
+  shape: "cone" | "cube" | "line" | "sphere" | "emanation";
+  /**
+   * A cone's or line's length, a cube's side (#340), a sphere's or
+   * emanation's radius.
+   */
   feet: number;
 }>;
 
@@ -193,14 +234,22 @@ export type SpellDefinition = Readonly<{
   cantripDice?: number;
   /** A levelled spell's gain from each slot level above its own. */
   upcast?: Upcast;
+  /**
+   * The damage types the caster chooses one of at casting (#339, #340):
+   * the one Resistance resists, or the one Chromatic Orb deals in place of
+   * its effect's.
+   */
+  damageTypes?: readonly DamageType[];
 }>;
 
 /**
  * The feet of an area that each opponent it catches stands for (D4, #338):
- * a cone's length ÷ 10, a line's ÷ 30, a sphere's or emanation's radius ÷ 5.
+ * a cone's length ÷ 10, a cube's side ÷ 10 (#340), a line's ÷ 30, a
+ * sphere's or emanation's radius ÷ 5.
  */
 const FEET_PER_TARGET: Readonly<Record<SpellArea["shape"], number>> = {
   cone: 10,
+  cube: 10,
   line: 30,
   sphere: 5,
   emanation: 5,
@@ -276,6 +325,7 @@ export const SPELLS = {
       duration: { minutes: 1 },
       concentration: true,
     },
+    damageTypes: RESISTANCE_DAMAGE_TYPES,
   },
   thaumaturgy: {
     id: "thaumaturgy",
@@ -295,6 +345,34 @@ export const SPELLS = {
       kind: "attack",
       range: "melee",
       damage: { dice: 1, sides: 8, type: "lightning" },
+    },
+    cantripDice: 2,
+  },
+  // The Wizard's other cantrips (#340): Ray of Frost's slowing and Chill
+  // Touch's bar on regaining hit points have no effect here.
+  "ray-of-frost": {
+    id: "ray-of-frost",
+    name: "Ray of Frost",
+    level: 0,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 1, sides: 8, type: "cold" },
+    },
+    cantripDice: 2,
+  },
+  "chill-touch": {
+    id: "chill-touch",
+    name: "Chill Touch",
+    level: 0,
+    school: "necromancy",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "melee",
+      damage: { dice: 1, sides: 10, type: "necrotic" },
     },
     cantripDice: 2,
   },
@@ -442,6 +520,55 @@ export const SPELLS = {
     area: { shape: "sphere", feet: 20 },
     upcast: { dice: 1 },
   },
+  // The Wizard's 1st-level spells (#340). Chromatic Orb's damage type is
+  // chosen at casting (its effect's is the first) and it never leaps;
+  // Thunderwave's 15-foot cube catches two, and its push is omitted.
+  "chromatic-orb": {
+    id: "chromatic-orb",
+    name: "Chromatic Orb",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 3, sides: 8, type: "acid" },
+    },
+    upcast: { dice: 1 },
+    damageTypes: CHROMATIC_ORB_DAMAGE_TYPES,
+  },
+  thunderwave: {
+    id: "thunderwave",
+    name: "Thunderwave",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "constitution",
+      onSuccess: "half",
+      damage: { dice: 2, sides: 8, type: "thunder" },
+    },
+    area: { shape: "cube", feet: 15 },
+    upcast: { dice: 1 },
+  },
+  // A 5-foot sphere: one target (D4).
+  sleep: {
+    id: "sleep",
+    name: "Sleep",
+    level: 1,
+    school: "enchantment",
+    castingTime: "action",
+    effect: {
+      kind: "control",
+      ability: "wisdom",
+      condition: "incapacitated",
+      then: "unconscious",
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+    area: { shape: "sphere", feet: 5 },
+  },
   // A reaction to being hit by an attack roll (#337): +5 AC until the start
   // of the caster's next turn, against that attack too.
   shield: {
@@ -517,6 +644,7 @@ export function effectAtSlot(
     case "auto-hit":
     case "buff":
     case "flavour":
+    case "control":
       return effect;
     default:
       return {

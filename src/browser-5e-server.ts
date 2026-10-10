@@ -260,6 +260,10 @@ function libraryView(
                 spells: definition.spellcasting.list.map(spellView),
                 cantrips: definition.spellcasting.cantrips[1],
                 prepared: definition.spellcasting.prepared[1],
+                // A Wizard's spellbook (#340): how many it holds.
+                ...(definition.spellcasting.spellbook === undefined
+                  ? {}
+                  : { spellbook: definition.spellcasting.spellbook }),
               },
             }),
         ...(definition.divineOrders === undefined
@@ -322,9 +326,16 @@ function libraryView(
               spells: {
                 cantrips: sheet.spells.cantrips.map((id) => spellView(id)),
                 prepared: sheet.spells.prepared.map((id) => spellView(id)),
-                preparable: (classOf(sheet).spellcasting?.list ?? [])
-                  .filter((id) => SPELLS[id].level >= 1)
-                  .map(spellView),
+                // A Wizard prepares from its spellbook (#340).
+                preparable: (
+                  sheet.spellbook ??
+                  (classOf(sheet).spellcasting?.list ?? []).filter(
+                    (id) => SPELLS[id].level >= 1,
+                  )
+                ).map(spellView),
+                ...(sheet.spellbook === undefined
+                  ? {}
+                  : { spellbook: sheet.spellbook.map(spellView) }),
               },
             }),
         ...(session === undefined ? {} : { session }),
@@ -397,7 +408,15 @@ function choicesFrom(
               CreationChoices["expertise"]
             >,
           }),
-      // A caster's spells and a Cleric's Divine Order (#339).
+      // A caster's spells and a Cleric's Divine Order (#339), and a
+      // Wizard's spellbook (#340).
+      ...(body.spellbook === undefined
+        ? {}
+        : {
+            spellbook: body.spellbook as NonNullable<
+              CreationChoices["spellbook"]
+            >,
+          }),
       ...(body.spells === undefined
         ? {}
         : { spells: body.spells as NonNullable<CreationChoices["spells"]> }),

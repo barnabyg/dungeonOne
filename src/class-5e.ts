@@ -10,7 +10,7 @@
  * starting kits. `character-5e.ts` derives every number on a sheet from its
  * class's definition and never asks which class it is; each class's
  * definition lives in its own module (`fighter-5e.ts`, `rogue-5e.ts`,
- * `cleric-5e.ts`).
+ * `cleric-5e.ts`, `wizard-5e.ts`).
  */
 import {
   MASTERIES,
@@ -55,6 +55,7 @@ export const SKILLS = {
   intimidation: { name: "Intimidation", ability: "charisma" },
   investigation: { name: "Investigation", ability: "intelligence" },
   medicine: { name: "Medicine", ability: "wisdom" },
+  nature: { name: "Nature", ability: "intelligence" },
   perception: { name: "Perception", ability: "wisdom" },
   persuasion: { name: "Persuasion", ability: "charisma" },
   religion: { name: "Religion", ability: "intelligence" },
@@ -298,6 +299,12 @@ export type FeatureEffect = Readonly<
   | { kind: "uncanny-dodge" }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
+  /**
+   * Arcane Recovery (#340): on a short rest, a use regains spent spell
+   * slots totalling up to half the class level (rounded up), none of 6th
+   * level or higher.
+   */
+  | { kind: "arcane-recovery" }
 >;
 
 /** One class or subclass feature, gained at `level`. */
@@ -351,7 +358,7 @@ export type SubclassDefinition = Readonly<{
  * The test-only caster (#336) exercises the casting engine until a playable
  * class casts: creation never offers it, and the gate never plays it.
  */
-export type ClassId = "fighter" | "rogue" | "cleric" | "test-caster";
+export type ClassId = "fighter" | "rogue" | "cleric" | "wizard" | "test-caster";
 
 /** How many spell slots of each level a caster has: `[1st, 2nd, 3rd]`. */
 export type SlotTable = Readonly<Record<Level, readonly number[]>>;
@@ -360,7 +367,9 @@ export type SlotTable = Readonly<Record<Level, readonly number[]>>;
  * A class's spellcasting (#336): the ability its spell attack bonus and save
  * DC use, how many cantrips it knows and spells it prepares by level, its
  * spell slots by level, and the spells it may choose from. Spell slots come
- * back on a long rest, and between adventures.
+ * back on a long rest, and between adventures. A class with a spellbook
+ * (#340, the Wizard) writes `spellbook` levelled spells from its list into
+ * it at creation, and prepares only spells in it.
  */
 export type SpellcastingDefinition = Readonly<{
   ability: Ability;
@@ -368,6 +377,8 @@ export type SpellcastingDefinition = Readonly<{
   prepared: LevelTable;
   slots: SlotTable;
   list: readonly SpellId[];
+  /** The levelled spells its spellbook holds at creation (#340). */
+  spellbook?: number;
 }>;
 
 /** What a short and a long rest restore of spent spell slots (SRD 5.2). */
@@ -421,6 +432,8 @@ export type DefaultChoices = Readonly<{
   spells?: SpellChoices;
   /** For a class with a Divine Order (#339). */
   divineOrder?: DivineOrderId;
+  /** For a class with a spellbook (#340). */
+  spellbook?: readonly SpellId[];
   kit: KitId;
   masteries: readonly WeaponId[];
 }>;

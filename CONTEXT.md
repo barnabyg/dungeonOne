@@ -49,7 +49,7 @@ What casting a levelled spell spends (#336): one slot of the spell's level or hi
 _Avoid_: Mana, Spell points
 
 **Ongoing effect**:
-What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance). Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
+What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance); from #340 a control spell's hold on an opponent (Sleep), which ends when it takes damage. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
 _Avoid_: Buff (in player text), Aura
 
 **Concentration**:
@@ -66,11 +66,17 @@ A spell cast as a reaction (#337), such as Shield: offered only while an opponen
 The Cleric's choice at creation (#339): Protector (heavy armour and martial weapons) or Thaumaturge (one more cantrip, and its Wisdom modifier on Arcana and Religion checks).
 
 **Preparing spells**:
-Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure. Its cantrips are chosen once, at creation.
+Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure. Its cantrips are chosen once, at creation. A Wizard prepares only spells in its spellbook (#340).
 _Avoid_: Memorising (Memorize Spell is a separate spell)
 
 **Reported class**:
-A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric, until the caster policies (#348). No module's verdict depends on it.
+A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric and the Wizard (#340), until the caster policies (#348). No module's verdict depends on it.
+
+**Spellbook**:
+The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation and kept on the sheet, not carried as an item. It prepares spells only from it.
+
+**Arcane Recovery**:
+The Wizard's once-per-long-rest recovery of spent spell slots on a short rest (#340): slot levels up to half its level, rounded up. The engine applies it by itself on the first short rest with a slot to regain.
 
 **Magic action**:
 The action a spell with a casting time of an action takes in a fight (#336); a bonus-action spell takes the bonus action instead.
@@ -369,7 +375,7 @@ What a monster does instead of fleeing when it fails morale and its adventure mo
 _Avoid_: Capture (it is not taken prisoner), Yield (as a term)
 
 **Condition**:
-A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
+A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, or Sleep's incapacitated and unconscious (#340), with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
 _Avoid_: Status effect, Debuff
 
 **Rider**:

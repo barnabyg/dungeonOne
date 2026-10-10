@@ -58,7 +58,7 @@ test("a Cleric heals with its spells before it drinks a potion", () => {
 
 test("the gate reports the Cleric and never judges it", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue"]);
-  assert.deepEqual(REPORTED_CLASSES, ["cleric"]);
+  assert.deepEqual(REPORTED_CLASSES, ["cleric", "wizard"]);
   const gate = gateModule(ratTunnels, { seeds: [0, 1] });
   assert.deepEqual(
     gate.classes.map(({ classId }) => classId),
@@ -75,12 +75,13 @@ test("the gate reports the Cleric and never judges it", () => {
   );
   assert.match(
     renderModuleGateResult(ratTunnels, gate),
-    /^The Rat Tunnels \(rat-tunnels\) for the Cleric, reported \(not judged\): the level 1, 5th percentile Cleric playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(mace-and-daggers level 1 \d+\.\d%, club-and-shield level 1 \d+\.\d%\), casting \d+\.\d healing spells a run\.$/mu,
+    /^The Rat Tunnels \(rat-tunnels\) for the Cleric, reported \(not judged\): the level 1, 5th percentile Cleric playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(mace-and-daggers level 1 \d+\.\d%, club-and-shield level 1 \d+\.\d%\), casting \d+\.\d spells a run, \d+\.\d of them healing\.$/mu,
   );
   // A module above level 1 isn't played for the Cleric yet.
   const higher = gateModule(goblinBand, { seeds: [0] });
   assert.deepEqual(higher.reported, [
     { classId: "cleric", ok: true, levels: [] },
+    { classId: "wizard", ok: true, levels: [] },
   ]);
   assert.match(
     renderModuleGateResult(goblinBand, higher),

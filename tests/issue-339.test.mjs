@@ -124,8 +124,8 @@ for (const [order, choices] of [
   });
 }
 
-test("creation offers the Fighter, the Rogue and the Cleric", () => {
-  assert.deepEqual(OFFERED_CLASS_IDS, ["fighter", "rogue", "cleric"]);
+test("creation offers the Fighter, the Rogue, the Cleric and the Wizard", () => {
+  assert.deepEqual(OFFERED_CLASS_IDS, ["fighter", "rogue", "cleric", "wizard"]);
 });
 
 test("the Cleric's kits are of equal value", () => {
@@ -368,12 +368,12 @@ test("a format-16 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 17);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 18);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 16, not 17/u.test(error.message),
+        /format version 16, not 18/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

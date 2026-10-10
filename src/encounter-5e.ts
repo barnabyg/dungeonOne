@@ -167,7 +167,6 @@ import {
   maxTargets,
   ordinal,
   outlastsFight,
-  RESISTANCE_DAMAGE_TYPES,
   type Buff,
   type CastingTime,
   type EffectEnds,
@@ -218,8 +217,19 @@ export type DamageAdjustment = Readonly<{
   rolled: number;
 }>;
 
-/** The conditions the engine applies. */
-export type ConditionKind = "poisoned" | "prone" | "paralysed";
+/**
+ * The conditions the engine applies: Incapacitated and Unconscious come
+ * from Sleep (#340).
+ */
+export type ConditionKind =
+  "poisoned" | "prone" | "paralysed" | "incapacitated" | "unconscious";
+
+/**
+ * What a creature may be immune to (SRD 5.2): a condition the engine
+ * applies, or exhaustion (#340), which the engine never applies but which
+ * makes a creature succeed on Sleep's saves.
+ */
+export type ConditionImmunity = ConditionKind | "exhaustion";
 
 /** What each condition does to its combatant's rolls and to attacks on it. */
 export const CONDITION_RULES: Readonly<
@@ -250,6 +260,17 @@ export const CONDITION_RULES: Readonly<
   prone: { name: "Prone", attacks: "disadvantage", attacked: "advantage" },
   paralysed: {
     name: "Paralysed",
+    attacked: "advantage",
+    incapacitated: true,
+    failsSaves: ["strength", "dexterity"],
+    criticalHits: true,
+  },
+  // Sleep's (#340): no actions, bonus actions or reactions; then, asleep,
+  // as helpless as the paralysed (it drops prone too, which changes
+  // nothing more here).
+  incapacitated: { name: "Incapacitated", incapacitated: true },
+  unconscious: {
+    name: "Unconscious",
     attacked: "advantage",
     incapacitated: true,
     failsSaves: ["strength", "dexterity"],
@@ -328,6 +349,17 @@ export type Condition = Readonly<{
   turnsLeft: number;
   /** The save the target repeats at the end of each of its turns. */
   save?: SaveSpec;
+  /**
+   * The control spell that gave it (#340, Sleep), which `sourceId` cast:
+   * it ends when the spell ends on the target, and the spell ends on the
+   * target when it ends.
+   */
+  spellId?: string;
+  /**
+   * The worse condition a failed repeat save gives in its place, for as
+   * long as the spell lasts (#340: Sleep's Unconscious).
+   */
+  then?: ConditionKind;
 }>;
 
 /** The weapon masteries the engine applies. */
@@ -437,8 +469,11 @@ export type Combatant = DamageDefenses &
     ammunition?: Ammunition;
     /** Advantage on its attacks while an ally is alive and able to act. */
     packTactics?: true;
-    /** Conditions it cannot be given. */
-    conditionImmunities?: readonly ConditionKind[];
+    /**
+     * Conditions it cannot be given, and exhaustion (#340), which makes it
+     * succeed on Sleep's saves.
+     */
+    conditionImmunities?: readonly ConditionImmunity[];
     /**
      * Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from a
      * critical hit, a Constitution save against DC 5 + the damage taken leaves
@@ -529,6 +564,12 @@ export type EffectDie = Readonly<{
 export type EffectEndReason =
   /** Its die was added to a check (#339): Guidance's. */
   | "used"
+  /** A control spell's target took damage (#340): Sleep's woke. */
+  | "woke"
+  /** A control spell's target succeeded on its repeat save (#340). */
+  | "saved"
+  /** A control spell's condition ran its turns out (#340). */
+  | "lapsed"
   | "next-turn"
   | "fight-over"
   | "rest"
@@ -648,8 +689,12 @@ export type AttackRoll = Readonly<{
   total: number;
   hit: boolean;
   critical: boolean;
-  /** A hit that is critical only because the target is paralysed. */
+  /**
+   * A hit that is critical only because the target is paralysed, or
+   * unconscious (#340): `criticalCondition` names which.
+   */
   paralysedCritical: boolean;
+  criticalCondition?: ConditionKind;
   /** Dice the attacker's effects added to `total` (#337): Bless's. */
   effectDice?: readonly EffectDie[];
 }>;
@@ -780,7 +825,10 @@ export type CastAction = Readonly<{
   spellId: string;
   slotLevel?: number;
   targetIds: readonly string[];
-  /** The damage type chosen for Resistance (#339), and for no other spell. */
+  /**
+   * The damage type chosen at casting, for a spell that takes one: the one
+   * Resistance resists (#339), or the one Chromatic Orb deals (#340).
+   */
   damageType?: DamageType;
 }>;
 
@@ -833,8 +881,12 @@ export type AttackEvent = Readonly<{
    * them.
    */
   sneakAttack?: Readonly<{ damageRolls: readonly number[] }>;
-  /** A hit that is critical only because the target is paralysed. */
+  /**
+   * A hit that is critical only because the target is paralysed, or
+   * unconscious (#340): `criticalCondition` names which.
+   */
   paralysedCritical?: true;
+  criticalCondition?: ConditionKind;
   /** A hit's extra damage from the attack's rider, also taken by `hpAfter`. */
   rider?: Readonly<{
     damageRolls: readonly number[];
@@ -1044,6 +1096,24 @@ export type SpellSaveEvent = Readonly<{
 }> &
   SpellDamageDealt;
 
+/**
+ * A control spell's saving throw (#340, Sleep): rolled, or a success
+ * without a roll for a creature immune to exhaustion (`immune`). A failure
+ * gives `condition`, in the `condition` event after it.
+ */
+export type SpellConditionEvent = Readonly<{
+  type: "spell-condition";
+  actorId: string;
+  targetId: string;
+  spell: string;
+  condition: ConditionKind;
+  success: boolean;
+}> &
+  (
+    | Readonly<{ save: SavingThrow; immune?: never }>
+    | Readonly<{ immune: "exhaustion"; save?: never }>
+  );
+
 /** A spell that always hits (#336), such as Magic Missile: each missile's roll. */
 export type SpellDamageEvent = Readonly<{
   type: "spell-damage";
@@ -1143,8 +1213,11 @@ export type EncounterEvent =
       type: "condition-ended";
       combatantId: string;
       kind: ConditionKind;
-      /** A repeat save, its turns running out, standing up, or the fight ending. */
-      reason: "saved" | "expired" | "stood" | "fight-over";
+      /**
+       * A repeat save, its turns running out, standing up, the fight
+       * ending, or the control spell that gave it ending (#340).
+       */
+      reason: "saved" | "expired" | "stood" | "fight-over" | "spell-ended";
     }>
   | Readonly<{
       type: "second-wind";
@@ -1163,6 +1236,7 @@ export type EncounterEvent =
   | CastEvent
   | SpellAreaEvent
   | SpellSaveEvent
+  | SpellConditionEvent
   | SpellDamageEvent
   | SpellHealingEvent
   | EffectEvent
@@ -1839,28 +1913,71 @@ export function effectEnded(
  */
 function endEffects(
   state: EncounterState,
-  ending: (effect: ActiveEffect) => boolean,
+  ending: (effect: ActiveEffect, holder: Combatant) => boolean,
   reason: EffectEndReason,
   events: EncounterEvent[],
 ): EncounterState {
-  if (!state.combatants.some(({ effects }) => effects?.some(ending))) {
+  if (
+    !state.combatants.some((holder) =>
+      holder.effects?.some((effect) => ending(effect, holder)),
+    )
+  ) {
     return state;
+  }
+  // A control spell's conditions (#340) end with it.
+  const linked: Readonly<{ holderId: string; effect: ActiveEffect }>[] = [];
+  const combatants = state.combatants.map((holder) => {
+    const effects = holder.effects ?? [];
+    const ended = effects.filter((effect) => ending(effect, holder));
+    for (const effect of ended) {
+      events.push(effectEnded(holder.id, effect, reason));
+      linked.push({ holderId: holder.id, effect });
+    }
+    return ended.length === 0
+      ? holder
+      : withEffects(
+          holder,
+          effects.filter((effect) => !ended.includes(effect)),
+        );
+  });
+  const isLinked = (condition: Condition) =>
+    linked.some(
+      ({ holderId, effect }) =>
+        condition.targetId === holderId &&
+        condition.spellId === effect.spellId &&
+        condition.sourceId === effect.casterId,
+    );
+  for (const condition of state.conditions.filter(isLinked)) {
+    events.push({
+      type: "condition-ended",
+      combatantId: condition.targetId,
+      kind: condition.kind,
+      reason: "spell-ended",
+    });
   }
   return {
     ...state,
-    combatants: state.combatants.map((holder) => {
-      const effects = holder.effects ?? [];
-      for (const effect of effects.filter(ending)) {
-        events.push(effectEnded(holder.id, effect, reason));
-      }
-      return effects.some(ending)
-        ? withEffects(
-            holder,
-            effects.filter((effect) => !ending(effect)),
-          )
-        : holder;
-    }),
+    combatants,
+    conditions: state.conditions.filter((condition) => !isLinked(condition)),
   };
+}
+
+/**
+ * Ends the control spell on `targetId` (#340): Sleep, when it takes damage
+ * (`woke`) or shakes it off. Its conditions end with it.
+ */
+function endControl(
+  state: EncounterState,
+  targetId: string,
+  reason: EffectEndReason,
+  events: EncounterEvent[],
+): EncounterState {
+  return endEffects(
+    state,
+    ({ buff }, holder) => holder.id === targetId && buff.kind === "control",
+    reason,
+    events,
+  );
 }
 
 /** Ends the spell `casterId` concentrates on (#337), saying why. */
@@ -2185,8 +2302,9 @@ function concludeIfOver(
       reason: "fight-over",
     });
   }
+  // Every condition has ended already, a control spell's (#340) too.
   const ended = endEffects(
-    state,
+    { ...state, conditions: [] },
     ({ ends }) => !outlastsFight(ends),
     "fight-over",
     events,
@@ -2421,7 +2539,9 @@ function applyCondition(
 /**
  * The end of `entrant`'s turn: it repeats the save against each condition
  * that allows one, and a condition whose turns have run out ends (a prone
- * combatant stands up).
+ * combatant stands up). A control spell's condition (#340) that fails its
+ * repeat save gives way to the worse one (`then`); one that ends otherwise
+ * ends the spell on it.
  */
 function endTurn(
   state: EncounterState,
@@ -2430,18 +2550,23 @@ function endTurn(
   events: EncounterEvent[],
 ): EncounterState {
   const conditions: Condition[] = [];
+  let released: EffectEndReason | undefined;
   for (const condition of state.conditions) {
     if (condition.targetId !== entrant.id) {
       conditions.push(condition);
       continue;
     }
-    const ended = (reason: "saved" | "expired" | "stood") =>
+    const ended = (reason: "saved" | "expired" | "stood") => {
       events.push({
         type: "condition-ended",
         combatantId: entrant.id,
         kind: condition.kind,
         reason,
       });
+      if (condition.spellId !== undefined) {
+        released = reason === "saved" ? "saved" : "lapsed";
+      }
+    };
     if (condition.save !== undefined) {
       const save = rollSave(
         state,
@@ -2456,6 +2581,30 @@ function endTurn(
         ended("saved");
         continue;
       }
+      // Sleep's second failed save (#340): Unconscious for the duration.
+      if (condition.then !== undefined) {
+        const worse: Condition = {
+          kind: condition.then,
+          targetId: entrant.id,
+          sourceId: condition.sourceId,
+          source: condition.source,
+          turnsLeft: CONTROL_TURNS,
+          ...(condition.spellId === undefined
+            ? {}
+            : { spellId: condition.spellId }),
+        };
+        events.push(
+          {
+            type: "condition-ended",
+            combatantId: entrant.id,
+            kind: condition.kind,
+            reason: "expired",
+          },
+          conditionEvent(worse),
+        );
+        conditions.push(worse);
+        continue;
+      }
     }
     if (condition.turnsLeft <= 1) {
       ended(condition.kind === "prone" ? "stood" : "expired");
@@ -2463,7 +2612,30 @@ function endTurn(
     }
     conditions.push({ ...condition, turnsLeft: condition.turnsLeft - 1 });
   }
-  return { ...state, conditions };
+  const next = { ...state, conditions };
+  return released === undefined
+    ? next
+    : endControl(next, entrant.id, released, events);
+}
+
+/**
+ * The turns a control spell's condition lasts at most (#340): its minute,
+ * 10 turns, though the fight's end or the caster's concentration ends it
+ * first.
+ */
+const CONTROL_TURNS = 10;
+
+/** The `condition` event of a condition given (#340). */
+function conditionEvent(condition: Condition): EncounterEvent {
+  return {
+    type: "condition",
+    combatantId: condition.targetId,
+    kind: condition.kind,
+    sourceId: condition.sourceId,
+    source: condition.source,
+    turns: condition.turnsLeft,
+    ...(condition.save === undefined ? {} : { save: condition.save }),
+  };
 }
 
 /**
@@ -2517,15 +2689,15 @@ function rollAttack(
   const natural = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus + effectDiceTotal(effectDice);
   const hit = d20 !== 1 && (natural || total >= armorClassOf(target));
-  // Paralysed: every hit on it is a critical hit.
-  const paralysedCritical =
-    hit &&
-    !natural &&
-    conditionWhere(
-      state,
-      target.id,
-      ({ criticalHits }) => criticalHits === true,
-    ) !== undefined;
+  // Paralysed, or unconscious (#340): every hit on it is a critical hit.
+  const criticalCondition = hit
+    ? conditionWhere(
+        state,
+        target.id,
+        ({ criticalHits }) => criticalHits === true,
+      )
+    : undefined;
+  const paralysedCritical = !natural && criticalCondition !== undefined;
   return {
     d20,
     ...(mode === undefined ? {} : { mode }),
@@ -2533,6 +2705,7 @@ function rollAttack(
     hit,
     critical: natural || paralysedCritical,
     paralysedCritical,
+    ...(paralysedCritical ? { criticalCondition } : {}),
     ...(effectDice.length === 0 ? {} : { effectDice }),
   };
 }
@@ -2643,6 +2816,7 @@ function landAttack(
     hit,
     critical,
     paralysedCritical,
+    criticalCondition,
     effectDice,
   }: AttackRoll,
   landing: Landing,
@@ -2822,7 +2996,12 @@ function landAttack(
         ? { greatWeaponFighting: true as const }
         : {}),
       ...(sneak === undefined ? {} : { sneakAttack: sneak }),
-      ...(paralysedCritical ? { paralysedCritical: true as const } : {}),
+      ...(paralysedCritical
+        ? {
+            paralysedCritical: true as const,
+            ...(criticalCondition === undefined ? {} : { criticalCondition }),
+          }
+        : {}),
       ...(rider === undefined ? {} : { rider }),
       ...(forgone === 0 || landing.cunningStrike === undefined
         ? {}
@@ -2921,6 +3100,10 @@ function landAttack(
       steadyAim: !aimed && state.economy.steadyAim,
     },
   };
+  // Damage wakes a target from Sleep (#340).
+  if (taken > 0) {
+    next = endControl(next, target.id, "woke", events);
+  }
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
     next = fall(next, target, random, events);
@@ -3370,22 +3553,19 @@ function spellRefusal(
       `${spell.name} is flavour only: it has no effect in play.`,
     );
   }
-  // Resistance (#339) names a damage type it may resist; no other spell does.
-  const resisting =
-    spell.effect.kind === "buff" &&
-    spell.effect.buff.kind === "damage-reduction";
+  // Resistance (#339) names a damage type it may resist, and Chromatic Orb
+  // (#340) one it deals; no other spell names one.
+  const choices = spell.damageTypes;
   if (
-    resisting
-      ? !(RESISTANCE_DAMAGE_TYPES as readonly unknown[]).includes(
-          action.damageType,
-        )
-      : action.damageType !== undefined
+    choices === undefined
+      ? action.damageType !== undefined
+      : !(choices as readonly unknown[]).includes(action.damageType)
   ) {
     return refused(
       "damage-type",
-      resisting
-        ? `Choose the damage type ${spell.name} resists: ${RESISTANCE_DAMAGE_TYPES.join(", ")}.`
-        : `${spell.name} takes no damage type.`,
+      choices === undefined
+        ? `${spell.name} takes no damage type.`
+        : `Choose the damage type ${spell.name} ${isResistance(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
     );
   }
   if ((spell.castingTime === "reaction") !== reacting) {
@@ -3574,23 +3754,33 @@ function canCast(state: EncounterState, actor: Combatant): boolean {
             spellId: spell.id,
             ...(slotLevel === undefined ? {} : { slotLevel }),
             targetIds: [target.id],
-            ...(isResistance(spell) ? { damageType: "bludgeoning" } : {}),
+            ...(spell.damageTypes === undefined
+              ? {}
+              : { damageType: spell.damageTypes[0]! }),
           }) === undefined,
       ),
     ),
   );
 }
 
-/** A spell attack (#336) as the engine attacks with a weapon. */
+/**
+ * A spell attack (#336) as the engine attacks with a weapon: its damage of
+ * the type chosen at casting, for Chromatic Orb (#340).
+ */
 function spellWeapon(
   casting: CombatSpellcasting,
   spell: SpellDefinition,
   effect: Extract<SpellEffect, { kind: "attack" }>,
+  damageType: DamageType | undefined,
 ): Weapon {
   return {
     name: spell.name,
     bonus: casting.attackBonus,
-    damage: { ...effect.damage, modifier: 0 },
+    damage: {
+      ...effect.damage,
+      modifier: 0,
+      ...(damageType === undefined ? {} : { type: damageType }),
+    },
     criticalRange: 20,
     ...(effect.range === "ranged" ? { ranged: true as const } : {}),
   };
@@ -3639,13 +3829,15 @@ function spellDamage(
     random,
     events,
   );
-  const next: EncounterState = {
+  const hit: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
     ),
     engaged: engage(state, actor, target),
   };
+  // Damage wakes a target from Sleep (#340).
+  const next = damage > 0 ? endControl(hit, target.id, "woke", events) : hit;
   // A fall ends concentration; damage that leaves it standing tests it (#337).
   return hpLeft === 0 && target.hp > 0
     ? fall(next, target, random, events)
@@ -3715,7 +3907,7 @@ function castSpell(
     case "attack": {
       const resolved = resolveAttack(spent, caster, target, random, {
         kind: "spell",
-        weapon: spellWeapon(casting, spell, effect),
+        weapon: spellWeapon(casting, spell, effect, action.damageType),
         ...(effect.nextAttackAdvantage === true
           ? { guides: true as const }
           : {}),
@@ -3767,6 +3959,11 @@ function castSpell(
     case "flavour":
       // Refused before any cast (`spellRefusal`).
       return spent;
+    case "control":
+      return controlSpell(spent, caster, spell, effect, target, {
+        random,
+        events,
+      });
     case "auto-hit": {
       const { damage, missiles } = effect;
       const damageRolls = rollDice(
@@ -3858,6 +4055,82 @@ function castSpell(
       };
     }
   }
+}
+
+/**
+ * A control spell (#340, Sleep) on `target`: casting it ends the caster's
+ * other concentration; then the target saves, succeeding without a roll if
+ * it is immune to exhaustion. A failure puts the spell on it, which the
+ * caster concentrates on, and its first condition until the end of its
+ * next turn, with the repeat save that may make it worse (`endTurn`).
+ */
+function controlSpell(
+  state: EncounterState,
+  caster: Combatant,
+  spell: SpellDefinition,
+  effect: Extract<SpellEffect, { kind: "control" }>,
+  target: Combatant,
+  { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
+): EncounterState {
+  const free = endConcentration(state, caster.id, "new-concentration", events);
+  const save: SaveSpec = {
+    ability: effect.ability,
+    dc: caster.spellcasting!.saveDc,
+  };
+  const common = {
+    type: "spell-condition" as const,
+    actorId: caster.id,
+    targetId: target.id,
+    spell: spell.name,
+    condition: effect.condition,
+  };
+  if (target.conditionImmunities?.includes("exhaustion") === true) {
+    events.push({ ...common, success: true, immune: "exhaustion" });
+    return free;
+  }
+  const thrown = savingThrow(free, target, save, random);
+  events.push({ ...common, success: thrown.success, save: thrown });
+  if (thrown.success) {
+    return free;
+  }
+  const held: ActiveEffect = {
+    spellId: spell.id,
+    spell: spell.name,
+    casterId: caster.id,
+    buff: { kind: "control" },
+    ends: effectEnds(effect.duration),
+    concentration: true,
+  };
+  events.push({ type: "effect", targetId: target.id, ...held });
+  const condition: Condition = {
+    kind: effect.condition,
+    targetId: target.id,
+    sourceId: caster.id,
+    source: spell.name,
+    turnsLeft: 1,
+    save,
+    spellId: spell.id,
+    then: effect.then,
+  };
+  events.push(conditionEvent(condition));
+  const given: EncounterState = {
+    ...free,
+    combatants: free.combatants.map((candidate) =>
+      candidate.id === target.id
+        ? withEffects(candidate, [...(candidate.effects ?? []), held])
+        : candidate,
+    ),
+    conditions: [
+      ...free.conditions.filter(
+        ({ targetId, kind }) =>
+          targetId !== target.id || kind !== effect.condition,
+      ),
+      condition,
+    ],
+    engaged: engage(free, caster, target),
+  };
+  // An incapacitated combatant loses its concentration (#337).
+  return endConcentration(given, target.id, "incapacitated", events);
 }
 
 /**

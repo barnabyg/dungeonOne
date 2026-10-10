@@ -126,7 +126,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="expertise" aria-describedby="expertise-count expertise-error" hidden><legend id="expertise-legend">Expertise</legend><p id="expertise-hint" class="hint"></p><p id="expertise-count" class="hint" role="status"></p><div id="expertise-fields" class="checks"></div><p id="expertise-error" class="error" role="alert"></p></fieldset>
 <fieldset id="divine-order" hidden><legend>Divine Order</legend><div id="order-fields" class="checks"></div></fieldset>
-<fieldset id="spells" aria-describedby="spells-count spells-error" hidden><legend>Spells</legend><p class="hint">Cantrips are cast at will; prepared spells use spell slots. Prepared spells change only between adventures, on the character sheet.</p><p id="spells-count" class="hint" role="status"></p><fieldset class="spell-group"><legend id="cantrips-legend">Cantrips</legend><div id="cantrip-fields" class="checks"></div></fieldset><fieldset class="spell-group"><legend id="prepared-legend">Prepared spells</legend><div id="prepared-fields" class="checks"></div></fieldset><p id="spells-error" class="error" role="alert"></p></fieldset>
+<fieldset id="spells" aria-describedby="spells-count spells-error" hidden><legend>Spells</legend><p class="hint">Cantrips are cast at will; prepared spells use spell slots. Prepared spells change only between adventures, on the character sheet.</p><p id="spells-count" class="hint" role="status"></p><fieldset class="spell-group"><legend id="cantrips-legend">Cantrips</legend><div id="cantrip-fields" class="checks"></div></fieldset><fieldset id="spellbook-group" class="spell-group" hidden><legend id="spellbook-legend">Spellbook</legend><p class="hint">You prepare spells only from your spellbook.</p><div id="spellbook-fields" class="checks"></div></fieldset><fieldset class="spell-group"><legend id="prepared-legend">Prepared spells</legend><div id="prepared-fields" class="checks"></div></fieldset><p id="spells-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
@@ -511,7 +511,8 @@ function spellcastingNodes(casting) {
     }));
     return [make("h4", title), node];
   };
-  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...list("Prepared spells", "sheet-prepared", casting.prepared)];
+  // A Wizard's spellbook (#340), whose spells it prepares from.
+  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared)];
 }
 
 // The prepared spells being chosen on a sheet (#339), by character.
@@ -530,7 +531,8 @@ function prepareNodes(entry) {
   const limit = entry.sheet.spells.prepared.length;
   const group = make("fieldset");
   group.id = "prepare-spells";
-  group.append(make("legend", "Choose " + limit + " spells to prepare"));
+  // A Wizard prepares from its spellbook (#340).
+  group.append(make("legend", "Choose " + limit + " spells to prepare" + (entry.spells.spellbook ? " from your spellbook" : "")));
   const fields = make("div", undefined, "checks");
   const button = make("button", "Prepare spells", "secondary");
   button.type = "button";
@@ -1808,7 +1810,9 @@ function castPanel(casts) {
   spellSelect.setAttribute("aria-label", "Spell");
   spellSelect.disabled = acting;
   for (const [key, spell] of spells) {
-    const choice = make("option", spell.name + (spell.damageType ? " against " + spell.damageType : "") + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    // Resistance's resisted type (#339); Chromatic Orb's dealt type (#340).
+    const typed = !spell.damageType ? "" : spell.damageTypeUse === "dealt" ? " of " + spell.damageType : " against " + spell.damageType;
+    const choice = make("option", spell.name + typed + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
     choice.value = key;
     choice.selected = key === castChoice;
     spellSelect.append(choice);
@@ -2268,40 +2272,61 @@ function spellBox(id, spell, checked, change) {
 
 /**
  * A caster's cantrips and prepared spells (#339): a tick for each spell on
- * its list, cantrips and levelled spells apart.
+ * its list, cantrips and levelled spells apart. A Wizard (#340) also ticks
+ * its spellbook's spells, and prepares only from those ticked.
  */
 function renderSpellChoices(chosen) {
   const casting = chosen.spellcasting;
   element("spells").hidden = !casting;
+  element("spellbook-group").hidden = !casting || !casting.spellbook;
   if (!casting) {
     element("cantrip-fields").replaceChildren();
+    element("spellbook-fields").replaceChildren();
     element("prepared-fields").replaceChildren();
     return;
   }
+  const levelled = casting.spells.filter(({ level }) => level > 0);
   element("cantrips-legend").textContent = "Cantrips: choose " + cantripLimit(chosen);
-  element("prepared-legend").textContent = "Prepared spells: choose " + casting.prepared;
-  const ticked = (kind, prefix) => casting.spells.filter(({ level }) => (kind === "cantrips") === (level === 0)).map(({ id }) => id).filter((id) => element(prefix + id).checked);
+  element("prepared-legend").textContent = "Prepared spells: choose " + casting.prepared + (casting.spellbook ? " from your spellbook" : "");
+  const ticked = (spells, prefix) => spells.map(({ id }) => id).filter((id) => element(prefix + id)?.checked);
   element("cantrip-fields").replaceChildren(...casting.spells.filter(({ level }) => level === 0).map((spell) => spellBox("cantrip-" + spell.id, spell, choices.spells.cantrips.includes(spell.id), () => {
-    choices.spells.cantrips = ticked("cantrips", "cantrip-");
+    choices.spells.cantrips = ticked(casting.spells, "cantrip-");
     refresh();
   })));
-  element("prepared-fields").replaceChildren(...casting.spells.filter(({ level }) => level > 0).map((spell) => spellBox("prepare-" + spell.id, spell, choices.spells.prepared.includes(spell.id), () => {
-    choices.spells.prepared = ticked("prepared", "prepare-");
+  if (casting.spellbook) {
+    element("spellbook-legend").textContent = "Spellbook: choose " + casting.spellbook;
+    element("spellbook-fields").replaceChildren(...levelled.map((spell) => spellBox("spellbook-" + spell.id, spell, choices.spellbook.includes(spell.id), () => {
+      choices.spellbook = ticked(levelled, "spellbook-");
+      // A spell taken out of the spellbook can't stay prepared.
+      choices.spells.prepared = choices.spells.prepared.filter((id) => choices.spellbook.includes(id));
+      renderSpellChoices(chosen);
+      element("spellbook-" + spell.id).focus();
+      refresh();
+    })));
+  } else {
+    element("spellbook-fields").replaceChildren();
+  }
+  const preparable = casting.spellbook ? levelled.filter(({ id }) => choices.spellbook.includes(id)) : levelled;
+  element("prepared-fields").replaceChildren(...preparable.map((spell) => spellBox("prepare-" + spell.id, spell, choices.spells.prepared.includes(spell.id), () => {
+    choices.spells.prepared = ticked(preparable, "prepare-");
     refresh();
   })));
 }
 
-/** Like the skills, for cantrips and prepared spells (#339). */
+/** Like the skills, for cantrips, the spellbook (#340) and prepared spells (#339). */
 function renderSpellLimit() {
   if (!projection.spells) return;
   const casting = creating().spellcasting;
+  const { cantrips, prepared, spellbook } = projection.spells;
+  const limit = (box, group) => {
+    if (box) box.disabled = group.full && !box.checked;
+  };
   for (const spell of casting.spells) {
     const cantrip = spell.level === 0;
-    const box = element((cantrip ? "cantrip-" : "prepare-") + spell.id);
-    box.disabled = projection.spells[cantrip ? "cantrips" : "prepared"].full && !box.checked;
+    limit(element((cantrip ? "cantrip-" : "prepare-") + spell.id), cantrip ? cantrips : prepared);
+    if (!cantrip && spellbook) limit(element("spellbook-" + spell.id), spellbook);
   }
-  const { cantrips, prepared } = projection.spells;
-  const count = "Cantrips " + cantrips.chosen + " of " + cantrips.limit + " chosen; prepared spells " + prepared.chosen + " of " + prepared.limit + " chosen";
+  const count = "Cantrips " + cantrips.chosen + " of " + cantrips.limit + " chosen; " + (spellbook ? "spellbook " + spellbook.chosen + " of " + spellbook.limit + " chosen; " : "") + "prepared spells " + prepared.chosen + " of " + prepared.limit + " chosen";
   if (element("spells-count").textContent !== count) element("spells-count").textContent = count;
 }
 

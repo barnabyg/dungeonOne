@@ -847,8 +847,10 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // A long rest at a rest site (#335), taken below the heal threshold
   // before a short rest.
   "long-rest": true,
-  // A caster heals with its healing spells before potions (#339); its
-  // other spells wait for the caster policies (#348).
+  // A caster heals with its healing spells before potions (#339); a
+  // Wizard (#340) casts Mage Armor before its first fight, attacks with a
+  // cantrip and answers a hit with Shield. The other spells wait for the
+  // caster policies (#348).
   cast: true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
@@ -913,6 +915,8 @@ export type RunRecord = Readonly<{
     interruptedRests: number;
     hp: number;
   }>;
+  /** Spells the character cast, of any kind (#340). */
+  spellsCast: number;
   /** Hit points lost to traps sprung, outside the fights. */
   trapDamage: number;
   /** What a surviving ending credited: XP and how many finds of treasure or coin. */
@@ -1051,6 +1055,9 @@ export function playAdventure(
     hp: 0,
   };
   let trapDamage = 0;
+  let spellsCast = 0;
+  /** Whether a base-AC spell (Mage Armor, #340) was cast before a fight. */
+  let warded = false;
   /** The character's hit points, so a blow costs only what was left. */
   let hp = state.character.hp;
   const blocked: string[] = [];
@@ -1129,6 +1136,11 @@ export function playAdventure(
             healing.spells += 1;
             healing.hp += event.healing;
             hp = event.hpAfter;
+          }
+          break;
+        case "cast":
+          if (event.combatantId === PLAYER_ID) {
+            spellsCast += 1;
           }
           break;
         case "short-rest":
@@ -1212,10 +1224,24 @@ export function playAdventure(
   /** The fight action to take now. */
   const fightChoice = (views: readonly ActionView[]): ActionView => {
     const encounter = state.encounter!;
-    // Uncanny Dodge (#308): the harness halves every hit it can.
+    // Uncanny Dodge (#308): the harness halves every hit it can; else a
+    // reaction spell (Shield, #340) answers it, at the lowest slot.
     const dodge = offered(views, "uncanny-dodge")[0];
     if (dodge !== undefined) {
       return dodge;
+    }
+    if (encounter.pendingReaction !== undefined) {
+      const shield = offered(views, "cast")
+        .filter(
+          ({ spell }) =>
+            isSpellId(spell?.id) && SPELLS[spell.id].castingTime === "reaction",
+        )
+        .sort(
+          (a, b) => (a.spell!.slotLevel ?? 0) - (b.spell!.slotLevel ?? 0),
+        )[0];
+      if (shield !== undefined) {
+        return shield;
+      }
     }
     const hpOf = (id: string) => combatant(encounter, id).hp;
     const heal = [
@@ -1280,8 +1306,33 @@ export function playAdventure(
         view
       );
     };
+    // A caster's attack cantrip (#340) on the weakest opponent, ahead of a
+    // weapon: a ranged one in the opening volley, then a melee one, which
+    // has no close-combat disadvantage.
+    const ranged = (view: ActionView) =>
+      (SPELLS[view.spell!.id as SpellId].effect as { range?: string }).range ===
+      "ranged";
+    const cantrips = offered(views, "cast").filter(
+      ({ spell, target }) =>
+        isSpellId(spell?.id) &&
+        SPELLS[spell.id].level === 0 &&
+        SPELLS[spell.id].effect.kind === "attack" &&
+        target !== undefined,
+    );
+    const opening = encounter.round === 1;
+    const preferred = cantrips.filter((view) => ranged(view) === opening);
+    const cantrip = (preferred.length > 0 ? preferred : cantrips).reduce<
+      ActionView | undefined
+    >(
+      (best, view) =>
+        best === undefined || hpOf(view.target!.id) < hpOf(best.target!.id)
+          ? view
+          : best,
+      undefined,
+    );
     return (
       aim ??
+      cantrip ??
       struck(attack) ??
       struck(light) ??
       offered(views, "action-surge")[0] ??
@@ -1427,6 +1478,25 @@ export function playAdventure(
         .find(({ id }) => id === room.encounterId)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
+    // A Wizard's Mage Armor (#340), once, outside a fight before its first:
+    // a base-AC spell on itself that outlasts a fight.
+    if (!warded && fights.length === 0) {
+      const ward = offered(views, "cast").find(
+        ({ spell, target }) =>
+          isSpellId(spell?.id) &&
+          target?.id === PLAYER_ID &&
+          SPELLS[spell.id].effect.kind === "buff" &&
+          (
+            SPELLS[spell.id].effect as Readonly<{
+              buff: Readonly<{ kind: string }>;
+            }>
+          ).buff.kind === "base-armor-class",
+      );
+      if (ward !== undefined) {
+        warded = true;
+        return ward;
+      }
+    }
     const find =
       offered(views, "examine").find(
         ({ target }) =>
@@ -1550,6 +1620,7 @@ export function playAdventure(
     roomIds,
     encounters: fights,
     healing,
+    spellsCast,
     trapDamage,
     xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
     treasure:
@@ -2587,10 +2658,10 @@ export const GATE_CLASSES: readonly ClassId[] = ["fighter", "rogue"];
 
 /**
  * The classes the gate plays and reports but doesn't judge yet (#339): the
- * Cleric, until the caster policies come (#348). A module's verdict never
+ * Cleric and the Wizard (#340), until the caster policies come (#348). A module's verdict never
  * depends on them.
  */
-export const REPORTED_CLASSES: readonly ClassId[] = ["cleric"];
+export const REPORTED_CLASSES: readonly ClassId[] = ["cleric", "wizard"];
 
 /**
  * A reported class's runs on a module (#339), never judged: at the module's
@@ -2606,6 +2677,8 @@ export type ReportedClass = Readonly<{ classId: ClassId }> &
         levels: readonly Level[];
         survival: GateMeasures["survival"];
         meanHealingSpells: number;
+        /** Spells cast a run, of any kind (#340). */
+        meanSpellsCast: number;
       }>
     | Readonly<{
         ok: false;
@@ -2692,6 +2765,9 @@ export function reportClass(
       },
       meanHealingSpells: mean(
         played.flatMap(({ runs }) => runs.map(({ healing }) => healing.spells)),
+      ),
+      meanSpellsCast: mean(
+        played.flatMap(({ runs }) => runs.map(({ spellsCast }) => spellsCast)),
       ),
     };
   } catch (error) {
@@ -2886,5 +2962,5 @@ export function renderReportedClass(
   const kits = survival.kits
     .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
     .join(", ");
-  return `${name} for the ${who}, reported (not judged): the level ${survival.level}, ${survival.percentile}th percentile ${who} playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs with its weakest kit, ${survival.kit} (${kits}), casting ${decimal(report.meanHealingSpells)} healing spells a run.`;
+  return `${name} for the ${who}, reported (not judged): the level ${survival.level}, ${survival.percentile}th percentile ${who} playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs with its weakest kit, ${survival.kit} (${kits}), casting ${decimal(report.meanSpellsCast)} spells a run, ${decimal(report.meanHealingSpells)} of them healing.`;
 }

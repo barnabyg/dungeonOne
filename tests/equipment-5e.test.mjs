@@ -35,6 +35,16 @@ test("the catalogue holds the SRD 5.2 weapons with price in copper, damage, prop
     ["dagger", 200, "1d4", "piercing", [], "finesse,light", "Nick", "common"],
     ["mace", 500, "1d6", "bludgeoning", [], "", "Sap", "common"],
     [
+      "quarterstaff",
+      20,
+      "1d6",
+      "bludgeoning",
+      ["1d8"],
+      "versatile",
+      "Topple",
+      "common",
+    ],
+    [
       "shortsword",
       1000,
       "1d6",
