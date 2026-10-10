@@ -144,6 +144,19 @@
  *   makes the weapon's melee spell attack (`spectral-attack`).
  * - Disciple of Life (#341): a spell cast with a slot that heals heals 2 +
  *   the slot's level more.
+ * - Sear Undead (#342): Turn Undead also rolls its dice once, and each
+ *   undead that fails its save takes that much radiant damage; the damage
+ *   doesn't end its turning.
+ * - Spirit Guardians (#342): the opponents caught as it is cast save
+ *   against its damage then, and again at the end of each of their turns
+ *   while the caster concentrates; they end with the fight.
+ * - Bestow Curse (#342): a target that fails its Wisdom save is cursed
+ *   while the caster concentrates: its attacks on the caster have
+ *   disadvantage, or the caster's attack rolls and spells that damage it
+ *   deal 1d8 necrotic more, as chosen at casting.
+ * - Beacon of Hope (#342): advantage on Wisdom saves, and healing from
+ *   spells, potions and Divine Spark heals its most. Protection from
+ *   Energy (#342): resistance to the damage type chosen at casting.
  * - Pack Tactics: a combatant with it has advantage on its attacks while an
  *   ally on its side is alive and able to act.
  * - Multiattack (#235): an opponent with it makes several attacks on its
@@ -176,6 +189,7 @@ import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
 import type { Ability } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 import {
+  CURSES,
   effectAtSlot,
   effectEnds,
   maxTargets,
@@ -183,8 +197,10 @@ import {
   outlastsFight,
   type Buff,
   type CastingTime,
+  type CurseId,
   type EffectEnds,
   type SpellDefinition,
+  type SpellDice,
   type SpellEffect,
 } from "./spells-5e.js";
 
@@ -500,7 +516,13 @@ export type Combatant = DamageDefenses &
      * comes with it.
      */
     channelDivinity?: FeatureUses &
-      Readonly<{ saveDc: number; divineSpark: Healing; preserveLife?: number }>;
+      Readonly<{
+        saveDc: number;
+        divineSpark: Healing;
+        preserveLife?: number;
+        /** Sear Undead's dice (#342): Turn Undead's radiant damage. */
+        searUndead?: SpellDice;
+      }>;
     /** Healing potions the combatant carries, which it can drink. */
     potions?: readonly Potion[];
     /** Its spellcasting (#336), for a combatant that casts spells. */
@@ -592,6 +614,8 @@ export type ActiveEffect = Readonly<{
    * a turn.
    */
   reducedIn?: string;
+  /** The opponents Spirit Guardians caught as they were cast (#342). */
+  caught?: readonly string[];
 }>;
 
 /** A die an ongoing effect added to a d20 roll (#337): Bless's d4. */
@@ -902,9 +926,12 @@ export type CastAction = Readonly<{
   targetIds: readonly string[];
   /**
    * The damage type chosen at casting, for a spell that takes one: the one
-   * Resistance resists (#339), or the one Chromatic Orb deals (#340).
+   * Resistance resists (#339), or the one Chromatic Orb deals (#340), or
+   * the one Protection from Energy resists (#342).
    */
   damageType?: DamageType;
+  /** Bestow Curse's curse (#342), chosen at casting. */
+  curse?: CurseId;
 }>;
 
 export type AttackEvent = Readonly<{
@@ -969,6 +996,8 @@ export type AttackEvent = Readonly<{
     damage: number;
     damageType: DamageType;
     damageAdjustment?: DamageAdjustment;
+    /** Bestow Curse's necrotic damage (#342), not a monster's rider. */
+    curse?: string;
   }>;
   /**
    * Cunning Strike (#308): the effect, and the Sneak Attack dice forgone
@@ -1149,6 +1178,17 @@ type SpellDamageDealt = Readonly<{
   damageAdjustment?: DamageAdjustment;
   /** The target's HP once it lands: 0 even when Undead Fortitude then leaves it at 1. */
   hpAfter: number;
+  /** Bestow Curse's extra necrotic damage (#342), counted in `hpAfter`. */
+  curse?: CurseDamage;
+}>;
+
+/** Bestow Curse's extra damage on a cursed target (#342): its dice and type. */
+export type CurseDamage = Readonly<{
+  spell: string;
+  damageRolls: readonly number[];
+  damage: number;
+  damageType: DamageType;
+  damageAdjustment?: DamageAdjustment;
 }>;
 
 /**
@@ -1217,6 +1257,8 @@ export type SpellHealingEvent = Readonly<{
   modifier: number;
   /** Disciple of Life's extra healing (#341). */
   disciple?: number;
+  /** The effect that made its dice their most (#342, Beacon of Hope). */
+  maximised?: string;
   healing: number;
   hpAfter: number;
   maxHp: number;
@@ -1238,7 +1280,13 @@ export type DivineSparkEvent = Readonly<{
   usesLeft: number;
 }> &
   (
-    | Readonly<{ mode: "heal"; healing: number; maxHp: number }>
+    | Readonly<{
+        mode: "heal";
+        healing: number;
+        maxHp: number;
+        /** Beacon of Hope (#342) made the dice their most. */
+        maximised?: string;
+      }>
     | Readonly<{
         mode: "radiant" | "necrotic";
         save: SavingThrow;
@@ -1256,6 +1304,38 @@ export type TurnUndeadEvent = Readonly<{
   combatantId: string;
   targetIds: readonly string[];
   usesLeft: number;
+  /**
+   * Sear Undead's dice (#342), rolled once: each undead that fails its
+   * save takes their total in radiant damage (`sear-undead`).
+   */
+  sear?: Readonly<{ rolls: readonly number[]; total: number }>;
+}>;
+
+/**
+ * Sear Undead's radiant damage on an undead that failed its save against
+ * Turn Undead (#342); its turning stays.
+ */
+export type SearUndeadEvent = Readonly<{
+  type: "sear-undead";
+  combatantId: string;
+  targetId: string;
+  damage: number;
+  damageAdjustment?: DamageAdjustment;
+  hpAfter: number;
+}>;
+
+/**
+ * Bestow Curse's saving throw (#342): a failure lays the curse chosen at
+ * casting, in the `effect` event after it.
+ */
+export type SpellCurseEvent = Readonly<{
+  type: "spell-curse";
+  actorId: string;
+  targetId: string;
+  spell: string;
+  curse: CurseId;
+  save: SavingThrow;
+  success: boolean;
 }>;
 
 /** Preserve Life (#341): the hit points it restores, up to half the maximum. */
@@ -1389,6 +1469,8 @@ export type EncounterEvent =
   | SpellHealingEvent
   | DivineSparkEvent
   | TurnUndeadEvent
+  | SearUndeadEvent
+  | SpellCurseEvent
   | PreserveLifeEvent
   | HitPointsRaisedEvent
   | EffectEvent
@@ -1406,6 +1488,8 @@ export type PotionEvent = Readonly<{
   name: string;
   rolls: readonly number[];
   modifier: number;
+  /** Beacon of Hope (#342) made the dice their most. */
+  maximised?: string;
   healing: number;
   hpAfter: number;
   maxHp: number;
@@ -1460,6 +1544,7 @@ export type EncounterRefusalCode =
   | "wearing-armour"
   | "fight-only"
   | "damage-type"
+  | "curse"
   | "no-effect"
   | "no-channel-divinity"
   | "no-undead"
@@ -1630,9 +1715,13 @@ export function drinkPotion(
   hp: number,
   maxHp: number,
   random: Roller,
+  maximised?: string,
 ): PotionEvent {
-  const rolls = Array.from({ length: potion.healing.dice }, () =>
-    random.roll(potion.healing.sides),
+  const rolls = healingRolls(
+    random,
+    potion.healing.dice,
+    potion.healing.sides,
+    maximised,
   );
   const hpAfter = Math.min(
     maxHp,
@@ -1645,10 +1734,50 @@ export function drinkPotion(
     name: potion.name,
     rolls,
     modifier: potion.healing.modifier,
+    ...(maximised === undefined ? {} : { maximised }),
     healing: hpAfter - hp,
     hpAfter,
     maxHp,
   };
+}
+
+/**
+ * Healing dice for a target (#342): rolled, or each at its most, without a
+ * roll, while `maximised` names the effect that makes them so (Beacon of
+ * Hope).
+ */
+function healingRolls(
+  random: Roller,
+  count: number,
+  sides: number,
+  maximised: string | undefined,
+): number[] {
+  return maximised === undefined
+    ? rollDice(random, count, sides)
+    : Array.from({ length: count }, () => sides);
+}
+
+/** The effect on `entrant` that maximises its healing (#342), by name. */
+export function healingMaximisedBy(entrant: Combatant): string | undefined {
+  return (entrant.effects ?? []).find(({ buff }) => buff.kind === "beacon")
+    ?.spell;
+}
+
+/**
+ * The curse `casterId` laid on `target` (#342, Bestow Curse), if it is of
+ * kind `curse`.
+ */
+function curseOn(
+  target: Combatant,
+  casterId: string,
+  curse: CurseId,
+): ActiveEffect | undefined {
+  return (target.effects ?? []).find(
+    (effect) =>
+      effect.casterId === casterId &&
+      effect.buff.kind === "curse" &&
+      effect.buff.curse === curse,
+  );
 }
 
 function potionRefusal(
@@ -1807,6 +1936,8 @@ function attackModes(
   const own = ownAttack(origin);
   const hidden = own && state.hidden.includes(actor.id);
   const aimed = own && state.economy.steadyAim;
+  // Bestow Curse (#342): the cursed attacker's rolls against its curser.
+  const cursed = curseOn(actor, target.id, "attacks");
   const packTactics =
     actor.packTactics === true &&
     state.combatants.some(
@@ -1835,6 +1966,7 @@ function attackModes(
       state.round >= 2
         ? [CLOSE_COMBAT]
         : []),
+      ...(cursed === undefined ? [] : [cursed.spell]),
       ...conditionSources(state, actor.id, "attacks"),
     ],
   };
@@ -2136,6 +2268,7 @@ function wake(
   state: EncounterState,
   targetId: string,
   events: EncounterEvent[],
+  keepTurning = false,
 ): EncounterState {
   const woken = endEffects(
     state,
@@ -2143,6 +2276,9 @@ function wake(
     "woke",
     events,
   );
+  if (keepTurning) {
+    return woken;
+  }
   return endEffects(
     woken,
     (effect, holder) => holder.id === targetId && controls(effect, "turning"),
@@ -2804,9 +2940,14 @@ export function savingThrow(
   if (fails !== undefined) {
     return { ...common, success: false, autoFail: fails };
   }
+  // Beacon of Hope (#342): advantage on Wisdom saves.
+  const beacon =
+    save.ability === "wisdom"
+      ? (entrant.effects ?? []).find(({ buff }) => buff.kind === "beacon")
+      : undefined;
   const { d20, mode } = rollD20(
     random,
-    advantage,
+    beacon === undefined ? advantage : [...advantage, beacon.spell],
     entrant.abilityDisadvantages?.[save.ability] ?? [],
   );
   // Bless (#337) adds its die to the save.
@@ -2852,28 +2993,41 @@ function rollSave(
 }
 
 /**
- * `entrant`'s damage defences with its effects' (#341): Protection from
- * Poison resists poison damage, and cancels a vulnerability to it.
+ * `defences` with resistance to `type` (#341, #342): a vulnerability to it
+ * is cancelled instead, and an immunity or resistance already held stays.
  */
-function defencesOf(entrant: Combatant): DamageDefenses {
-  const warded = (entrant.effects ?? []).some(
-    ({ buff }) => buff.kind === "poison-ward",
-  );
+function resisting(defences: DamageDefenses, type: DamageType): DamageDefenses {
   if (
-    !warded ||
-    entrant.immunities?.includes("poison") === true ||
-    entrant.resistances?.includes("poison") === true
+    defences.immunities?.includes(type) === true ||
+    defences.resistances?.includes(type) === true
   ) {
-    return entrant;
+    return defences;
   }
-  return entrant.vulnerabilities?.includes("poison") === true
+  return defences.vulnerabilities?.includes(type) === true
     ? {
-        ...entrant,
-        vulnerabilities: entrant.vulnerabilities.filter(
-          (type) => type !== "poison",
+        ...defences,
+        vulnerabilities: defences.vulnerabilities.filter(
+          (held) => held !== type,
         ),
       }
-    : { ...entrant, resistances: [...(entrant.resistances ?? []), "poison"] };
+    : { ...defences, resistances: [...(defences.resistances ?? []), type] };
+}
+
+/**
+ * `entrant`'s damage defences with its effects' (#341): Protection from
+ * Poison resists poison damage, and cancels a vulnerability to it;
+ * Protection from Energy (#342) does the same for its chosen type.
+ */
+function defencesOf(entrant: Combatant): DamageDefenses {
+  return (entrant.effects ?? [])
+    .flatMap(({ buff, damageType }): DamageType[] =>
+      buff.kind === "poison-ward"
+        ? ["poison"]
+        : buff.kind === "energy-ward" && damageType !== undefined
+          ? [damageType]
+          : [],
+    )
+    .reduce<DamageDefenses>(resisting, entrant);
 }
 
 /**
@@ -3307,7 +3461,18 @@ function landAttack(
   const dodged = landing.resumed?.dodged === true;
   const damageAdjustment = defended.damageAdjustment;
   // A hit's rider deals its extra damage, its dice doubled by a critical.
-  const extra = hit ? weapon.rider?.damage : undefined;
+  // Bestow Curse's necrotic curse (#342) is one on the curser's own hits;
+  // a combatant's own weapons and spells have no rider.
+  const curse =
+    hit && own && weapon.rider?.damage === undefined
+      ? curseOn(target, actor.id, "necrotic")
+      : undefined;
+  const extra =
+    curse?.buff.kind === "curse"
+      ? { ...curse.buff.damage, modifier: 0 }
+      : hit
+        ? weapon.rider?.damage
+        : undefined;
   const riderRolled =
     extra === undefined
       ? undefined
@@ -3332,6 +3497,7 @@ function landAttack(
             ...(taken.damageAdjustment === undefined
               ? {}
               : { damageAdjustment: taken.damageAdjustment }),
+            ...(curse === undefined ? {} : { curse: curse.spell }),
           };
         })();
   // Resistance (#339): once a turn, its die comes off the target's damage
@@ -3683,7 +3849,16 @@ function advance(
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
       if (!isOut(next, ending)) {
-        next = endTurn(next, ending, random, events);
+        // Spirit Guardians (#342) strike as the turn ends.
+        next = guard(
+          endTurn(next, ending, random, events),
+          ending,
+          random,
+          events,
+        );
+        if (next.outcome !== "ongoing") {
+          break;
+        }
       }
       const turn = (next.turn + 1) % next.order.length;
       next = { ...next, turn, round: next.round + (turn === 0 ? 1 : 0) };
@@ -3967,7 +4142,7 @@ export function slotLevels(
 function spellRefusal(
   state: EncounterState,
   actor: Combatant,
-  action: Pick<CastAction, "spellId" | "slotLevel" | "damageType">,
+  action: Pick<CastAction, "spellId" | "slotLevel" | "damageType" | "curse">,
   reacting = false,
   outside = false,
 ): EncounterRejection | undefined {
@@ -4001,7 +4176,20 @@ function spellRefusal(
       "damage-type",
       choices === undefined
         ? `${spell.name} takes no damage type.`
-        : `Choose the damage type ${spell.name} ${reducesDamage(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
+        : `Choose the damage type ${spell.name} ${resistsDamage(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
+    );
+  }
+  // Bestow Curse (#342) names its curse; no other spell names one.
+  if (
+    spell.effect.kind === "curse"
+      ? !(CURSES as readonly unknown[]).includes(action.curse)
+      : action.curse !== undefined
+  ) {
+    return refused(
+      "curse",
+      spell.effect.kind === "curse"
+        ? `Choose the curse ${spell.name} lays: ${CURSES.join(" or ")}.`
+        : `${spell.name} lays no curse.`,
     );
   }
   // Resistance resists only damage an opponent still in the fight deals;
@@ -4188,7 +4376,7 @@ function castRefusal(
   actor: Combatant,
   action: Pick<
     CastAction,
-    "spellId" | "slotLevel" | "targetIds" | "damageType"
+    "spellId" | "slotLevel" | "targetIds" | "damageType" | "curse"
   >,
   reacting = false,
   outside = false,
@@ -4262,6 +4450,18 @@ export function dealtDamageTypes(
   );
 }
 
+/**
+ * Whether the damage type named when `spell` is cast is one its target
+ * resists (#339, #342): Resistance's or Protection from Energy's, not one
+ * it deals.
+ */
+export function resistsDamage(spell: SpellDefinition): boolean {
+  return (
+    reducesDamage(spell) ||
+    (spell.effect.kind === "buff" && spell.effect.buff.kind === "energy-ward")
+  );
+}
+
 /** Whether `actor` can cast any of its spells at anyone now (#336). */
 function canCast(state: EncounterState, actor: Combatant): boolean {
   return (actor.spellcasting?.spells ?? []).some((spell) =>
@@ -4275,6 +4475,7 @@ function canCast(state: EncounterState, actor: Combatant): boolean {
             ...(spell.damageTypes === undefined
               ? {}
               : { damageType: spell.damageTypes[0]! }),
+            ...(spell.effect.kind === "curse" ? { curse: CURSES[0] } : {}),
           }) === undefined,
       ),
     ),
@@ -4327,27 +4528,66 @@ function spellDamage(
   random: Roller,
   events: EncounterEvent[],
   event: (
-    dealt: Pick<SpellDamageDealt, "damage" | "damageAdjustment" | "hpAfter">,
+    dealt: Pick<
+      SpellDamageDealt,
+      "damage" | "damageAdjustment" | "hpAfter" | "curse"
+    >,
   ) => EncounterEvent,
+  {
+    spell = true,
+    keepTurning = false,
+  }: Readonly<{
+    /** False for Channel Divinity (#341), which no curse adds to. */
+    spell?: boolean;
+    /** Sear Undead's damage (#342) doesn't end its turning. */
+    keepTurning?: boolean;
+  }> = {},
 ): EncounterState {
-  const { damage, damageAdjustment } = damageTaken(
+  const { damage: spellTaken, damageAdjustment } = damageTaken(
     defencesOf(target),
     type,
     rolled,
   );
+  // Bestow Curse (#342): a spell of its caster's that damages the cursed
+  // target deals its curse's damage too.
+  const cursed =
+    spell && rolled > 0 ? curseOn(target, actor.id, "necrotic") : undefined;
+  const curse: CurseDamage | undefined =
+    cursed?.buff.kind === "curse"
+      ? (() => {
+          const { dice, sides, type: cursedType } = cursed.buff.damage;
+          const damageRolls = rollDice(random, dice, sides);
+          const taken = damageTaken(
+            defencesOf(target),
+            cursedType,
+            sum(damageRolls),
+          );
+          return {
+            spell: cursed.spell,
+            damageRolls,
+            damage: taken.damage,
+            damageType: cursedType,
+            ...(taken.damageAdjustment === undefined
+              ? {}
+              : { damageAdjustment: taken.damageAdjustment }),
+          };
+        })()
+      : undefined;
+  const damage = spellTaken + (curse?.damage ?? 0);
   const hpAfter = Math.max(0, target.hp - damage);
   events.push(
     event({
-      damage,
+      damage: spellTaken,
       ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
       hpAfter,
+      ...(curse === undefined ? {} : { curse }),
     }),
   );
   const hpLeft = fortitude(
     target,
     hpAfter,
     damage,
-    type === "radiant" && damage > 0,
+    type === "radiant" && spellTaken > 0,
     random,
     events,
   );
@@ -4358,8 +4598,9 @@ function spellDamage(
     ),
     engaged: engage(state, actor, target),
   };
-  // Damage wakes a target from Sleep (#340) and ends its turning (#341).
-  const next = damage > 0 ? wake(hit, target.id, events) : hit;
+  // Damage wakes a target from Sleep (#340) and ends its turning (#341),
+  // except Sear Undead's (#342).
+  const next = damage > 0 ? wake(hit, target.id, events, keepTurning) : hit;
   // A fall ends concentration; damage that leaves it standing tests it (#337).
   return hpLeft === 0 && target.hp > 0
     ? fall(next, target, random, events)
@@ -4528,7 +4769,14 @@ function castSpell(
       // Its dice + the caster's spellcasting modifier (none for Prayer of
       // Healing, #341), and with a slot Disciple of Life's 2 + its level
       // (#341), up to the maximum.
-      const rolls = rollDice(random, effect.healing.dice, effect.healing.sides);
+      // Beacon of Hope (#342) makes the dice their most.
+      const maximised = healingMaximisedBy(target);
+      const rolls = healingRolls(
+        random,
+        effect.healing.dice,
+        effect.healing.sides,
+        maximised,
+      );
       const modifier = effect.noModifier === true ? 0 : casting.modifier;
       const disciple =
         casting.discipleOfLife === true && action.slotLevel !== undefined
@@ -4546,6 +4794,7 @@ function castSpell(
         rolls,
         modifier,
         ...(disciple === 0 ? {} : { disciple }),
+        ...(maximised === undefined ? {} : { maximised }),
         healing: hpAfter - target.hp,
         hpAfter,
         maxHp: target.maxHp,
@@ -4628,6 +4877,53 @@ function castSpell(
       );
       events.push(...resolved.events);
       return resolved.state;
+    }
+    case "curse":
+      return bestowCurse(spent, caster, spell, effect, target, action.curse!, {
+        random,
+        events,
+      });
+    case "guardians": {
+      // Spirit Guardians (#342): their caster concentrates on them, and
+      // they hit the opponents caught now, then at the end of each of those
+      // opponents' turns (`guard`). Without a clock they end with the
+      // fight.
+      const free = endConcentration(
+        spent,
+        actor.id,
+        "new-concentration",
+        events,
+      );
+      const added: ActiveEffect = {
+        spellId: spell.id,
+        spell: spell.name,
+        casterId: actor.id,
+        buff: {
+          kind: "guardians",
+          ability: effect.ability,
+          damage: effect.damage,
+        },
+        ends: "fight",
+        concentration: true,
+        caught: action.targetIds,
+      };
+      events.push({ type: "effect", targetId: actor.id, ...added });
+      const guarded: EncounterState = {
+        ...free,
+        combatants: free.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? withEffects(candidate, [...(candidate.effects ?? []), added])
+            : candidate,
+        ),
+      };
+      return areaDamage(
+        guarded,
+        combatant(guarded, actor.id),
+        spell,
+        effect,
+        action.targetIds,
+        { random, events },
+      );
     }
     case "buff": {
       // A new concentration spell ends the one before it (#337).
@@ -4813,6 +5109,128 @@ function controlSpell(
 }
 
 /**
+ * Bestow Curse (#342) on `target`: casting it ends the caster's other
+ * concentration; the target saves on Wisdom, and on a failure is cursed
+ * with `curse` while the caster concentrates, until the fight ends.
+ */
+function bestowCurse(
+  state: EncounterState,
+  caster: Combatant,
+  spell: SpellDefinition,
+  effect: Extract<SpellEffect, { kind: "curse" }>,
+  target: Combatant,
+  curse: CurseId,
+  { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
+): EncounterState {
+  const free = endConcentration(state, caster.id, "new-concentration", events);
+  const save = savingThrow(
+    free,
+    combatant(free, target.id),
+    { ability: effect.ability, dc: caster.spellcasting!.saveDc },
+    random,
+  );
+  events.push({
+    type: "spell-curse",
+    actorId: caster.id,
+    targetId: target.id,
+    spell: spell.name,
+    curse,
+    save,
+    success: save.success,
+  });
+  const engaged = { ...free, engaged: engage(free, caster, target) };
+  if (save.success) {
+    return engaged;
+  }
+  const laid: ActiveEffect = {
+    spellId: spell.id,
+    spell: spell.name,
+    casterId: caster.id,
+    buff: { kind: "curse", curse, damage: effect.damage },
+    ends: effectEnds(effect.duration),
+    concentration: true,
+  };
+  events.push({ type: "effect", targetId: target.id, ...laid });
+  return {
+    ...engaged,
+    combatants: engaged.combatants.map((candidate) =>
+      candidate.id === target.id
+        ? withEffects(candidate, [...(candidate.effects ?? []), laid])
+        : candidate,
+    ),
+  };
+}
+
+/**
+ * The end of `entrant`'s turn under Spirit Guardians (#342): for each
+ * caster whose guardians caught it, still concentrating on them, it saves
+ * against their damage, rolled afresh, taking it or half on a success.
+ */
+function guard(
+  state: EncounterState,
+  entrant: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  for (const holder of state.combatants) {
+    for (const effect of holder.effects ?? []) {
+      const { buff } = effect;
+      const target = combatant(next, entrant.id);
+      if (
+        buff.kind !== "guardians" ||
+        effect.caught?.includes(entrant.id) !== true ||
+        isOut(next, target) ||
+        next.outcome !== "ongoing"
+      ) {
+        continue;
+      }
+      // The guardians may have gone since the turn began.
+      const caster = combatant(next, holder.id);
+      if (
+        isOut(next, caster) ||
+        concentrationOf(next.combatants, caster.id)?.spellId !== effect.spellId
+      ) {
+        continue;
+      }
+      const save = savingThrow(
+        next,
+        target,
+        { ability: buff.ability, dc: caster.spellcasting!.saveDc },
+        random,
+      );
+      const damageRolls = rollDice(random, buff.damage.dice, buff.damage.sides);
+      const full = sum(damageRolls);
+      next = concludeIfOver(
+        spellDamage(
+          next,
+          caster,
+          target,
+          save.success ? Math.floor(full / 2) : full,
+          buff.damage.type,
+          random,
+          events,
+          (dealt) => ({
+            type: "spell-save",
+            actorId: caster.id,
+            targetId: target.id,
+            spell: effect.spell,
+            save,
+            onSuccess: "half",
+            damageRolls,
+            damageModifier: 0,
+            damageType: buff.damage.type,
+            ...dealt,
+          }),
+        ),
+        events,
+      );
+    }
+  }
+  return next;
+}
+
+/**
  * Turn Undead (#341): each undead opponent still in the fight and not yet
  * turned saves on Wisdom against the Channel Divinity DC, or is Frightened
  * and Incapacitated, held by a turning that lasts the fight unless damage,
@@ -4828,13 +5246,44 @@ function turnUndead(
   const targets = turnable(state, actor);
   const spent = spendChannel(state, actor);
   const { usesLeft } = spent;
+  // Sear Undead (#342): its dice are rolled once, for every undead.
+  const searRolls =
+    channel.searUndead === undefined
+      ? undefined
+      : rollDice(random, channel.searUndead.dice, channel.searUndead.sides);
   events.push({
     type: "turn-undead",
     combatantId: actor.id,
     targetIds: targets.map(({ id }) => id),
     usesLeft,
+    ...(searRolls === undefined
+      ? {}
+      : { sear: { rolls: searRolls, total: sum(searRolls) } }),
   });
   let next = spent.state;
+  // An undead that failed the save takes the searing damage, which doesn't
+  // end its turning (#342).
+  const sear = (state: EncounterState, targetId: string): EncounterState =>
+    searRolls === undefined
+      ? state
+      : spellDamage(
+          state,
+          combatant(state, actor.id),
+          combatant(state, targetId),
+          sum(searRolls),
+          "radiant",
+          random,
+          events,
+          ({ damage, damageAdjustment, hpAfter }) => ({
+            type: "sear-undead",
+            combatantId: actor.id,
+            targetId,
+            damage,
+            ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
+            hpAfter,
+          }),
+          { spell: false, keepTurning: true },
+        );
   for (const target of targets) {
     const thrown = savingThrow(
       next,
@@ -4855,7 +5304,11 @@ function turnUndead(
     const kinds = (["frightened", "incapacitated"] as const).filter(
       (kind) => target.conditionImmunities?.includes(kind) !== true,
     );
-    if (thrown.success || kinds.length === 0) {
+    if (thrown.success) {
+      continue;
+    }
+    if (kinds.length === 0) {
+      next = sear(next, target.id);
       continue;
     }
     const held: ActiveEffect = {
@@ -4897,6 +5350,7 @@ function turnUndead(
       target.id,
       events,
     );
+    next = sear(next, target.id);
   }
   return next;
 }
@@ -4924,7 +5378,8 @@ function divineSpark(
     usesLeft,
   };
   if (mode === "heal") {
-    const rolls = rollDice(random, dice, sides);
+    const maximised = healingMaximisedBy(target);
+    const rolls = healingRolls(random, dice, sides, maximised);
     const total = Math.max(0, sum(rolls) + modifier);
     const hpAfter = Math.min(target.maxHp, target.hp + total);
     events.push({
@@ -4936,6 +5391,7 @@ function divineSpark(
       healing: hpAfter - target.hp,
       hpAfter,
       maxHp: target.maxHp,
+      ...(maximised === undefined ? {} : { maximised }),
     });
     return {
       ...spent,
@@ -4971,6 +5427,7 @@ function divineSpark(
       save,
       ...dealt,
     }),
+    { spell: false },
   );
 }
 
@@ -4983,7 +5440,10 @@ function areaDamage(
   state: EncounterState,
   caster: Combatant,
   spell: SpellDefinition,
-  effect: Extract<SpellEffect, { kind: "save" }>,
+  effect: Pick<
+    Extract<SpellEffect, { kind: "save" }>,
+    "ability" | "onSuccess" | "damage"
+  >,
   targetIds: readonly string[],
   { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
 ): EncounterState {
@@ -5498,6 +5958,7 @@ export function act(
         actor.hp,
         actor.maxHp,
         random,
+        healingMaximisedBy(actor),
       );
       events.push(drunk);
       next = {
@@ -5581,7 +6042,8 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      next = turnUndead(state, actor, random, events);
+      // Sear Undead (#342) may destroy the last of them.
+      next = concludeIfOver(turnUndead(state, actor, random, events), events);
       break;
     }
     case "preserve-life": {

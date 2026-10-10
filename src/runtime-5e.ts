@@ -159,10 +159,12 @@ import {
   type Combatant,
   type ConditionKind,
   type CunningStrikeId,
+  type CurseDamage,
   type DamageAdjustment,
   type DamageType,
   dealtDamageTypes,
   reducesDamage,
+  resistsDamage,
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
@@ -233,6 +235,9 @@ import {
   outlastsFight,
   slotUsesId,
   spellAtLevel,
+  CURSE_NAMES,
+  CURSES,
+  type CurseId,
   RESISTANCE_DAMAGE_TYPES,
   SPELLS,
   type Buff,
@@ -2161,6 +2166,12 @@ export function spellSummary(spell: SpellDefinition): string {
       return `ends one condition on you: ${listed([...effect.conditions], "or")}`;
     case "spectral-weapon":
       return `a melee spell attack, ${dice(effect.damage)} + your spellcasting modifier ${effect.damage.type}, then again with a bonus action each turn, concentration`;
+    case "curse":
+      // Bestow Curse (#342): its curse is chosen at casting.
+      return `${titleCase(effect.ability)} save or cursed until the fight ends: ${CURSE_NAMES.attacks}, or ${dice(effect.damage)} ${effect.damage.type} more whenever your attacks or spells damage it; concentration`;
+    case "guardians":
+      // Spirit Guardians (#342).
+      return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, half on a success, as it is cast and at the end of each caught foe's turn until the fight ends; concentration`;
   }
 }
 
@@ -2195,6 +2206,14 @@ export function buffText(buff: Buff, damageType?: string): string {
       return `a spectral weapon: a bonus action attacks with it for ${buff.dice}d${buff.sides} + your spellcasting modifier ${buff.type}`;
     case "lockout":
       return "can't benefit from it again";
+    case "beacon":
+      return "advantage on Wisdom saving throws, and healing heals its most";
+    case "energy-ward":
+      return `resistance to ${damageType ?? "the chosen"} damage`;
+    case "curse":
+      return `cursed: ${CURSE_NAMES[buff.curse]}`;
+    case "guardians":
+      return `spirit guardians: each foe they caught makes a ${titleCase(buff.ability)} saving throw at the end of its turns, taking ${buff.damage.dice}d${buff.damage.sides} ${buff.damage.type}, half on a success`;
   }
 }
 
@@ -2326,6 +2345,11 @@ function gearText(event: GearEvent): string {
 const titleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
 
+/** " (Beacon of Hope: the most)": healing dice at their most (#342). */
+function maximisedText(maximised: string | undefined): string {
+  return maximised === undefined ? "" : ` (${maximised}: the most)`;
+}
+
 /**
  * A spell cast (#336) and what it did: the slot it spent, a saving throw
  * and its damage, missiles that hit, or healing. The character is "you".
@@ -2340,12 +2364,18 @@ function spellText(
         | "spell-save"
         | "spell-condition"
         | "spell-damage"
-        | "spell-healing";
+        | "spell-healing"
+        | "spell-curse";
     }
   >,
   name: (id: string) => string,
   maxHp: (id: string) => number,
 ): string {
+  // Bestow Curse's extra damage (#342), after a spell's own.
+  const cursed = (curse: CurseDamage | undefined) =>
+    curse === undefined
+      ? ""
+      : `, plus ${curse.damageRolls.join(" + ")} = ${rolledDamage(curse.damage, curse.damageAdjustment)} ${curse.damageType} (${curse.spell})${adjustedText(curse.damage, curse.damageAdjustment)}`;
   switch (event.type) {
     case "cast": {
       const slot =
@@ -2389,12 +2419,12 @@ function spellText(
           : event.onSuccess === "half"
             ? `half of ${full}, ${Math.floor(full / 2)},`
             : "none of it";
-        return `${rolled}: ${target} takes ${share} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+        return `${rolled}: ${target} takes ${share} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}${cursed(event.curse)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
       }
       const halved = save.success
         ? `, halved to ${Math.floor(full / 2)} by the save`
         : "";
-      return `${rolled}. Damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}${halved}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+      return `${rolled}. Damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}${halved}${adjustedText(event.damage, event.damageAdjustment)}${cursed(event.curse)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
     }
     case "spell-condition": {
       // A control spell's save (#340): Sleep's.
@@ -2415,7 +2445,17 @@ function spellText(
       const rolled =
         event.damageRolls.reduce((sum, value) => sum + value, 0) +
         event.damageModifier;
-      return `${event.spell}: ${event.missiles} missiles hit ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+      return `${event.spell}: ${event.missiles} missiles hit ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}${cursed(event.curse)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+    }
+    case "spell-curse": {
+      // Bestow Curse's save (#342).
+      const { save } = event;
+      const target = name(event.targetId);
+      const rolled =
+        save.autoFail === undefined
+          ? `${target} makes a Wisdom saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a Wisdom saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
+      return `${rolled}${event.success ? ": the curse has no effect." : `: cursed, ${CURSE_NAMES[event.curse]}.`}`;
     }
     case "spell-healing": {
       // Disciple of Life (#341) adds 2 + the slot level.
@@ -2425,7 +2465,7 @@ function spellText(
         event.modifier +
         disciple;
       const self = event.targetId === PLAYER_ID;
-      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
+      return `${event.spell}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
     }
   }
 }
@@ -2436,7 +2476,11 @@ function channelText(
     FifthEvent,
     {
       type:
-        "divine-spark" | "turn-undead" | "preserve-life" | "hit-points-raised";
+        | "divine-spark"
+        | "turn-undead"
+        | "sear-undead"
+        | "preserve-life"
+        | "hit-points-raised";
     }
   >,
   name: (id: string) => string,
@@ -2448,7 +2492,7 @@ function channelText(
       const left = uses(event.usesLeft, "Channel Divinity");
       const rolled = `${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}`;
       if (event.mode === "heal") {
-        return `Divine Spark: ${rolled}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
+        return `Divine Spark: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${event.total}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
       }
       const { save } = event;
       const target = name(event.targetId);
@@ -2465,7 +2509,12 @@ function channelText(
       return `${event.combatantId === PLAYER_ID ? "You present" : `${name(event.combatantId)} presents`} a holy symbol: Turn Undead reaches ${listed(
         event.targetIds.map(name),
         "and",
-      )}. ${uses(event.usesLeft, "Channel Divinity")}.`;
+      )}.${event.sear === undefined ? "" : ` Sear Undead: ${event.sear.rolls.join(" + ")} = ${event.sear.total} radiant to each that fails its save.`} ${uses(event.usesLeft, "Channel Divinity")}.`;
+    case "sear-undead": {
+      // Sear Undead (#342): the turning stays.
+      const target = name(event.targetId);
+      return `Sear Undead burns ${target} for ${event.damage} radiant${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+    }
     case "preserve-life":
       return `Preserve Life: ${who(event.combatantId)} ${event.combatantId === PLAYER_ID ? "regain" : "regains"} ${event.healing} HP and ${event.combatantId === PLAYER_ID ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP. ${uses(event.usesLeft, "Channel Divinity")}.`;
     case "hit-points-raised":
@@ -2591,7 +2640,7 @@ export function renderFifthEvent(
       const rider =
         event.rider === undefined
           ? ""
-          : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(riderDamage, event.rider.damageAdjustment)} ${event.rider.damageType}${adjustedText(riderDamage, event.rider.damageAdjustment)}`;
+          : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(riderDamage, event.rider.damageAdjustment)} ${event.rider.damageType}${event.rider.curse === undefined ? "" : ` (${event.rider.curse})`}${adjustedText(riderDamage, event.rider.damageAdjustment)}`;
       const halved =
         dodged === undefined
           ? ""
@@ -2666,7 +2715,7 @@ export function renderFifthEvent(
     case "potion": {
       const rolled =
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
-      return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
+      return `You drink the ${event.name}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "cast":
     case "spell-area":
@@ -2674,6 +2723,7 @@ export function renderFifthEvent(
     case "spell-condition":
     case "spell-damage":
     case "spell-healing":
+    case "spell-curse":
       return spellText(
         event,
         name,
@@ -2681,6 +2731,7 @@ export function renderFifthEvent(
       );
     case "divine-spark":
     case "turn-undead":
+    case "sear-undead":
     case "preserve-life":
     case "hit-points-raised":
       return channelText(
@@ -3099,6 +3150,36 @@ export function describeFifthResult(
    * then the rider's. Totals Uncanny Dodge halved (#308) say so.
    */
   /** A save or missile spell's damage (#336): its dice, and what it dealt. */
+  /** Healing dice (#342): drawn, or at their most with Beacon of Hope. */
+  const healingDice = (
+    values: readonly number[],
+    maximised: string | undefined,
+  ): ShownDie[] =>
+    maximised === undefined
+      ? take(values)
+      : values.map((value) => ({ sides: value, value, effect: maximised }));
+  /** Bestow Curse's extra damage (#342), after a spell's own. */
+  const curseGroups = (
+    event: Extract<FifthEvent, { type: "spell-save" | "spell-damage" }>,
+  ): RollGroup[] =>
+    event.curse === undefined
+      ? []
+      : [
+          {
+            purpose: "damage",
+            roller: event.curse.spell,
+            target: name(event.targetId),
+            dice: take(event.curse.damageRolls),
+            modifier: 0,
+            total: event.curse.damage,
+            damageType: event.curse.damageType,
+            ...(event.curse.damageAdjustment === undefined
+              ? {}
+              : { adjustment: event.curse.damageAdjustment.by }),
+            hpAfter: event.hpAfter,
+            maxHp: combatant(state.encounter!, event.targetId).maxHp,
+          },
+        ];
   const spellDamageGroup = (
     event: Extract<FifthEvent, { type: "spell-save" | "spell-damage" }>,
   ): RollGroup => ({
@@ -3530,8 +3611,35 @@ export function describeFifthResult(
           ...(event.damageRolls.length === 0 || event.area === true
             ? []
             : [spellDamageGroup(event)]),
+          ...curseGroups(event),
         ];
       }
+      case "spell-curse":
+        // Bestow Curse's save (#342).
+        return event.save.autoFail !== undefined
+          ? []
+          : [
+              saveGroup(
+                name(event.targetId),
+                `Wisdom saving throw (${event.spell})`,
+                event.save,
+              ),
+            ];
+      case "turn-undead":
+        // Sear Undead's dice (#342), rolled once before the saves.
+        return event.sear === undefined
+          ? []
+          : [
+              {
+                purpose: "damage",
+                roller: name(event.combatantId),
+                label: "Sear Undead",
+                dice: take(event.sear.rolls),
+                modifier: 0,
+                total: event.sear.total,
+                damageType: "radiant",
+              },
+            ];
       case "spell-condition":
         // A control spell's save (#340), unless it succeeded without one.
         return event.save === undefined || event.save.autoFail !== undefined
@@ -3544,14 +3652,14 @@ export function describeFifthResult(
               ),
             ];
       case "spell-damage":
-        return [spellDamageGroup(event)];
+        return [spellDamageGroup(event), ...curseGroups(event)];
       case "spell-healing":
         return [
           {
             purpose: "healing",
             roller: name(event.combatantId),
             target: name(event.targetId),
-            dice: take(event.rolls),
+            dice: healingDice(event.rolls, event.maximised),
             // Disciple of Life's extra healing (#341) with the modifier.
             modifier: event.modifier + (event.disciple ?? 0),
             total: event.healing,
@@ -3568,7 +3676,7 @@ export function describeFifthResult(
               purpose: "healing",
               roller: name(event.combatantId),
               target: name(event.targetId),
-              dice: take(event.rolls),
+              dice: healingDice(event.rolls, event.maximised),
               modifier: event.modifier,
               total: event.healing,
               hpAfter: event.hpAfter,
@@ -3615,7 +3723,7 @@ export function describeFifthResult(
           {
             purpose: "healing",
             roller: name(event.combatantId),
-            dice: take(event.rolls),
+            dice: healingDice(event.rolls, event.maximised),
             modifier: event.modifier,
             total:
               event.rolls.reduce((sum, value) => sum + value, 0) +
@@ -3879,6 +3987,9 @@ export type ActionView = Readonly<{
      */
     damageType?: string;
     damageTypeUse?: "resisted" | "dealt";
+    /** Bestow Curse's curse (#342), and what it does. */
+    curse?: CurseId;
+    curseName?: string;
   }>;
   /**
    * An area spell's cast (#338): the foes it may catch, up to its
@@ -4009,6 +4120,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "wearing-armour": "Wearing armour",
   "fight-only": "In a fight only",
   "damage-type": "Choose a damage type",
+  curse: "Choose a curse",
   "no-effect": "Flavour only",
   "no-channel-divinity": "No Channel Divinity",
   "no-undead": "No undead to turn",
@@ -6736,15 +6848,18 @@ export function createFifthRuntime(
         // Its targets are a list of ids (#338).
         // Resistance (#339) names a damage type it resists, Chromatic Orb
         // (#340) one it deals.
+        // Bestow Curse (#342) names its curse.
         const spellId = field("spellId");
         const damageType = field("damageType");
+        const curse = field("curse");
         const { slotLevel, targetIds } = action;
         return actorId === undefined ||
           spellId === undefined ||
           !Array.isArray(targetIds) ||
           !targetIds.every((id) => typeof id === "string") ||
           (slotLevel !== undefined && !Number.isInteger(slotLevel)) ||
-          (action.damageType !== undefined && damageType === undefined)
+          (action.damageType !== undefined && damageType === undefined) ||
+          (action.curse !== undefined && curse === undefined)
           ? undefined
           : {
               type: "cast",
@@ -6757,6 +6872,7 @@ export function createFifthRuntime(
               ...(damageType === undefined
                 ? {}
                 : { damageType: damageType as DamageType }),
+              ...(curse === undefined ? {} : { curse: curse as CurseId }),
             };
       }
       case "rest": {
@@ -8360,9 +8476,16 @@ export function createFifthRuntime(
                   ? {}
                   : {
                       damageType: action.damageType,
-                      damageTypeUse: reducesDamage(SPELLS[action.spellId])
+                      damageTypeUse: resistsDamage(SPELLS[action.spellId])
                         ? ("resisted" as const)
                         : ("dealt" as const),
+                    }),
+                // Bestow Curse's curse (#342).
+                ...(action.curse === undefined
+                  ? {}
+                  : {
+                      curse: action.curse,
+                      curseName: CURSE_NAMES[action.curse],
                     }),
               },
             }
@@ -8424,7 +8547,11 @@ export function createFifthRuntime(
               ? foeDamageTypes(foes)
               : (spell.damageTypes ?? [undefined])
             ).flatMap((damageType) =>
-              spellCasts(caster, foes, spell, slotLevel, damageType),
+              // Bestow Curse (#342): an entry for each curse.
+              (spell.effect.kind === "curse" ? CURSES : [undefined]).flatMap(
+                (curse) =>
+                  spellCasts(caster, foes, spell, slotLevel, damageType, curse),
+              ),
             ),
           ),
         );
@@ -8446,6 +8573,7 @@ export function createFifthRuntime(
       spell: SpellDefinition,
       slotLevel: number | undefined,
       damageType: DamageType | undefined,
+      curse: CurseId | undefined,
     ): readonly ActionView[] => {
       const cast = (targetIds: readonly string[]): CastAction => ({
         type: "cast",
@@ -8454,6 +8582,7 @@ export function createFifthRuntime(
         targetIds,
         ...(slotLevel === undefined ? {} : { slotLevel }),
         ...(damageType === undefined ? {} : { damageType }),
+        ...(curse === undefined ? {} : { curse }),
       });
       // An area spell (#338): one entry, its targets chosen from the
       // foes, up to its most; it dry-runs the first of them. One that
@@ -9837,6 +9966,13 @@ export function createFifthRuntime(
           spell!.damageType === undefined ? [] : [spell!.damageType],
         ),
       );
+    // The curses `views` name (#342): Bestow Curse's.
+    const cursesOf = (views: readonly ActionView[]) =>
+      unique(
+        views.flatMap(({ spell }) =>
+          spell!.curse === undefined ? [] : [spell!.curse],
+        ),
+      );
     const described = spells.map((id) => {
       const mine = offers.filter(({ spell }) => spell!.id === id);
       const { name, level, maxTargets: most } = mine[0]!.spell!;
@@ -9855,10 +9991,16 @@ export function createFifthRuntime(
       const types = damageTypesOf(mine);
       const resists =
         types.length === 0 ? "" : `; damage_type ${listed(types)}`;
+      // Bestow Curse (#342) lays the curse the player chooses.
+      const lays = cursesOf(mine)
+        .map((curse) => `${curse} (${CURSE_NAMES[curse]})`)
+        .join(" or ");
+      const cursed = lays === "" ? "" : `; curse ${lays}`;
       const summary = isSpellId(id) ? `: ${spellSummary(SPELLS[id])}` : "";
-      return `${id} (${name}${summary}; ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom}${resists})`;
+      return `${id} (${name}${summary}; ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom}${resists}${cursed})`;
     });
     const damageTypes = damageTypesOf(offers);
+    const curses = cursesOf(offers);
     const slotLevelsOffered = unique(
       offers.flatMap(({ spell }) =>
         spell!.slotLevel === undefined ? [] : [spell!.slotLevel],
@@ -9905,7 +10047,18 @@ export function createFifthRuntime(
                     type: ["string", "null"],
                     enum: [...damageTypes, null],
                     description:
-                      "The damage type the player chose from those listed for the spell: the one Resistance resists, or the one Chromatic Orb deals; null for every other spell.",
+                      "The damage type the player chose from those listed for the spell: the one Resistance or Protection from Energy resists, or the one Chromatic Orb deals; null for every other spell.",
+                  },
+                }),
+            // Only while Bestow Curse (#342) is offered.
+            ...(curses.length === 0
+              ? {}
+              : {
+                  curse: {
+                    type: ["string", "null"],
+                    enum: [...curses, null],
+                    description:
+                      "The curse the player chose for Bestow Curse from those listed; null for every other spell.",
                   },
                 }),
           },
@@ -9914,6 +10067,7 @@ export function createFifthRuntime(
             "slot_level",
             "targets",
             ...(damageTypes.length === 0 ? [] : ["damage_type"]),
+            ...(curses.length === 0 ? [] : ["curse"]),
           ],
           additionalProperties: false,
         },
@@ -10034,6 +10188,8 @@ export function createFifthRuntime(
     // Resistance's damage type (#339), or null, while Resistance is
     // offered: the tool lists the key only then.
     const damageType = isRecord(parsed) ? parsed.damage_type : undefined;
+    // Bestow Curse's curse (#342), or null, while it is offered.
+    const curse = isRecord(parsed) ? parsed.curse : undefined;
     // Divine Spark (#341) takes its target and mode.
     const isSpark = call.name === "divine_spark";
     if (
@@ -10046,10 +10202,15 @@ export function createFifthRuntime(
         (![
           "slot_level,spell,targets",
           "damage_type,slot_level,spell,targets",
+          "curse,slot_level,spell,targets",
+          "curse,damage_type,slot_level,spell,targets",
         ].includes(Object.keys(parsed).sort().join(",")) ||
           (damageType !== undefined &&
             damageType !== null &&
             typeof damageType !== "string") ||
+          (curse !== undefined &&
+            curse !== null &&
+            typeof curse !== "string") ||
           typeof parsed.spell !== "string" ||
           !Array.isArray(castTargets) ||
           !castTargets.every((id) => typeof id === "string") ||
@@ -10093,6 +10254,7 @@ export function createFifthRuntime(
             ...(typeof damageType === "string"
               ? { damageType: damageType as DamageType }
               : {}),
+            ...(typeof curse === "string" ? { curse: curse as CurseId } : {}),
           }
         : isRest
           ? { type: "rest", hitDice: hitDice as number }
@@ -10282,7 +10444,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v12",
+    toolSchemaVersion: "5e-tools-v13",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,
