@@ -3241,6 +3241,22 @@ export type ShownDie = Readonly<{
 }>;
 
 /**
+ * Every field a shown die may have, checked against `ShownDie` both ways by
+ * the compiler, for a saved session's history.
+ */
+const SHOWN_DIE_FIELDS: Readonly<Record<keyof ShownDie, true>> = {
+  sides: true,
+  value: true,
+  dropped: true,
+  countsAs: true,
+  sneakAttack: true,
+  effect: true,
+};
+export const SHOWN_DIE_KEYS = Object.keys(
+  SHOWN_DIE_FIELDS,
+) as readonly (keyof ShownDie)[];
+
+/**
  * Every purpose a result card's roll group may have. A saved session's
  * history is checked against this list (#355), so a new purpose survives a
  * save and reload by being added here.

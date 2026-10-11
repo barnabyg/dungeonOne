@@ -16,6 +16,7 @@ import {
   ROLL_GROUP_KEYS,
   ROLL_OUTCOMES,
   ROLL_PURPOSES,
+  SHOWN_DIE_KEYS,
 } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -180,6 +181,38 @@ test("a saved roll group accepts every key, outcome, check band and damage adjus
       // Only the string itself: a list holding it is not coerced to it.
       await refused((roll) => (roll[field] = [list[0]]));
     }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a saved die keeps its Great Weapon Fighting, Sneak Attack and effect marks, and refuses others", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-355-"));
+  try {
+    const path = join(directory, "session.json");
+    const { good } = await savedReaction(path);
+    const loads = (change) =>
+      loadChanged(path, good, (roll) => change(roll.dice[0]));
+    const refused = (change) =>
+      assert.rejects(loads(change), /Invalid adventure session/);
+
+    const everyField = {
+      sides: 6,
+      value: 1,
+      dropped: true,
+      countsAs: 3,
+      sneakAttack: true,
+      effect: "Bless",
+    };
+    assert.deepEqual(
+      Object.keys(everyField).sort(),
+      [...SHOWN_DIE_KEYS].sort(),
+    );
+    await loads((die) => Object.assign(die, everyField));
+    await refused((die) => (die.mood = "calm"));
+    await refused((die) => (die.countsAs = 2));
+    await refused((die) => (die.sneakAttack = false));
+    await refused((die) => (die.effect = 3));
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

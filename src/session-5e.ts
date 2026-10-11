@@ -44,6 +44,7 @@ import {
   ROLL_OUTCOMES,
   ROLL_PURPOSES,
   type ResultLine,
+  SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
 export const FIFTH_SESSION_FORMAT = 50;
@@ -177,9 +178,10 @@ function validRollGroup(value: unknown): boolean {
         integer(die.sides) &&
         integer(die.value) &&
         optional(die.dropped, (dropped) => dropped === true) &&
-        Object.keys(die).every((key) =>
-          ["sides", "value", "dropped"].includes(key),
-        ),
+        optional(die.countsAs, (countsAs) => countsAs === 3) &&
+        optional(die.sneakAttack, (sneakAttack) => sneakAttack === true) &&
+        optional(die.effect, label) &&
+        Object.keys(die).every((key) => isOneOf(SHOWN_DIE_KEYS, key)),
     ) &&
     integer(value.modifier) &&
     integer(value.total) &&
