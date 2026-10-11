@@ -210,9 +210,21 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
     case "tactical-mind":
       return { type: "tactical-mind" };
     // A short rest (#334) spends the most hit dice, as the browser's choice
-    // does unless the player picks fewer.
+    // does unless the player picks fewer; when Memorize Spell's swap (#344)
+    // is all it brings, the browser's first swap goes with it.
     case "rest":
-      return { type: "rest", hitDice: rest.hitDice.at(-1) };
+      return {
+        type: "rest",
+        hitDice: rest.hitDice.at(-1),
+        ...(rest.memorize?.only === true
+          ? {
+              memorize: {
+                forget: rest.memorize.forget[0].id,
+                learn: rest.memorize.learn[0].id,
+              },
+            }
+          : {}),
+      };
     // A long rest at a rest site (#335).
     case "long-rest":
       return { type: "long-rest" };

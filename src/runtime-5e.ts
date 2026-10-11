@@ -301,6 +301,12 @@ export type CharacterResources = Readonly<{
    * end with the adventure.
    */
   effects?: readonly ActiveEffect[];
+  /**
+   * The spells prepared for the rest of the adventure, once Memorize Spell
+   * (#344) has swapped one on a short rest: the sheet's own list until then,
+   * and the library's never changes (D8).
+   */
+  prepared?: readonly SpellId[];
 }>;
 
 /**
@@ -324,6 +330,16 @@ export type HitDiceView = Readonly<{
 
 /** A short rest (#334) or a long rest (#335). */
 export type RestKind = "short" | "long";
+
+/** Memorize Spell's swap on a short rest (#344). */
+export type Memorize = Readonly<{ forget: SpellId; learn: SpellId }>;
+
+/** A spell Memorize Spell may swap out or in (#344). */
+export type MemorizeSpell = Readonly<{
+  id: SpellId;
+  name: string;
+  level: number;
+}>;
 
 /** How many rests of each kind the character may take in one adventure. */
 const RESTS_PER_ADVENTURE: Readonly<Record<RestKind, number>> = {
@@ -589,7 +605,15 @@ export type FifthAction =
    * A short rest (#334), spending up to `hitDice` hit dice one at a time:
    * once HP is full, no more are spent.
    */
-  | Readonly<{ type: "rest"; hitDice: number }>
+  | Readonly<{
+      type: "rest";
+      hitDice: number;
+      /**
+       * Memorize Spell's swap (#344), for a level-5 Wizard: the prepared
+       * spell to forget and the spellbook's spell to prepare in its place.
+       */
+      memorize?: Memorize;
+    }>
   /**
    * A long rest (#335), only at a rest site: every hit point, hit die and
    * feature use comes back.
@@ -1086,6 +1110,11 @@ export type FifthEvent =
    * Arcane Recovery (#340) on a short rest: the spell slots it regained by
    * level, each with its uses after, and its own uses left.
    */
+  /**
+   * Memorize Spell (#344): on a short rest, `learned` prepared in place of
+   * `forgot` until the adventure ends.
+   */
+  | Readonly<{ type: "memorized"; forgot: SpellId; learned: SpellId }>
   | Readonly<{
       type: "arcane-recovery";
       slots: readonly Readonly<{
@@ -1418,6 +1447,9 @@ export type FifthRefusalCode =
   | "no-rests-left"
   | "too-many-hit-dice"
   | "nothing-to-recover"
+  | "no-memorize-spell"
+  | "memorize-forget"
+  | "memorize-learn"
   | "not-rest-site"
   | "no-long-rests-left"
   | "unprepared-spell"
@@ -1468,7 +1500,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1787,10 +1819,11 @@ function combatSpellcasting(
     attackBonus: casting.attackBonus,
     saveDc: casting.saveDc,
     modifier: casting.modifier,
-    // The Life Domain's spells are always prepared (#341).
+    // The Life Domain's spells are always prepared (#341); Memorize Spell
+    // (#344) may have swapped one for the adventure.
     spells: [
       ...casting.cantrips,
-      ...casting.prepared,
+      ...(resources.prepared ?? casting.prepared),
       ...(casting.alwaysPrepared ?? []),
     ].map((id): SpellDefinition => spellAtLevel(SPELLS[id], sheet.level)),
     slots: casting.slots.map((max, index) => ({
@@ -2986,6 +3019,8 @@ export function renderFifthEvent(
             "and",
           )} ${(event.opponents ?? []).length === 1 ? "comes" : "come"} upon you. Your ${event.rest} rest is interrupted and restores nothing.`
         : `You keep watch as you rest: d100 ${event.roll}, over ${event.chance}: nothing disturbs you.`;
+    case "memorized":
+      return `Memorize Spell: you study your spellbook and prepare ${SPELLS[event.learned].name} in place of ${SPELLS[event.forgot].name} until the adventure ends.`;
     case "arcane-recovery":
       return `Arcane Recovery: you regain ${listed(
         event.slots.map(
@@ -4111,9 +4146,25 @@ export type ActionView = Readonly<{
    * A short rest (#334), listed while it would restore something: the
    * numbers of hit dice it may spend now, fewest first. The action spends
    * the most; the engine may still refuse it (in a fight, with foes here,
-   * or after two short rests).
+   * or after two short rests). When Memorize Spell's swap (#344) is all it
+   * would bring, the action makes the first swap offered.
    */
-  rest?: Readonly<{ hitDice: readonly number[] }>;
+  rest?: Readonly<{
+    hitDice: readonly number[];
+    /**
+     * Memorize Spell (#344), for a level-5 Wizard: the prepared spells it
+     * may forget and the spellbook's others it may prepare in their place.
+     */
+    memorize?: Readonly<{
+      forget: readonly MemorizeSpell[];
+      learn: readonly MemorizeSpell[];
+      /**
+       * The swap is all the rest would bring: a rest must make one, and
+       * the action makes the first offered.
+       */
+      only?: true;
+    }>;
+  }>;
   available: boolean;
   /** Present exactly when the action is unavailable. */
   reason?: string;
@@ -4187,6 +4238,9 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-rests-left": "No short rests left",
   "too-many-hit-dice": "Too few hit dice",
   "nothing-to-recover": "Nothing to recover",
+  "no-memorize-spell": "No Memorize Spell",
+  "memorize-forget": "Not prepared",
+  "memorize-learn": "Can't prepare that",
   "not-rest-site": "Not a rest site",
   "no-long-rests-left": "No long rest left",
   "not-here": "Not here",
@@ -5703,6 +5757,7 @@ export function createFifthRuntime(
    * refuses everything else: slots, the turn, the target.
    */
   const spellChoiceRefusal = (
+    state: FifthState,
     spellId: string,
   ): readonly [FifthRefusalCode, string] | undefined => {
     const casting = characterProfile(sheet).spellcasting;
@@ -5718,8 +5773,9 @@ export function createFifthRuntime(
         ? undefined
         : ["unknown-spell", `You don't know the ${name} cantrip.`];
     }
-    // The Life Domain's spells are always prepared (#341).
-    return casting.prepared.includes(spellId) ||
+    // The Life Domain's spells are always prepared (#341); Memorize Spell
+    // (#344) may have swapped one for the adventure.
+    return preparedOf(state).includes(spellId) ||
       casting.alwaysPrepared?.includes(spellId) === true
       ? undefined
       : ["unprepared-spell", `You haven't prepared ${name}.`];
@@ -6048,14 +6104,108 @@ export function createFifthRuntime(
   };
 
   /**
-   * The numbers of hit dice a short rest may spend now (#334), fewest
-   * first: none only when a feature would regain a use, and some (up to
-   * those left) only while hurt. Empty when a rest would restore nothing.
+   * The spells the character has prepared now: the sheet's, or those
+   * Memorize Spell (#344) left it with for this adventure.
    */
-  const restCounts = (state: FifthState): readonly number[] => {
+  const preparedOf = (state: FifthState): readonly SpellId[] =>
+    state.character.prepared ??
+    characterProfile(sheet).spellcasting?.prepared ??
+    [];
+
+  /**
+   * What Memorize Spell (#344) may swap on a short rest now: the prepared
+   * levelled spells to forget and the spellbook's other levelled spells to
+   * prepare instead. Undefined without the feature or a swap to make.
+   */
+  const memorizeOptions = (
+    state: FifthState,
+  ):
+    | Readonly<{
+        forget: readonly MemorizeSpell[];
+        learn: readonly MemorizeSpell[];
+      }>
+    | undefined => {
+    const casting = characterProfile(sheet).spellcasting;
+    if (casting?.memorizeSpell !== true || casting.spellbook === undefined) {
+      return undefined;
+    }
+    const prepared = preparedOf(state);
+    const option = (id: SpellId): MemorizeSpell => ({
+      id,
+      name: SPELLS[id].name,
+      level: SPELLS[id].level,
+    });
+    const forget = prepared.filter((id) => SPELLS[id].level > 0).map(option);
+    const learn = casting.spellbook
+      .filter((id) => SPELLS[id].level > 0 && !prepared.includes(id))
+      .map(option);
+    return forget.length === 0 || learn.length === 0
+      ? undefined
+      : { forget, learn };
+  };
+
+  /**
+   * Why Memorize Spell (#344) can't make `memorize`'s swap: the character
+   * lacks it, hasn't prepared the spell to forget, or can't prepare the
+   * other (a cantrip, one not in its spellbook, or one prepared already).
+   */
+  const memorizeRefusal = (
+    state: FifthState,
+    { forget, learn }: Memorize,
+  ): readonly [FifthRefusalCode, string] | undefined => {
+    const casting = characterProfile(sheet).spellcasting;
+    if (casting?.memorizeSpell !== true) {
+      return [
+        "no-memorize-spell",
+        "Memorize Spell comes with a Wizard's 5th level.",
+      ];
+    }
+    const prepared = preparedOf(state);
+    if (
+      !isSpellId(forget) ||
+      SPELLS[forget].level === 0 ||
+      !prepared.includes(forget)
+    ) {
+      return [
+        "memorize-forget",
+        isSpellId(forget)
+          ? `You haven't prepared ${SPELLS[forget].name}, so there is nothing to swap out.`
+          : "There is no such spell to swap out.",
+      ];
+    }
+    if (!isSpellId(learn)) {
+      return ["memorize-learn", "There is no such spell to prepare."];
+    }
+    const { name, level } = SPELLS[learn];
+    if (level === 0) {
+      return [
+        "memorize-learn",
+        `${name} is a cantrip: Memorize Spell swaps only 1st-level or higher spells.`,
+      ];
+    }
+    if (casting.spellbook?.includes(learn) !== true) {
+      return ["memorize-learn", `${name} isn't in your spellbook.`];
+    }
+    return prepared.includes(learn)
+      ? ["memorize-learn", `${name} is prepared already.`]
+      : undefined;
+  };
+
+  /**
+   * The numbers of hit dice a short rest may spend now (#334), fewest
+   * first: none only when a feature would regain a use or Memorize Spell
+   * (#344) would swap a spell (`memorizing`), and some (up to those left)
+   * only while hurt. Empty when a rest would restore nothing.
+   */
+  const restCounts = (
+    state: FifthState,
+    memorizing = false,
+  ): readonly number[] => {
     const left = state.character.hitDice;
     const recovers =
-      restRecovery(state).length > 0 || arcaneRecovered(state) !== undefined;
+      memorizing ||
+      restRecovery(state).length > 0 ||
+      arcaneRecovered(state) !== undefined;
     const hurt = state.character.hp < maxHpOf(state) && left > 0;
     if (!hurt) {
       // At full HP no die is spent: only a rest that spends none.
@@ -6087,6 +6237,7 @@ export function createFifthRuntime(
     state: FifthState,
     count: number,
     random: Pick<RandomSource, "roll"> | undefined,
+    memorize?: Memorize,
   ): FifthResult => {
     const dice = need(random, "A short rest");
     const { sides } = characterProfile(sheet).hitDice;
@@ -6116,6 +6267,13 @@ export function createFifthRuntime(
     const arcaneUses =
       (state.character.featureUses[ARCANE_RECOVERY] ?? 0) -
       (arcane === undefined ? 0 : 1);
+    // Memorize Spell (#344): the swap, for the rest of the adventure.
+    const prepared =
+      memorize === undefined
+        ? undefined
+        : preparedOf(state).map((id) =>
+            id === memorize.forget ? memorize.learn : id,
+          );
     const next = recover(
       {
         ...state,
@@ -6124,6 +6282,7 @@ export function createFifthRuntime(
           ...state.character,
           hp,
           hitDice: state.character.hitDice - spent.length,
+          ...(prepared === undefined ? {} : { prepared }),
         },
       },
       [
@@ -6158,6 +6317,15 @@ export function createFifthRuntime(
                   max,
                 })),
                 usesLeft: arcaneUses,
+              },
+            ]),
+        ...(memorize === undefined
+          ? []
+          : [
+              {
+                type: "memorized" as const,
+                forgot: memorize.forget,
+                learned: memorize.learn,
               },
             ]),
         ...ended.events,
@@ -7012,12 +7180,30 @@ export function createFifthRuntime(
             };
       }
       case "rest": {
-        // A whole number of hit dice, none or more.
+        // A whole number of hit dice, none or more, and Memorize Spell's
+        // swap (#344) when given: two strings the runtime then checks.
         const { hitDice } = action;
+        const swap: unknown = action.memorize;
+        const swapped =
+          swap === undefined
+            ? undefined
+            : isRecord(swap) &&
+                typeof swap.forget === "string" &&
+                typeof swap.learn === "string"
+              ? {
+                  forget: swap.forget as SpellId,
+                  learn: swap.learn as SpellId,
+                }
+              : null;
         return typeof hitDice === "number" &&
           Number.isInteger(hitDice) &&
-          hitDice >= 0
-          ? { type: "rest", hitDice }
+          hitDice >= 0 &&
+          swapped !== null
+          ? {
+              type: "rest",
+              hitDice,
+              ...(swapped === undefined ? {} : { memorize: swapped }),
+            }
           : undefined;
       }
       case "react": {
@@ -7336,6 +7522,14 @@ export function createFifthRuntime(
             "You have taken the two short rests an adventure allows.",
           );
         }
+        // Memorize Spell's swap (#344) is checked before any die.
+        const unswappable =
+          action.memorize === undefined
+            ? undefined
+            : memorizeRefusal(state, action.memorize);
+        if (unswappable !== undefined) {
+          return reject(...unswappable);
+        }
         const left = state.character.hitDice;
         if (action.hitDice > left) {
           return reject(
@@ -7345,7 +7539,11 @@ export function createFifthRuntime(
               : `You have only ${left} ${left === 1 ? "hit die" : "hit dice"} left to spend.`,
           );
         }
-        if (!restCounts(state).includes(action.hitDice)) {
+        if (
+          !restCounts(state, action.memorize !== undefined).includes(
+            action.hitDice,
+          )
+        ) {
           return reject(
             "nothing-to-recover",
             state.character.hp === maxHpOf(state)
@@ -7358,7 +7556,7 @@ export function createFifthRuntime(
           );
         }
         return watchedRest(state, "short", random, () =>
-          shortRest(state, action.hitDice, random),
+          shortRest(state, action.hitDice, random, action.memorize),
         );
       }
       case "long-rest": {
@@ -7381,7 +7579,7 @@ export function createFifthRuntime(
         return watchedRest(state, "long", random, () => longRest(state));
       }
       case "cast": {
-        const unknown = spellChoiceRefusal(action.spellId);
+        const unknown = spellChoiceRefusal(state, action.spellId);
         if (unknown !== undefined) {
           return reject(...unknown);
         }
@@ -8781,16 +8979,39 @@ export function createFifthRuntime(
      * numbers of hit dice it may spend; the action spends the most.
      */
     const rest = (): readonly ActionView[] => {
-      const counts = restCounts(state);
+      // Memorize Spell (#344) may be the rest's only gain.
+      const memorize = memorizeOptions(state);
+      const counts = restCounts(state, memorize !== undefined);
       if (counts.length === 0) {
         return [];
       }
-      const most: FifthAction = { type: "rest", hitDice: counts.at(-1)! };
+      // A rest with nothing to gain but the swap stands for the first one
+      // offered; the player chooses which.
+      const only = memorize !== undefined && restCounts(state).length === 0;
+      const most: FifthAction =
+        only && memorize !== undefined
+          ? {
+              type: "rest",
+              hitDice: 0,
+              memorize: {
+                forget: memorize.forget[0]!.id,
+                learn: memorize.learn[0]!.id,
+              },
+            }
+          : { type: "rest", hitDice: counts.at(-1)! };
       const entry = view("rest", most);
       if (entry === UNASKED) {
         return [entry];
       }
-      const offered: ActionView = { ...entry, rest: { hitDice: counts } };
+      const offered: ActionView = {
+        ...entry,
+        rest: {
+          hitDice: counts,
+          ...(memorize === undefined
+            ? {}
+            : { memorize: only ? { ...memorize, only: true } : memorize }),
+        },
+      };
       projectedActions.set(offered, most);
       return [offered];
     };
@@ -9520,6 +9741,12 @@ export function createFifthRuntime(
         ...featureUses(self(state)),
         // Its ongoing effects (#337).
         ...effectLines(self(state)),
+        // Memorize Spell's swap (#344), for this adventure.
+        ...(state.character.prepared === undefined
+          ? []
+          : [
+              `Prepared for this adventure (Memorize Spell): ${state.character.prepared.map((id) => SPELLS[id].name).join(", ")}`,
+            ]),
         hitDiceText(projectHitDice(state)),
         restsText("short", projectRests(state, "short")),
         // Only a module with a rest site offers a long rest (#335).
@@ -10303,11 +10530,17 @@ export function createFifthRuntime(
       return [];
     }
     const { left, max } = projectRests(state, "short");
+    // Memorize Spell (#344), for a level-5 Wizard.
+    const { memorize } = offer.rest;
+    const spellIds = (spells: readonly MemorizeSpell[]) => [
+      ...spells.map(({ id }) => id),
+      null,
+    ];
     return [
       {
         type: "function",
         name: "rest",
-        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left in this adventure). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.`,
+        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left in this adventure). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.${memorize === undefined ? "" : " With the rest, Memorize Spell may swap one prepared spell (forget_spell) for another in the spellbook (learn_spell) until the adventure ends: only when the player asks for it, both from those listed; otherwise null for both."}`,
         strict: true,
         parameters: {
           type: "object",
@@ -10318,8 +10551,25 @@ export function createFifthRuntime(
               description:
                 "How many hit dice the player asks to spend; the most listed when they name no number.",
             },
+            ...(memorize === undefined
+              ? {}
+              : {
+                  forget_spell: {
+                    type: ["string", "null"],
+                    enum: spellIds(memorize.forget),
+                    description: `The prepared spell Memorize Spell swaps out, or null for no swap: ${memorize.forget.map(({ id, name }) => `${id} (${name})`).join(", ")}.`,
+                  },
+                  learn_spell: {
+                    type: ["string", "null"],
+                    enum: spellIds(memorize.learn),
+                    description: `The spellbook's spell Memorize Spell prepares in its place, or null for no swap: ${memorize.learn.map(({ id, name }) => `${id} (${name})`).join(", ")}.`,
+                  },
+                }),
           },
-          required: ["hit_dice"],
+          required: [
+            "hit_dice",
+            ...(memorize === undefined ? [] : ["forget_spell", "learn_spell"]),
+          ],
           additionalProperties: false,
         },
       },
@@ -10371,9 +10621,14 @@ export function createFifthRuntime(
           (key === "retry" &&
             typeof retry === "boolean" &&
             call.name !== "react")));
-    // The rest tool (#334) takes only its whole number of hit dice.
+    // The rest tool (#334) takes only its whole number of hit dice, and
+    // Memorize Spell's two spells (#344), both or neither, while offered.
     const isRest = call.name === "rest";
     const hitDice = isRecord(parsed) ? parsed.hit_dice : undefined;
+    const forgetSpell = isRecord(parsed) ? parsed.forget_spell : undefined;
+    const learnSpell = isRecord(parsed) ? parsed.learn_spell : undefined;
+    const swapping =
+      typeof forgetSpell === "string" && typeof learnSpell === "string";
     // The cast tool (#336) takes its spell, slot level (or null) and
     // targets (#338).
     const isCast = call.name === "cast";
@@ -10413,7 +10668,15 @@ export function createFifthRuntime(
         ? false
         : isRest
           ? !Number.isInteger(hitDice) ||
-            !Object.keys(parsed).every((key) => key === "hit_dice")
+            !Object.keys(parsed).every(
+              (key) =>
+                key === "hit_dice" ||
+                key === "forget_spell" ||
+                key === "learn_spell",
+            ) ||
+            (!swapping &&
+              ((forgetSpell !== undefined && forgetSpell !== null) ||
+                (learnSpell !== undefined && learnSpell !== null)))
           : parameter === undefined
             ? Object.keys(parsed).length > 0
             : typeof parsed[parameter] !== "string" ||
@@ -10451,7 +10714,18 @@ export function createFifthRuntime(
             ...(typeof curse === "string" ? { curse: curse as CurseId } : {}),
           }
         : isRest
-          ? { type: "rest", hitDice: hitDice as number }
+          ? {
+              type: "rest",
+              hitDice: hitDice as number,
+              ...(swapping
+                ? {
+                    memorize: {
+                      forget: forgetSpell as SpellId,
+                      learn: learnSpell as SpellId,
+                    },
+                  }
+                : {}),
+            }
           : Object.hasOwn(BARE_TOOLS, call.name)
             ? BARE_TOOLS[call.name]!
             : parameter === undefined

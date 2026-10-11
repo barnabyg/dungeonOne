@@ -265,3 +265,231 @@ test("the AI DM's prompt says what the 3rd-level spells do", () => {
     assert.match(FIFTH_DM_SYSTEM_PROMPT, words);
   }
 });
+
+// Memorize Spell (#344): on a short rest, one prepared spell swapped for
+// another in the spellbook, for the rest of the adventure only (D8).
+
+/** Begun in the stair foot, where no foe is and a rest may be taken. */
+const begun = (runtime) => {
+  const result = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    uncheckedDice(),
+  );
+  assert.equal(result.rejection, undefined, result.rejection?.reason);
+  return result.state;
+};
+const restView = (runtime, state) =>
+  runtime.projectActions(state).find(({ action }) => action === "rest");
+const swap = (forget, learn, hitDice = 0) => ({
+  type: "rest",
+  hitDice,
+  memorize: { forget, learn },
+});
+function refusedRest(runtime, state, action, code) {
+  const result = runtime.handleAction(state, action, uncheckedDice());
+  assert.equal(result.rejection?.code, code, result.rejection?.reason);
+  assert.equal(result.state, state);
+  return result.rejection;
+}
+const ids = (spells) => spells.map(({ id }) => id);
+
+test("a level-5 Wizard's short rest offers Memorize Spell even at full health", () => {
+  const runtime = createFifthRuntime(den, vela(["vampiric-touch", "haste"]));
+  const state = begun(runtime);
+  const view = restView(runtime, state);
+  assert.equal(view.available, true);
+  // Nothing else to restore: a rest that spends no hit dice.
+  assert.deepEqual(view.rest.hitDice, [0]);
+  assert.equal(view.rest.memorize.only, true);
+  assert.deepEqual(
+    runtime.actionOf(view),
+    swap("mage-armor", "ray-of-sickness"),
+  );
+  assert.deepEqual(ids(view.rest.memorize.forget), [
+    ...KEPT,
+    "vampiric-touch",
+    "haste",
+  ]);
+  assert.deepEqual(ids(view.rest.memorize.learn), [
+    "ray-of-sickness",
+    "scorching-ray",
+    "shatter",
+    "hold-person",
+    "acid-arrow",
+  ]);
+  assert.deepEqual(view.rest.memorize.learn[1], {
+    id: "scorching-ray",
+    name: "Scorching Ray",
+    level: 2,
+  });
+  // A rest with nothing to restore and no swap is still refused.
+  refusedRest(
+    runtime,
+    state,
+    { type: "rest", hitDice: 0 },
+    "nothing-to-recover",
+  );
+});
+
+test("Memorize Spell swaps a prepared spell until the adventure ends", () => {
+  const runtime = createFifthRuntime(den, vela(["vampiric-touch", "haste"]));
+  const state = begun(runtime);
+  const rested = runtime.handleAction(
+    state,
+    swap("sleep", "shatter"),
+    uncheckedDice(),
+  );
+  assert.equal(rested.rejection, undefined, rested.rejection?.reason);
+  const memorized = rested.events.find(({ type }) => type === "memorized");
+  assert.deepEqual(memorized, {
+    type: "memorized",
+    forgot: "sleep",
+    learned: "shatter",
+  });
+  assert.match(
+    renderFifthResult(rested),
+    /Memorize Spell: you study your spellbook and prepare Shatter in place of Sleep until the adventure ends\./u,
+  );
+  assert.deepEqual(rested.state.character.prepared, [
+    "mage-armor",
+    "magic-missile",
+    "shield",
+    "shatter",
+    "burning-hands",
+    "chromatic-orb",
+    "thunderwave",
+    "vampiric-touch",
+    "haste",
+  ]);
+  assert.equal(rested.state.shortRests, 1);
+  assert.match(
+    runtime.projectCharacterStatus(rested.state).resources.join("\n"),
+    /^Prepared for this adventure \(Memorize Spell\): .*Shatter.*$/mu,
+  );
+  // In the cellar's fight Shatter is offered and Sleep isn't.
+  const fight = runtime.handleAction(
+    rested.state,
+    { type: "move", destinationId: "rat-cellar" },
+    uncheckedDice(20, 1),
+  ).state;
+  assert.ok(casts(runtime, fight, "shatter").length > 0);
+  assert.equal(casts(runtime, fight, "sleep").length, 0);
+  // The second rest can swap again, from the new list.
+  const view = restView(runtime, rested.state);
+  assert.ok(ids(view.rest.memorize.forget).includes("shatter"));
+  assert.ok(ids(view.rest.memorize.learn).includes("sleep"));
+});
+
+test("Memorize Spell refuses a spell not prepared, one not in the book or already prepared, and a Wizard below level 5", () => {
+  const runtime = createFifthRuntime(den, vela(["vampiric-touch", "haste"]));
+  const state = begun(runtime);
+  assert.match(
+    refusedRest(runtime, state, swap("shatter", "sleep"), "memorize-forget")
+      .reason,
+    /^You haven't prepared Shatter, so there is nothing to swap out\.$/u,
+  );
+  assert.match(
+    refusedRest(runtime, state, swap("sleep", "fireball"), "memorize-learn")
+      .reason,
+    /^Fireball isn't in your spellbook\.$/u,
+  );
+  assert.match(
+    refusedRest(runtime, state, swap("sleep", "shield"), "memorize-learn")
+      .reason,
+    /^Shield is prepared already\.$/u,
+  );
+  assert.match(
+    refusedRest(runtime, state, swap("sleep", "fire-bolt"), "memorize-learn")
+      .reason,
+    /^Fire Bolt is a cantrip: Memorize Spell swaps only 1st-level or higher spells\.$/u,
+  );
+  // A level-4 Wizard has no Memorize Spell.
+  let level4 = buildCharacter(
+    "e".repeat(32),
+    "Vela",
+    DICE,
+    { ...WIZARD.defaults, placement: defaultPlacement(DICE, WIZARD) },
+    "wizard",
+  );
+  for (const [xp, id] of [
+    [300, "cellar"],
+    [600, "barrow"],
+  ]) {
+    level4 = withOwedChoices(earn(level4, xp, id));
+  }
+  level4 = withOwedChoices(
+    applyLevelChoice(earn(level4, 1800, "crypt"), {
+      increase: { intelligence: 2 },
+    }),
+  );
+  const younger = createFifthRuntime(den, level4);
+  const fresh = begun(younger);
+  assert.equal(restView(younger, fresh), undefined);
+  assert.match(
+    refusedRest(younger, fresh, swap("sleep", "shatter"), "no-memorize-spell")
+      .reason,
+    /^Memorize Spell comes with a Wizard's 5th level\.$/u,
+  );
+});
+
+test("the rest tool takes the spells Memorize Spell swaps, or null for none", () => {
+  const runtime = createFifthRuntime(den, vela(["vampiric-touch", "haste"]));
+  const state = begun(runtime);
+  const tool = runtime
+    .getGameToolDefinitions(state)
+    .find(({ name }) => name === "rest");
+  const { forget_spell: forget, learn_spell: learn } =
+    tool.parameters.properties;
+  assert.deepEqual(forget.type, ["string", "null"]);
+  assert.ok(forget.enum.includes("sleep") && forget.enum.includes(null));
+  assert.ok(learn.enum.includes("shatter") && learn.enum.includes(null));
+  assert.deepEqual(tool.parameters.required, [
+    "hit_dice",
+    "forget_spell",
+    "learn_spell",
+  ]);
+  assert.match(tool.description, /Memorize Spell/u);
+  const result = runtime.dispatchGameTool(
+    state,
+    {
+      id: "rest-1",
+      name: "rest",
+      argumentsJson: JSON.stringify({
+        hit_dice: 0,
+        forget_spell: "sleep",
+        learn_spell: "shatter",
+      }),
+    },
+    uncheckedDice(),
+  );
+  assert.deepEqual(result.action, swap("sleep", "shatter"));
+  assert.ok(result.state.character.prepared.includes("shatter"));
+  // Null for both rests without a swap.
+  const hurt = {
+    ...state,
+    character: { ...state.character, hp: state.character.hp - 5 },
+  };
+  const plain = runtime.dispatchGameTool(
+    hurt,
+    {
+      id: "rest-2",
+      name: "rest",
+      argumentsJson: JSON.stringify({
+        hit_dice: 1,
+        forget_spell: null,
+        learn_spell: null,
+      }),
+    },
+    uncheckedDice(3),
+  );
+  assert.deepEqual(plain.action, { type: "rest", hitDice: 1 });
+  assert.equal(plain.state.character.prepared, undefined);
+});
+
+test("the AI DM's prompt says Memorize Spell is the one change to prepared spells in an adventure", () => {
+  assert.match(
+    FIFTH_DM_SYSTEM_PROMPT,
+    /except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell/u,
+  );
+});
