@@ -153,7 +153,8 @@ choices, check the derived numbers and save:
   bonus, save DC, slots and spells, and its prepared spells change there, with
   **Prepare spells**, only between adventures. At level 2 it gains **Channel
   Divinity** (Divine Spark and Turn Undead, which turns undead foes until they
-  are hurt or attacked; with every foe turned it may leave them behind), and
+  make the save they repeat each turn, or are hurt or attacked; with every foe
+  turned it may leave them behind), and
   at level 3 the **Life Domain** (Disciple of Life, Preserve Life, and Aid,
   Bless, Cure Wounds and Lesser Restoration always prepared) with 2nd-level
   spells. At level 4 it chooses an **Ability Score Improvement** and learns a
@@ -165,7 +166,7 @@ choices, check the derived numbers and save:
 - A **Wizard** (d6 hit die, Intelligence and Wisdom saves, no armour, simple
   weapons) chooses two skills, three cantrips (from Fire Bolt, Ray of Frost,
   Shocking Grasp and Chill Touch), six 1st-level spells for its **spellbook**
-  (from Magic Missile, Shield, Mage Armor, Sleep, Burning Hands, Chromatic Orb,
+  (from Magic Missile, Shield, Mage Armor, Burning Hands, Chromatic Orb,
   Thunderwave, Ray of Sickness and Ice Knife), four of those to prepare, and a starting kit
   (_Quarterstaff and dagger_ or _Two daggers_). It casts with Intelligence from
   two 1st-level spell slots, and prepares only spells in its spellbook, at
@@ -175,7 +176,7 @@ choices, check the derived numbers and save:
   Investigation, Medicine, Nature or Religion) and at level 3 the **Evoker**
   (Evocation Savant, flavour only, and **Potent Cantrip**: a missed or saved
   cantrip still deals half) with 2nd-level spells (Scorching Ray, Shatter,
-  Hold Person, Acid Arrow, Mind Spike, Blur and Mirror Image). Each new level
+  Acid Arrow, Mind Spike, Blur and Mirror Image). Each new level
   writes two spells into its spellbook. A new level's choices are made on the
   sheet before the next adventure. At level 4 it makes an Ability Score
   Improvement and learns a fourth cantrip, and at level 5 it gains 3rd-level
@@ -217,7 +218,7 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   fight together over a coffin packed with grave goods.
 - _The Ravager's Tower_ (`adventures/5e/ravagers-tower.json`, level 3, Hard):
   two rooms in a ruined watchtower. A dead pedlar at the tower's foot still
-  has two potions; at the top a Gnoll Ravager guards the plunder of the road.
+  has three potions; at the top a Gnoll Ravager guards the plunder of the road.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
   a garnet under the bier, a sack of grave gold and a way out.
@@ -241,8 +242,8 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   six rooms with a stuck door, a locked door and its key, a dart trap, a bound
   smuggler to question, the warden's hoard in the strongroom and the warden
   risen as a Zombie in the tomb.
-- _The Wolfstone Hillfort_ (`adventures/5e/wolfstone-hillfort.json`, levels
-  3–4, Hard): six rooms in a bandit-held hillfort. Wenna the drover trades
+- _The Wolfstone Hillfort_ (`adventures/5e/wolfstone-hillfort.json`, level 4,
+  Medium): six rooms in a bandit-held hillfort. Wenna the drover trades
   shield, chain shirt, longsword and chain mail at the camp below; the
   Reaver's dire wolf guards the ditch. Past a rusted portcullis, a rope
   bridge to the keep can open or fall, a brown bear dens in the undercroft,
@@ -378,9 +379,8 @@ hit**. A Cleric casts from a spell choice beside **Cast**: each prepared
 spell and cantrip that can be cast now, with its slot and target (Resistance
 once for each damage type the foes deal); outside a fight it heals or casts
 Guidance, whose d4 goes on your next check. A Wizard casts the same way:
-Mage Armor outside a fight, Chromatic Orb once for each damage type it can
-deal, and Sleep, whose target saves or is incapacitated, then saves again or
-falls unconscious until it takes damage. For a Fighter, from level 5, Extra Attack makes
+Mage Armor outside a fight, and Chromatic Orb once for each damage type it can
+deal. For a Fighter, from level 5, Extra Attack makes
 the Attack action two attacks: after the first, each living opponent's button reads **Second
 attack on** its name, so the two can go to different opponents. A mastered weapon's mastery works while you wield
 it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
@@ -487,9 +487,9 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 24.
+- The character library (`characters.json` by default) is format version 25.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 49.
+  `characters-adventures` directory beside the library, in format version 50.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
@@ -525,23 +525,24 @@ These are for development, not play.
 <p,p>] [--styles <style,style>] [--checks <policy>] [--classes <class,class>]
 [--json] [module.json ...]`
   plays each built-in module (or the files named) through the real runtime with
-  weak and strong rolled Fighters and Rogues at every recommended level, in four play
-  styles, with checks rolled (`seeded`, the default), always in their worst band
-  (`always-fail`) or always in their best (`always-succeed`), and reports
-  survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
-  chances and each module's balance-gate verdict for both classes, which plays
-  every check policy, with a report on the level-1 Cleric and Wizard that is
-  never judged.
+  weak and strong rolled characters of every class (Fighter, Rogue, Cleric and
+  Wizard) at every recommended level, in four play styles, with checks rolled
+  (`seeded`, the default), always in their worst band (`always-fail`) or always
+  in their best (`always-succeed`), and reports survival, HP lost and rounds per
+  fight, healing, XP, treasure, one-hit-kill chances and each module's
+  balance-gate verdict for every class, which plays every check policy and both
+  casting policies (a caster's survival is judged from level 3).
   See
   [the rules document](docs/character-rules.md#balance-harness).
 - **Recorded gate verdicts.** `npm.cmd run gate:verdicts` gates every built-in
-  module for both classes and records the verdicts in
+  module for every class and records the verdicts in
   `adventures/5e/gate-verdicts.json`, which the browser reads at startup in
   place of gating them. Run it after changing a shipped module, or when
   `npm.cmd test` reports the file out of date.
 - **Career simulation.** `npm.cmd run career -- [--seeds <count>]
 [--required-level <level>] [--class <class>] [--json] [module.json ...]` plays
-  a new level-1 Fighter (or Rogue, with `--class rogue`) through the built-in modules (or the files named) in the browser's
+  a new level-1 Fighter (or another class, with `--class rogue`, `cleric` or
+  `wizard`) through the built-in modules (or the files named) in the browser's
   order, carrying its possessions and XP between them, and reports each
   module's survival and XP, the level each career reached and where it fell. It
   exits with code 1 if no career reaches the required level (5 by default). See

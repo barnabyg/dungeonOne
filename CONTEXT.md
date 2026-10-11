@@ -72,8 +72,13 @@ _Avoid_: Memorising (Memorize Spell is the Wizard's feature, below)
 **Memorize Spell**:
 The Wizard's level-5 feature (#344): a short rest may swap one prepared levelled spell for another in its spellbook. The swap lasts only the adventure; the library's prepared spells never change during one.
 
-**Reported class**:
-A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric and the Wizard (#340), until the caster policies (#348). No module's verdict depends on it.
+**Casting policy**:
+How the balance harness spends a caster's spell slots in a fight (#348): conserve, the default, casts only cantrips until below its heal threshold; spend-early casts its best levelled damage or control spell on every turn it can. The gate judges each caster's kit and level on the one that survives more of its seeded runs, and reports spend-early beside it.
+_Avoid_: Caster style, Nova
+
+**Control chance**:
+The balance gate's measure of a control (Sleep, Hold Person, Turn Undead) against an ordinary enemy (#348, D5): the chance one use at a fight's opening keeps it from acting for three of its turns. Judged against the one-hit-kill cap.
+_Avoid_: Lockdown chance
 
 **Spellbook**:
 The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation, and two more of a level it has slots for at each level after 1st (#343), kept on the sheet, not carried as an item. It prepares spells only from it. Between adventures it may also copy a spell scroll's spell into it (#346).
@@ -88,7 +93,7 @@ An uncommon magic item anyone may use (#346): its charges cast Magic Missile, on
 The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
 
 **Turned**:
-An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it takes damage, is attacked, the turner is incapacitated or the fight ends. Sear Undead's damage (#342) is the one damage that doesn't end it. While every foe left is turned, the character may leave the room; the fight stays unresolved and its fallen stay fallen.
+An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it succeeds on the save it repeats at the end of each of its turns (#348), takes damage, is attacked, the turner is incapacitated or the fight ends. Sear Undead's damage (#342) is the one damage that doesn't end it. While every foe left is turned, the character may leave the room; the fight stays unresolved and its fallen stay fallen.
 _Avoid_: Fleeing (a turned undead never leaves the fight)
 
 **Always prepared**:
@@ -111,7 +116,7 @@ The action a spell with a casting time of an action takes in a fight (#336); a b
 _Avoid_: Cast action
 
 **Test caster**:
-A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine until a playable class casts. Creation never offers it and the gate never plays it.
+A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine; since #348 it alone may prepare Sleep and Hold Person, which left the Wizard's and Cleric's lists. Creation never offers it and the gate never plays it.
 _Avoid_: Wizard, Cleric (for the test caster)
 
 **Rest site**:
