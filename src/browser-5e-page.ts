@@ -35,7 +35,11 @@
 //   #rest-group, never the bar: the short rests and hit dice left, a choice
 //   of how many hit dice to spend (#rest-dice) and its Rest button, disabled
 //   with its reason when the engine would refuse it. Rest and its choice show
-//   only while a rest would restore something. At a rest site (#335) the
+//   only while a rest would restore something. A level-5 Wizard's rest also
+//   offers Memorize Spell (#344): the prepared spell to forget
+//   (#rest-forget) and the spellbook's spell to prepare in its place
+//   (#rest-learn), or neither unless the swap is all the rest would bring.
+//   At a rest site (#335) the
 //   group's #long-rest part shows the long rests left and, while one would
 //   restore something, its Long rest button, disabled with its reason when
 //   the engine would refuse it. Where a merchant is (#210), Buy sits on each of
@@ -904,6 +908,9 @@ let confirmingSale = null;
 let cunningStrike = "";
 // How many hit dice the next short rest spends (#334), or null for the most.
 let restDice = null;
+// Memorize Spell's swap with the next short rest (#344): spell ids, or ""
+// for none.
+let restSwap = { forget: "", learn: "" };
 // The spell and slot level chosen to cast (#337), as "spell:slot", and its
 // target's id; "" until chosen.
 let castChoice = "";
@@ -1898,8 +1905,50 @@ function renderRest(option, fighting) {
     label.append(select);
     controls.push(label);
   }
+  if (option.available && option.rest.memorize) controls.push(...memorizeControls(option.rest.memorize));
   controls.push(restButton("rest", option, () => takeRest(Number(element("rest-dice").value))));
   element("rest-controls").replaceChildren(...controls);
+}
+
+// Memorize Spell's choices (#344): a prepared spell to forget and one in
+// the spellbook to prepare instead. Choosing one picks the other's first
+// when it has none; "none" in either clears both. When the swap is all the
+// rest would bring, there is no "none".
+function memorizeControls(memorize) {
+  const spells = { forget: memorize.forget, learn: memorize.learn };
+  for (const key of ["forget", "learn"]) {
+    if (restSwap[key] && !spells[key].some(({ id }) => id === restSwap[key])) restSwap = { forget: "", learn: "" };
+  }
+  if (memorize.only && !restSwap.forget) restSwap = { forget: memorize.forget[0].id, learn: memorize.learn[0].id };
+  const hint = make("p", "Memorize Spell: swap one prepared spell for another in your spellbook until the adventure ends.", "hint");
+  hint.id = "rest-memorize";
+  const field = (key, text, none) => {
+    const label = make("label", text);
+    const select = make("select");
+    select.id = "rest-" + key;
+    select.disabled = acting;
+    const choices = [...(memorize.only ? [] : [{ id: "", name: none }]), ...spells[key].map(({ id, name, level }) => ({ id, name: name + " (" + ordinalLevel(level) + ")" }))];
+    for (const { id, name } of choices) {
+      const choice = make("option", name);
+      choice.value = id;
+      choice.selected = id === restSwap[key];
+      select.append(choice);
+    }
+    select.addEventListener("change", () => {
+      const other = key === "forget" ? "learn" : "forget";
+      restSwap = select.value ? { ...restSwap, [key]: select.value, [other]: restSwap[other] || spells[other][0].id } : { forget: "", learn: "" };
+      element("rest-forget").value = restSwap.forget;
+      element("rest-learn").value = restSwap.learn;
+    });
+    label.append(select);
+    return label;
+  };
+  return [hint, field("forget", "Forget ", "Keep my spells"), field("learn", "Prepare ", "No swap")];
+}
+
+// "1st", "2nd", "3rd": a spell's level in a choice.
+function ordinalLevel(level) {
+  return level + (level === 1 ? "st" : level === 2 ? "nd" : level === 3 ? "rd" : "th");
 }
 
 // A rest's button (#334, #335): the action's label, disabled with the engine's
@@ -1944,8 +1993,10 @@ async function takeLongRest() {
 }
 
 async function takeRest(hitDice) {
+  const { forget, learn } = restSwap;
   restDice = null;
-  await act("/api/5e/session/rest", { hitDice }, "button.act[data-action=rest]", ACTIONS.rest.busy + "…");
+  restSwap = { forget: "", learn: "" };
+  await act("/api/5e/session/rest", { hitDice, ...(forget && learn ? { memorize: { forget, learn } } : {}) }, "button.act[data-action=rest]", ACTIONS.rest.busy + "…");
   keepFocus("rest", "");
 }
 

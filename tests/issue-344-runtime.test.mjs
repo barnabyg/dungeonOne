@@ -5,15 +5,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  addToSpellbook,
-  applyLevelChoice,
-  buildCharacter,
-  defaultPlacement,
-  prepareSpells,
-  settleCharacter,
-  withOwedChoices,
-} from "../dist/character-5e.js";
 import { currentCombatant } from "../dist/encounter-5e.js";
 import {
   createFifthRuntime,
@@ -21,73 +12,13 @@ import {
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { WIZARD } from "../dist/wizard-5e.js";
 import { uncheckedDice } from "./fixtures/engine-dice.mjs";
+import { KEPT, vela, velaAt4 } from "./fixtures/level-5-wizard.mjs";
 import { moduleFile } from "./fixtures/modules.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 
-// Kept totals 15, 14, 13, 12, 10, 8: Intelligence 17, Dexterity 14.
-const DICE = [
-  [6, 5, 4, 1],
-  [5, 5, 4, 2],
-  [3, 6, 4, 2],
-  [4, 4, 4, 4],
-  [1, 3, 3, 4],
-  [2, 2, 4, 2],
-];
-const earn = (sheet, xp, id) =>
-  settleCharacter(sheet, {
-    possessions: {
-      equipment: sheet.equipment,
-      stowed: sheet.stowed,
-      ammunition: sheet.ammunition,
-      treasure: [],
-      purse: 0,
-    },
-    xp: [{ id: `${id}/ending/out`, name: "Out", xp }],
-    finds: [],
-    sold: [],
-    coin: [],
-    gear: [],
-  });
-
-/** The seven spells Vela prepares at level 5 besides `written`. */
-const KEPT = [
-  "mage-armor",
-  "magic-missile",
-  "shield",
-  "sleep",
-  "burning-hands",
-  "chromatic-orb",
-  "thunderwave",
-];
-
-/**
- * Vela, a level-5 Evoker (Intelligence 18: spell attack +7, DC 15; 32 HP)
- * who wrote the 3rd-level spells `written` into her spellbook at level 5
- * and prepared them.
- */
-export const vela = (written) => {
-  let sheet = buildCharacter(
-    "e".repeat(32),
-    "Vela",
-    DICE,
-    { ...WIZARD.defaults, placement: defaultPlacement(DICE, WIZARD) },
-    "wizard",
-  );
-  sheet = withOwedChoices(earn(sheet, 300, "cellar"));
-  sheet = withOwedChoices(earn(sheet, 600, "barrow"));
-  sheet = withOwedChoices(
-    applyLevelChoice(earn(sheet, 1800, "crypt"), {
-      increase: { intelligence: 1, constitution: 1 },
-    }),
-  );
-  sheet = addToSpellbook(earn(sheet, 3800, "tomb"), written);
-  return prepareSpells(sheet, [...KEPT, ...written]);
-};
-
 /** The rat tunnels with the cellar's rat swapped for `opponents`. */
-export const tunnels = (opponents) => {
+const tunnels = (opponents) => {
   const module = moduleFile("rat-tunnels");
   module.id = "evokers-den";
   module.recommendedLevels = { min: 1, max: 5 };
@@ -405,24 +336,7 @@ test("Memorize Spell refuses a spell not prepared, one not in the book or alread
     /^Fire Bolt is a cantrip: Memorize Spell swaps only 1st-level or higher spells\.$/u,
   );
   // A level-4 Wizard has no Memorize Spell.
-  let level4 = buildCharacter(
-    "e".repeat(32),
-    "Vela",
-    DICE,
-    { ...WIZARD.defaults, placement: defaultPlacement(DICE, WIZARD) },
-    "wizard",
-  );
-  for (const [xp, id] of [
-    [300, "cellar"],
-    [600, "barrow"],
-  ]) {
-    level4 = withOwedChoices(earn(level4, xp, id));
-  }
-  level4 = withOwedChoices(
-    applyLevelChoice(earn(level4, 1800, "crypt"), {
-      increase: { intelligence: 2 },
-    }),
-  );
+  const level4 = velaAt4();
   const younger = createFifthRuntime(den, level4);
   const fresh = begun(younger);
   assert.equal(restView(younger, fresh), undefined);

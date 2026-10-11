@@ -8,25 +8,21 @@
 // test's copy behind.
 import assert from "node:assert/strict";
 import {
-  addToSpellbook,
   applyLevelChoice,
   buildCharacter,
   characterProfile,
   defaultPlacement,
   levelForXp,
-  prepareSpells,
-  settleCharacter,
   validateCharacter,
-  withOwedChoices,
 } from "../../dist/character-5e.js";
 import { CLERIC } from "../../dist/cleric-5e.js";
 import { ROGUE } from "../../dist/rogue-5e.js";
-import { WIZARD } from "../../dist/wizard-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { testCasterAt } from "../../dist/test-caster-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
+import { vela } from "./level-5-wizard.mjs";
 import { FIXTURE_MODULES, goblinTrio, sealedCrypt } from "./modules.mjs";
 
 export const PLAYER = "pc";
@@ -253,52 +249,8 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
   }
 }
 
-/** `sheet` after an adventure that earned `xp`, keeping what it holds. */
-const earned = (sheet, xp, id) =>
-  settleCharacter(sheet, {
-    possessions: {
-      equipment: sheet.equipment,
-      stowed: sheet.stowed,
-      ammunition: sheet.ammunition,
-      treasure: [],
-      purse: 0,
-    },
-    xp: [{ id: `${id}/ending/out`, name: "Out", xp }],
-    finds: [],
-    sold: [],
-    coin: [],
-    gear: [],
-  });
-
-/**
- * A level-5 Evoker (#344) with Vampiric Touch and Slow written into her
- * spellbook and prepared, her other choices the harness's.
- */
-export function evoker() {
-  let sheet = buildCharacter(
-    "f".repeat(32),
-    "Vela",
-    ADA_DICE,
-    { ...WIZARD.defaults, placement: defaultPlacement(ADA_DICE, WIZARD) },
-    "wizard",
-  );
-  sheet = withOwedChoices(earned(sheet, 300, "cellar"));
-  sheet = withOwedChoices(earned(sheet, 600, "barrow"));
-  sheet = withOwedChoices(
-    applyLevelChoice(earned(sheet, 1800, "crypt"), {
-      increase: { intelligence: 2 },
-    }),
-  );
-  sheet = addToSpellbook(earned(sheet, 3800, "tomb"), [
-    "vampiric-touch",
-    "slow",
-  ]);
-  return prepareSpells(sheet, [
-    ...sheet.spells.prepared,
-    "vampiric-touch",
-    "slow",
-  ]);
-}
+/** A level-5 Evoker (#344) with Vampiric Touch and Slow prepared. */
+const evoker = () => vela(["vampiric-touch", "slow"]);
 
 /** The test caster with buffs and Shield prepared (#337). */
 const BUFFED = {
