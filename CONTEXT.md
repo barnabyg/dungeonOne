@@ -76,7 +76,13 @@ The Wizard's level-5 feature (#344): a short rest may swap one prepared levelled
 A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric and the Wizard (#340), until the caster policies (#348). No module's verdict depends on it.
 
 **Spellbook**:
-The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation, and two more of a level it has slots for at each level after 1st (#343), kept on the sheet, not carried as an item. It prepares spells only from it.
+The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation, and two more of a level it has slots for at each level after 1st (#343), kept on the sheet, not carried as an item. It prepares spells only from it. Between adventures it may also copy a spell scroll's spell into it (#346).
+
+**Spell scroll**:
+A found item holding one levelled spell (#346): a character with the spell on its class's list reads it as a Magic action to cast the spell with no slot, and it is used up. Kept like gear on getting out alive.
+
+**Wand of Magic Missiles**:
+An uncommon magic item anyone may use (#346): its charges cast Magic Missile, one a spell level; a long rest gives some back, and between adventures it is full.
 
 **Channel Divinity**:
 The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
@@ -149,7 +155,7 @@ The coin a character holds, one of its possessions, kept as a number of copper p
 _Avoid_: Wallet, Gold, Balance
 
 **Treasure budget**:
-The most an adventure module's findable treasure (coin, gems, art objects, potions and gear) may be worth, set by its maximum recommended level. Each item must also have a tier allowed at that level.
+The most an adventure module's findable treasure (coin, gems, art objects, potions, spell scrolls and gear) may be worth, set by its maximum recommended level. Each item must also have a tier allowed at that level.
 _Avoid_: Loot table, Hoard
 
 **Treasure type**:
