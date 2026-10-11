@@ -81,9 +81,15 @@ function castsOf(adventure, sheet, casting, seed) {
 
 const levelledDamage = (spellId) =>
   SPELLS[spellId].level > 0 &&
-  ["attack", "save", "auto-hit", "control"].includes(
-    SPELLS[spellId].effect.kind,
-  );
+  [
+    "attack",
+    "save",
+    "auto-hit",
+    "guardians",
+    "spectral-weapon",
+    "drain",
+    "control",
+  ].includes(SPELLS[spellId].effect.kind);
 
 test("the casting policies are conserve and spend-early", () => {
   assert.deepEqual(CASTING_POLICIES, ["conserve", "spend-early"]);
@@ -135,8 +141,8 @@ test("with two foes standing, a control spell comes before damage", () => {
   const casts = Array.from({ length: 10 }, (_, seed) =>
     castsOf(goblinBand, sleeper, "spend-early", seed),
   ).flat();
-  const first = casts.findIndex(({ spellId }) => levelledDamage(spellId));
-  assert.equal(casts[first].spellId, "sleep");
+  const first = casts.find(({ spellId }) => levelledDamage(spellId));
+  assert.equal(first?.spellId, "sleep");
 });
 
 test("a Cleric attacks with Sacred Flame, and spends its slots early on Guiding Bolt", () => {
@@ -218,6 +224,39 @@ test("a spell's one-hit-kill chance counts its attack roll or save and its damag
   );
   // A spell with no damage kills nothing.
   assert.equal(spellKillChance(wizard, SPELLS.sleep, 1, mastiff), 0);
+});
+
+test("rays, bursts and guardians count every roll at the enemy", () => {
+  // A 1-HP mastiff falls to any damage.
+  const frail = { ...statBlock("mastiff"), hitPoints: { average: 1 } };
+  const wizard = sheetOf("wizard", 3, 95);
+  const { attackBonus, saveDc } = characterProfile(wizard).spellcasting;
+  // P(one attack roll misses), a natural 20 always hitting.
+  const misses =
+    1 - (20 - Math.max(2, frail.armorClass - attackBonus) + 1) / 20;
+  // Scorching Ray: three rays, any one that lands kills it.
+  assert.ok(
+    Math.abs(
+      spellKillChance(wizard, SPELLS["scorching-ray"], 2, frail) -
+        (1 - misses ** 3),
+    ) < 1e-9,
+  );
+  // Ice Knife: the dagger of ice, or else the burst's failed Dexterity save
+  // (the mastiff's +2).
+  const saves = (saveDc - 2 - 1) / 20;
+  assert.ok(
+    Math.abs(
+      spellKillChance(wizard, SPELLS["ice-knife"], 1, frail) -
+        (1 - misses * (1 - saves)),
+    ) < 1e-9,
+  );
+  // Spirit Guardians' first strike: 3d8 radiant, half on a success, never 0.
+  const cleric = sheetOf("cleric", 5, 95);
+  assert.ok(
+    Math.abs(
+      spellKillChance(cleric, SPELLS["spirit-guardians"], 3, frail) - 1,
+    ) < 1e-9,
+  );
 });
 
 test("the gate judges every class creation offers (#348)", () => {
@@ -352,7 +391,12 @@ test("a caster's survival is judged from level 3 on the casting policy that surv
         ? "spend-early"
         : "conserve",
     );
-    assert.ok(rate >= spent.rate);
+    // Conserving, its own rate beat or tied spending early's.
+    if (casting === "spend-early") {
+      assert.equal(rate, spent.rate);
+    } else {
+      assert.ok(rate >= spent.rate);
+    }
   }
   const fighter = gateAdventure(goblinBand, { seeds: [0, 1] }).verdict;
   assert.equal(fighter.survival.reported, undefined);

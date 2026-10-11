@@ -132,9 +132,8 @@ export const EVOKER: SubclassDefinition = {
  * Intelligence and +1 Constitution; Arcana and Investigation; Fire Bolt,
  * Ray of Frost and Shocking Grasp; six of the 1st-level spells in the
  * spellbook, with Mage Armor, Magic Missile, Shield and Burning Hands
- * prepared (Sleep until #348); the
- * quarterstaff kit; no weapon mastery. The creation page and the balance
- * harness both start from these.
+ * prepared (Sleep until #348); the quarterstaff kit; no weapon mastery.
+ * The creation page and the balance harness both start from these.
  */
 export const WIZARD_DEFAULT_CHOICES = {
   increase: { intelligence: 2, constitution: 1 },

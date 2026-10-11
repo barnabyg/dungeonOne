@@ -302,6 +302,14 @@ export function percentileCharacters({
 }
 
 /**
+ * P(Undead Fortitude fails) after `damage` takes the enemy to 0: its
+ * Constitution save, at `bonus`, against DC 5 + the damage taken.
+ */
+function fortitudeFails(damage: number, bonus: number): number {
+  return Math.min(20, Math.max(0, 5 + damage - bonus - 1)) / 20;
+}
+
+/**
  * The chance that one attack by `sheet`'s character takes `enemy` from full
  * hit points to 0: a natural 1 misses, a roll in the critical range hits and
  * doubles the damage dice, and any other roll hits when it meets the enemy's
@@ -368,7 +376,7 @@ export function oneHitKillChance(
     }
     return fortitude === undefined || critical
       ? 1
-      : Math.min(20, Math.max(0, 5 + damage - fortitude - 1)) / 20;
+      : fortitudeFails(damage, fortitude);
   };
   /**
    * P(a kill) with `dice` dice of the weapon and `sneak` Sneak Attack dice
@@ -591,10 +599,7 @@ export function spellKillChance(
     for (const [dealt, p] of damage) {
       if (dealt >= hp) {
         chance +=
-          p *
-          (fortitude === undefined
-            ? 1
-            : Math.min(20, Math.max(0, 5 + dealt - fortitude - 1)) / 20);
+          p * (fortitude === undefined ? 1 : fortitudeFails(dealt, fortitude));
       }
     }
     return chance;
