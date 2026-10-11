@@ -405,8 +405,8 @@ you, separately from the evidence above.
   class's fights, or to the dice order will move the release seeds. The
   handoff tests fail when they do.
 - **Throwaway formats** until the owner declares a stable release (ADR
-  0005): library 25, session 50, trace 44, adventure module 30, bestiary 10,
-  prompt `5e-dm-v34`. The input libraries are in library format 25. When
+  0005): library 26, session 51, trace 45, adventure module 30, bestiary 10,
+  prompt `5e-dm-v35`. The input libraries are in library format 26. When
   that changes, regenerate Mira's and Vela's from `libraryOf` in
   `tests/fixtures/level-3-casters.mjs`, and Ada's from `libraryAt` in
   `src/test-fighter-5e.ts`; their tests say so.

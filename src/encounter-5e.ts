@@ -343,7 +343,12 @@ export const CONDITION_RULES: Readonly<
 };
 
 /** A saving throw: the ability and its DC. */
-export type SaveSpec = Readonly<{ ability: Ability; dc: number }>;
+export type SaveSpec = Readonly<{
+  ability: Ability;
+  dc: number;
+  /** What gives the save advantage (#369: Sleep's house rule). */
+  advantage?: string;
+}>;
 
 /**
  * Cunning Strike's effects (#308, SRD 5.2): the Sneak Attack dice each
@@ -3349,6 +3354,7 @@ export function savingThrow(
     random,
     [
       ...advantage,
+      ...(save.advantage === undefined ? [] : [save.advantage]),
       ...(beacon === undefined ? [] : [beacon.spell]),
       ...(haste === undefined ? [] : [haste]),
     ],
@@ -5958,6 +5964,8 @@ function controlSpell(
   const save: SaveSpec = {
     ability: effect.ability,
     dc: caster.spellcasting!.saveDc,
+    // Sleep's house rule (#369): both saves with advantage.
+    ...(effect.saveAdvantage === true ? { advantage: spell.name } : {}),
   };
   const common = {
     type: "spell-condition" as const,

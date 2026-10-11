@@ -747,7 +747,8 @@ export const CONTROL_TURNS = 3;
  * can't act on its next `CONTROL_TURNS` turns. It fails its first saving
  * throw and then each save it repeats at the end of its turns until then:
  * Hold Person's and Turn Undead's every turn, Sleep's once (its second
- * failure leaves it Unconscious for the spell). 0 when it is immune, or not
+ * failure leaves it Unconscious for the spell). Sleep's target rolls both
+ * with advantage (#369), so both d20s of each must fail. 0 when it is immune, or not
  * the creature type the control works on (Hold Person's humanoid, Turn
  * Undead's undead).
  */
@@ -774,7 +775,9 @@ export function controlChance(
   ) {
     return 0;
   }
-  const fails = 1 - succeeds(saves[effect.ability], self.spellcasting.saveDc);
+  const fails =
+    (1 - succeeds(saves[effect.ability], self.spellcasting.saveDc)) **
+    (effect.saveAdvantage === true ? 2 : 1);
   return fails ** (effect.then === undefined ? CONTROL_TURNS : 2);
 }
 

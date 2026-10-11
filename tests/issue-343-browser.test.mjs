@@ -171,10 +171,11 @@ test(
         /Not chosen yet: Expertise in one skill you are proficient in among Arcana, History, Investigation, Medicine, Nature and Religion/u,
       );
       // The card offers the 1st-level spells the book lacks (Thunderwave
-      // is in the default book since Sleep left the list, #348).
+      // is in the default book since Sleep left the list, #348; #369 put
+      // Sleep back, last).
       assert.deepEqual(
         await page.locator("#level-up-spellbook summary").allInnerTexts(),
-        ["Ray of Sickness", "Ice Knife"],
+        ["Ray of Sickness", "Ice Knife", "Sleep"],
       );
       assert.match(
         await text(page.locator("#level-up")),
@@ -212,6 +213,7 @@ test(
       assert.deepEqual(await ids(page.locator("#spellbook-choices input")), [
         "spellbook-ray-of-sickness",
         "spellbook-ice-knife",
+        "spellbook-sleep",
       ]);
       await assertNoSideScroll(page, "the level-2 picks fit a phone", {
         wideFont: true,

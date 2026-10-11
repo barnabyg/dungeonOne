@@ -28,7 +28,8 @@
  *   the caster concentrates (Sleep). Damage ends it on the target, and a
  *   creature immune to exhaustion succeeds without a roll. A hold (#341,
  *   Hold Person) works on one creature type, keeps its condition until a
- *   repeat save succeeds, and damage doesn't end it.
+ *   repeat save succeeds, and damage doesn't end it. Sleep's target rolls
+ *   both its saves with advantage (#369, house rule).
  * - `restoration` (#341): ends a condition on the caster or an ally
  *   (Lesser Restoration).
  * - `spectral-weapon` (#341): a melee spell attack as it is cast, then one
@@ -391,6 +392,11 @@ export type SpellEffect = Readonly<
       creatureType?: string;
       /** A hold (#341, Hold Person): damage doesn't end it. */
       hold?: true;
+      /**
+       * Its target rolls every save against it with advantage (#369,
+       * owner's house rule for Sleep: an alert foe in a fight resists).
+       */
+      saveAdvantage?: true;
     }
   /**
    * Ends one of `conditions` on its target (#341, Lesser Restoration): the
@@ -865,7 +871,8 @@ export const SPELLS = {
     },
     upcast: { burstDice: 1 },
   },
-  // A 5-foot sphere: one target (D4).
+  // A 5-foot sphere: one target (D4). House rule (#369): its target saves
+  // with advantage.
   sleep: {
     id: "sleep",
     name: "Sleep",
@@ -880,6 +887,7 @@ export const SPELLS = {
       duration: { minutes: 1 },
       concentration: true,
       immunity: "exhaustion",
+      saveAdvantage: true,
     },
     area: { shape: "sphere", feet: 5 },
   },

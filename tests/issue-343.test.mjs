@@ -169,15 +169,20 @@ test("Scholar: Expertise in one proficient skill of the six, chosen on the sheet
 test("each level after 1st writes two spells into the spellbook, of a level with slots", () => {
   const sheet = level2();
   // Only 1st-level slots: the 1st-level spells not yet in the book (since
-  // #348 the default book holds Thunderwave, not Sleep).
-  assert.deepEqual(spellbookOptions(sheet), ["ray-of-sickness", "ice-knife"]);
+  // #348 the default book holds Thunderwave, not Sleep, which #369 put back
+  // last on the list).
+  assert.deepEqual(spellbookOptions(sheet), [
+    "ray-of-sickness",
+    "ice-knife",
+    "sleep",
+  ]);
   assert.throws(
     () => addToSpellbook(sheet, ["ray-of-sickness"]),
     /Choose 2 spells for your spellbook; 1 chosen\./u,
   );
   assert.throws(
     () => addToSpellbook(sheet, ["ray-of-sickness", "scorching-ray"]),
-    /Vela writes into the spellbook only Wizard spells it lacks of a level it has slots for: Ray of Sickness, Ice Knife\./u,
+    /Vela writes into the spellbook only Wizard spells it lacks of a level it has slots for: Ray of Sickness, Ice Knife, Sleep\./u,
   );
   const written = addToSpellbook(sheet, ["ray-of-sickness", "ice-knife"]);
   assert.equal(written.spellbook.length, 8);
@@ -239,7 +244,7 @@ test("the level-up card says what the new level brings and asks for", () => {
   assert.deepEqual(changes.spells.slots, { before: [3], after: [4, 2] });
   assert.deepEqual(changes.spells.prepared, { before: 5, after: 6 });
   assert.equal(changes.spells.spellbookOwed, 2);
-  // Every 2nd-level spell: every 1st-level one is written.
+  // Every 2nd-level spell, then the one 1st-level spell not written.
   assert.deepEqual(changes.spells.spellbookOptions, [
     "scorching-ray",
     "shatter",
@@ -247,6 +252,8 @@ test("the level-up card says what the new level brings and asks for", () => {
     "mind-spike",
     "blur",
     "mirror-image",
+    "hold-person",
+    "sleep",
   ]);
   assert.deepEqual(
     changes.features.map(({ name }) => name),

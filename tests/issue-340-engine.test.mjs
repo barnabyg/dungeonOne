@@ -1,6 +1,6 @@
 // #340: the Wizard's spells and Arcane Recovery in the engine and the
-// runtime. Sleep: a Wisdom save or Incapacitated until the end of the
-// target's next turn, then a second save or Unconscious while the caster
+// runtime. Sleep: a Wisdom save (with advantage since #369) or Incapacitated
+// until the end of the target's next turn, then a second save or Unconscious while the caster
 // concentrates; damage wakes it, losing concentration ends it, and a
 // creature immune to exhaustion succeeds without a roll. Shocking Grasp and
 // Chill Touch are melee spell attacks; Ray of Frost and Chromatic Orb (its
@@ -140,11 +140,12 @@ const conditionsOn = (state, id) =>
     .map(({ kind }) => kind);
 
 test("Sleep: a failed save incapacitates, a second failed save makes the target unconscious", () => {
-  // The goblin's Wisdom save: 5 - 1 = 4 against DC 13.
+  // The goblin's Wisdom save, with advantage (#369): 5 and 4, keeping 5,
+  // 5 - 1 = 4 against DC 13.
   const slept = accepted(
     opening(),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5]),
+    dice([20, 5], [20, 4]),
   );
   assert.deepEqual(types(slept.events), [
     "cast",
@@ -156,9 +157,10 @@ test("Sleep: a failed save incapacitates, a second failed save makes the target 
   assert.equal(slept.events[3].kind, "incapacitated");
   assert.deepEqual(conditionsOn(slept.state, "goblin"), ["incapacitated"]);
   assert.equal(concentrationOf(slept.state.combatants, "pc").spell, "Sleep");
-  // Incapacitated, the goblin can't act; at its turn's end it saves again:
-  // 3 - 1 = 2 against 13, a failure, and it falls unconscious.
-  const asleep = accepted(slept.state, endTurn, dice([20, 3]));
+  // Incapacitated, the goblin can't act; at its turn's end it saves again,
+  // with advantage: 3 and 1, 3 - 1 = 2 against 13, a failure, and it falls
+  // unconscious.
+  const asleep = accepted(slept.state, endTurn, dice([20, 3], [20, 1]));
   assert.ok(!asleep.events.some(({ type }) => type === "attack"));
   assert.deepEqual(conditionsOn(asleep.state, "goblin"), ["unconscious"]);
   assert.equal(currentCombatant(asleep.state).id, "pc");
@@ -169,9 +171,9 @@ test("Sleep: the target stays unconscious until the spell ends, however many tur
   const slept = accepted(
     opening(),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5]),
+    dice([20, 5], [20, 4]),
   );
-  let { state } = accepted(slept.state, endTurn, dice([20, 3]));
+  let { state } = accepted(slept.state, endTurn, dice([20, 3], [20, 1]));
   // Twelve more rounds: past the minute's 10 turns, but the fight goes on.
   for (let round = 0; round < 12; round++) {
     state = accepted(state, endTurn).state;
@@ -184,9 +186,9 @@ test("Sleep: damage wakes the target; an attack on it has advantage and crits", 
   const slept = accepted(
     opening(),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5]),
+    dice([20, 5], [20, 4]),
   );
-  const asleep = accepted(slept.state, endTurn, dice([20, 3])).state;
+  const asleep = accepted(slept.state, endTurn, dice([20, 3], [20, 1])).state;
   // Shocking Grasp: advantage (12 and 8, keep 12) + 5 = 17, a hit, and a
   // critical one: 2d8, 3 + 4 = 7 lightning.
   const woken = accepted(
@@ -223,10 +225,11 @@ test("Sleep: a save shakes it off; a first success leaves nothing to concentrate
   const slept = accepted(
     opening(),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5]),
+    dice([20, 5], [20, 4]),
   );
-  // At its turn's end, 18 - 1 = 17: it shakes the spell off.
-  const awake = accepted(slept.state, endTurn, dice([20, 18]));
+  // At its turn's end, 2 and 18, keeping 18 - 1 = 17: it shakes the spell
+  // off.
+  const awake = accepted(slept.state, endTurn, dice([20, 2], [20, 18]));
   assert.deepEqual(conditionsOn(awake.state, "goblin"), []);
   assert.ok(
     awake.events.some(
@@ -234,11 +237,11 @@ test("Sleep: a save shakes it off; a first success leaves nothing to concentrate
     ),
   );
   assert.equal(concentrationOf(awake.state.combatants, "pc"), undefined);
-  // A first save of 15 - 1 = 14 resists it outright.
+  // A first save of 2 and 15, keeping 15 - 1 = 14, resists it outright.
   const resisted = accepted(
     opening(),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 15]),
+    dice([20, 2], [20, 15]),
   );
   assert.deepEqual(types(resisted.events), ["cast", "spell-condition"]);
   assert.equal(resisted.events[1].success, true);
@@ -267,15 +270,15 @@ test("Sleep: losing concentration wakes the target", () => {
   const slept = accepted(
     opening(foes),
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5]),
+    dice([20, 5], [20, 4]),
   );
-  // The goblin fails its second save (2) and falls unconscious; the boss
+  // The goblin fails its second save (3 and 1: 2) and falls unconscious; the boss
   // hits Vela (15 + 4 = 19) for 4 + 2 = 6, and her concentration save
   // (2 + 1 = 3 against DC 10) fails.
   const broken = accepted(
     slept.state,
     endTurn,
-    dice([20, 3], [20, 15], [6, 4], [20, 2]),
+    dice([20, 3], [20, 1], [20, 15], [6, 4], [20, 2]),
   );
   assert.deepEqual(conditionsOn(broken.state, "goblin"), []);
   assert.deepEqual(
@@ -585,12 +588,13 @@ test("the fight view says Sleep's Unconscious lasts until damage or the spell en
     { type: "begin" },
     dice([20, 18], [20, 2]),
   );
-  // The goblin fails both Wisdom saves (5 - 1, then 3 - 1 at the end of
-  // its turn, which follows Sage's at once, against the DC).
+  // The goblin fails both Wisdom saves, with advantage (5 and 4: 5 - 1,
+  // then 3 and 1: 3 - 1 at the end of its turn, which follows Sage's at
+  // once, against the DC).
   const result = runtime.handleAction(
     state,
     cast("sleep", "goblin", { slotLevel: 1 }),
-    dice([20, 5], [20, 3]),
+    dice([20, 5], [20, 4], [20, 3], [20, 1]),
   );
   assert.equal(result.rejection, undefined, result.rejection?.reason);
   state = result.state;

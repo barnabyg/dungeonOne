@@ -67,10 +67,11 @@ export const CLERIC_SPELLCASTING: SpellcastingDefinition = {
     "aid",
     "lesser-restoration",
     "spiritual-weapon",
-    // Hold Person left the list in #348 ("too easy by control"; #369
-    // brings it back).
     "protection-from-poison",
     "prayer-of-healing",
+    // Back in #369, as written; last of its level, so a level's spells are
+    // prepared as before.
+    "hold-person",
     // 3rd level (#342, owner-approved), with Light, a flavour cantrip.
     "mass-healing-word",
     "spirit-guardians",

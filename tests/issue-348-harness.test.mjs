@@ -174,9 +174,13 @@ test("the control chance is the chance it stays out of the fight for three turns
   const wizard = sheetOf("wizard", 3, 95);
   const { saveDc } = characterProfile(wizard).spellcasting;
   // A bandit's Wisdom save is +0: it fails below the DC. Hold Person's
-  // save repeats every turn; Sleep's second failure is for the spell.
+  // save repeats every turn; Sleep's second failure is for the spell, and
+  // its target rolls both saves with advantage (#369): four d20s fail.
   const fails = (saveDc - 1) / 20;
-  assert.equal(controlChance(wizard, "sleep", statBlock("bandit")), fails ** 2);
+  assert.ok(
+    Math.abs(controlChance(wizard, "sleep", statBlock("bandit")) - fails ** 4) <
+      1e-12,
+  );
   assert.equal(
     controlChance(wizard, "hold-person", statBlock("bandit")),
     fails ** 3,
@@ -295,12 +299,20 @@ test("a caster's verdict judges control and its best repeatable attack, and repo
     renderGateResult(goblinBand, { ok: true, verdict: cleric }),
     /^ {2}Too easy by control, pass: at the opening, the level 2, 95th percentile Cleric takes no ordinary enemy out of the fight with one control more than \d+\.\d% of the time\.$/mu,
   );
-  // The Wizard has no control left on its list (#348).
+  // The Wizard's Sleep (#369): a goblin's Wisdom save is −1, rolled with
+  // advantage, so it stays out three turns under the cap.
   const { verdict } = gateAdventure(goblinBand, {
     classId: "wizard",
     seeds: [0, 1],
   });
-  assert.equal(verdict.control, undefined);
+  assert.ok(verdict.control.enemies.length > 0);
+  assert.ok(
+    verdict.control.enemies.every(
+      ({ control, chance }) =>
+        control === "sleep" && chance > 0 && chance <= verdict.control.cap,
+    ),
+  );
+  assert.equal(verdict.control.ok, true);
   // A cantrip is the Wizard's best repeatable attack on some goblin.
   assert.ok(
     verdict.oneHitKill.enemies.some(({ spell }) => spell !== undefined),
@@ -406,13 +418,9 @@ test("a caster's survival is judged from level 3 on the casting policy that surv
   );
 });
 
-test("Sleep and Hold Person are off the Wizard's and Cleric's lists, still in the engine (#348)", () => {
-  for (const id of ["sleep", "hold-person"]) {
-    assert.ok(!CLASSES.wizard.spellcasting.list.includes(id), id);
-    assert.ok(!CLASSES.cleric.spellcasting.list.includes(id), id);
-    assert.ok(CLASSES["test-caster"].spellcasting.list.includes(id), id);
-    assert.ok(SPELLS[id] !== undefined, id);
-  }
+test("the Wizard's default creation prepares Burning Hands, not Sleep (#348; #369 put Sleep back on the list)", () => {
+  assert.ok(CLASSES["test-caster"].spellcasting.list.includes("sleep"));
+  assert.ok(!CLASSES.wizard.defaults.spellbook.includes("sleep"));
   assert.deepEqual(CLASSES.wizard.defaults.spells.prepared, [
     "mage-armor",
     "magic-missile",
