@@ -20,7 +20,7 @@ import {
   WEAPONS,
 } from "../dist/equipment-5e.js";
 import { findableValue } from "../dist/adventure-5e.js";
-import { gateAdventure } from "../dist/balance-5e.js";
+import { characterAtLevel, gateAdventure } from "../dist/balance-5e.js";
 import {
   buildCharacter,
   settleCharacter,
@@ -243,7 +243,7 @@ test("D10 and D11: at most one magic item a module, from level 3, none needing a
   assert.deepEqual(magicItemProblems([sword], 3), []);
   assert.deepEqual(magicItemProblems([], 1), []);
   assert.deepEqual(magicItemProblems([sword, shield], 5), [
-    "shield is a second magic item; a module hides at most 1.",
+    "shield is one magic item too many: a module hides at most 1.",
   ]);
   assert.deepEqual(magicItemProblems([sword], 2), [
     "sword is a magic item, but magic items are found only in modules for level 3 and up.",
@@ -380,7 +380,7 @@ test("the validator: one magic item a module, from level 3, never on sale, outsi
   });
   assert.throws(
     () => validateModule(second),
-    /module lintel-barrow: lintel-shield is a second magic item; a module hides at most 1\./,
+    /module lintel-barrow: lintel-shield is one magic item too many: a module hides at most 1\./,
   );
 
   const low = magicBarrowFile();
@@ -419,5 +419,56 @@ test("a merchant offers no sale of a magic item, and the engine refuses one", ()
       code: "magic-item",
       reason: "No merchant here deals in magic items: you keep the +1 dagger.",
     },
+  );
+});
+
+test("at a level that brings a mastery, the gate masters a placed +1 weapon's kind", () => {
+  const dice = [
+    [6, 6, 6, 1],
+    [5, 5, 5, 1],
+    [4, 4, 4, 1],
+    [3, 3, 3, 1],
+    [2, 2, 2, 1],
+    [1, 1, 1, 1],
+  ];
+  const plain = characterAtLevel(dice, 4, undefined, false, "greatsword");
+  const magic = characterAtLevel(
+    dice,
+    4,
+    undefined,
+    false,
+    "greatsword-plus-1",
+  );
+  assert.ok(plain.weaponMasteries.includes("greatsword"));
+  assert.deepEqual(magic.weaponMasteries, plain.weaponMasteries);
+});
+
+test("a +1 shield takes the place of the shield carried, which is stowed", () => {
+  const change = equipItem(
+    { equipment: ["leather", "shield", "mace"], stowed: ["shield-plus-1"] },
+    "shield-plus-1",
+  );
+  assert.deepEqual(change, {
+    gear: {
+      equipment: ["leather", "shield-plus-1", "mace"],
+      stowed: ["shield"],
+    },
+    replaced: ["shield"],
+  });
+  const carrying = validateCharacter({ ...ada, stowed: ["shield-plus-1"] });
+  const shielded = validateCharacter({
+    ...carrying,
+    equipment: ["leather", "shield", "mace"],
+  });
+  const runtime = createFifthRuntime(magicBarrow, shielded);
+  const start = play(runtime, [{ type: "begin" }]);
+  const result = runtime.handleAction(start.state, {
+    type: "equip",
+    itemId: "shield-plus-1",
+  });
+  assert.equal(result.rejection, undefined);
+  assert.match(
+    renderFifthResult(result),
+    /^You unstrap the shield and strap the \+1 shield to your arm\. AC 16;/,
   );
 });

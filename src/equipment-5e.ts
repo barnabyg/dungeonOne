@@ -792,9 +792,9 @@ export function swapWeapon(gear: Gear, id: ItemId): GearChange {
 
 /**
  * Equips a stowed item: body armour (the armour worn is stowed), a shield
- * (the shield carried is stowed), or a second light weapon beside a light weapon held, for the Light extra
- * attack. Any other weapon is swapped in with `swapWeapon`. A shield and a
- * second weapon each need a free hand.
+ * (the shield carried is stowed), or a second light weapon beside a light
+ * weapon held, for the Light extra attack. Any other weapon is swapped in
+ * with `swapWeapon`. A shield and a second weapon each need a free hand.
  */
 export function equipItem(gear: Gear, id: ItemId): GearChange {
   if (!gear.stowed.includes(id)) {
@@ -1094,15 +1094,16 @@ function attackWith(
  * Derives armour class and attacks from an equipment list: body armour's
  * base AC plus the Dexterity modifier up to its cap (10 + Dexterity with
  * none), +2 for a shield, +1 for Defense while wearing body armour, and +1
- * for each of +1 armour and a +1 shield (#345); the main
- * weapon's attack (finesse uses the higher of Strength and Dexterity, a
- * versatile weapon held in two hands its larger die, a ranged weapon uses
- * Dexterity, +2 to hit with Archery, a heavy weapon below Strength 13, or a
- * heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon
- * Fighting marks a weapon in two hands); and the Light extra attack when a second light weapon is held
- * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
- * mastered and is holding, or the +1 version of one, and a +1 weapon adds 1
- * to its attack and damage rolls (#345). Without the class's training (SRD 5.2), body
+ * for each of +1 armour and a +1 shield (#345); the main weapon's attack
+ * (finesse uses the higher of Strength and Dexterity, a versatile weapon
+ * held in two hands its larger die, a ranged weapon uses Dexterity, +2 to
+ * hit with Archery, a heavy weapon below Strength 13, or a heavy ranged one
+ * below Dexterity 13, has disadvantage, and Great Weapon Fighting marks a
+ * weapon in two hands); and the Light extra attack when a second light
+ * weapon is held (with its ability modifier under Two-Weapon Fighting). A
+ * mastery applies only to a weapon the character has mastered and is
+ * holding, or the +1 version of one, and a +1 weapon adds 1 to its attack
+ * and damage rolls (#345). Without the class's training (SRD 5.2), body
  * armour gives every attack disadvantage and a shield adds no AC.
  */
 export function equipmentProfile(

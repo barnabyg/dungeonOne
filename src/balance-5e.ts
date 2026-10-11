@@ -62,6 +62,7 @@ import {
   isWeaponId,
   STARTING_KITS,
   WEAPONS,
+  weaponKind,
   type KitId,
   type WeaponData,
   type WeaponId,
@@ -135,12 +136,11 @@ export function gateLevelChoice(
     return { increase: increase as AbilityScoreImprovement };
   }
   const options = masteryOptions(sheet);
+  // A placed +1 weapon is mastered as its kind (#345).
+  const kind = preferred === undefined ? undefined : weaponKind(preferred);
   return {
     increase: increase as AbilityScoreImprovement,
-    mastery:
-      preferred !== undefined && options.includes(preferred)
-        ? preferred
-        : options[0]!,
+    mastery: kind !== undefined && options.includes(kind) ? kind : options[0]!,
   };
 }
 
@@ -393,10 +393,9 @@ export function oneHitKillChance(
     );
   };
   // Graze: a miss deals the ability modifier, if above 0.
+  const graze = grazeDamage(attack);
   const grazeKills =
-    attack.mastery === "Graze" && grazeDamage(attack) > 0
-      ? killedBy(grazeDamage(attack), false)
-      : 0;
+    attack.mastery === "Graze" && graze > 0 ? killedBy(graze, false) : 0;
   /**
    * P(a kill) with the d20 rolled `mode`: two kept higher or lower, or one;
    * with `sneak` Sneak Attack dice on a hit.

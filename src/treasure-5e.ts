@@ -64,7 +64,7 @@ export function magicItemProblems(
   return items.flatMap(({ id, magic }, index) => [
     ...(index >= MAGIC_ITEM_LIMITS.perModule
       ? [
-          `${id} is a second magic item; a module hides at most ${MAGIC_ITEM_LIMITS.perModule}.`,
+          `${id} is one magic item too many: a module hides at most ${MAGIC_ITEM_LIMITS.perModule}.`,
         ]
       : []),
     ...(level < MAGIC_ITEM_LIMITS.minLevel
