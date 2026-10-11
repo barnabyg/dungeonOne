@@ -756,16 +756,32 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse, stowed, ammunition, carrying, treasure } = entry;
+  const { sheet, profile, purse, stowed, ammunition, carrying, treasure, magicItems } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
+}
+
+// The magic items held (#345), each with its bonus explained; none, no heading.
+function magicItemNodes(items) {
+  if (items.length === 0) return [];
+  const heading = make("h3", "Magic items");
+  heading.id = "magic-items-title";
+  const list = make("ul", undefined, "features");
+  list.id = "magic-items";
+  list.setAttribute("aria-labelledby", "magic-items-title");
+  list.append(...items.map(({ name, text }) => {
+    const item = make("li");
+    item.append(make("strong", name + ". "), document.createTextNode(text));
+    return item;
+  }));
+  return [heading, list];
 }
 
 // Treasure kept from adventures (#133), each with its description.
@@ -1503,15 +1519,15 @@ function disclose(name, shown) {
 // Unequip on what is equipped, Wield, Equip and Drop on what is stowed, and
 // Sell on ammunition.
 function gearEntries(gear) {
+  // A magic item explains its bonus after where it is (#345).
   const counted = (items, slot, describe) => {
     const counts = new Map();
-    for (const { id, name } of items) counts.set(id, { name, count: (counts.get(id)?.count ?? 0) + 1 });
-    return [...counts].map(([id, { name, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", description: describe(count) }));
+    for (const { id, name, magic } of items) counts.set(id, { name, magic, count: (counts.get(id)?.count ?? 0) + 1 });
+    return [...counts].map(([id, { name, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", description: describe(count) + (magic ? " " + magic : "") }));
   };
-  const held = [gear.attack, ...(gear.lightAttack ? [gear.lightAttack] : [])].map(({ weaponId, weapon }) => ({ id: weaponId, name: weapon }));
   return [
     ...counted(gear.worn, "equipped", () => "Worn."),
-    ...counted(held, "equipped", () => "In hand."),
+    ...counted(gear.held, "equipped", () => "In hand."),
     ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
     ...gear.ammunition.map(({ id, name, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", description: "Ammunition: each shot spends one." })),
   ];

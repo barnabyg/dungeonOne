@@ -59,13 +59,13 @@ const holding = (equipment, stowed = [], purse = 0) => ({
   purse,
 });
 
+// The mundane items; a +1 one (#345) weighs what its mundane item does.
+const MUNDANE = [...Object.keys(WEAPONS), ...Object.keys(ARMOUR)].filter(
+  (id) => !(WEAPONS[id] ?? ARMOUR[id]).magic,
+);
+
 test("every catalogue item weighs what SRD 5.2 says", () => {
-  const weights = Object.fromEntries(
-    [...Object.keys(WEAPONS), ...Object.keys(ARMOUR)].map((id) => [
-      id,
-      itemWeight(id),
-    ]),
-  );
+  const weights = Object.fromEntries(MUNDANE.map((id) => [id, itemWeight(id)]));
   assert.deepEqual(weights, {
     club: 2,
     dagger: 1,
@@ -133,7 +133,8 @@ test("every starting kit fits the weakest character's capacity", () => {
 });
 
 test("selling any catalogue item lightens the load: its price weighs less than it does", () => {
-  for (const id of [...Object.keys(WEAPONS), ...Object.keys(ARMOUR)]) {
+  // No merchant buys a magic item (#345).
+  for (const id of MUNDANE) {
     assert.ok(coinCount(salePrice(id)) / 50 < itemWeight(id), id);
   }
 });

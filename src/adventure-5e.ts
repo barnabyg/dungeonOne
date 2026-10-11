@@ -92,6 +92,7 @@ import {
   itemName,
   itemPrice,
   itemTier,
+  magicOf,
   TREASURE_WEIGHT,
   type Coin,
   type Coins,
@@ -105,6 +106,7 @@ import {
   TREASURE_TYPES,
   type TreasureTypeData,
   type TreasureTypeId,
+  magicItemProblems,
   tierAllowed,
   TRADE_GOOD_TIER,
   tradeGoodValue,
@@ -157,7 +159,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 28;
+export const FIFTH_ADVENTURE_FORMAT = 29;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -690,7 +692,7 @@ export type WanderingEncounter = Readonly<{
 /**
  * What a placed item is worth toward the treasure budget, in copper: coin's
  * amount, a gem or art object's value, a potion's value and gear's price.
- * A key is worth nothing.
+ * A key is worth nothing, and a magic item is outside the budget (#345, D10).
  */
 export function itemValue(item: FifthItem): number {
   if (item.coins !== undefined) {
@@ -700,7 +702,7 @@ export function itemValue(item: FifthItem): number {
     return tradeGoodValue(item.treasure);
   }
   if (item.gear !== undefined) {
-    return itemPrice(item.gear);
+    return magicOf(item.gear) === undefined ? itemPrice(item.gear) : 0;
   }
   return isPotionKind(item.kind) ? POTIONS[item.kind].value : 0;
 }
@@ -1563,6 +1565,11 @@ function validateModule(
           `${where} stock ${index + 1} must be a catalogue weapon, armour or ammunition.`,
         );
       }
+      if (magicOf(entry) !== undefined) {
+        fail(
+          `${where} stocks the magic ${entry}, but no merchant sells magic items.`,
+        );
+      }
       const tier = itemTier(entry);
       if (tier === "rare") {
         fail(
@@ -1988,6 +1995,19 @@ function validateModule(
     };
   });
   const roomIds = unique(rooms, "room");
+  // D10 and D11 (#345): one magic item, from level 3, none needing attunement.
+  const [magicProblem] = magicItemProblems(
+    rooms.flatMap(({ items }) =>
+      items.flatMap(({ id: itemId, gear }) => {
+        const magic = gear === undefined ? undefined : magicOf(gear);
+        return magic === undefined ? [] : [{ id: itemId, magic }];
+      }),
+    ),
+    max,
+  );
+  if (magicProblem !== undefined) {
+    fail(`module ${moduleId}: ${magicProblem}`);
+  }
   const worth = findableValue({ rooms });
   const budget = treasureBudget(max);
   if (worth > budget) {

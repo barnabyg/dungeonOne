@@ -105,8 +105,9 @@ test("the catalogue holds the SRD 5.2 weapons with price in copper, damage, prop
       "uncommon",
     ],
   ];
+  // Each has a +1 version besides (#345).
   assert.deepEqual(
-    Object.keys(WEAPONS),
+    Object.keys(WEAPONS).filter((id) => !WEAPONS[id].magic),
     rows.map(([id]) => id),
   );
   for (const [
@@ -145,7 +146,7 @@ test("the catalogue holds the SRD 5.2 armour with price, AC, Dex cap, Strength a
     ["shield", 1000, "shield", 2, undefined, undefined, false, "common"],
   ];
   assert.deepEqual(
-    Object.keys(ARMOUR),
+    Object.keys(ARMOUR).filter((id) => !ARMOUR[id].magic),
     rows.map(([id]) => id),
   );
   for (const [id, price, category, ac, cap, strength, stealth, tier] of rows) {
@@ -414,18 +415,16 @@ const armourDominates = (a, b) => {
 
 test("within each table no item is both cheaper and strictly better than another", () => {
   // Melee and ranged weapons are separate tables, as in SRD 5.2: a bow does
-  // what no sword can.
+  // what no sword can. Magic items (#345) are never sold, so have no price
+  // to compare.
+  const weapons = Object.values(WEAPONS).filter(({ magic }) => !magic);
   const tables = [
+    [weapons.filter(({ ammunition }) => !ammunition), weaponDominates],
+    [weapons.filter(({ ammunition }) => ammunition), weaponDominates],
     [
-      Object.values(WEAPONS).filter(({ ammunition }) => !ammunition),
-      weaponDominates,
-    ],
-    [
-      Object.values(WEAPONS).filter(({ ammunition }) => ammunition),
-      weaponDominates,
-    ],
-    [
-      Object.values(ARMOUR).filter(({ category }) => category !== "shield"),
+      Object.values(ARMOUR).filter(
+        ({ category, magic }) => category !== "shield" && !magic,
+      ),
       armourDominates,
     ],
   ];

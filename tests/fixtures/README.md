@@ -52,6 +52,8 @@ renamed monster keeps its module name.
 The barrow variants below are built on `lintelBarrow`: `armoury-barrow.mjs`
 hides gear behind the lintel for the equipment tests (#209), and
 `market-barrow.mjs` puts a pedlar at the mouth for the trading tests (#210).
+`magic-barrow.mjs` is for levels 1–3 and hides a +1 Shortsword behind the
+lintel, the one magic item a module may hide (#345).
 
 ## Counter runtime
 

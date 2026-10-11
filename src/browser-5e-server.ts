@@ -54,6 +54,7 @@ import {
   ammunitionHeld,
   formatCoins,
   itemName,
+  magicItemText,
   MASTERIES,
   STARTING_KITS,
   WEAPONS,
@@ -323,6 +324,13 @@ function libraryView(
         purse: formatCoins(sheet.purse),
         carrying: characterCarrying(sheet),
         stowed: sheet.stowed.map(itemName),
+        // Each kind of magic item held, its bonus explained (#345).
+        magicItems: [...new Set([...sheet.equipment, ...sheet.stowed])].flatMap(
+          (id) => {
+            const text = magicItemText(id);
+            return text === undefined ? [] : [{ name: itemName(id), text }];
+          },
+        ),
         ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
           ammunitionCount(id, count),
         ),

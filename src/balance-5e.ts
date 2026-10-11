@@ -76,6 +76,7 @@ import {
   armorClassOf,
   combatant,
   countedDamageDie,
+  grazeDamage,
   damageTaken,
   type ConditionKind,
 } from "./encounter-5e.js";
@@ -391,10 +392,10 @@ export function oneHitKillChance(
       0,
     );
   };
-  // Graze: a miss deals the damage modifier, if above 0.
+  // Graze: a miss deals the ability modifier, if above 0.
   const grazeKills =
-    attack.mastery === "Graze" && attack.damage.modifier > 0
-      ? killedBy(attack.damage.modifier, false)
+    attack.mastery === "Graze" && grazeDamage(attack) > 0
+      ? killedBy(grazeDamage(attack), false)
       : 0;
   /**
    * P(a kill) with the d20 rolled `mode`: two kept higher or lower, or one;

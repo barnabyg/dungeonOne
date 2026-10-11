@@ -197,11 +197,14 @@ import {
   formatCoins,
   formatWeight,
   isAmmunitionId,
-  isArmourId,
+  isBodyArmourId,
+  isShieldId,
   isCatalogueId,
   isItemId,
   isToolId,
   isWeaponId,
+  magicItemText,
+  magicOf,
   itemName,
   readLoadout,
   itemNoun,
@@ -1690,6 +1693,9 @@ function weaponOf(attack: AttackProfile): Weapon {
       ? {}
       : { ammunition: attack.ammunition }),
     ...(attack.loading === true ? { loading: true as const } : {}),
+    ...(attack.magicBonus === undefined
+      ? {}
+      : { magicBonus: attack.magicBonus }),
     ...((WEAPONS[attack.weaponId] as WeaponData).properties.includes("finesse")
       ? { finesse: true as const }
       : {}),
@@ -2008,11 +2014,24 @@ function doorText(
 
 /** The minutes body armour takes to don and doff; none for others. */
 function timing(item: ItemId): Readonly<{ don: number; doff: number }> {
-  return isArmourId(item) && item !== "shield"
+  return isBodyArmourId(item)
     ? DONNING_MINUTES[
         (ARMOUR[item] as ArmourData).category as "light" | "medium" | "heavy"
       ]
     : { don: 0, doff: 0 };
+}
+
+/** A piece of the character's gear as the page lists it under "You carry". */
+export type ShownGear = Readonly<{
+  id: string;
+  name: string;
+  /** A magic item's bonus, explained (#345). */
+  magic?: string;
+}>;
+
+function shownGear(id: ItemId): ShownGear {
+  const magic = magicItemText(id);
+  return { id, name: itemName(id), ...(magic === undefined ? {} : { magic }) };
 }
 
 function shown(attack: AttackProfile): ShownAttack {
@@ -2368,7 +2387,7 @@ function gearText(event: GearEvent): string {
     : event.fastHands
       ? ", using your bonus action (Fast Hands)"
       : "";
-  const body = isArmourId(event.item) && event.item !== "shield";
+  const body = isBodyArmourId(event.item);
   let done: string;
   switch (event.change) {
     case "swap":
@@ -2378,7 +2397,9 @@ function gearText(event: GearEvent): string {
       done = isWeaponId(event.item)
         ? `You draw the ${item} in your other hand${using}.`
         : !body
-          ? `You strap the ${item} to your arm.`
+          ? event.replaced.length === 0
+            ? `You strap the ${item} to your arm.`
+            : `You unstrap the ${listed(event.replaced.map(lower), "and")} and strap the ${item} to your arm.`
           : event.replaced.length === 0
             ? `You spend ${minutes(event.minutes.don)} donning the ${item}.`
             : `You spend ${minutes(event.minutes.doff)} doffing the ${listed(event.replaced.map(lower), "and")} and ${minutes(event.minutes.don)} donning the ${item}.`;
@@ -2401,7 +2422,7 @@ function gearText(event: GearEvent): string {
   const untrained =
     event.change !== "equip"
       ? ""
-      : event.item === "shield"
+      : isShieldId(event.item)
         ? event.untrainedShield === true
           ? " You are not trained with shields: it adds no AC."
           : ""
@@ -3959,9 +3980,11 @@ export type RoomView = Readonly<{
   /** The character's gear as it stands, and the AC and attacks it gives. */
   gear: Readonly<{
     /** The armour and shield worn. */
-    worn: readonly Readonly<{ id: string; name: string }>[];
+    worn: readonly ShownGear[];
+    /** The weapons held, the one attacked with first. */
+    held: readonly ShownGear[];
     /** Catalogue gear carried but not equipped. */
-    stowed: readonly Readonly<{ id: string; name: string }>[];
+    stowed: readonly ShownGear[];
     /** The arrows and bolts carried, each kind held with its count (#230). */
     ammunition: readonly Readonly<{
       id: AmmunitionId;
@@ -4268,6 +4291,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "too-little-coin": "Too little coin",
   "sale-unconfirmed": "Confirm first",
   "short-bundle": "Fewer than 20",
+  "magic-item": "Magic item",
   "no-arrows": "No arrows",
   "no-bolts": "No bolts",
   "no-spellcasting": "No spells",
@@ -9115,7 +9139,8 @@ export function createFifthRuntime(
     };
     /**
      * Where a merchant is: Buy on each item it stocks, Sell on each kind of
-     * stowed gear, and Sell (confirmed by the player) on each kind equipped.
+     * stowed gear, and Sell (confirmed by the player) on each kind equipped;
+     * never on a magic item, which no merchant buys (#345).
      */
     const tradeViews = (): readonly ActionView[] => {
       const trader = merchantHere(state);
@@ -9123,19 +9148,21 @@ export function createFifthRuntime(
         return [];
       }
       const item = (id: CatalogueId) => ({ id, name: itemName(id) });
+      const mundane = (ids: readonly ItemId[]) =>
+        [...new Set(ids)].filter((id) => magicOf(id) === undefined);
       const { equipment, stowed } = state.possessions;
       return [
         ...trader.merchant.stock.map((id) =>
           view("buy", { type: "buy", itemId: id }, item(id)),
         ),
-        ...[...new Set(stowed)].map((id) =>
+        ...mundane(stowed).map((id) =>
           view("sell", { type: "sell", itemId: id }, item(id)),
         ),
         // Ammunition sells by the bundle (#230).
         ...ammunitionHeld(state.possessions.ammunition).map(({ id }) =>
           view("sell", { type: "sell", itemId: id }, item(id)),
         ),
-        ...[...new Set(equipment)].map((id) =>
+        ...mundane(equipment).map((id) =>
           view(
             "sell-equipped",
             { type: "sell", itemId: id, equipped: true },
@@ -9840,7 +9867,8 @@ export function createFifthRuntime(
                   ...ammunitionHeld(state.possessions.ammunition).map(
                     ({ id }) => id,
                   ),
-                ],
+                  // No merchant buys a magic item (#345).
+                ].filter((id) => magicOf(id) === undefined),
                 salePrice,
               ),
               tradeMinutes: creature.merchant.minutes,
@@ -9853,12 +9881,12 @@ export function createFifthRuntime(
         : { purse: formatCoins(state.possessions.purse) }),
       gear: (() => {
         const profile = characterProfile(sheetOf(state));
-        const item = (id: ItemId) => ({ id, name: itemName(id) });
         return {
           worn: state.possessions.equipment
             .filter((id) => !isWeaponId(id))
-            .map(item),
-          stowed: state.possessions.stowed.map(item),
+            .map(shownGear),
+          held: state.possessions.equipment.filter(isWeaponId).map(shownGear),
+          stowed: state.possessions.stowed.map(shownGear),
           ammunition: ammunitionHeld(ammunitionOf(state)).map(
             ({ id, count }) => ({ id, name: AMMUNITION[id].name, count }),
           ),
