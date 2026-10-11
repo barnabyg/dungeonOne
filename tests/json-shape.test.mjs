@@ -5,6 +5,7 @@ import {
   exactKeys,
   id,
   integer,
+  isOneOf,
   knownKeys,
   list,
   ShapeError,
@@ -58,4 +59,14 @@ test("distinct and unique name the first repeated key", () => {
     () => unique([{ id: "rat" }, { id: "rat" }], "monster"),
     /^duplicate monster id rat\.$/,
   );
+});
+
+test("isOneOf accepts only a list's own entries, without coercing", () => {
+  const list = ["hit", "miss", 3];
+  assert.ok(isOneOf(list, "hit"));
+  assert.ok(isOneOf(list, 3));
+  assert.ok(!isOneOf(list, "3"));
+  assert.ok(!isOneOf(list, ["hit"]));
+  assert.ok(!isOneOf(list, undefined));
+  assert.ok(!isOneOf([], "hit"));
 });
