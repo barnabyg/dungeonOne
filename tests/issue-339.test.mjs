@@ -342,12 +342,12 @@ test("a format-16 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 25);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 26);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 16, not 25/u.test(error.message),
+        /format version 16, not 26/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

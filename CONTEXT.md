@@ -116,7 +116,7 @@ The action a spell with a casting time of an action takes in a fight (#336); a b
 _Avoid_: Cast action
 
 **Test caster**:
-A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine; since #348 it alone may prepare Sleep and Hold Person, which left the Wizard's and Cleric's lists. Creation never offers it and the gate never plays it.
+A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine; from #348 until #369 it alone could prepare Sleep and Hold Person, which had left the Wizard's and Cleric's lists. Creation never offers it and the gate never plays it.
 _Avoid_: Wizard, Cleric (for the test caster)
 
 **Rest site**:

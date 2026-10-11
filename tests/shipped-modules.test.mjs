@@ -3,7 +3,8 @@
 // qualifies at its declared difficulty for every class (#310), and takes its
 // place in the browser's adventure list; and a new character's career
 // through them reaches the required level in every class (#290, #310), and
-// the gate judges Turn Undead in every undead module (#349).
+// the gate judges Turn Undead in every undead module (#349) and Sleep and
+// Hold Person in every module (#369).
 // Besides each released module's own content and release tests, these are
 // the only tests that read a shipped module; engine tests play the fixtures
 // in tests/fixtures/.
@@ -481,6 +482,34 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
       quoted.enemies.map(([id, chance]) => [id, TURN_UNDEAD_ID, chance]),
       adventure.id,
     );
+  }
+});
+
+test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369)", () => {
+  for (const adventure of gated) {
+    for (const classId of ["wizard", "cleric"]) {
+      const { control } = gateOf(adventure).classes.find(
+        (entry) => entry.classId === classId,
+      ).result.verdict;
+      const label = `${adventure.id} ${classId}`;
+      if (classId === "wizard") {
+        // Sleep is a 1st-level spell: every Wizard has it.
+        assert.ok(control, `${label} judges no control`);
+      }
+      if (control === undefined) {
+        continue;
+      }
+      assert.equal(control.ok, true, label);
+      // Sleep's saves with advantage keep every foe under; no shipped module
+      // at level 3 or more has an ordinary humanoid for Hold Person.
+      assert.deepEqual(control.overCap, [], label);
+      assert.ok(
+        control.enemies.every(
+          ({ control: used, chance }) => used !== "hold-person" || chance === 0,
+        ),
+        label,
+      );
+    }
   }
 });
 

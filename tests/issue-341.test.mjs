@@ -222,6 +222,7 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
     "spiritual-weapon",
     "protection-from-poison",
     "prayer-of-healing",
+    "hold-person",
   ]);
   assert.throws(
     () =>
@@ -245,6 +246,7 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
       "spiritual-weapon",
       "protection-from-poison",
       "prayer-of-healing",
+      "hold-person",
     ],
     owed: 3,
     cantripsOwed: 0,

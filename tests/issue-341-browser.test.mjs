@@ -238,6 +238,7 @@ test(
         "Spiritual Weapon",
         "Protection from Poison",
         "Prayer of Healing",
+        "Hold Person",
       ]);
       await page.locator("#level-up-spells summary").nth(1).click();
       assert.match(

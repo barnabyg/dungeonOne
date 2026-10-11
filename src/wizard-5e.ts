@@ -72,8 +72,6 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "magic-missile",
     "shield",
     "mage-armor",
-    // Sleep left the list in #348 ("too easy by control"; #369 brings it
-    // back).
     "burning-hands",
     "chromatic-orb",
     "thunderwave",
@@ -81,14 +79,18 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     // to write into the spellbook.
     "ray-of-sickness",
     "ice-knife",
+    // Back in #369, its target saving with advantage (house rule); last of
+    // its level, so a level's spells are prepared as before.
+    "sleep",
     // 2nd level (#343, owner-approved).
     "scorching-ray",
     "shatter",
-    // Hold Person left the list in #348, as Sleep did.
     "acid-arrow",
     "mind-spike",
     "blur",
     "mirror-image",
+    // Back in #369, as written; last of its level, as Sleep is.
+    "hold-person",
     // 3rd level (#344, owner-approved).
     "fireball",
     "lightning-bolt",
