@@ -82,7 +82,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311)", () => {
+test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #350)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
@@ -90,6 +90,7 @@ test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311)",
       "drowned-chapel",
       "goblin-warren",
       "gravediggers-lodge",
+      "hollow-chantry",
       "mallow-counting-house",
       "ravagers-tower",
       "robbers-barrow",
@@ -214,6 +215,37 @@ const QUOTED_FIGURES = {
       overCap: [],
       enemies: [["drowned-sexton", 0.8]],
       xp: 350,
+    },
+  },
+  // The Wizard is 2 points over Medium's 88% with its slack, the ward read
+  // (92.0% when every check fails). Every fight's XP, the restless dead's
+  // included (#335), and the ending's 400. The Fighter's
+  // found +1 Mace kills the Prior's Guard, a Skeleton, in one blow 60% of
+  // the time: one of five ordinary foes over the cap.
+  "hollow-chantry": {
+    fighter: {
+      survival: [3, "two-daggers", 0.98],
+      alwaysFail: [3, 0.98],
+      overCap: ["priors-guard"],
+      xp: 50 + 50 + 200 + 50 + 50 + 50 + 400,
+    },
+    rogue: {
+      survival: [3, "shortsword-and-dagger", 0.99],
+      alwaysFail: [3, 0.99],
+      overCap: [],
+      xp: 850,
+    },
+    cleric: {
+      survival: [3, "mace-and-daggers", 0.965],
+      alwaysFail: [3, 0.965],
+      overCap: [],
+      xp: 850,
+    },
+    wizard: {
+      survival: [3, "quarterstaff-and-dagger", 0.9],
+      alwaysFail: [3, 0.92],
+      overCap: [],
+      xp: 850,
     },
   },
   // 8.5 points over Hard's 75%, and 4.5 under the 88% that would make it Medium.
@@ -392,6 +424,16 @@ const TURN_UNDEAD_FIGURES = {
   },
   "drowned-chapel": { cap: 0.5, enemies: [["drowned-sexton", 27.5]] },
   "gravediggers-lodge": { cap: 0.3, enemies: [["risen-corpse", 27.5]] },
+  "hollow-chantry": {
+    cap: 0.4,
+    enemies: [
+      ["dead-sexton", 27.5],
+      ["charnel-corpse", 27.5],
+      ["ossuary-ghoul", 27.5],
+      ["priors-guard", 34.3],
+      ["wandering-corpse", 27.5],
+    ],
+  },
   "silvervein-mine": {
     cap: 0.4,
     enemies: [
@@ -520,6 +562,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
     "drowned-chapel",
     "goblin-warren",
     "gravediggers-lodge",
+    "hollow-chantry",
     "mallow-counting-house",
     "ravagers-tower",
     "robbers-barrow",
@@ -604,6 +647,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["silvervein-mine", "2–3", "medium"],
       ["drowned-chapel", "3–3", "easy"],
       ["goblin-warren", "3–3", "medium"],
+      ["hollow-chantry", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],
       ["mallow-counting-house", "3–4", "medium"],
       // Level 4 and Medium since #348 (levels 3–4 and Hard before).
