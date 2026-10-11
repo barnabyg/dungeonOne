@@ -3240,31 +3240,40 @@ export type ShownDie = Readonly<{
 }>;
 
 /**
+ * Every purpose a result card's roll group may have. A saved session's
+ * history is checked against this list (#355), so a new purpose survives a
+ * save and reload by being added here.
+ */
+export const ROLL_PURPOSES = [
+  "initiative",
+  "target",
+  "weapon",
+  "attack",
+  "damage",
+  "healing",
+  "check",
+  "save",
+  "reaction",
+  /** A rest's d100 against the wandering encounter (#335). */
+  "wandering",
+  /** Resistance's die off damage (#339). */
+  "reduction",
+  /**
+   * Mirror Image's d6s (#343): `outcome` is a success when one struck a
+   * duplicate instead.
+   */
+  "duplicates",
+] as const;
+export type RollPurpose = (typeof ROLL_PURPOSES)[number];
+
+/**
  * The dice one roll used, grouped by purpose, for a result card. `roller`
  * rolled them; `target` is who they were rolled against or for. An attack
  * gives the AC it had to reach and its outcome; damage and healing give the
  * HP of the creature they changed afterwards.
  */
 export type RollGroup = Readonly<{
-  purpose:
-    | "initiative"
-    | "target"
-    | "weapon"
-    | "attack"
-    | "damage"
-    | "healing"
-    | "check"
-    | "save"
-    | "reaction"
-    /** A rest's d100 against the wandering encounter (#335). */
-    | "wandering"
-    /** Resistance's die off damage (#339). */
-    | "reduction"
-    /**
-     * Mirror Image's d6s (#343): `outcome` is a success when one struck a
-     * duplicate instead.
-     */
-    | "duplicates";
+  purpose: RollPurpose;
   roller: string;
   target?: string;
   dice: readonly ShownDie[];

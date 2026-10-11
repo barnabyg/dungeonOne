@@ -26,6 +26,7 @@ import { runDmTurn, type DmModel, type DmTurnResult } from "./dm-turn.js";
 import { acquireFileLock } from "./file-lock.js";
 import { validateCharacter, type CharacterSheet } from "./character-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
+import { REACTION_BANDS } from "./reaction-5e.js";
 import type { GameToolCall } from "./runtime-contract.js";
 import {
   createFifthRuntime,
@@ -36,6 +37,7 @@ import {
   type FifthResult,
   type FifthRuntime,
   type FifthState,
+  ROLL_PURPOSES,
   type ResultLine,
 } from "./runtime-5e.js";
 
@@ -151,17 +153,6 @@ function validHistory(value: unknown): value is HistoryEntry[] {
   );
 }
 
-const ROLL_PURPOSES = [
-  "initiative",
-  "target",
-  "weapon",
-  "attack",
-  "damage",
-  "healing",
-  "check",
-  "save",
-  "wandering",
-];
 const OPTIONAL_GROUP_KEYS = [
   "target",
   "rollOff",
@@ -171,6 +162,7 @@ const OPTIONAL_GROUP_KEYS = [
   "proficiency",
   "dc",
   "outcome",
+  "reaction",
   "band",
   "halved",
   "adjustment",
@@ -192,7 +184,7 @@ function validRollGroup(value: unknown): boolean {
         ["purpose", "roller", "dice", "modifier", "total"].includes(key) ||
         OPTIONAL_GROUP_KEYS.includes(key),
     ) &&
-    ROLL_PURPOSES.includes(String(value.purpose)) &&
+    (ROLL_PURPOSES as readonly unknown[]).includes(value.purpose) &&
     label(value.roller) &&
     optional(value.target, label) &&
     Array.isArray(value.dice) &&
@@ -218,6 +210,9 @@ function validRollGroup(value: unknown): boolean {
       ["hit", "critical", "miss", "success", "failure"].includes(
         String(outcome),
       ),
+    ) &&
+    optional(value.reaction, (reaction) =>
+      (REACTION_BANDS as readonly unknown[]).includes(reaction),
     ) &&
     optional(value.band, (band) =>
       ["failure-by-5", "success-by-5"].includes(String(band)),
