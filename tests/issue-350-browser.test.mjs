@@ -259,6 +259,11 @@ test(
         [3, ada.xp + 750],
       );
       assert.ok(record.sheet.equipment.includes("mace-plus-1"));
+      // She keeps the scroll she can't read.
+      assert.deepEqual(
+        record.sheet.magicItems.map(({ scroll }) => scroll),
+        ["cure-wounds"],
+      );
     } finally {
       await close();
       await rm(directory, { recursive: true, force: true });
@@ -321,7 +326,16 @@ test(
         .filter({ hasText: "Vela" })
         .click();
       await startAdventure(page, "hollow-chantry");
-      const log = await play(page, WIZARD_ROUTE, "wizard");
+      await settled(page, () => button(page, WIZARD_ROUTE[0]).click());
+      while (await fighting(page)) {
+        await fightTurn(page, "wizard");
+      }
+      await settled(page, () => button(page, WIZARD_ROUTE[1]).click());
+      assert.match(
+        await page.locator("#long-rest-summary").textContent(),
+        /^This is a safe place to rest\. Long rests: 1 of 1 left in this adventure/u,
+      );
+      const log = await play(page, WIZARD_ROUTE.slice(2), "wizard");
       await keep("wizard", log);
       says(log, [
         /Dead Sexton is defeated\./u,
