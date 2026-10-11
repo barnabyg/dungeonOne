@@ -25,7 +25,7 @@ const [weakest] = percentileCharacters({
 const wizard = (kit) =>
   characterAtLevel(weakest.dice, 1, kit, false, undefined, "wizard");
 
-test("the harness builds a level-1 Wizard from its defaults, and none above level 3 yet", () => {
+test("the harness builds a level-1 Wizard from its defaults", () => {
   const sheet = wizard();
   assert.equal(sheet.class, "wizard");
   assert.deepEqual(sheet.spells.prepared, [
@@ -36,11 +36,6 @@ test("the harness builds a level-1 Wizard from its defaults, and none above leve
   ]);
   assert.equal(sheet.spellbook.length, 6);
   assert.deepEqual(wizard("daggers").equipment, ["dagger", "dagger"]);
-  assert.throws(
-    () =>
-      characterAtLevel(weakest.dice, 4, undefined, false, undefined, "wizard"),
-    /A Wizard reaches only level 3 yet\./u,
-  );
 });
 
 /**

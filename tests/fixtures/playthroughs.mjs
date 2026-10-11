@@ -22,6 +22,7 @@ import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { testCasterAt } from "../../dist/test-caster-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
+import { vela } from "./level-5-wizard.mjs";
 import { FIXTURE_MODULES, goblinTrio, sealedCrypt } from "./modules.mjs";
 
 export const PLAYER = "pc";
@@ -151,6 +152,7 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
     case "attack":
     case "light-attack":
     case "spectral-attack":
+    case "drain-attack":
       return { type: action, actorId: PLAYER, targetId: target.id };
     // Divine Spark (#341), with what it does.
     case "divine-spark":
@@ -204,9 +206,21 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
     case "tactical-mind":
       return { type: "tactical-mind" };
     // A short rest (#334) spends the most hit dice, as the browser's choice
-    // does unless the player picks fewer.
+    // does unless the player picks fewer; when Memorize Spell's swap (#344)
+    // is all it brings, the browser's first swap goes with it.
     case "rest":
-      return { type: "rest", hitDice: rest.hitDice.at(-1) };
+      return {
+        type: "rest",
+        hitDice: rest.hitDice.at(-1),
+        ...(rest.memorize?.only === true
+          ? {
+              memorize: {
+                forget: rest.memorize.forget[0].id,
+                learn: rest.memorize.learn[0].id,
+              },
+            }
+          : {}),
+      };
     // A long rest at a rest site (#335).
     case "long-rest":
       return { type: "long-rest" };
@@ -235,6 +249,9 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
   }
 }
 
+/** A level-5 Evoker (#344) with Vampiric Touch and Slow prepared. */
+const evoker = () => vela(["vampiric-touch", "slow"]);
+
 /** The test caster with buffs and Shield prepared (#337). */
 const BUFFED = {
   cantrips: ["fire-bolt", "sacred-flame"],
@@ -257,7 +274,8 @@ const AREAS = {
  * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
  * test caster's, with 1st- and 2nd-level slots (#336), with buffs and
  * Shield prepared (#337), and with area spells (#338); then a level-3
- * Life Cleric's (#341).
+ * Life Cleric's (#341); then a level-5 Evoker's with Vampiric Touch and
+ * Slow (#344).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -276,6 +294,7 @@ const PLAYTHROUGHS = [
   // A level-3 Life Cleric against a zombie and goblins (#341).
   { adventure: sealedCrypt, fighters: [lifeCleric()] },
   { adventure: goblinTrio, fighters: [lifeCleric()] },
+  { adventure: goblinTrio, fighters: [evoker()] },
 ];
 
 /**

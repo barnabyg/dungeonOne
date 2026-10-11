@@ -344,6 +344,11 @@ export type FeatureEffect = Readonly<
    * succeeds on its save, deals half its damage.
    */
   | { kind: "potent-cantrip" }
+  /**
+   * Memorize Spell (#344): a short rest may swap one prepared levelled
+   * spell for another in the spellbook, for the rest of the adventure.
+   */
+  | { kind: "memorize-spell" }
 >;
 
 /** One class or subclass feature, gained at `level`. */

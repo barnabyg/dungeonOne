@@ -48,6 +48,7 @@ import { PLAYER_ID, spellSummary, type FifthAction } from "./runtime-5e.js";
 import type { DamageType } from "./encounter-5e.js";
 import { SPELLS, type CurseId, type SpellId } from "./spells-5e.js";
 import { loadGateVerdicts, recordedOrGated } from "./gate-verdicts-5e.js";
+import { isRecord } from "./json-shape.js";
 import {
   ammunitionCount,
   ammunitionHeld,
@@ -819,7 +820,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           mode: body.mode,
         } as FifthAction);
       case "/api/5e/session/spectral-attack":
-        // Spiritual Weapon's attack (#341).
+      case "/api/5e/session/drain-attack":
+        // Spiritual Weapon's attack (#341), Vampiric Touch's again (#344).
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "targetId"]) ||
           typeof body.targetId !== "string"
@@ -827,7 +829,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid attack request.");
         }
         return click(body, {
-          type: "spectral-attack",
+          type: path.endsWith("drain-attack")
+            ? "drain-attack"
+            : "spectral-attack",
           actorId: PLAYER_ID,
           targetId: body.targetId,
         });
@@ -850,16 +854,41 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
                 actorId: PLAYER_ID,
               },
         );
-      case "/api/5e/session/rest":
-        // A short rest (#334) with the number of hit dice to spend; the
-        // engine refuses a number it doesn't accept.
+      case "/api/5e/session/rest": {
+        // A short rest (#334) with the number of hit dice to spend, and
+        // Memorize Spell's swap (#344) when chosen; the engine refuses a
+        // number or a swap it doesn't accept.
+        const { memorize } = body;
         if (
-          !hasExactKeys(body, ["sessionId", "sequence", "hitDice"]) ||
-          !Number.isInteger(body.hitDice)
+          !hasExactKeys(
+            body,
+            ["sessionId", "sequence", "hitDice"],
+            ["memorize"],
+          ) ||
+          !Number.isInteger(body.hitDice) ||
+          (memorize !== undefined &&
+            !(
+              isRecord(memorize) &&
+              hasExactKeys(memorize, ["forget", "learn"]) &&
+              typeof memorize.forget === "string" &&
+              typeof memorize.learn === "string"
+            ))
         ) {
           throw new Error("Invalid rest request.");
         }
-        return click(body, { type: "rest", hitDice: body.hitDice as number });
+        return click(body, {
+          type: "rest",
+          hitDice: body.hitDice as number,
+          ...(memorize === undefined
+            ? {}
+            : {
+                memorize: {
+                  forget: memorize.forget as SpellId,
+                  learn: memorize.learn as SpellId,
+                },
+              }),
+        });
+      }
       case "/api/5e/session/cast":
         // A spell (#337) with its slot level (null for a cantrip) and its
         // targets (#338); the runtime and the engine refuse what they

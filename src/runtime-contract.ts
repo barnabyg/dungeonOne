@@ -160,7 +160,8 @@ export type FifthToolName =
   | "divine_spark"
   | "turn_undead"
   | "preserve_life"
-  | "spiritual_weapon";
+  | "spiritual_weapon"
+  | "vampiric_touch";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{

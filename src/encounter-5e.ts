@@ -157,6 +157,18 @@
  * - Beacon of Hope (#342): advantage on Wisdom saves, and healing from
  *   spells, potions and Divine Spark heals its most. Protection from
  *   Energy (#342): resistance to the damage type chosen at casting.
+ * - Vampiric Touch (#344): a melee spell attack whose hit heals the caster
+ *   half the damage dealt; while it concentrates, its action makes the
+ *   attack again on each later turn (`drain-attack`).
+ * - Haste (#344): +2 AC, advantage on Dexterity saves, and an action each
+ *   turn (the turn it is cast too) for one weapon attack, which the
+ *   combatant's first attack outside an Attack action under way takes.
+ *   When it ends before the fight does, its holder is incapacitated until
+ *   the end of its next turn (lethargy).
+ * - Slow (#344): each opponent caught that fails its Wisdom save has −2 AC
+ *   and −2 on Dexterity saves and makes one attack a turn (no Rampage
+ *   after it), saving again at the end of each of its turns. Without
+ *   reactions for opponents, its reaction rider changes nothing.
  * - Pack Tactics: a combatant with it has advantage on its attacks while an
  *   ally on its side is alive and able to act.
  * - Multiattack (#235): an opponent with it makes several attacks on its
@@ -200,6 +212,7 @@ import {
   type CurseId,
   type EffectEnds,
   type SpellDefinition,
+  type SpellDamage,
   type SpellDice,
   type SpellEffect,
 } from "./spells-5e.js";
@@ -834,6 +847,11 @@ export type TurnEconomy = Readonly<{
    * second levelled spell, by action or bonus action, is refused.
    */
   slotSpent: boolean;
+  /**
+   * Haste's action (#344), for one weapon attack only: the combatant's
+   * first attack this turn outside an Attack action under way takes it.
+   */
+  hasteAttack?: boolean;
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -847,6 +865,19 @@ const FRESH_TURN: TurnEconomy = {
   steadyAim: false,
   slotSpent: false,
 };
+
+/** Whether `entrant` holds `kind` of buff (#344): Haste's or Slow's. */
+function holds(entrant: Combatant, kind: "haste" | "slowed"): boolean {
+  return heldBy(entrant, kind) !== undefined;
+}
+
+/** The name of `entrant`'s effect holding `kind` of buff (#344). */
+function heldBy(
+  entrant: Combatant,
+  kind: "haste" | "slowed",
+): string | undefined {
+  return (entrant.effects ?? []).find(({ buff }) => buff.kind === kind)?.spell;
+}
 
 /**
  * Both d20s of an attack rolled with advantage or disadvantage, and the
@@ -871,6 +902,7 @@ export type EncounterActionType =
   | "turn-undead"
   | "preserve-life"
   | "spectral-attack"
+  | "drain-attack"
   | "end-turn"
   | ReactionAnswer;
 
@@ -915,6 +947,8 @@ export type EncounterAction =
     }>
   /** Spiritual Weapon's attack (#341) with the bonus action. */
   | Readonly<{ type: "spectral-attack"; actorId: string; targetId: string }>
+  /** Vampiric Touch's attack again (#344) with the action. */
+  | Readonly<{ type: "drain-attack"; actorId: string; targetId: string }>
   | CastAction
   /**
    * Draws, stows or swaps a weapon with the turn's object interaction: the
@@ -1005,6 +1039,8 @@ export type AttackEvent = Readonly<{
   }>;
   /** A spell attack (#336): `weapon` names the spell. */
   spell?: true;
+  /** Haste's attack (#344), with the action it gives. */
+  hasted?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
   greatWeaponFighting?: true;
   /**
@@ -1370,6 +1406,34 @@ export type SpellCurseEvent = Readonly<{
   success: boolean;
 }>;
 
+/**
+ * Slow's saving throw (#344): as it is cast, or `repeat` at the end of the
+ * slowed opponent's turn. A failure as it is cast slows the target, in the
+ * `effect` event after it; a repeat success ends it.
+ */
+export type SpellSlowEvent = Readonly<{
+  type: "spell-slow";
+  actorId: string;
+  targetId: string;
+  spell: string;
+  save: SavingThrow;
+  success: boolean;
+  repeat?: true;
+}>;
+
+/**
+ * Vampiric Touch's hit (#344): its caster regains half the damage dealt,
+ * up to its maximum.
+ */
+export type DrainedEvent = Readonly<{
+  type: "drained";
+  combatantId: string;
+  spell: string;
+  healing: number;
+  hpAfter: number;
+  maxHp: number;
+}>;
+
 /** Preserve Life (#341): the hit points it restores, up to half the maximum. */
 export type PreserveLifeEvent = Readonly<{
   type: "preserve-life";
@@ -1503,6 +1567,8 @@ export type EncounterEvent =
   | TurnUndeadEvent
   | SearUndeadEvent
   | SpellCurseEvent
+  | SpellSlowEvent
+  | DrainedEvent
   | PreserveLifeEvent
   | HitPointsRaisedEvent
   | EffectEvent
@@ -1582,6 +1648,7 @@ export type EncounterRefusalCode =
   | "no-undead"
   | "not-bloodied"
   | "no-spectral-weapon"
+  | "no-drain"
   | "creature-type"
   | "no-condition"
   | "not-in-fight"
@@ -2166,8 +2233,17 @@ export function armorClassOf(entrant: Combatant): number {
         : best,
     entrant.armorClass,
   );
+  // Haste's +2 and Slow's −2 (#344).
   return effects.reduce(
-    (total, { buff }) => total + (buff.kind === "armor-class" ? buff.bonus : 0),
+    (total, { buff }) =>
+      total +
+      (buff.kind === "armor-class"
+        ? buff.bonus
+        : buff.kind === "haste"
+          ? 2
+          : buff.kind === "slowed"
+            ? -2
+            : 0),
     based,
   );
 }
@@ -2282,11 +2358,64 @@ function endEffects(
       reason: "spell-ended",
     });
   }
-  return {
+  const next: EncounterState = {
     ...state,
     combatants,
     conditions: state.conditions.filter((condition) => !isLinked(condition)),
   };
+  // Haste ended before the fight is over (#344): lethargy.
+  return reason === "fight-over" || reason === "rest" || reason === "long-rest"
+    ? next
+    : linked
+        .filter(({ effect }) => effect.buff.kind === "haste")
+        .reduce(
+          (lethargic, { holderId, effect }) =>
+            lethargy(lethargic, holderId, effect.spell, events),
+          next,
+        );
+}
+
+/**
+ * Haste's lethargy (#344) on `holderId`, whose Haste has just ended in a
+ * fight still going: incapacitated until the end of its next turn, so
+ * through the rest of this one too if it is its own.
+ */
+function lethargy(
+  state: EncounterState,
+  holderId: string,
+  spell: string,
+  events: EncounterEvent[],
+): EncounterState {
+  const holder = combatant(state, holderId);
+  // An incapacitation already on it (a spell's, say) stands; lethargy
+  // doesn't shorten or replace it.
+  if (
+    state.outcome !== "ongoing" ||
+    isOut(state, holder) ||
+    state.conditions.some(
+      ({ targetId, kind }) => targetId === holderId && kind === "incapacitated",
+    )
+  ) {
+    return state;
+  }
+  const own = state.order[state.turn]?.combatantId === holderId;
+  const condition: Condition = {
+    kind: "incapacitated",
+    targetId: holderId,
+    sourceId: holderId,
+    source: spell,
+    turnsLeft: own ? 2 : 1,
+  };
+  events.push(conditionEvent(condition));
+  return incapacitate(
+    {
+      ...state,
+      conditions: [...state.conditions, condition],
+      ...(own ? { economy: { ...state.economy, hasteAttack: false } } : {}),
+    },
+    holderId,
+    events,
+  );
 }
 
 /** `holder`'s Mirror Image (#343), while it has duplicates. */
@@ -2638,6 +2767,92 @@ function spectralWeapon(actor: Combatant, effect: ActiveEffect): Weapon {
   };
 }
 
+/** The Vampiric Touch `actor` concentrates on (#344), if any. */
+function drainOf(actor: Combatant): ActiveEffect | undefined {
+  return actor.effects?.find(
+    ({ buff, casterId }) => buff.kind === "drain" && casterId === actor.id,
+  );
+}
+
+function drainRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (drainOf(actor) === undefined) {
+    return refused(
+      "no-drain",
+      "You have no draining touch to make again: cast Vampiric Touch first.",
+    );
+  }
+  return state.economy.actions > 0
+    ? undefined
+    : refused("action-used", "You have already used your action this turn.");
+}
+
+/** The weapon Vampiric Touch's attacks are made with (#344). */
+function drainWeapon(
+  actor: Combatant,
+  spell: string,
+  damage: SpellDamage,
+): Weapon {
+  return {
+    name: spell,
+    bonus: actor.spellcasting?.attackBonus ?? 0,
+    damage: { ...damage, modifier: 0 },
+    criticalRange: 20,
+  };
+}
+
+/**
+ * Vampiric Touch's attack (#344) on `targetId`: a hit heals `actorId` half
+ * the damage dealt, rounded down, up to its maximum.
+ */
+function drainingTouch(
+  state: EncounterState,
+  actorId: string,
+  targetId: string,
+  spell: string,
+  damage: SpellDamage,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const actor = combatant(state, actorId);
+  const resolved = resolveAttack(
+    state,
+    actor,
+    combatant(state, targetId),
+    random,
+    { kind: "spell", weapon: drainWeapon(actor, spell, damage) },
+  );
+  events.push(...resolved.events);
+  const dealt = resolved.events.find(
+    (event): event is AttackEvent =>
+      event.type === "attack" && event.actorId === actorId,
+  )?.damage;
+  const drinker = combatant(resolved.state, actorId);
+  if (dealt === undefined || dealt < 2 || isOut(resolved.state, drinker)) {
+    return resolved.state;
+  }
+  const hpAfter = Math.min(drinker.maxHp, drinker.hp + Math.floor(dealt / 2));
+  if (hpAfter === drinker.hp) {
+    return resolved.state;
+  }
+  events.push({
+    type: "drained",
+    combatantId: actorId,
+    spell,
+    healing: hpAfter - drinker.hp,
+    hpAfter,
+    maxHp: drinker.maxHp,
+  });
+  return {
+    ...resolved.state,
+    combatants: resolved.state.combatants.map((candidate) =>
+      candidate.id === actorId ? { ...candidate, hp: hpAfter } : candidate,
+    ),
+  };
+}
+
 /** What `actorId` may do now; empty unless it is its turn. */
 export function availableActions(
   state: EncounterState,
@@ -2668,7 +2883,9 @@ export function availableActions(
     return ["end-turn"];
   }
   return [
-    ...((state.economy.attacks > 0 || state.economy.actions > 0) &&
+    ...((state.economy.attacks > 0 ||
+      state.economy.actions > 0 ||
+      state.economy.hasteAttack === true) &&
     ammunitionRefusal(actor) === undefined
       ? (["attack"] as const)
       : []),
@@ -2701,6 +2918,9 @@ export function availableActions(
       : []),
     ...(spectralRefusal(state, actor) === undefined
       ? (["spectral-attack"] as const)
+      : []),
+    ...(drainRefusal(state, actor) === undefined
+      ? (["drain-attack"] as const)
       : []),
     "end-turn",
   ];
@@ -3011,7 +3231,10 @@ export function savingThrow(
   random: Roller,
   advantage: readonly string[] = [],
 ): SavingThrow {
-  const bonus = entrant.saves[save.ability];
+  // Slow (#344): −2 on Dexterity saving throws, in the bonus.
+  const bonus =
+    entrant.saves[save.ability] +
+    (save.ability === "dexterity" && holds(entrant, "slowed") ? -2 : 0);
   const fails = conditionWhere(
     state,
     entrant.id,
@@ -3026,9 +3249,16 @@ export function savingThrow(
     save.ability === "wisdom"
       ? (entrant.effects ?? []).find(({ buff }) => buff.kind === "beacon")
       : undefined;
+  // Haste (#344): advantage on Dexterity saves.
+  const haste =
+    save.ability === "dexterity" ? heldBy(entrant, "haste") : undefined;
   const { d20, mode } = rollD20(
     random,
-    beacon === undefined ? advantage : [...advantage, beacon.spell],
+    [
+      ...advantage,
+      ...(beacon === undefined ? [] : [beacon.spell]),
+      ...(haste === undefined ? [] : [haste]),
+    ],
     entrant.abilityDisadvantages?.[save.ability] ?? [],
   );
   // Bless (#337) adds its die to the save.
@@ -3960,12 +4190,17 @@ function advance(
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
       if (!isOut(next, ending)) {
-        // Spirit Guardians (#342) strike as the turn ends, and Acid Arrow's
-        // acid (#343) burns.
-        next = laterDamage(
-          guardiansStrike(
-            endTurn(next, ending, random, events),
-            ending,
+        // Spirit Guardians (#342) strike as the turn ends, Acid Arrow's
+        // acid (#343) burns, and a slowed combatant saves again (#344).
+        next = slowSaves(
+          laterDamage(
+            guardiansStrike(
+              endTurn(next, ending, random, events),
+              ending,
+              random,
+              events,
+            ),
+            ending.id,
             random,
             events,
           ),
@@ -3990,7 +4225,10 @@ function advance(
     const round = next.round;
     next = {
       ...next,
-      economy: FRESH_TURN,
+      // Haste (#344) gives its holder an action for one attack.
+      economy: holds(actor, "haste")
+        ? { ...FRESH_TURN, hasteAttack: true }
+        : FRESH_TURN,
       reacted: next.reacted.filter((id) => id !== actor.id),
       sapped: next.sapped.filter(({ sourceId }) => sourceId !== actor.id),
       vexed: next.vexed.filter(
@@ -4090,8 +4328,17 @@ function opponentTurn(
     next = resolved.state;
     return resolved.events.some(({ type }) => type === "defeated");
   };
+  // Slow (#344): one attack a turn, and no Rampage after it (an action or
+  // a bonus action, not both).
+  const slowed = holds(actor, "slowed");
   const rampageAfter = (dropped: boolean) => {
-    if (dropped && actor.rampage === true && bonusAction && going()) {
+    if (
+      dropped &&
+      actor.rampage === true &&
+      bonusAction &&
+      !slowed &&
+      going()
+    ) {
       bonusAction = false;
       attack(true);
     }
@@ -4106,7 +4353,8 @@ function opponentTurn(
     }
     made += 1;
   }
-  for (; made < (actor.multiattack?.attacks ?? 1) && going(); made++) {
+  const attacks = slowed ? 1 : (actor.multiattack?.attacks ?? 1);
+  for (; made < attacks && going(); made++) {
     rampageAfter(attack(false));
   }
   return next;
@@ -5142,6 +5390,47 @@ function castSpell(
         random,
         events,
       });
+    case "drain": {
+      // Vampiric Touch (#344): its caster concentrates on it, and touches
+      // at once.
+      const free = endConcentration(
+        spent,
+        actor.id,
+        "new-concentration",
+        events,
+      );
+      const added: ActiveEffect = {
+        spellId: spell.id,
+        spell: spell.name,
+        casterId: actor.id,
+        buff: { kind: "drain", damage: effect.damage },
+        ends: effectEnds(effect.duration),
+        concentration: true,
+      };
+      events.push({ type: "effect", targetId: actor.id, ...added });
+      const touching: EncounterState = {
+        ...free,
+        combatants: free.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? withEffects(candidate, [...(candidate.effects ?? []), added])
+            : candidate,
+        ),
+      };
+      return drainingTouch(
+        touching,
+        actor.id,
+        target.id,
+        spell.name,
+        effect.damage,
+        random,
+        events,
+      );
+    }
+    case "slow":
+      return slowSpell(spent, caster, spell, effect, action.targetIds, {
+        random,
+        events,
+      });
     case "guardians": {
       // Spirit Guardians (#342): their caster concentrates on them, and
       // they hit the opponents caught now, then at the end of each of those
@@ -5236,10 +5525,16 @@ function castSpell(
             : candidate,
         ),
       };
+      // Haste (#344) gives its action on the turn it is cast too.
+      const hastened: EncounterState =
+        effect.buff.kind === "haste" &&
+        currentCombatant(buffed)?.id === target.id
+          ? { ...buffed, economy: { ...buffed.economy, hasteAttack: true } }
+          : buffed;
       // Protection from Poison (#341) ends being poisoned.
       return effect.buff.kind === "poison-ward"
-        ? cure(buffed, target.id, "poisoned", events)
-        : buffed;
+        ? cure(hastened, target.id, "poisoned", events)
+        : hastened;
     }
   }
 }
@@ -5365,6 +5660,113 @@ function controlSpell(
   // An incapacitated combatant loses its concentration (#337) and the
   // turning it gave (#341).
   return incapacitate(given, target.id, events);
+}
+
+/**
+ * Slow (#344) on the opponents `targetIds`: casting it ends the caster's
+ * other concentration; each, in the order chosen, saves on Wisdom, and on
+ * a failure is slowed while the caster concentrates, until the fight ends.
+ */
+function slowSpell(
+  state: EncounterState,
+  caster: Combatant,
+  spell: SpellDefinition,
+  effect: Extract<SpellEffect, { kind: "slow" }>,
+  targetIds: readonly string[],
+  { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
+): EncounterState {
+  let next = endConcentration(state, caster.id, "new-concentration", events);
+  for (const targetId of targetIds) {
+    const target = combatant(next, targetId);
+    const save = savingThrow(
+      next,
+      target,
+      { ability: effect.ability, dc: caster.spellcasting!.saveDc },
+      random,
+    );
+    events.push({
+      type: "spell-slow",
+      actorId: caster.id,
+      targetId,
+      spell: spell.name,
+      save,
+      success: save.success,
+    });
+    next = { ...next, engaged: engage(next, caster, target) };
+    if (save.success) {
+      continue;
+    }
+    const slowed: ActiveEffect = {
+      spellId: spell.id,
+      spell: spell.name,
+      casterId: caster.id,
+      buff: { kind: "slowed" },
+      ends: effectEnds(effect.duration),
+      concentration: true,
+    };
+    events.push({ type: "effect", targetId, ...slowed });
+    next = {
+      ...next,
+      combatants: next.combatants.map((candidate) =>
+        candidate.id === targetId
+          ? withEffects(candidate, [...(candidate.effects ?? []), slowed])
+          : candidate,
+      ),
+    };
+  }
+  return next;
+}
+
+/**
+ * The end of a slowed `entrantId`'s turn (#344): it saves again against
+ * each Slow on it, ending that Slow on a success.
+ */
+function slowSaves(
+  state: EncounterState,
+  entrantId: string,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  for (const effect of combatant(state, entrantId).effects ?? []) {
+    if (
+      effect.buff.kind !== "slowed" ||
+      next.outcome !== "ongoing" ||
+      isOut(next, combatant(next, entrantId))
+    ) {
+      continue;
+    }
+    const caster = combatant(next, effect.casterId);
+    const save = savingThrow(
+      next,
+      combatant(next, entrantId),
+      { ability: "wisdom", dc: caster.spellcasting!.saveDc },
+      random,
+    );
+    events.push({
+      type: "spell-slow",
+      actorId: caster.id,
+      targetId: entrantId,
+      spell: effect.spell,
+      save,
+      success: save.success,
+      repeat: true,
+    });
+    if (save.success) {
+      next = endEffects(
+        next,
+        // By spell and caster: the turn's end may have rebuilt the effect.
+        (ending, holder) =>
+          holder.id === entrantId &&
+          ending.buff.kind === "slowed" &&
+          ending.spellId === effect.spellId &&
+          ending.casterId === effect.casterId,
+        "saved",
+        events,
+      );
+    }
+  }
+  return next;
 }
 
 /**
@@ -6031,7 +6433,9 @@ export function act(
         return { state, rejection: target };
       }
       const attacking = state.economy.attacks > 0;
-      if (!attacking && state.economy.actions === 0) {
+      // Haste's action (#344): one attack, taken before the turn's action.
+      const hasted = !attacking && state.economy.hasteAttack === true;
+      if (!attacking && !hasted && state.economy.actions === 0) {
         return reject(
           "action-used",
           (actor.attacksPerAction ?? 1) === 1
@@ -6068,21 +6472,32 @@ export function act(
         { kind: "attack" },
         action.cunningStrike,
       );
-      events.push(...resolved.events);
+      events.push(
+        ...(hasted
+          ? resolved.events.map((event) =>
+              event.type === "attack" && event.actorId === actor.id
+                ? { ...event, hasted: true as const }
+                : event,
+            )
+          : resolved.events),
+      );
       next = {
         ...resolved.state,
         economy: {
           ...resolved.state.economy,
           // The first attack spends the action; Extra Attack's follow it,
           // unless a Loading weapon fired, which ends the action's attacks.
+          // Haste's (#344) spends only itself.
           ...(attacking
             ? { attacks: actor.attack.loading ? 0 : state.economy.attacks - 1 }
-            : {
-                actions: state.economy.actions - 1,
-                attacks: actor.attack.loading
-                  ? 0
-                  : (actor.attacksPerAction ?? 1) - 1,
-              }),
+            : hasted
+              ? { hasteAttack: false }
+              : {
+                  actions: state.economy.actions - 1,
+                  attacks: actor.attack.loading
+                    ? 0
+                    : (actor.attacksPerAction ?? 1) - 1,
+                }),
           // Holding two light weapons, every attack is with a light one.
           lightAttack:
             actor.lightAttack !== undefined &&
@@ -6410,6 +6825,36 @@ export function act(
         ...resolved.state,
         economy: { ...resolved.state.economy, bonusAction: false },
       };
+      break;
+    }
+    case "drain-attack": {
+      const target = targetOf(action.targetId);
+      if ("code" in target) {
+        return { state, rejection: target };
+      }
+      const refusal = drainRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      const effect = drainOf(actor)!;
+      const stirred = stirTurned(
+        {
+          ...state,
+          economy: { ...state.economy, actions: state.economy.actions - 1 },
+        },
+        [target.id],
+        events,
+      );
+      // The attack concludes the fight if it wins it.
+      next = drainingTouch(
+        stirred,
+        actor.id,
+        target.id,
+        effect.spell,
+        (effect.buff as Extract<Buff, { kind: "drain" }>).damage,
+        random,
+        events,
+      );
       break;
     }
     case "interact": {

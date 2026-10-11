@@ -96,9 +96,8 @@ async function withLibrary(sheet, run, record = {}) {
   }
 }
 
-test("a Wizard now reaches level 3", () => {
-  assert.equal(WIZARD.maxLevel, 3);
-  assert.equal(earn(vela(), 2700).level, 3);
+test("a Wizard reaches level 3 at 900 XP", () => {
+  assert.equal(earn(vela(), 900).level, 3);
 });
 
 test("a level-2 Wizard's numbers: Scholar and three 1st-level slots", () => {
@@ -225,8 +224,8 @@ test("a level-3 Wizard's numbers: the Evoker and 2nd-level slots", () => {
   assert.equal(sheet.spellbook.length, 10);
   assert.deepEqual(sheet.spellbook.slice(8), ["scorching-ray", "shatter"]);
   assert.equal(sheet.spells.prepared.length, 6);
-  // The Wizard's top level for now.
-  assert.equal(profile.nextLevelXp, undefined);
+  // Level 4 (#344) is next.
+  assert.equal(profile.nextLevelXp, 2700);
   // Potent Cantrip reaches the fight.
   const pc = playerCombatant(sheet, startingResources(sheet));
   assert.equal(pc.spellcasting.potentCantrip, true);
