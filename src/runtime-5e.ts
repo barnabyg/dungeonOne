@@ -1107,14 +1107,14 @@ export type FifthEvent =
       opponents?: readonly string[];
     }>
   /**
-   * Arcane Recovery (#340) on a short rest: the spell slots it regained by
-   * level, each with its uses after, and its own uses left.
-   */
-  /**
    * Memorize Spell (#344): on a short rest, `learned` prepared in place of
    * `forgot` until the adventure ends.
    */
   | Readonly<{ type: "memorized"; forgot: SpellId; learned: SpellId }>
+  /**
+   * Arcane Recovery (#340) on a short rest: the spell slots it regained by
+   * level, each with its uses after, and its own uses left.
+   */
   | Readonly<{
       type: "arcane-recovery";
       slots: readonly Readonly<{

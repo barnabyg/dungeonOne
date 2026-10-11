@@ -505,3 +505,27 @@ test("Slow ends on every target when Quill's concentration does", () => {
   assert.equal(effectOn(hasted.state, "b1", "slow"), undefined);
   assert.equal(effectOn(hasted.state, "b2", "slow"), undefined);
 });
+
+test("Haste ended by another incapacitation keeps that one: lethargy doesn't replace it", () => {
+  // A bandit whose hit incapacitates for 3 of the target's turns.
+  const stunning = bandit({
+    attack: {
+      ...bandit().attack,
+      rider: { condition: { kind: "incapacitated", turns: 3 } },
+    },
+  });
+  const state = opening([stunning], [10]);
+  const hasted = accepted(state, cast("haste", "pc", 3)).state;
+  // The hit (6): Quill keeps her concentration (15), then the stun ends
+  // Haste all the same.
+  const stunned = accepted(hasted, endTurn, dice([20, 15], [6, 5], [20, 15]));
+  const [ended] = ofType(stunned.events, "effect-ended");
+  assert.deepEqual([ended.spell, ended.reason], ["Haste", "incapacitated"]);
+  const held = stunned.state.conditions.filter(
+    ({ targetId }) => targetId === "pc",
+  );
+  assert.deepEqual(
+    held.map(({ kind, source, turnsLeft }) => [kind, source, turnsLeft]),
+    [["incapacitated", "Scimitar", 3]],
+  );
+});

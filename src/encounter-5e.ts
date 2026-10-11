@@ -868,7 +868,7 @@ const FRESH_TURN: TurnEconomy = {
 
 /** Whether `entrant` holds `kind` of buff (#344): Haste's or Slow's. */
 function holds(entrant: Combatant, kind: "haste" | "slowed"): boolean {
-  return (entrant.effects ?? []).some(({ buff }) => buff.kind === kind);
+  return heldBy(entrant, kind) !== undefined;
 }
 
 /** The name of `entrant`'s effect holding `kind` of buff (#344). */
@@ -2387,7 +2387,15 @@ function lethargy(
   events: EncounterEvent[],
 ): EncounterState {
   const holder = combatant(state, holderId);
-  if (state.outcome !== "ongoing" || isOut(state, holder)) {
+  // An incapacitation already on it (a spell's, say) stands; lethargy
+  // doesn't shorten or replace it.
+  if (
+    state.outcome !== "ongoing" ||
+    isOut(state, holder) ||
+    state.conditions.some(
+      ({ targetId, kind }) => targetId === holderId && kind === "incapacitated",
+    )
+  ) {
     return state;
   }
   const own = state.order[state.turn]?.combatantId === holderId;
@@ -2402,13 +2410,7 @@ function lethargy(
   return incapacitate(
     {
       ...state,
-      conditions: [
-        ...state.conditions.filter(
-          ({ targetId, kind }) =>
-            targetId !== holderId || kind !== "incapacitated",
-        ),
-        condition,
-      ],
+      conditions: [...state.conditions, condition],
       ...(own ? { economy: { ...state.economy, hasteAttack: false } } : {}),
     },
     holderId,
@@ -2824,7 +2826,8 @@ function drainingTouch(
   );
   events.push(...resolved.events);
   const dealt = resolved.events.find(
-    (event): event is AttackEvent => event.type === "attack",
+    (event): event is AttackEvent =>
+      event.type === "attack" && event.actorId === actorId,
   )?.damage;
   const drinker = combatant(resolved.state, actorId);
   if (dealt === undefined || dealt < 2 || isOut(resolved.state, drinker)) {
@@ -4325,8 +4328,8 @@ function opponentTurn(
     next = resolved.state;
     return resolved.events.some(({ type }) => type === "defeated");
   };
-  // Slow (#344): one attack a turn, and an action or a bonus action, not
-  // both.
+  // Slow (#344): one attack a turn, and no Rampage after it (an action or
+  // a bonus action, not both).
   const slowed = holds(actor, "slowed");
   const rampageAfter = (dropped: boolean) => {
     if (
@@ -5737,7 +5740,7 @@ function slowSaves(
     const save = savingThrow(
       next,
       combatant(next, entrantId),
-      { ability: "wisdom", dc: caster.spellcasting?.saveDc ?? 0 },
+      { ability: "wisdom", dc: caster.spellcasting!.saveDc },
       random,
     );
     events.push({
@@ -5752,7 +5755,12 @@ function slowSaves(
     if (save.success) {
       next = endEffects(
         next,
-        (ending, holder) => holder.id === entrantId && ending === effect,
+        // By spell and caster: the turn's end may have rebuilt the effect.
+        (ending, holder) =>
+          holder.id === entrantId &&
+          ending.buff.kind === "slowed" &&
+          ending.spellId === effect.spellId &&
+          ending.casterId === effect.casterId,
         "saved",
         events,
       );
