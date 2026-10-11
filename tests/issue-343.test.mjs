@@ -168,19 +168,16 @@ test("Scholar: Expertise in one proficient skill of the six, chosen on the sheet
 
 test("each level after 1st writes two spells into the spellbook, of a level with slots", () => {
   const sheet = level2();
-  // Only 1st-level slots: the 1st-level spells not yet in the book.
-  assert.deepEqual(spellbookOptions(sheet), [
-    "thunderwave",
-    "ray-of-sickness",
-    "ice-knife",
-  ]);
+  // Only 1st-level slots: the 1st-level spells not yet in the book (since
+  // #348 the default book holds Thunderwave, not Sleep).
+  assert.deepEqual(spellbookOptions(sheet), ["ray-of-sickness", "ice-knife"]);
   assert.throws(
-    () => addToSpellbook(sheet, ["thunderwave"]),
+    () => addToSpellbook(sheet, ["ray-of-sickness"]),
     /Choose 2 spells for your spellbook; 1 chosen\./u,
   );
   assert.throws(
-    () => addToSpellbook(sheet, ["thunderwave", "scorching-ray"]),
-    /Vela writes into the spellbook only Wizard spells it lacks of a level it has slots for: Thunderwave, Ray of Sickness, Ice Knife\./u,
+    () => addToSpellbook(sheet, ["ray-of-sickness", "scorching-ray"]),
+    /Vela writes into the spellbook only Wizard spells it lacks of a level it has slots for: Ray of Sickness, Ice Knife\./u,
   );
   const written = addToSpellbook(sheet, ["ray-of-sickness", "ice-knife"]);
   assert.equal(written.spellbook.length, 8);
@@ -191,10 +188,7 @@ test("each level after 1st writes two spells into the spellbook, of a level with
   );
   // The harness's choice: the highest level first, in the list's order.
   const chosen = withOwedChoices(sheet);
-  assert.deepEqual(chosen.spellbook.slice(6), [
-    "thunderwave",
-    "ray-of-sickness",
-  ]);
+  assert.deepEqual(chosen.spellbook.slice(6), ["ray-of-sickness", "ice-knife"]);
   assert.deepEqual(chosen.expertise, ["arcana"]);
   assert.equal(chosen.spells.prepared.length, 5);
 });
@@ -245,16 +239,14 @@ test("the level-up card says what the new level brings and asks for", () => {
   assert.deepEqual(changes.spells.slots, { before: [3], after: [4, 2] });
   assert.deepEqual(changes.spells.prepared, { before: 5, after: 6 });
   assert.equal(changes.spells.spellbookOwed, 2);
-  // Every 2nd-level spell, and the 1st-level one not yet written.
+  // Every 2nd-level spell: every 1st-level one is written.
   assert.deepEqual(changes.spells.spellbookOptions, [
     "scorching-ray",
     "shatter",
-    "hold-person",
     "acid-arrow",
     "mind-spike",
     "blur",
     "mirror-image",
-    "ice-knife",
   ]);
   assert.deepEqual(
     changes.features.map(({ name }) => name),
@@ -280,12 +272,12 @@ test("the library won't start an adventure until the new level's choices are mad
     );
     data = await library.addToSpellbook(
       sheet.id,
-      ["thunderwave", "ice-knife"],
+      ["ray-of-sickness", "ice-knife"],
       data.revision,
     );
     data = await library.prepareSpells(
       sheet.id,
-      [...sheet.spells.prepared, "thunderwave"],
+      [...sheet.spells.prepared, "ray-of-sickness"],
       data.revision,
     );
     await assert.rejects(
@@ -312,13 +304,13 @@ test("a Wizard two levels up writes each level's spells of a level that level ha
         "scorching-ray",
         "shatter",
         "blur",
-        "thunderwave",
+        "ray-of-sickness",
       ]),
     /Vela's level 2 spells are of a level its slots at level 2 allow: at most 2 of these may be 2nd-level\./u,
   );
   const written = addToSpellbook(sheet, [
     "scorching-ray",
-    "thunderwave",
+    "ray-of-sickness",
     "blur",
     "ice-knife",
   ]);

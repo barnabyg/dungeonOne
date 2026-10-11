@@ -72,7 +72,8 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "magic-missile",
     "shield",
     "mage-armor",
-    "sleep",
+    // Sleep left the list in #348 ("too easy by control"; #369 brings it
+    // back).
     "burning-hands",
     "chromatic-orb",
     "thunderwave",
@@ -83,7 +84,7 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     // 2nd level (#343, owner-approved).
     "scorching-ray",
     "shatter",
-    "hold-person",
+    // Hold Person left the list in #348, as Sleep did.
     "acid-arrow",
     "mind-spike",
     "blur",
@@ -130,9 +131,9 @@ export const EVOKER: SubclassDefinition = {
  * The choices other than placement that a fresh creation starts with: +2
  * Intelligence and +1 Constitution; Arcana and Investigation; Fire Bolt,
  * Ray of Frost and Shocking Grasp; six of the 1st-level spells in the
- * spellbook, with Mage Armor, Magic Missile, Shield and Sleep prepared; the
- * quarterstaff kit; no weapon mastery. The creation page and the balance
- * harness both start from these.
+ * spellbook, with Mage Armor, Magic Missile, Shield and Burning Hands
+ * prepared (Sleep until #348); the quarterstaff kit; no weapon mastery.
+ * The creation page and the balance harness both start from these.
  */
 export const WIZARD_DEFAULT_CHOICES = {
   increase: { intelligence: 2, constitution: 1 },
@@ -141,13 +142,13 @@ export const WIZARD_DEFAULT_CHOICES = {
     "magic-missile",
     "shield",
     "mage-armor",
-    "sleep",
     "burning-hands",
     "chromatic-orb",
+    "thunderwave",
   ],
   spells: {
     cantrips: ["fire-bolt", "ray-of-frost", "shocking-grasp"],
-    prepared: ["mage-armor", "magic-missile", "shield", "sleep"],
+    prepared: ["mage-armor", "magic-missile", "shield", "burning-hands"],
   },
   kit: "quarterstaff-and-dagger",
   masteries: [],

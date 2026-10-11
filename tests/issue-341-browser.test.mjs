@@ -236,14 +236,13 @@ test(
       ]);
       assert.deepEqual(await listed(page, "#level-up-spells"), [
         "Spiritual Weapon",
-        "Hold Person",
         "Protection from Poison",
         "Prayer of Healing",
       ]);
       await page.locator("#level-up-spells summary").nth(1).click();
       assert.match(
         await text(page.locator("#level-up-spells")),
-        /humanoid only: Wisdom save or paralysed/u,
+        /ends being poisoned/u,
       );
       assert.equal(
         await page.locator("#level-up-prepare").innerText(),
@@ -257,7 +256,11 @@ test(
         /Aid\. \+5 maximum and current hit points/u,
       );
       assert.equal(await page.locator("#prepared-bless").count(), 0);
-      for (const id of ["shield-of-faith", "spiritual-weapon", "hold-person"]) {
+      for (const id of [
+        "shield-of-faith",
+        "spiritual-weapon",
+        "protection-from-poison",
+      ]) {
         await page.locator(`#prepared-${id}`).check();
       }
       await page.locator("#save-prepared").click();
@@ -270,7 +273,7 @@ test(
         "inflict-wounds",
         "shield-of-faith",
         "spiritual-weapon",
-        "hold-person",
+        "protection-from-poison",
       ]);
     } finally {
       await browser.close();

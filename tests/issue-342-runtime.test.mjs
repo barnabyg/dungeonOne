@@ -74,7 +74,7 @@ const MIRA = (() => {
     "healing-word",
     "shield-of-faith",
     "spiritual-weapon",
-    "hold-person",
+    "prayer-of-healing",
     "spirit-guardians",
     "beacon-of-hope",
     "bestow-curse",

@@ -136,7 +136,8 @@
  *   an opponent, halved by a Constitution save. Turn Undead makes each
  *   undead opponent still in the fight (without positions, every one is
  *   within 30 feet) save on Wisdom or be Frightened and Incapacitated for
- *   the fight's minute; damage, an attack on it (D13) or the turner being
+ *   the fight's minute; a Wisdom save it repeats at the end of each of its
+ *   turns (#348), damage, an attack on it (D13) or the turner being
  *   incapacitated ends it. Preserve Life heals the Bloodied caster, never
  *   above half its hit points. When every opponent left is turned, the
  *   character may attack them or leave (`everyFoeTurned`).
@@ -3574,8 +3575,8 @@ function endTurn(
     }
     // A spell's condition lasts until the spell ends on it, whose minute is
     // the fight (D9): Sleep's Unconscious (#340), Hold Person's paralysis
-    // after a failed save and Turn Undead's conditions (#341) never run
-    // out by turns.
+    // after a failed save and Turn Undead's conditions (#341; a repeat save
+    // ends them, #348) never run out by turns.
     if (condition.spellId !== undefined) {
       conditions.push(condition);
       continue;
@@ -6297,8 +6298,9 @@ function laterDamage(
 /**
  * Turn Undead (#341): each undead opponent still in the fight and not yet
  * turned saves on Wisdom against the Channel Divinity DC, or is Frightened
- * and Incapacitated, held by a turning that lasts the fight unless damage,
- * an attack on it or the turner's incapacitation ends it.
+ * and Incapacitated, held by a turning that lasts the fight unless a
+ * Wisdom save it repeats at the end of each of its turns (#348), damage, an
+ * attack on it or the turner's incapacitation ends it.
  */
 function turnUndead(
   state: EncounterState,
@@ -6383,13 +6385,18 @@ function turnUndead(
       ends: "fight",
     };
     events.push({ type: "effect", targetId: target.id, ...held });
-    const given = kinds.map((kind): Condition => ({
+    // It repeats the save at the end of each of its turns (#348), once:
+    // the first condition carries it, and a success ends both.
+    const given = kinds.map((kind, index): Condition => ({
       kind,
       targetId: target.id,
       sourceId: actor.id,
       source: TURN_UNDEAD,
       turnsLeft: 1,
       spellId: TURN_UNDEAD_ID,
+      ...(index === 0
+        ? { save: { ability: "wisdom" as const, dc: channel.saveDc } }
+        : {}),
     }));
     for (const condition of given) {
       events.push(conditionEvent(condition));

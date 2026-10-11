@@ -5,10 +5,10 @@
   "title": "The Wolfstone Hillfort",
   "objective": "Get past the Reaver's dire wolf into the old hillfort, take what you can from it, and leave by the drovers' camp.",
   "recommendedLevels": {
-    "min": 3,
+    "min": 4,
     "max": 4
   },
-  "difficulty": "hard",
+  "difficulty": "medium",
   "startRoomId": "drovers-camp",
   "rooms": [
     {

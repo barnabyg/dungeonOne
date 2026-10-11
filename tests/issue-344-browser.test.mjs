@@ -87,7 +87,7 @@ test(
         "Mage Armor (1st)",
         "Magic Missile (1st)",
         "Shield (1st)",
-        "Sleep (1st)",
+        "Ice Knife (1st)",
         "Burning Hands (1st)",
         "Chromatic Orb (1st)",
         "Thunderwave (1st)",
@@ -98,30 +98,30 @@ test(
         "Ray of Sickness (1st)",
         "Scorching Ray (2nd)",
         "Shatter (2nd)",
-        "Hold Person (2nd)",
         "Acid Arrow (2nd)",
+        "Mind Spike (2nd)",
       ]);
       await assertNoSideScroll(page, "the rest panel fits a phone", {
         wideFont: true,
       });
-      await forget.selectOption("sleep");
+      await forget.selectOption("ice-knife");
       await learn.selectOption("shatter");
       await settled(page, () =>
         page.locator("#rest-controls button.act[data-action=rest]").click(),
       );
       assert.match(
         await text(page.locator("#log li.newest")),
-        /Memorize Spell: you study your spellbook and prepare Shatter in place of Sleep until the adventure ends\./u,
+        /Memorize Spell: you study your spellbook and prepare Shatter in place of Ice Knife until the adventure ends\./u,
       );
       // Saved with the session, not the library.
       const saved = await sessionFile(directory);
       assert.ok(saved.state.character.prepared.includes("shatter"));
-      assert.ok(!saved.state.character.prepared.includes("sleep"));
+      assert.ok(!saved.state.character.prepared.includes("ice-knife"));
       assert.deepEqual(
         (await readAda(libraryPath)).sheet.spells.prepared,
         sheet.spells.prepared,
       );
-      // In the cellar's fight Shatter can be cast and Sleep can't.
+      // In the cellar's fight Shatter can be cast and Ice Knife can't.
       await clickAction(page, "move", "rat-cellar");
       const spells = page.locator("#cast-spell option");
       await page.locator("#cast-spell").waitFor();
@@ -130,7 +130,7 @@ test(
         offered.some((label) => label.startsWith("Shatter")),
         offered.join(", "),
       );
-      assert.ok(!offered.some((label) => label.startsWith("Sleep")));
+      assert.ok(!offered.some((label) => label.startsWith("Ice Knife")));
     } finally {
       await browser.close();
       await server.close();

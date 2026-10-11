@@ -70,9 +70,10 @@ const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 const SURVIVAL_SLACK = 0.03;
 /**
  * The reference CPU seconds the gate may take over every shipped module:
- * 110 from #343, 100 from #342 (owner's choices under D12), 90 before.
+ * 150 from #348, judging four classes; 110 from #343, 100 from #342
+ * (owner's choices under D12), 90 before.
  */
-const GATE_BUDGET_SECONDS = 110;
+const GATE_BUDGET_SECONDS = 150;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
@@ -108,8 +109,8 @@ const gateOf = (adventure) => {
   return gates.get(adventure.id);
 };
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321)", () => {
-  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue"]);
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348)", () => {
+  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
   // The other gate tests below read the results this fills.
@@ -146,7 +147,7 @@ test("the recorded gate verdicts the browser offers modules by are the gate's (#
   );
 });
 
-test("a new character's career through the shipped modules reaches the required level in every class (#290, #310)", () => {
+test("a new character's career through the shipped modules reaches the required level in every class (#290, #310, #348)", () => {
   for (const classId of GATE_CLASSES) {
     const report = simulateCareer(shipped, { classId });
     assert.equal(report.classId, classId);
@@ -160,7 +161,7 @@ test("a new character's career through the shipped modules reaches the required 
   }
 });
 
-test("every shipped module declares the strictest difficulty every class passes with 3 points of slack (#252, #310)", () => {
+test("every shipped module declares the strictest difficulty every class passes with 3 points of slack (#252, #310, #348)", () => {
   // Survival must clear the threshold by at least 3 points for every class,
   // and no stricter difficulty may also pass with that slack: the label is
   // what the weakest class measures.
@@ -169,13 +170,17 @@ test("every shipped module declares the strictest difficulty every class passes 
       assert.equal(result.ok, true, `${adventure.id} ${classId}`);
       return result.verdict;
     });
+    // A caster's survival below level 3 is reported, not judged (#348), so
+    // it sets no label.
     const passes = (difficulty) =>
       verdicts.every((measures) => {
         const verdict = gateVerdictAt(measures, difficulty);
         return (
           verdict.qualified &&
-          verdict.survival.rate - DIFFICULTY_THRESHOLDS[difficulty].survival >=
-            SURVIVAL_SLACK
+          (verdict.survival.reported === true ||
+            verdict.survival.rate -
+              DIFFICULTY_THRESHOLDS[difficulty].survival >=
+              SURVIVAL_SLACK)
         );
       });
     assert.equal(
@@ -237,13 +242,20 @@ const QUOTED_FIGURES = {
       xp: 200 + 50 + 200 + 400,
     },
   },
-  // 6.5 points over Hard's 75%, and 6.5 under the 88% that would make it
-  // Medium (82.0% until the Champion's initiative advantage, #315).
+  // The Fighter is 6 points over Hard's 75%, and 7 under the 88% that would
+  // make it Medium (82.0% until the Champion's initiative advantage, #315;
+  // 81.5% until the third potion, #348). The Cleric, 1.5 points over Hard's
+  // 78% with its slack (76.5% with two potions), spends its slots early.
   "ravagers-tower": {
     fighter: {
-      survival: [3, "mace", 0.815],
+      survival: [3, "mace", 0.81],
       overCap: [],
       enemies: [["tower-gnoll", 0]],
+      xp: 600,
+    },
+    cleric: {
+      survival: [3, "mace-and-daggers", 0.795],
+      overCap: [],
       xp: 600,
     },
   },
@@ -283,14 +295,28 @@ const QUOTED_FIGURES = {
       xp: 200 + 25 + 200 + 700 + 700 + 2350,
     },
   },
-  // 6 points over Hard's 75%, and 7 under the 88% that would make it
-  // Medium (80.5% until short rests, #334; 83.0% and 84.0% until the
-  // Champion's initiative advantage, #315, moved the dice). Every fight's
-  // XP and the plunder's 500.
+  // Level 4 and Medium since #348: at level 3 the weakest Cleric survived
+  // the dire wolf 74.0%, under Hard. At level 4 the Wizard, 93.5%, sets it:
+  // 5.5 points over Medium's 88% with its slack, 4.5 under Easy's. (At
+  // level 3 the Fighter survived 81.0%: 80.5% until short rests, #334; 83.0%
+  // and 84.0% until the Champion's initiative advantage, #315.) Every
+  // fight's XP and the plunder's 500.
   "wolfstone-hillfort": {
     fighter: {
-      survival: [3, "two-daggers", 0.81],
-      alwaysFail: [3, 0.81],
+      survival: [4, "mace", 0.97],
+      alwaysFail: [4, 0.97],
+      overCap: [],
+      xp: 200 + 200 + 450 + 500,
+    },
+    cleric: {
+      survival: [4, "mace-and-daggers", 0.95],
+      alwaysFail: [4, 0.95],
+      overCap: [],
+      xp: 200 + 200 + 450 + 500,
+    },
+    wizard: {
+      survival: [4, "quarterstaff-and-dagger", 0.935],
+      alwaysFail: [4, 0.935],
       overCap: [],
       xp: 200 + 200 + 450 + 500,
     },
@@ -348,7 +374,7 @@ test("the gate gives each released module the figures its proposal quotes (#241,
 /** `text` as a regular expression that matches it literally. */
 const literal = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 
-test("the gate names both classes and reports the stealth-first style for every shipped module (#302, #310)", () => {
+test("the gate names every class and reports the stealth-first style for every shipped module (#302, #310, #348)", () => {
   for (const adventure of gated) {
     const gate = gateOf(adventure);
     assert.deepEqual(
@@ -509,7 +535,8 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["goblin-warren", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],
       ["mallow-counting-house", "3–4", "medium"],
-      ["wolfstone-hillfort", "3–4", "hard"],
+      // Level 4 and Medium since #348 (levels 3–4 and Hard before).
+      ["wolfstone-hillfort", "4–4", "medium"],
       ["thornwood-lodge", "4–5", "hard"],
     ],
   );

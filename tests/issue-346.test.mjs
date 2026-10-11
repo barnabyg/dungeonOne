@@ -632,7 +632,7 @@ test("a Wizard copies a scroll's spell into its spellbook between adventures for
   const sheet = holding(
     vela,
     [
-      { id: "a/thunder", scroll: "thunderwave" },
+      { id: "a/sickness", scroll: "ray-of-sickness" },
       { id: "a/missile", scroll: "magic-missile" },
       { id: "a/cure", scroll: "cure-wounds" },
       { id: "a/ray", scroll: "scorching-ray" },
@@ -640,7 +640,7 @@ test("a Wizard copies a scroll's spell into its spellbook between adventures for
     7000,
   );
   assert.deepEqual(copyableScrolls(sheet), [
-    { id: "a/thunder", name: "Spell Scroll (Thunderwave)", cost: 5000 },
+    { id: "a/sickness", name: "Spell Scroll (Ray of Sickness)", cost: 5000 },
     {
       id: "a/missile",
       name: "Spell Scroll (Magic Missile)",
@@ -661,29 +661,29 @@ test("a Wizard copies a scroll's spell into its spellbook between adventures for
         "Scorching Ray is 2nd-level, and Vela has no slots of that level yet.",
     },
   ]);
-  const copied = copyScroll(sheet, "a/thunder");
-  assert.deepEqual(copied.copiedSpells, ["thunderwave"]);
+  const copied = copyScroll(sheet, "a/sickness");
+  assert.deepEqual(copied.copiedSpells, ["ray-of-sickness"]);
   assert.equal(copied.purse, 2000);
   assert.deepEqual(
     copied.magicItems.map(({ id }) => id),
     ["a/missile", "a/cure", "a/ray"],
   );
   // Prepared like any other spell in the book; not offered to write again.
-  assert.ok(preparableSpells(copied).includes("thunderwave"));
-  assert.ok(!spellbookOptions(copied).includes("thunderwave"));
+  assert.ok(preparableSpells(copied).includes("ray-of-sickness"));
+  assert.ok(!spellbookOptions(copied).includes("ray-of-sickness"));
   const prepared = prepareSpells(copied, [
-    "thunderwave",
+    "ray-of-sickness",
     "magic-missile",
     "shield",
-    "sleep",
+    "burning-hands",
   ]);
-  assert.ok(prepared.spells.prepared.includes("thunderwave"));
+  assert.ok(prepared.spells.prepared.includes("ray-of-sickness"));
   // A sheet round-trips its copied spells.
   assert.deepEqual(validateCharacter(structuredClone(prepared)), prepared);
 
   assert.throws(
-    () => copyScroll(holding(vela, sheet.magicItems, 4999), "a/thunder"),
-    /Copying Thunderwave costs 50 gp, and Vela has 49 gp 9 sp 9 cp\./u,
+    () => copyScroll(holding(vela, sheet.magicItems, 4999), "a/sickness"),
+    /Copying Ray of Sickness costs 50 gp, and Vela has 49 gp 9 sp 9 cp\./u,
   );
   assert.throws(() => copyScroll(sheet, "a/cure"), /isn't a Wizard spell/u);
   assert.throws(() => copyScroll(sheet, "a/none"), /no such spell scroll/u);

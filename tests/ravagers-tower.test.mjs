@@ -1,5 +1,5 @@
 // #275: The Ravager's Tower, the level-3 Hard module, as the owner approved
-// it: a dead pedlar's two potions at the foot of a ruined watchtower, and a
+// it: a dead pedlar's potions (three since #348) at the foot of a ruined watchtower, and a
 // Gnoll Ravager at the top with the plunder of the road. Journeys reach its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
 // difficulty, with the gate figures its proposal quotes.
@@ -65,24 +65,29 @@ test("only potions lie at the tower foot: the loot is all behind the gnoll", () 
   assert.deepEqual(itemsIn("tower-foot"), [
     ["pedlar-potion", "potion-of-healing", "dead-pedlar"],
     ["pedlar-second-potion", "potion-of-healing", "dead-pedlar"],
+    // A third (#348, owner-approved) lifts the weakest level-3 Cleric
+    // from 76.5% to 79.5%.
+    ["pedlar-third-potion", "potion-of-healing", "dead-pedlar"],
   ]);
   assert.deepEqual(requiredPath(tower).roomIds, ["tower-foot", "gnoll-roost"]);
   assert.deepEqual(itemsIn("gnoll-roost"), [
     ["pedlar-cashbox", "coin", "plunder-heap"],
     ["gilt-icon", "treasure", "plunder-heap"],
-    ["pearl-earrings", "treasure", "plunder-heap"],
+    ["tiger-eye-earrings", "treasure", "plunder-heap"],
     ["tower-gnoll-coins", "coin", "tower-gnoll"],
   ]);
 });
 
-test("its treasure is 98% of the level-3 budget, the gnoll's coins rolled from its treasure type", () => {
+test("its treasure is nearly all the level-3 budget, the gnoll's coins rolled from its treasure type", () => {
   // Rolled with `npm run loot -- adventures/5e/ravagers-tower.json --seed 275`.
   const coins = room("gnoll-roost").items.find(
     ({ id }) => id === "tower-gnoll-coins",
   );
   assert.deepEqual(coins.coins, { sp: 11 });
-  // In copper: 441 gp 1 sp of 450 gp.
-  assert.equal(findableValue(tower), 44110);
+  // In copper: 449 gp 1 sp of 450 gp. The third potion's 50 gp came from
+  // the earrings (a 50 gp gem until #348, now 10 gp) and the cashbox's 40 gp,
+  // now 38.
+  assert.equal(findableValue(tower), 44910);
   assert.equal(treasureBudget(3), 45000);
 });
 
@@ -90,6 +95,7 @@ const POTIONS = [
   ["examine", "dead-pedlar"],
   ["take", "pedlar-potion"],
   ["take", "pedlar-second-potion"],
+  ["take", "pedlar-third-potion"],
 ];
 
 const FULL_CLEAR = [
@@ -98,7 +104,7 @@ const FULL_CLEAR = [
   ["examine", "plunder-heap"],
   ["take", "pedlar-cashbox"],
   ["take", "gilt-icon"],
-  ["take", "pearl-earrings"],
+  ["take", "tiger-eye-earrings"],
   ["examine", "tower-gnoll"],
   ["take", "tower-gnoll-coins"],
   ["move", "tower-foot"],
@@ -115,18 +121,18 @@ test("a level-3 Fighter kills the gnoll and climbs down with the plunder", () =>
     ({ status }) => status === "escaped",
   );
   assert.equal(state.endingId, "out-with-the-plunder");
-  for (const id of ["gilt-icon", "pearl-earrings"]) {
+  for (const id of ["gilt-icon", "tiger-eye-earrings"]) {
     assert.ok(state.inventory.includes(id), id);
   }
-  // 40 gp and 11 sp, in copper: the test fighter brings an empty purse.
-  assert.equal(state.possessions.purse, 4000 + 110);
+  // 38 gp and 11 sp, in copper: the test fighter brings an empty purse.
+  assert.equal(state.possessions.purse, 3800 + 110);
   assert.deepEqual(xpOf(runtime, state), [
     ["Defeated Gnoll Ravager", 200],
     ["Out with the plunder", 400],
   ]);
 });
 
-test("the gnoll can still win against both potions", () => {
+test("the gnoll can still win against all three potions", () => {
   const { state } = firstJourney(
     tower,
     level3,

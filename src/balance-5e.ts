@@ -30,6 +30,7 @@ import {
   classMaxLevel,
   classOf,
   DEFAULT_CLASS,
+  OFFERED_CLASS_IDS,
   buildCharacter,
   creationAbilities,
   defaultPlacement,
@@ -68,7 +69,11 @@ import {
   type WeaponId,
 } from "./equipment-5e.js";
 import {
+  effectAtSlot,
   isSpellId,
+  maxTargets,
+  ordinal,
+  spellAtLevel,
   SPELLS,
   type SpellDefinition,
   type SpellId,
@@ -76,14 +81,18 @@ import {
 import {
   armorClassOf,
   combatant,
+  concentrationOf,
   countedDamageDie,
   grazeDamage,
   damageTaken,
+  legalTargets,
   type ConditionKind,
+  type DamageType,
 } from "./encounter-5e.js";
 import {
   CHECK_POLICIES,
   createFifthRuntime,
+  creatureTypeOf,
   PLAYER_ID,
   playerCombatant,
   type ActionKind,
@@ -293,6 +302,14 @@ export function percentileCharacters({
 }
 
 /**
+ * P(Undead Fortitude fails) after `damage` takes the enemy to 0: its
+ * Constitution save, at `bonus`, against DC 5 + the damage taken.
+ */
+function fortitudeFails(damage: number, bonus: number): number {
+  return Math.min(20, Math.max(0, 5 + damage - bonus - 1)) / 20;
+}
+
+/**
  * The chance that one attack by `sheet`'s character takes `enemy` from full
  * hit points to 0: a natural 1 misses, a roll in the critical range hits and
  * doubles the damage dice, and any other roll hits when it meets the enemy's
@@ -359,7 +376,7 @@ export function oneHitKillChance(
     }
     return fortitude === undefined || critical
       ? 1
-      : Math.min(20, Math.max(0, 5 + damage - fortitude - 1)) / 20;
+      : fortitudeFails(damage, fortitude);
   };
   /**
    * P(a kill) with `dice` dice of the weapon and `sneak` Sneak Attack dice
@@ -463,6 +480,302 @@ export function oneHitKillChance(
     (1 - aided) * plain +
     aided * chanceWith(hindered ? "straight" : "advantage", sneak)
   );
+}
+
+/** An enemy as the spell measures (#348) read it. */
+export type MeasuredEnemy = Pick<
+  StatBlock,
+  "armorClass" | "abilities" | "challengeRating" | "type"
+> &
+  Readonly<{ hitPoints: Pick<StatBlock["hitPoints"], "average"> }> &
+  Partial<
+    Pick<
+      StatBlock,
+      | "damageResistances"
+      | "damageVulnerabilities"
+      | "damageImmunities"
+      | "traits"
+      | "saveProficiencies"
+      | "conditionImmunities"
+    >
+  >;
+
+/** A distribution of damage: each total with its chance. */
+type Damage = ReadonlyMap<number, number>;
+
+/** Two independent damages added together. */
+function addDamage(a: Damage, b: Damage): Damage {
+  const sum = new Map<number, number>();
+  for (const [x, p] of a) {
+    for (const [y, q] of b) {
+      sum.set(x + y, (sum.get(x + y) ?? 0) + p * q);
+    }
+  }
+  return sum;
+}
+
+/** `dice` dice of `sides` sides plus `modifier`, through `taken`. */
+function rolledDamage(
+  dice: number,
+  sides: number,
+  modifier: number,
+  taken: (rolled: number) => number,
+  half = false,
+): Damage {
+  let totals: Damage = new Map([[modifier, 1]]);
+  const die = new Map(
+    Array.from({ length: sides }, (_, face) => [face + 1, 1 / sides]),
+  );
+  for (let index = 0; index < dice; index++) {
+    totals = addDamage(totals, die);
+  }
+  const out = new Map<number, number>();
+  for (const [total, p] of totals) {
+    const dealt = taken(half ? Math.floor(total / 2) : Math.max(0, total));
+    out.set(dealt, (out.get(dealt) ?? 0) + p);
+  }
+  return out;
+}
+
+/** `a` with chance `p`, else `b`. */
+function mixDamage(p: number, a: Damage, b: Damage): Damage {
+  const out = new Map<number, number>();
+  for (const [x, q] of a) {
+    out.set(x, (out.get(x) ?? 0) + p * q);
+  }
+  for (const [x, q] of b) {
+    out.set(x, (out.get(x) ?? 0) + (1 - p) * q);
+  }
+  return out;
+}
+
+const NO_DAMAGE: Damage = new Map([[0, 1]]);
+
+/** P(a d20 + `bonus` meets `dc`): a saving throw's success, no natural rules. */
+function succeeds(bonus: number, dc: number): number {
+  return Math.min(20, Math.max(0, 21 - (dc - bonus))) / 20;
+}
+
+/**
+ * The chance that one cast of `spell` by `sheet`'s character, with a slot of
+ * `slotLevel` for a levelled spell, takes `enemy` from full hit points to 0
+ * (#348), as the engine casts it: a spell attack (each of Scorching Ray's
+ * rays at it, a critical hit on a 20 doubling the dice, Acid Arrow's and
+ * Potent Cantrip's half on a miss, Ice Knife's burst), a saving throw
+ * (half or none on a success, half for a cantrip with Potent Cantrip),
+ * Magic Missile's darts, or the first strike of guardians, a spectral
+ * weapon or a draining touch. Damage at the end of a later turn is not
+ * counted, nor the round-2 disadvantage. The enemy's defenses change the
+ * damage, and Undead Fortitude saves as for a weapon (`oneHitKillChance`),
+ * ignoring a critical hit among several rays. Any other spell: 0.
+ */
+export function spellKillChance(
+  sheet: CharacterSheet,
+  spell: SpellDefinition,
+  slotLevel: number | undefined,
+  enemy: MeasuredEnemy,
+): number {
+  const { spellcasting } = playerCombatant(sheet);
+  if (spellcasting === undefined) {
+    return 0;
+  }
+  const cast = spell.level === 0 ? spellAtLevel(spell, sheet.level) : spell;
+  const effect = effectAtSlot(cast, slotLevel);
+  const potent = cast.level === 0 && spellcasting.potentCantrip === true;
+  const hp = enemy.hitPoints.average;
+  const defenses = statBlockDefenses(enemy);
+  const saves = statBlockSaves(enemy);
+  const taken = (type: DamageType) => (rolled: number) =>
+    damageTaken(defenses, type, rolled).damage;
+  /** P(`damage` keeps it at 0): Undead Fortitude, unless radiant or critical. */
+  const kills = (damage: Damage, type: DamageType, critical: boolean) => {
+    const fortitude =
+      enemy.traits?.includes("Undead Fortitude") === true &&
+      type !== "radiant" &&
+      !critical
+        ? saves.constitution
+        : undefined;
+    let chance = 0;
+    for (const [dealt, p] of damage) {
+      if (dealt >= hp) {
+        chance +=
+          p * (fortitude === undefined ? 1 : fortitudeFails(dealt, fortitude));
+      }
+    }
+    return chance;
+  };
+  /**
+   * An attack roll's damage: each d20, a 20 critical, a hit when it meets
+   * AC, else a miss dealing half or nothing; split as hit/critical/miss.
+   */
+  const attackRoll = (
+    damage: Readonly<{ dice: number; sides: number; type: DamageType }>,
+    modifier: number,
+    missHalf: boolean,
+  ) => {
+    const type = damage.type;
+    const hit = rolledDamage(damage.dice, damage.sides, modifier, taken(type));
+    const critical = rolledDamage(
+      damage.dice * 2,
+      damage.sides,
+      modifier,
+      taken(type),
+    );
+    const miss = missHalf
+      ? rolledDamage(damage.dice, damage.sides, modifier, taken(type), true)
+      : NO_DAMAGE;
+    const pCritical = 1 / 20;
+    const pHit =
+      Math.min(
+        18,
+        Math.max(
+          0,
+          20 - Math.max(2, enemy.armorClass - spellcasting.attackBonus),
+        ),
+      ) / 20;
+    return { type, hit, critical, miss, pCritical, pHit };
+  };
+  switch (effect.kind) {
+    case "attack": {
+      const roll = attackRoll(
+        effect.damage,
+        0,
+        effect.missHalf === true || potent,
+      );
+      const burst =
+        effect.burst === undefined
+          ? NO_DAMAGE
+          : mixDamage(
+              1 - succeeds(saves[effect.burst.ability], spellcasting.saveDc),
+              rolledDamage(
+                effect.burst.damage.dice,
+                effect.burst.damage.sides,
+                0,
+                taken(effect.burst.damage.type),
+              ),
+              NO_DAMAGE,
+            );
+      const rays = effect.rays ?? 1;
+      if (rays === 1) {
+        const pMiss = 1 - roll.pCritical - roll.pHit;
+        return (
+          roll.pCritical *
+            kills(addDamage(roll.critical, burst), roll.type, true) +
+          roll.pHit * kills(addDamage(roll.hit, burst), roll.type, false) +
+          pMiss * kills(addDamage(roll.miss, burst), roll.type, false)
+        );
+      }
+      const one = mixDamage(
+        roll.pCritical,
+        roll.critical,
+        mixDamage(roll.pHit / (1 - roll.pCritical), roll.hit, roll.miss),
+      );
+      let total: Damage = burst;
+      for (let ray = 0; ray < rays; ray++) {
+        total = addDamage(total, one);
+      }
+      return kills(total, roll.type, false);
+    }
+    case "spectral-weapon":
+    case "drain": {
+      const roll = attackRoll(
+        effect.damage,
+        effect.kind === "spectral-weapon" ? spellcasting.modifier : 0,
+        false,
+      );
+      return (
+        roll.pCritical * kills(roll.critical, roll.type, true) +
+        roll.pHit * kills(roll.hit, roll.type, false)
+      );
+    }
+    case "save":
+    case "guardians": {
+      const { damage } = effect;
+      const success = succeeds(saves[effect.ability], spellcasting.saveDc);
+      const half = effect.onSuccess === "half" || potent;
+      return kills(
+        mixDamage(
+          1 - success,
+          rolledDamage(damage.dice, damage.sides, 0, taken(damage.type)),
+          half
+            ? rolledDamage(
+                damage.dice,
+                damage.sides,
+                0,
+                taken(damage.type),
+                true,
+              )
+            : NO_DAMAGE,
+        ),
+        damage.type,
+        false,
+      );
+    }
+    case "auto-hit": {
+      const { damage, missiles } = effect;
+      return kills(
+        rolledDamage(
+          missiles * damage.dice,
+          damage.sides,
+          missiles * damage.modifier,
+          taken(damage.type),
+        ),
+        damage.type,
+        false,
+      );
+    }
+    default:
+      return 0;
+  }
+}
+
+/**
+ * The control a character may use at a fight's opening (#348, D5): a
+ * control spell (Sleep, Hold Person), or the Cleric's Turn Undead.
+ */
+export type ControlId = SpellId | "turn-undead";
+
+/**
+ * How many of its turns a control must keep an enemy from acting to take it
+ * out of the fight (#348, owner's choice): about a fight's length.
+ */
+export const CONTROL_TURNS = 3;
+
+/**
+ * The chance that `control`, used once by `sheet`'s character at a
+ * fight's opening, takes `enemy` out of the fight (#348, D5): that it
+ * can't act on its next `CONTROL_TURNS` turns. It fails its first saving
+ * throw and then each save it repeats at the end of its turns until then:
+ * Hold Person's and Turn Undead's every turn, Sleep's once (its second
+ * failure leaves it Unconscious for the spell). 0 when it is immune, or not
+ * the creature type the control works on (Hold Person's humanoid, Turn
+ * Undead's undead).
+ */
+export function controlChance(
+  sheet: CharacterSheet,
+  control: ControlId,
+  enemy: MeasuredEnemy,
+): number {
+  const self = playerCombatant(sheet);
+  const saves = statBlockSaves(enemy);
+  const type = creatureTypeOf(enemy.type);
+  if (control === "turn-undead") {
+    const channel = self.channelDivinity;
+    return channel === undefined || type !== "undead"
+      ? 0
+      : (1 - succeeds(saves.wisdom, channel.saveDc)) ** CONTROL_TURNS;
+  }
+  const { effect } = SPELLS[control] as SpellDefinition;
+  if (
+    self.spellcasting === undefined ||
+    effect.kind !== "control" ||
+    (effect.creatureType !== undefined && effect.creatureType !== type) ||
+    enemy.conditionImmunities?.includes(effect.immunity) === true
+  ) {
+    return 0;
+  }
+  const fails = 1 - succeeds(saves[effect.ability], self.spellcasting.saveDc);
+  return fails ** (effect.then === undefined ? CONTROL_TURNS : 2);
 }
 
 /**
@@ -834,6 +1147,19 @@ export const REACTION_POLICIES = ["attack", "peaceful"] as const;
 export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
 
 /**
+ * How a caster spends its spell slots in a fight (#348). Both heal with
+ * slots below the heal threshold first, keep a Spiritual Weapon or Vampiric
+ * Touch going once cast, and otherwise attack with a cantrip (or a weapon):
+ * - `conserve`, the default and the gate's: casts a levelled damage or
+ *   control spell only below the heal threshold, with no heal left to take.
+ * - `spend-early`: casts the best levelled damage or control spell it can,
+ *   at its highest slot, on every turn it has one (`castValue`).
+ * A class without spells plays the same either way.
+ */
+export const CASTING_POLICIES = ["conserve", "spend-early"] as const;
+export type CastingPolicy = (typeof CASTING_POLICIES)[number];
+
+/**
  * Every kind of action the harness knows: true for those a style may play,
  * false for those every style passes over, which the harness doesn't ask the
  * runtime to project (#321: dry-running gear changes and trade at every step
@@ -861,10 +1187,10 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   "divine-spark": true,
   "turn-undead": true,
   "preserve-life": true,
-  // Spiritual Weapon waits for the caster policies (#348).
-  "spectral-attack": false,
-  // Vampiric Touch's repeat (#344) waits for the caster policies (#348).
-  "drain-attack": false,
+  // Spiritual Weapon's and Vampiric Touch's (#344) attacks on later turns,
+  // by both caster policies (#348).
+  "spectral-attack": true,
+  "drain-attack": true,
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,
@@ -891,9 +1217,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // before a short rest.
   "long-rest": true,
   // A caster heals with its healing spells before potions (#339); a
-  // Wizard (#340) casts Mage Armor before its first fight, attacks with a
-  // cantrip and answers a hit with Shield. The other spells wait for the
-  // caster policies (#348).
+  // Wizard (#340) casts Mage Armor before its first fight and answers a hit
+  // with Shield; a caster attacks with a cantrip, and casts levelled damage
+  // and control spells by its casting policy (#348).
   cast: true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
@@ -916,10 +1242,25 @@ const CHOSEN_ACTIONS: ReadonlySet<ActionKind> = new Set(
 );
 
 /**
+ * The effects of the levelled spells the casting policies (#348) cast in a
+ * fight: damage, and control (Sleep, Hold Person). Buffs other than Mage
+ * Armor and Shield, curses, Slow and restoration are never cast.
+ */
+const POLICY_EFFECTS: ReadonlySet<SpellDefinition["effect"]["kind"]> = new Set([
+  "attack",
+  "save",
+  "auto-hit",
+  "guardians",
+  "spectral-weapon",
+  "drain",
+  "control",
+]);
+
+/**
  * The kinds of spell a style may cast, each chosen by the policy that names
  * it below: a healing spell (#339), Shield answering a hit and Mage Armor
- * before the first fight, and an attack cantrip (#340). The other spells
- * wait for the caster policies (#348).
+ * before the first fight, a damaging cantrip (#340; Sacred Flame's save,
+ * #348), and a levelled damage or control spell (#348).
  */
 const CAST_SPELLS = {
   healing: (spell: SpellDefinition) => spell.effect.kind === "healing",
@@ -931,7 +1272,10 @@ const CAST_SPELLS = {
     spell.effect.kind === "buff" &&
     spell.effect.buff.kind === "base-armor-class",
   cantrip: (spell: SpellDefinition) =>
-    spell.level === 0 && spell.effect.kind === "attack",
+    spell.level === 0 &&
+    (spell.effect.kind === "attack" || spell.effect.kind === "save"),
+  levelled: (spell: SpellDefinition) =>
+    spell.level > 0 && POLICY_EFFECTS.has(spell.effect.kind),
 } as const;
 
 /**
@@ -963,10 +1307,21 @@ const UNHURT_ACTIONS: ReadonlySet<ActionKind> = new Set(
   [...CHOSEN_ACTIONS].filter((kind) => !HEALING_ACTIONS.includes(kind)),
 );
 
-/** The spells the harness projects above its heal threshold. */
-const UNHURT_SPELLS: ReadonlySet<SpellId> = new Set(
-  [...CHOSEN_SPELLS].filter((id) => !CAST_SPELLS.healing(SPELLS[id])),
-);
+/**
+ * The spells the harness projects above its heal threshold, by casting
+ * policy: conserving, no levelled damage or control spell (#348).
+ */
+const UNHURT_SPELLS: Readonly<Record<CastingPolicy, ReadonlySet<SpellId>>> = {
+  conserve: new Set(
+    [...CHOSEN_SPELLS].filter(
+      (id) =>
+        !CAST_SPELLS.healing(SPELLS[id]) && !CAST_SPELLS.levelled(SPELLS[id]),
+    ),
+  ),
+  "spend-early": new Set(
+    [...CHOSEN_SPELLS].filter((id) => !CAST_SPELLS.healing(SPELLS[id])),
+  ),
+};
 
 /**
  * The kinds of action exploring looks at first (#347): answering a
@@ -1007,6 +1362,52 @@ const EXPLORE_ACTIONS_UNHURT: ReadonlySet<ActionKind> = new Set(
 const HEALING_SPELLS: ReadonlySet<SpellId> = new Set(
   [...CHOSEN_SPELLS].filter((id) => CAST_SPELLS.healing(SPELLS[id])),
 );
+
+/** The mean of `dice` dice of `sides` sides. */
+const meanDice = ({ dice, sides }: Readonly<{ dice: number; sides: number }>) =>
+  (dice * (sides + 1)) / 2;
+
+/**
+ * What a levelled damage cast is worth to the casting policies (#348): its
+ * mean damage on each opponent it catches (`hp`, their hit points), no
+ * more than the hit points each has, ignoring the attack roll or save.
+ * Guardians, a spectral weapon and a draining touch count a second round's
+ * damage too. A control spell, or a spell no policy casts, is worth 0:
+ * control is chosen before damage (`castChoice`).
+ */
+export function castValue(
+  spell: SpellDefinition,
+  slotLevel: number | undefined,
+  hp: readonly number[],
+): number {
+  const effect = effectAtSlot(spell, slotLevel);
+  const each = (mean: number) =>
+    hp.reduce((sum, left) => sum + Math.min(mean, left), 0);
+  switch (effect.kind) {
+    case "attack": {
+      // Scorching Ray's rays (#343) split among the targets.
+      const rays = effect.rays ?? 1;
+      const perTarget =
+        (meanDice(effect.damage) * rays) / hp.length +
+        (effect.burst === undefined ? 0 : meanDice(effect.burst.damage)) +
+        (effect.later === undefined ? 0 : meanDice(effect.later));
+      return each(perTarget);
+    }
+    case "save":
+      return each(meanDice(effect.damage));
+    case "auto-hit":
+      // Magic Missile's darts all go to one target (#336).
+      return each(
+        effect.missiles * (meanDice(effect.damage) + effect.damage.modifier),
+      );
+    case "guardians":
+    case "spectral-weapon":
+    case "drain":
+      return each(2 * meanDice(effect.damage));
+    default:
+      return 0;
+  }
+}
 
 /** One fight in a run. */
 export type FightRecord = Readonly<{
@@ -1130,7 +1531,13 @@ export function playAdventure(
   {
     stepLimit = 2000,
     reactions = "attack",
-  }: Readonly<{ stepLimit?: number; reactions?: ReactionPolicy }> = {},
+    casting = "conserve",
+  }: Readonly<{
+    stepLimit?: number;
+    reactions?: ReactionPolicy;
+    /** How a caster spends its slots (#348): `conserve` by default. */
+    casting?: CastingPolicy;
+  }> = {},
 ): RunRecord {
   const { adventure } = runtime;
   for (const { opponents } of adventure.encounters) {
@@ -1431,9 +1838,11 @@ export function playAdventure(
     if (turn !== undefined) {
       return turn;
     }
+    // Kept out of the fight by the character's control (#348): turned, or
+    // asleep (damage wakes it); a held foe is still attacked.
     const turned = (id: string) =>
       (combatant(encounter, id).effects ?? []).some(
-        ({ buff }) => buff.kind === "control" && buff.by === "turning",
+        ({ buff }) => buff.kind === "control" && buff.by !== "hold",
       );
     const untouched = (list: readonly ActionView[]) => {
       const active = list.filter(({ target }) => !turned(target!.id));
@@ -1539,7 +1948,106 @@ export function playAdventure(
             undefined,
           )
         : undefined;
+    /**
+     * The casting policies' levelled spell (#348) of `casts`: with two or
+     * more foes left untouched, a control spell on the one with the most
+     * hit points; else the damage cast worth most (`castValue`), the higher
+     * slot on a tie. While concentrating, no concentration spell.
+     */
+    const castChoice = (
+      casts: readonly ActionView[],
+    ): ActionView | undefined => {
+      const concentrating =
+        concentrationOf(encounter.combatants, PLAYER_ID) !== undefined;
+      const usable = casts.filter(({ spell }) => {
+        const { effect } = SPELLS[spell!.id as SpellId];
+        return !(
+          concentrating &&
+          "concentration" in effect &&
+          effect.concentration === true
+        );
+      });
+      const standing = legalTargets(encounter, PLAYER_ID).filter(
+        ({ id }) => !turned(id),
+      );
+      if (standing.length >= 2) {
+        const control = usable
+          .filter(({ spell, target }) => {
+            const { effect } = SPELLS[spell!.id as SpellId];
+            // Never at a foe immune to it (Sleep at an undead).
+            return (
+              effect.kind === "control" &&
+              target !== undefined &&
+              !turned(target.id) &&
+              combatant(encounter, target.id).conditionImmunities?.includes(
+                effect.immunity,
+              ) !== true
+            );
+          })
+          .reduce<ActionView | undefined>(
+            (best, view) =>
+              best === undefined ||
+              hpOf(view.target!.id) > hpOf(best.target!.id)
+                ? view
+                : best,
+            undefined,
+          );
+        if (control !== undefined) {
+          return control;
+        }
+      }
+      let best: Readonly<{ view: ActionView; value: number }> | undefined;
+      for (const view of usable) {
+        const spell = SPELLS[view.spell!.id as SpellId];
+        const { slotLevel } = view.spell!;
+        const caught =
+          view.targets === undefined
+            ? [view.target!.id]
+            : view.targets
+                .slice(0, maxTargets(spell, slotLevel))
+                .map(({ id }) => id);
+        const value = castValue(spell, slotLevel, caught.map(hpOf));
+        if (
+          value > 0 &&
+          (best === undefined ||
+            value > best.value ||
+            (value === best.value &&
+              (slotLevel ?? 0) > (best.view.spell!.slotLevel ?? 0)))
+        ) {
+          best = { view, value };
+        }
+      }
+      return best?.view;
+    };
+    // A spiritual weapon's bonus-action attack and a draining touch's
+    // action (#348), kept going on the weakest foe left untouched.
+    const weakest = (list: readonly ActionView[]) =>
+      untouched(list).reduce<ActionView | undefined>(
+        (best, view) =>
+          best === undefined || hpOf(view.target!.id) < hpOf(best.target!.id)
+            ? view
+            : best,
+        undefined,
+      );
+    const spectral = weakest(offered(views, "spectral-attack"));
+    const drain = weakest(offered(views, "drain-attack"));
+    // A levelled damage or control spell (#348): always when spending
+    // early; conserving, only low with no heal left.
+    const levelled =
+      casting === "spend-early" || (heal === undefined && low(hpOf(PLAYER_ID)))
+        ? castChoice(
+            offered(views, "cast").filter(
+              ({ spell, target }) =>
+                isSpellId(spell?.id) &&
+                CAST_SPELLS.levelled(SPELLS[spell.id]) &&
+                (target === undefined || !turned(target.id)),
+            ),
+          )
+        : undefined;
     return (
+      spectral ??
+      levelled ??
+      drain ??
       aim ??
       spark ??
       cantrip ??
@@ -1848,7 +2356,7 @@ export function playAdventure(
       ? fightChoice(
           project(
             hurt ? CHOSEN_ACTIONS : UNHURT_ACTIONS,
-            hurt ? CHOSEN_SPELLS : UNHURT_SPELLS,
+            hurt ? CHOSEN_SPELLS : UNHURT_SPELLS[casting],
           ),
         )
       : exploreChoice(project);
@@ -2188,6 +2696,22 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
   hard: { survival: 0.75, oneHitKillCap: 0.3 },
 };
 
+/**
+ * The lowest level at which a caster's survival is judged (#348, owner's
+ * choice): early magic is weak and unreliable, so a Cleric or Wizard may
+ * struggle at levels 1 and 2. Below it its survival is reported; its career
+ * must still reach the top level, and the too-easy checks judge it at every
+ * level.
+ */
+export const CASTER_JUDGED_LEVEL = 3;
+
+/**
+ * The seeds a caster plays both casting policies on (#348, owner's choice
+ * for D12): each kit and level then plays the rest by the one that
+ * survived more of them, and the spend-early report covers these alone.
+ */
+export const POLICY_SEED_COUNT = 50;
+
 /** The weakest and strongest sampled characters, as percentiles. */
 export const WEAKEST_PERCENTILE = 5;
 export const STRONGEST_PERCENTILE = 95;
@@ -2224,7 +2748,23 @@ export type SurvivalCheck = Readonly<{
   runs: number;
   rate: number;
   kit: KitId;
-  kits: readonly Readonly<{ kit: KitId; level: number; rate: number }>[];
+  /**
+   * Each kit at each level. Judging a caster (#348), the casting policy
+   * that survived more, and `reported` for a level below
+   * `CASTER_JUDGED_LEVEL`: shown, never judged.
+   */
+  kits: readonly Readonly<{
+    kit: KitId;
+    level: number;
+    rate: number;
+    casting?: CastingPolicy;
+    reported?: true;
+  }>[];
+  /**
+   * Every kit and level is reported (#348): a caster's module below
+   * `CASTER_JUDGED_LEVEL`. The check passes, showing the weakest.
+   */
+  reported?: true;
   required: number;
 }>;
 
@@ -2259,6 +2799,20 @@ export type ReactionPolicyReport = Omit<SurvivalCheck, "ok" | "required"> &
     meanXp: number;
   }>;
 
+/**
+ * The weakest character's cautious runs spending its slots early (#348),
+ * with each kit at each recommended level, on seeded checks: reported
+ * beside the judged conserving runs, never judged. `rate`, `kit` and
+ * `level` are the kit and level it survives least with; the spells cast
+ * and XP are over every run.
+ */
+export type SpendEarlyReport = Omit<SurvivalCheck, "ok" | "required"> &
+  Readonly<{
+    casting: CastingPolicy;
+    meanSpellsCast: number;
+    meanXp: number;
+  }>;
+
 /** How often one attack kills each ordinary enemy, against the cap. */
 export type OneHitKillCheck = Readonly<{
   ok: boolean;
@@ -2281,9 +2835,24 @@ export type OneHitKillCheck = Readonly<{
     gear?: WeaponId;
     /** For a class with a Fighting Style. */
     fightingStyle?: FightingStyle;
+    /**
+     * The cantrip that kills it most often (#348), when it beats every
+     * weapon: a caster's best repeatable attack.
+     */
+    spell?: SpellId;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
+  /**
+   * Reported, not judged (#348, D5): for a caster, each ordinary enemy's
+   * chance of being killed by one levelled damage spell from full HP, the
+   * spell on its class list at its highest slot that kills it most often,
+   * and the enemies over the cap with them.
+   */
+  spells?: Readonly<{
+    enemies: readonly SpellKill[];
+    overCap: readonly SpellKill[];
+  }>;
   /**
    * Reported, not judged (#310): for a class with a bonus action that gives
    * its first attack advantage (the Rogue's Hide or Steady Aim), the same
@@ -2294,6 +2863,39 @@ export type OneHitKillCheck = Readonly<{
     enemies: OneHitKillCheck["enemies"];
     overCap: OneHitKillCheck["enemies"];
   }>;
+}>;
+
+/** One ordinary enemy and the levelled spell that kills it most often. */
+export type SpellKill = Readonly<{
+  encounterId: string;
+  opponentId: string;
+  name: string;
+  chance: number;
+  spell: SpellId;
+  slotLevel: number;
+}>;
+
+/**
+ * Too easy by control (#348, D5): for the strongest character at the
+ * maximum recommended level, each ordinary enemy's chance of being taken
+ * out of the fight by one control used at the opening (`controlChance`),
+ * the control on its class list (or Turn Undead) that does so most often.
+ * As for one attack, no more than half the ordinary enemies may be over the
+ * cap.
+ */
+export type ControlCheck = Readonly<{
+  ok: boolean;
+  level: number;
+  percentile: number;
+  cap: number;
+  enemies: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+    name: string;
+    chance: number;
+    control: ControlId;
+  }>[];
+  overCap: ControlCheck["enemies"];
 }>;
 
 /**
@@ -2338,9 +2940,17 @@ export type GateVerdict = Readonly<{
   /** The same check with every check in its worst band (#285). */
   alwaysFail: SurvivalCheck;
   oneHitKill: OneHitKillCheck;
+  /** For a class with control at the module's maximum level (#348). */
+  control?: ControlCheck;
   xp: XpCheck;
   /** Reported, not judged (#335). */
   rests: RestReport;
+  /**
+   * Reported, not judged (#348): a caster's cautious runs spending its
+   * slots early, on seeded checks; absent for a class without spells, or
+   * when not asked for.
+   */
+  spendEarly?: SpendEarlyReport;
   /** Reported, not judged (#302); absent when not asked for. */
   stealthFirst?: StealthFirstReport;
   /**
@@ -2359,12 +2969,18 @@ export type GateMeasures = Readonly<{
   classId: ClassId;
   survival: Omit<SurvivalCheck, "ok" | "required">;
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
-  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap" | "bonusAction"> &
+  oneHitKill: Omit<
+    OneHitKillCheck,
+    "ok" | "cap" | "overCap" | "bonusAction" | "spells"
+  > &
     Readonly<{
       bonusAction?: Readonly<{ enemies: OneHitKillCheck["enemies"] }>;
+      spells?: Readonly<{ enemies: readonly SpellKill[] }>;
     }>;
+  control?: Omit<ControlCheck, "ok" | "cap" | "overCap">;
   xp: XpCheck;
   rests: RestReport;
+  spendEarly?: SpendEarlyReport;
   stealthFirst?: StealthFirstReport;
   reactions?: readonly ReactionPolicyReport[];
 }>;
@@ -2535,7 +3151,10 @@ export function gateAdventure(
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
-  const classKits = CLASSES[classId].kits;
+  const definition = CLASSES[classId];
+  const classKits = definition.kits;
+  // A caster plays both casting policies (#348).
+  const spending = definition.spellcasting !== undefined;
   try {
     const [weakest, strongest] = percentileCharacters({
       percentiles: [WEAKEST_PERCENTILE, STRONGEST_PERCENTILE],
@@ -2552,13 +3171,18 @@ export function gateAdventure(
     const reacting =
       reportReactions &&
       adventure.encounters.some(({ reaction }) => reaction !== undefined);
+    const rateOf = (runs: readonly RunRecord[]) =>
+      runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length;
     /**
      * The weakest character's cautious runs with each kit at each level, on
      * seeded checks and with every check failing. A seeded run that made no
      * check is the always-fail run on its seed too, so only runs that made
      * one are played again. Beside them, its stealth-first runs on seeded
      * checks (#302), and its cautious runs taking the peaceful option of a
-     * reaction roll (#304).
+     * reaction roll (#304). A caster (#348) plays its first
+     * `POLICY_SEED_COUNT` seeded runs with both casting policies, and every
+     * other run with the one that survives more of them (`casting`), as a
+     * player keeps to one way of playing.
      */
     const played = levels.flatMap((level) =>
       classKits.map((kit) => {
@@ -2574,16 +3198,29 @@ export function gateAdventure(
         const failing = createFifthRuntime(adventure, sheet, {
           checks: "always-fail",
         });
-        const runs = seeds.map((seed) => {
-          const run = playAdventure(seeded, GATE_STYLE, seed, limit);
+        const play = (seed: number, casting: CastingPolicy) =>
+          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
+        // A caster tries both policies on the first seeds (#348).
+        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
+        const tried = {
+          conserve: trial.map((seed) => play(seed, "conserve")),
+          "spend-early": trial.map((seed) => play(seed, "spend-early")),
+        };
+        const casting: CastingPolicy =
+          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
+            ? "spend-early"
+            : "conserve";
+        const policy = { ...limit, casting };
+        const runs = seeds.map((seed, index) => {
+          const run = tried[casting][index] ?? play(seed, casting);
           return {
             seeded: run,
             failing:
               run.checks === 0
                 ? run
-                : playAdventure(failing, GATE_STYLE, seed, limit),
+                : playAdventure(failing, GATE_STYLE, seed, policy),
             stealth: reportStealth
-              ? playAdventure(seeded, STEALTH_STYLE, seed, limit)
+              ? playAdventure(seeded, STEALTH_STYLE, seed, policy)
               : undefined,
             // A run its reaction policy never decided is the peaceful
             // run too (#347).
@@ -2592,46 +3229,58 @@ export function gateAdventure(
               : run.reactionChoices === 0
                 ? run
                 : playAdventure(seeded, GATE_STYLE, seed, {
-                    ...limit,
+                    ...policy,
                     reactions: "peaceful",
                   }),
+            spending: tried["spend-early"][index],
           };
         });
-        return { kit, level, runs };
+        return { kit, level, runs, ...(spending ? { casting } : {}) };
       }),
     );
-    /** A branch's runs: none for a stealth or peaceful branch not played. */
+    /** A branch's runs: none for a branch not played. */
+    type Branch = "seeded" | "failing" | "stealth" | "peaceful" | "spending";
     const branchRuns = (
       runs: (typeof played)[number]["runs"],
-      branch: "seeded" | "failing" | "stealth" | "peaceful",
+      branch: Branch,
     ) => runs.flatMap((run) => run[branch] ?? []);
+    /**
+     * The survival of `branch`'s runs with each kit at each level. A
+     * caster's (#348) names the casting policy it played, and a level below
+     * `CASTER_JUDGED_LEVEL` is reported, not judged; `rate`, `kit` and
+     * `level` are the weakest judged, or the weakest of all when none is
+     * (the check is reported). The spend-early report (`judging` false)
+     * marks none.
+     */
     const survivalOf = (
       checks: CheckPolicy,
-      branch: "seeded" | "failing" | "stealth" | "peaceful",
+      branch: Branch,
       style: PlayStyle = GATE_STYLE,
+      judging = true,
     ): GateMeasures["survival"] => {
-      const kits = played.map(({ kit, level, runs }) => {
-        const each = branchRuns(runs, branch);
-        return {
-          kit,
-          level,
-          rate:
-            each.filter(({ outcome }) => outcome !== "defeat").length /
-            each.length,
-        };
-      });
-      const weakestKit = kits.reduce((worst, entry) =>
-        entry.rate < worst.rate ? entry : worst,
+      const kits = played.map(({ kit, level, runs, casting }) => ({
+        kit,
+        level,
+        rate: rateOf(branchRuns(runs, branch)),
+        ...(casting === undefined || !judging ? {} : { casting }),
+        ...(casting !== undefined && judging && level < CASTER_JUDGED_LEVEL
+          ? { reported: true as const }
+          : {}),
+      }));
+      const judgedKits = kits.filter((entry) => !("reported" in entry));
+      const weakestKit = (judgedKits.length > 0 ? judgedKits : kits).reduce(
+        (worst, entry) => (entry.rate < worst.rate ? entry : worst),
       );
       return {
         checks,
         level: weakestKit.level,
         percentile: WEAKEST_PERCENTILE,
         style,
-        runs: seeds.length,
+        runs: branchRuns(played[0]!.runs, branch).length,
         rate: weakestKit.rate,
         kit: weakestKit.kit,
         kits,
+        ...(judgedKits.length === 0 ? { reported: true as const } : {}),
       };
     };
     const survival = survivalOf("seeded", "seeded");
@@ -2651,7 +3300,7 @@ export function gateAdventure(
     const stealthy = played.flatMap(({ runs }) => branchRuns(runs, "stealth"));
     const stealthFirst: StealthFirstReport | undefined = reportStealth
       ? {
-          ...survivalOf("seeded", "stealth", STEALTH_STYLE),
+          ...survivalOf("seeded", "stealth", STEALTH_STYLE, false),
           completionRate:
             stealthy.filter(({ outcome }) => outcome === objective).length /
             stealthy.length,
@@ -2665,7 +3314,7 @@ export function gateAdventure(
     ): ReactionPolicyReport => {
       const runs = played.flatMap(({ runs: each }) => branchRuns(each, branch));
       return {
-        ...survivalOf("seeded", branch),
+        ...survivalOf("seeded", branch, GATE_STYLE, false),
         policy,
         completionRate:
           runs.filter(({ outcome }) => outcome === objective).length /
@@ -2676,6 +3325,15 @@ export function gateAdventure(
     };
     const reactions: readonly ReactionPolicyReport[] | undefined = reacting
       ? [policyReport("attack", "seeded"), policyReport("peaceful", "peaceful")]
+      : undefined;
+    const spent = played.flatMap(({ runs }) => branchRuns(runs, "spending"));
+    const spendEarly: SpendEarlyReport | undefined = spending
+      ? {
+          ...survivalOf("seeded", "spending", GATE_STYLE, false),
+          casting: "spend-early",
+          meanSpellsCast: mean(spent.map(({ spellsCast }) => spellsCast)),
+          meanXp: mean(spent.map(({ xp }) => xp)),
+        }
       : undefined;
 
     // Every weapon the module places or a merchant sells.
@@ -2695,21 +3353,101 @@ export function gateAdventure(
       placed,
       classId,
     );
-    const enemies = adventure.encounters.flatMap(
+    // A caster's spells (#348): every one on its class list it could cast
+    // at the maximum level, at its highest slot.
+    const caster = characterAtLevel(
+      strongest!.dice,
+      max as Level,
+      undefined,
+      false,
+      undefined,
+      classId,
+    );
+    const self = playerCombatant(caster);
+    const highest = self.spellcasting?.slots.length ?? 0;
+    const list = (definition.spellcasting?.list ?? []).filter(
+      (id) => SPELLS[id].level <= highest,
+    );
+    const cantrips = list.filter((id) => CAST_SPELLS.cantrip(SPELLS[id]));
+    const damaging = list.filter(
+      (id) =>
+        CAST_SPELLS.levelled(SPELLS[id]) &&
+        SPELLS[id].effect.kind !== "control",
+    );
+    const controls: readonly ControlId[] = [
+      ...list.filter(
+        (id) => SPELLS[id].level > 0 && SPELLS[id].effect.kind === "control",
+      ),
+      ...(self.channelDivinity === undefined ? [] : ["turn-undead" as const]),
+    ];
+    const ordinary = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
           boss === true
             ? []
-            : [
-                {
-                  encounterId,
-                  opponentId: id,
-                  name,
-                  ...bestOneHitKill(strong, statBlock),
-                },
-              ],
+            : [{ encounterId, opponentId: id, name, statBlock }],
         ),
     );
+    /** The one of `ids` with the best `chance`, if any beats 0. */
+    const bestOf = <T>(
+      ids: readonly T[],
+      chance: (id: T) => number,
+    ): Readonly<{ id: T; chance: number }> | undefined =>
+      ids
+        .map((id) => ({ id, chance: chance(id) }))
+        .reduce<Readonly<{ id: T; chance: number }> | undefined>(
+          (best, entry) => (entry.chance > (best?.chance ?? 0) ? entry : best),
+          undefined,
+        );
+    const enemies = ordinary.map(({ statBlock, ...enemy }) => {
+      const weapon = bestOneHitKill(strong, statBlock);
+      // The best repeatable attack (#348, D5): a cantrip that beats it.
+      const cantrip = bestOf(cantrips, (id) =>
+        spellKillChance(caster, SPELLS[id], undefined, statBlock),
+      );
+      return cantrip !== undefined && cantrip.chance > weapon.chance
+        ? {
+            ...enemy,
+            chance: cantrip.chance,
+            kit: definition.defaults.kit,
+            spell: cantrip.id,
+          }
+        : { ...enemy, ...weapon };
+    });
+    const spellKills: readonly SpellKill[] = ordinary.flatMap(
+      ({ statBlock, ...enemy }) => {
+        const best = bestOf(damaging, (id) =>
+          spellKillChance(caster, SPELLS[id], highest, statBlock),
+        );
+        return best === undefined
+          ? []
+          : [
+              {
+                ...enemy,
+                chance: best.chance,
+                spell: best.id,
+                slotLevel: highest,
+              },
+            ];
+      },
+    );
+    const control: GateMeasures["control"] =
+      controls.length === 0
+        ? undefined
+        : {
+            level: max,
+            percentile: STRONGEST_PERCENTILE,
+            enemies: ordinary.map(({ statBlock, ...enemy }) => {
+              const best = bestOf(controls, (id) =>
+                controlChance(caster, id, statBlock),
+              );
+              return {
+                ...enemy,
+                chance: best?.chance ?? 0,
+                control: best?.id ?? controls[0]!,
+              };
+            }),
+          };
     // With a bonus action before the attack (#310): reported, not judged.
     const prepared = strong.some(({ sheet }) => {
       const { hide, steadyAim } = playerCombatant(sheet);
@@ -2737,6 +3475,7 @@ export function gateAdventure(
       percentile: STRONGEST_PERCENTILE,
       enemies,
       ...(prepared ? { bonusAction: { enemies: withBonusAction } } : {}),
+      ...(damaging.length === 0 ? {} : { spells: { enemies: spellKills } }),
     };
 
     const available =
@@ -2816,10 +3555,12 @@ export function gateAdventure(
           survival,
           alwaysFail,
           oneHitKill,
+          ...(control === undefined ? {} : { control }),
           xp,
           rests,
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
           ...(reactions === undefined ? {} : { reactions }),
+          ...(spendEarly === undefined ? {} : { spendEarly }),
         },
         adventure.difficulty,
       ),
@@ -2849,7 +3590,7 @@ export function gateVerdictAt(
     const { checks, level, percentile, style, runs, rate, kit, kits } =
       measured;
     return {
-      ok: rate >= thresholds.survival,
+      ok: measured.reported === true || rate >= thresholds.survival,
       checks,
       level,
       percentile,
@@ -2858,6 +3599,7 @@ export function gateVerdictAt(
       rate,
       kit,
       kits,
+      ...(measured.reported === true ? { reported: true as const } : {}),
       required: thresholds.survival,
     };
   };
@@ -2868,6 +3610,21 @@ export function gateVerdictAt(
     ({ chance }) => chance > thresholds.oneHitKillCap,
   );
   const prepared = measures.oneHitKill.bonusAction;
+  const overThe = <T extends Readonly<{ chance: number }>>(
+    list: readonly T[],
+  ) => list.filter(({ chance }) => chance > thresholds.oneHitKillCap);
+  const spells = measures.oneHitKill.spells;
+  const control: ControlCheck | undefined =
+    measures.control === undefined
+      ? undefined
+      : {
+          ...measures.control,
+          ok:
+            overThe(measures.control.enemies).length * 2 <=
+            measures.control.enemies.length,
+          cap: thresholds.oneHitKillCap,
+          overCap: overThe(measures.control.enemies),
+        };
   const oneHitKill: OneHitKillCheck = {
     ok: overCap.length * 2 <= enemies.length,
     level: measures.oneHitKill.level,
@@ -2885,15 +3642,26 @@ export function gateVerdictAt(
             ),
           },
         }),
+    ...(spells === undefined
+      ? {}
+      : {
+          spells: { enemies: spells.enemies, overCap: overThe(spells.enemies) },
+        }),
   };
   return {
     adventureId: measures.adventureId,
     classId: measures.classId,
     difficulty,
-    qualified: survival.ok && alwaysFail.ok && oneHitKill.ok && measures.xp.ok,
+    qualified:
+      survival.ok &&
+      alwaysFail.ok &&
+      oneHitKill.ok &&
+      (control?.ok ?? true) &&
+      measures.xp.ok,
     survival,
     alwaysFail,
     oneHitKill,
+    ...(control === undefined ? {} : { control }),
     xp: measures.xp,
     rests: measures.rests,
     ...(measures.stealthFirst === undefined
@@ -2902,148 +3670,18 @@ export function gateVerdictAt(
     ...(measures.reactions === undefined
       ? {}
       : { reactions: measures.reactions }),
+    ...(measures.spendEarly === undefined
+      ? {}
+      : { spendEarly: measures.spendEarly }),
   };
 }
 
 /**
- * The classes the gate qualifies every module for (#310), in the order
- * creation offers them: a module qualifies only if it qualifies for each.
+ * The classes the gate qualifies every module for (#310, #348): every
+ * class creation offers (`OFFERED_CLASS_IDS`), in its order. A module
+ * qualifies only if it qualifies for each.
  */
-export const GATE_CLASSES: readonly ClassId[] = ["fighter", "rogue"];
-
-/**
- * The classes the gate plays and reports but doesn't judge yet (#339): the
- * Cleric and the Wizard (#340), until the caster policies come (#348). A module's verdict never
- * depends on them.
- */
-export const REPORTED_CLASSES: readonly ClassId[] = ["cleric", "wizard"];
-
-/**
- * The seeds a reported class plays by default (#341, owner's choice for
- * D12): fewer than a judged class's, so reporting a class at every level it
- * reaches stays inside the gate's time budget. Its report judges nothing.
- */
-export const REPORT_SEED_COUNT = 50;
-
-/**
- * A reported class's runs on a module (#339), never judged: at the module's
- * levels the class reaches yet (none when it reaches none of them), the
- * weakest character's cautious runs on seeded checks with each kit
- * (`REPORT_SEED_COUNT` seeds unless the gate names its own), and the
- * healing spells it cast a run; or why the harness couldn't play it.
- */
-export type ReportedClass = Readonly<{ classId: ClassId }> &
-  (
-    | Readonly<{ ok: true; levels: readonly Level[] }>
-    | Readonly<{
-        ok: true;
-        levels: readonly Level[];
-        survival: GateMeasures["survival"];
-        meanHealingSpells: number;
-        /** Spells cast a run, of any kind (#340). */
-        meanSpellsCast: number;
-      }>
-    | Readonly<{
-        ok: false;
-        failure: Readonly<{ code: BalanceFailureCode; message: string }>;
-      }>
-  );
-
-/**
- * Plays `classId` on `adventure` for the gate's report (#339): the weakest
- * character's cautious runs at each module level the class reaches, with
- * each kit, on seeded checks.
- */
-export function reportClass(
-  adventure: FifthAdventure,
-  classId: ClassId,
-  {
-    seeds = Array.from({ length: REPORT_SEED_COUNT }, (_, seed) => seed),
-    sampleSize,
-    sampleSeed,
-    stepLimit,
-  }: Omit<GateOptions, "classId" | "reportStealth" | "reportReactions"> = {},
-): ReportedClass {
-  const definition = CLASSES[classId];
-  const { min, max } = adventure.recommendedLevels;
-  const levels = Array.from(
-    { length: max - min + 1 },
-    (_, index) => (min + index) as Level,
-  ).filter((level) => level <= classMaxLevel(definition));
-  if (levels.length === 0) {
-    return { classId, ok: true, levels };
-  }
-  try {
-    const [weakest] = percentileCharacters({
-      percentiles: [WEAKEST_PERCENTILE],
-      classId,
-      ...(sampleSize === undefined ? {} : { sampleSize }),
-      ...(sampleSeed === undefined ? {} : { sampleSeed }),
-    });
-    const limit = stepLimit === undefined ? {} : { stepLimit };
-    const played = levels.flatMap((level) =>
-      definition.kits.map((kit) => {
-        const runtime = createFifthRuntime(
-          adventure,
-          characterAtLevel(
-            weakest!.dice,
-            level,
-            kit,
-            false,
-            undefined,
-            classId,
-          ),
-        );
-        return {
-          kit,
-          level,
-          runs: seeds.map((seed) =>
-            playAdventure(runtime, GATE_STYLE, seed, limit),
-          ),
-        };
-      }),
-    );
-    const kits = played.map(({ kit, level, runs }) => ({
-      kit,
-      level,
-      rate:
-        runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length,
-    }));
-    const weakestKit = kits.reduce((worst, entry) =>
-      entry.rate < worst.rate ? entry : worst,
-    );
-    return {
-      classId,
-      ok: true,
-      levels,
-      survival: {
-        checks: "seeded",
-        level: weakestKit.level,
-        percentile: WEAKEST_PERCENTILE,
-        style: GATE_STYLE,
-        runs: seeds.length,
-        rate: weakestKit.rate,
-        kit: weakestKit.kit,
-        kits,
-      },
-      meanHealingSpells: mean(
-        played.flatMap(({ runs }) => runs.map(({ healing }) => healing.spells)),
-      ),
-      meanSpellsCast: mean(
-        played.flatMap(({ runs }) => runs.map(({ spellsCast }) => spellsCast)),
-      ),
-    };
-  } catch (error) {
-    if (error instanceof BalanceError) {
-      return {
-        classId,
-        ok: false,
-        failure: { code: error.code, message: error.message },
-      };
-    }
-    throw error;
-  }
-}
+export const GATE_CLASSES: readonly ClassId[] = OFFERED_CLASS_IDS;
 
 /** The gate's verdict on a module for every class in `GATE_CLASSES`. */
 export type ModuleGateResult = Readonly<{
@@ -3052,49 +3690,26 @@ export type ModuleGateResult = Readonly<{
   qualified: boolean;
   /** Each class's result, in `GATE_CLASSES` order. */
   classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
-  /**
-   * Each class in `REPORTED_CLASSES`, reported and never judged (#339);
-   * absent when the gate leaves them out (`reportClasses`).
-   */
-  reported?: readonly ReportedClass[];
 }>;
 
 /**
  * Gates `adventure` for every class in `GATE_CLASSES` (`gateAdventure` for
- * each, with `options`): it qualifies only if every class qualifies. Each
- * class in `REPORTED_CLASSES` is played and reported beside them (#339),
- * unless `reportClasses` is false, as `passesGate` leaves it.
+ * each, with `options`): it qualifies only if every class qualifies.
  */
 export function gateModule(
   adventure: FifthAdventure,
-  {
-    reportClasses = true,
-    ...options
-  }: Omit<GateOptions, "classId"> & Readonly<{ reportClasses?: boolean }> = {},
+  options: Omit<GateOptions, "classId"> = {},
 ): ModuleGateResult {
   const classes = GATE_CLASSES.map((classId) => ({
     classId,
     result: gateAdventure(adventure, { ...options, classId }),
   }));
-  const { seeds, sampleSize, sampleSeed, stepLimit } = options;
   return {
     adventureId: adventure.id,
     qualified: classes.every(
       ({ result }) => result.ok && result.verdict.qualified,
     ),
     classes,
-    ...(reportClasses
-      ? {
-          reported: REPORTED_CLASSES.map((classId) =>
-            reportClass(adventure, classId, {
-              ...(seeds === undefined ? {} : { seeds }),
-              ...(sampleSize === undefined ? {} : { sampleSize }),
-              ...(sampleSeed === undefined ? {} : { sampleSeed }),
-              ...(stepLimit === undefined ? {} : { stepLimit }),
-            }),
-          ),
-        }
-      : {}),
   };
 }
 
@@ -3113,7 +3728,6 @@ export function passesGate(adventure: FifthAdventure): boolean {
     passed = gateModule(adventure, {
       reportStealth: false,
       reportReactions: false,
-      reportClasses: false,
     }).qualified;
     gated.set(key, passed);
   }
@@ -3137,16 +3751,20 @@ export function renderGateResult(
   }
   const { verdict } = result;
   const who = CLASSES[verdict.classId].name;
-  const { survival, alwaysFail, oneHitKill, xp } = verdict;
+  const { survival, alwaysFail, oneHitKill, control, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
   const deadly = (check: SurvivalCheck, title: string) =>
-    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+    `  ${title}, ${check.reported === true ? `reported (not judged below level ${CASTER_JUDGED_LEVEL})` : mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
   const stealth = verdict.stealthFirst;
+  // A caster's (#348): the policy that survived more, and a level reported.
   const kits = (check: Pick<SurvivalCheck, "kits">) =>
     check.kits
-      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
+      .map(
+        ({ kit, level, rate, casting, reported }) =>
+          `${kit} level ${level} ${percent(rate)}${casting === undefined ? "" : ` ${casting}`}${reported === true ? " (reported)" : ""}`,
+      )
       .join(", ");
   return [
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty} for the ${who}.`,
@@ -3157,8 +3775,8 @@ export function renderGateResult(
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
             .map(
-              ({ name: enemy, chance, kit, gear }) =>
-                `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
+              ({ name: enemy, chance, kit, gear, spell }) =>
+                `${enemy} ${percent(chance)} (${spell !== undefined ? SPELLS[spell].name : gear === undefined ? kit : `found ${gear}`})`,
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
     ...(oneHitKill.bonusAction === undefined
@@ -3174,6 +3792,34 @@ export function renderGateResult(
                   )
                   .join(", ")}.`),
         ]),
+    ...(control === undefined
+      ? []
+      : [
+          `  Too easy by control, ${mark(control.ok)}: at the opening, the level ${control.level}, ${control.percentile}th percentile ${who} takes ` +
+            (control.overCap.length === 0
+              ? `no ordinary enemy out of the fight with one control more than ${percent(control.cap)} of the time.`
+              : `${control.overCap.length} of ${control.enemies.length} ordinary enemies out of the fight with one control more than ${percent(control.cap)} of the time: ${control.overCap
+                  .map(
+                    ({ name: enemy, chance, control: used }) =>
+                      `${enemy} ${percent(chance)} (${used === "turn-undead" ? "Turn Undead" : SPELLS[used].name})`,
+                  )
+                  .join(
+                    ", ",
+                  )}.${control.ok ? "" : " No more than half may be."}`),
+        ]),
+    ...(oneHitKill.spells === undefined
+      ? []
+      : [
+          `  Too easy with levelled spells, reported (not judged): with one levelled damage spell at its highest slot, the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
+            (oneHitKill.spells.overCap.length === 0
+              ? `no ordinary enemy more than ${percent(oneHitKill.cap)} of the time.`
+              : `${oneHitKill.spells.overCap.length} of ${oneHitKill.spells.enemies.length} ordinary enemies more than ${percent(oneHitKill.cap)} of the time: ${oneHitKill.spells.overCap
+                  .map(
+                    ({ name: enemy, chance, spell, slotLevel }) =>
+                      `${enemy} ${percent(chance)} (${SPELLS[spell].name}, ${ordinal(slotLevel)} level)`,
+                  )
+                  .join(", ")}.`),
+        ]),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
     `  Rests, reported (not judged): on seeded checks the level ${verdict.rests.level}, ${verdict.rests.percentile}th percentile ${who} playing ${verdict.rests.style} took ${decimal(verdict.rests.meanShort)} short and ${decimal(verdict.rests.meanLong)} long rests a run; ${decimal(verdict.rests.meanInterrupted)} rests a run were interrupted.`,
     `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile ${who} playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
@@ -3181,6 +3827,11 @@ export function renderGateResult(
       ? []
       : [
           `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile ${who} playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
+        ]),
+    ...(verdict.spendEarly === undefined
+      ? []
+      : [
+          `  Spending slots early, reported (not judged): the level ${verdict.spendEarly.level}, ${verdict.spendEarly.percentile}th percentile ${who} playing ${verdict.spendEarly.style} survived ${percent(verdict.spendEarly.rate)} of ${verdict.spendEarly.runs} runs with its weakest kit, ${verdict.spendEarly.kit} (${kits(verdict.spendEarly)}); over every kit and level it cast ${decimal(verdict.spendEarly.meanSpellsCast)} spells and earned ${decimal(verdict.spendEarly.meanXp)} XP a run.`,
         ]),
     ...(verdict.reactions ?? []).map(
       (report) =>
@@ -3194,36 +3845,12 @@ export function renderGateResult(
  * class's `renderGateResult`, in `GATE_CLASSES` order.
  */
 export function renderModuleGateResult(
-  adventure: Pick<FifthAdventure, "id" | "title" | "recommendedLevels">,
+  adventure: Pick<FifthAdventure, "id" | "title">,
   result: ModuleGateResult,
 ): string {
-  return [
-    ...result.classes.map(({ classId, result: gate }) =>
+  return result.classes
+    .map(({ classId, result: gate }) =>
       renderGateResult(adventure, gate, classId),
-    ),
-    ...(result.reported ?? []).map((report) =>
-      renderReportedClass(adventure, report),
-    ),
-  ].join("\n");
-}
-
-/** A reported class's runs (#339) as plain text: never judged. */
-export function renderReportedClass(
-  adventure: Pick<FifthAdventure, "id" | "title" | "recommendedLevels">,
-  report: ReportedClass,
-): string {
-  const who = CLASSES[report.classId].name;
-  const name = `${adventure.title} (${adventure.id})`;
-  if (!report.ok) {
-    return `${name} could not be played for the ${who}, reported (not judged): ${report.failure.code}. ${report.failure.message}`;
-  }
-  if (!("survival" in report)) {
-    const { min, max } = adventure.recommendedLevels;
-    return `${name} for the ${who}, not reported: the ${who} reaches only level ${classMaxLevel(CLASSES[report.classId])} yet, and the module is for level ${min === max ? min : `${min}–${max}`}.`;
-  }
-  const { survival } = report;
-  const kits = survival.kits
-    .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
-    .join(", ");
-  return `${name} for the ${who}, reported (not judged): the level ${survival.level}, ${survival.percentile}th percentile ${who} playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs with its weakest kit, ${survival.kit} (${kits}), casting ${decimal(report.meanSpellsCast)} spells a run, ${decimal(report.meanHealingSpells)} of them healing.`;
+    )
+    .join("\n");
 }

@@ -126,6 +126,9 @@ test("a module qualifies only if every class qualifies, and the verdict names ea
     [
       ["fighter", true],
       ["rogue", false],
+      // Casters' survival at level 1 is reported, not judged (#348).
+      ["cleric", true],
+      ["wizard", true],
     ],
   );
   assert.equal(gate.qualified, false);

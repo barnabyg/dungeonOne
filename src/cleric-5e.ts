@@ -67,7 +67,8 @@ export const CLERIC_SPELLCASTING: SpellcastingDefinition = {
     "aid",
     "lesser-restoration",
     "spiritual-weapon",
-    "hold-person",
+    // Hold Person left the list in #348 ("too easy by control"; #369
+    // brings it back).
     "protection-from-poison",
     "prayer-of-healing",
     // 3rd level (#342, owner-approved), with Light, a flavour cantrip.
@@ -199,7 +200,7 @@ export const CLERIC: ClassDefinition = {
       level: 2,
       name: "Channel Divinity",
       text: ({ uses, modifiers }) =>
-        `${uses} uses; a short rest restores one, a long rest all. Each is a Magic action against your spell save DC. Divine Spark: roll 1d8 ${modifiers.wisdom >= 0 ? "+" : "−"} ${Math.abs(modifiers.wisdom)} (Wisdom) and heal another creature on your side by the total, or make an opponent save on Constitution or take that much radiant or necrotic damage, half on a success. Turn Undead: each undead opponent saves on Wisdom or is Frightened and Incapacitated for the fight's minute; damage, an attack on it, or your being Incapacitated ends it. Every undead foe is within range: there are no positions.`,
+        `${uses} uses; a short rest restores one, a long rest all. Each is a Magic action against your spell save DC. Divine Spark: roll 1d8 ${modifiers.wisdom >= 0 ? "+" : "−"} ${Math.abs(modifiers.wisdom)} (Wisdom) and heal another creature on your side by the total, or make an opponent save on Constitution or take that much radiant or necrotic damage, half on a success. Turn Undead: each undead opponent saves on Wisdom or is Frightened and Incapacitated for the fight's minute; it saves again at the end of each of its turns, and a success, damage, an attack on it, or your being Incapacitated ends it. Every undead foe is within range: there are no positions.`,
       uses: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 2 },
       recovery: { shortRest: 1, longRest: "all" },
       effect: {

@@ -1,8 +1,8 @@
 // #340: the balance harness builds and plays a level-1 Wizard. It casts
 // Mage Armor once, outside a fight, before its first; attacks with a
 // cantrip (a ranged one in the opening volley, then a melee one) instead of
-// its quarterstaff; and answers a hit with Shield. The gate reports the
-// Wizard beside the Cleric, never judging it.
+// its quarterstaff; and answers a hit with Shield. The gate judges the
+// Wizard since #348.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -11,12 +11,10 @@ import {
   gateModule,
   percentileCharacters,
   playAdventure,
-  REPORTED_CLASSES,
-  renderModuleGateResult,
 } from "../dist/balance-5e.js";
 import { armorClassOf, combatant } from "../dist/encounter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { goblinBand, ratTunnels } from "./fixtures/modules.mjs";
+import { ratTunnels } from "./fixtures/modules.mjs";
 
 const [weakest] = percentileCharacters({
   percentiles: [5],
@@ -32,7 +30,7 @@ test("the harness builds a level-1 Wizard from its defaults", () => {
     "mage-armor",
     "magic-missile",
     "shield",
-    "sleep",
+    "burning-hands",
   ]);
   assert.equal(sheet.spellbook.length, 6);
   assert.deepEqual(wizard("daggers").equipment, ["dagger", "dagger"]);
@@ -76,16 +74,22 @@ test("a Wizard casts Mage Armor once before its first fight and attacks with can
       1,
     );
     assert.equal(run.encounters.length > 0, true);
-    // Its attacks are cantrips: Fire Bolt or Shocking Grasp, never a
-    // healing spell.
+    // Its attacks are cantrips: Fire Bolt or Shocking Grasp; conserving
+    // (#348), a levelled attack only once hurt (issue-348-harness tests
+    // when).
     cantrips += casts.filter(({ spellId }) =>
       ["fire-bolt", "shocking-grasp"].includes(spellId),
     ).length;
     assert.ok(
       casts.every(({ spellId }) =>
-        ["mage-armor", "fire-bolt", "shocking-grasp", "shield"].includes(
-          spellId,
-        ),
+        [
+          "mage-armor",
+          "fire-bolt",
+          "shocking-grasp",
+          "shield",
+          "magic-missile",
+          "burning-hands",
+        ].includes(spellId),
       ),
       JSON.stringify(casts),
     );
@@ -93,29 +97,18 @@ test("a Wizard casts Mage Armor once before its first fight and attacks with can
   assert.ok(cantrips > 0);
 });
 
-test("the gate reports the Wizard and never judges it", () => {
-  assert.deepEqual(REPORTED_CLASSES, ["cleric", "wizard"]);
+test("the gate judges the Wizard with both its kits (#348)", () => {
   const gate = gateModule(ratTunnels, { seeds: [0, 1] });
-  const plain = gateModule(ratTunnels, { seeds: [0, 1], reportClasses: false });
-  assert.equal(plain.qualified, gate.qualified);
-  const reported = gate.reported.find(({ classId }) => classId === "wizard");
-  assert.equal(reported.ok, true);
-  assert.deepEqual(reported.levels, [1]);
+  const { result } = gate.classes.find(({ classId }) => classId === "wizard");
+  assert.equal(result.ok, true);
   assert.deepEqual(
-    reported.survival.kits.map(({ kit }) => kit),
-    ["quarterstaff-and-dagger", "daggers"],
+    result.verdict.survival.kits.map(({ kit, level }) => [kit, level]),
+    [
+      ["quarterstaff-and-dagger", 1],
+      ["daggers", 1],
+    ],
   );
-  assert.ok(reported.meanSpellsCast > 0);
-  assert.equal(reported.meanHealingSpells, 0);
-  assert.match(
-    renderModuleGateResult(ratTunnels, gate),
-    /^The Rat Tunnels \(rat-tunnels\) for the Wizard, reported \(not judged\): the level 1, 5th percentile Wizard playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(quarterstaff-and-dagger level 1 \d+\.\d%, daggers level 1 \d+\.\d%\), casting \d+\.\d spells a run, 0\.0 of them healing\.$/mu,
-  );
-  // Since #343 a level-2 module is played for the Wizard too.
-  assert.match(
-    renderModuleGateResult(goblinBand, gateModule(goblinBand, { seeds: [0] })),
-    /for the Wizard, reported \(not judged\): the level 2, 5th percentile Wizard/u,
-  );
+  assert.ok(result.verdict.spendEarly.meanSpellsCast > 0);
 });
 
 test("the harness casts Shield only when it turns the hit into a miss", () => {

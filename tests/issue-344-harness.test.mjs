@@ -49,7 +49,7 @@ test("the harness builds a level-4 and a level-5 Wizard with every choice made",
   assert.equal(profile.spellcasting.memorizeSpell, true);
 });
 
-test("the gate reports the Wizard at levels 4 and 5", () => {
+test("the gate plays the Wizard at levels 4 and 5", () => {
   const module = moduleFile("rat-tunnels");
   module.id = "deep-cellar";
   module.recommendedLevels = { min: 4, max: 5 };
@@ -68,7 +68,10 @@ test("the gate reports the Wizard at levels 4 and 5", () => {
     },
   ];
   const gate = gateModule(validateModule(module), { seeds: [0, 1] });
-  const reported = gate.reported.find(({ classId }) => classId === "wizard");
-  assert.deepEqual(reported.levels, [4, 5]);
-  assert.equal(reported.ok, true);
+  const { result } = gate.classes.find(({ classId }) => classId === "wizard");
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    [...new Set(result.verdict.survival.kits.map(({ level }) => level))],
+    [4, 5],
+  );
 });

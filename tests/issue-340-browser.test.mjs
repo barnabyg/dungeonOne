@@ -1,8 +1,8 @@
 // #340, browser → API → storage: create a Wizard on the creation screen
 // (its cantrips, spellbook and prepared spells), change its prepared spells
 // in the library, only from its spellbook; cast Mage Armor before the first
-// fight and Sleep in it; take a short rest whose Arcane Recovery regains a
-// slot; win and settle.
+// fight and Ray of Sickness in it (Sleep until it left the list, #348);
+// take a short rest whose Arcane Recovery regains a slot; win and settle.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -31,18 +31,23 @@ import { ratTunnels } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 
-// Magic Missile out of the spellbook, Thunderwave in, and prepared.
+// Magic Missile out of the spellbook, Ray of Sickness in, and prepared.
 const SPELLBOOK = [
   "shield",
   "mage-armor",
-  "sleep",
   "burning-hands",
   "chromatic-orb",
   "thunderwave",
+  "ray-of-sickness",
 ];
-const CREATED = ["shield", "mage-armor", "sleep", "thunderwave"];
-// Then, in the library, Burning Hands in place of Shield.
-const PREPARED = ["mage-armor", "sleep", "thunderwave", "burning-hands"];
+const CREATED = ["shield", "mage-armor", "burning-hands", "ray-of-sickness"];
+// Then, in the library, Thunderwave in place of Shield.
+const PREPARED = [
+  "mage-armor",
+  "burning-hands",
+  "ray-of-sickness",
+  "thunderwave",
+];
 
 /** The Wizard a server on `seed` first creates, with `prepared`. */
 function firstWizard(seed, prepared = CREATED) {
@@ -67,7 +72,7 @@ function firstWizard(seed, prepared = CREATED) {
 
 /**
  * Plays the journey on `seed`'s first session as the page does: Mage Armor
- * in the first room; Sleep at the rat on the first turn of the cellar's
+ * in the first room; Ray of Sickness at the rat on the first turn of the cellar's
  * fight, then the first attack offered or End turn; a short rest after it;
  * the den's fight. Whether it wins, with Arcane Recovery's slot.
  */
@@ -97,10 +102,10 @@ function wins(seed) {
       state.status === "playing" &&
       state.encounter?.outcome === "ongoing"
     ) {
-      const sleep = cast(state, "sleep");
-      if (!slept && sleep !== undefined) {
+      const ray = cast(state, "ray-of-sickness");
+      if (!slept && ray !== undefined) {
         slept = true;
-        state = step(state, runtime.actionOf(sleep));
+        state = step(state, runtime.actionOf(ray));
         continue;
       }
       const attack = runtime
@@ -132,7 +137,9 @@ const seed = (() => {
       return candidate;
     }
   }
-  throw new Error("no seed below 500 wins with Sleep and Arcane Recovery");
+  throw new Error(
+    "no seed below 500 wins with Ray of Sickness and Arcane Recovery",
+  );
 })();
 
 async function post(url, path, body) {
@@ -169,7 +176,7 @@ for (const viewport of [
   { width: 375, height: 812 },
 ]) {
   test(
-    `create a Wizard with its spellbook, cast Mage Armor and Sleep, recover a slot on a short rest, settle (${viewport.width}px, seed ${seed})`,
+    `create a Wizard with its spellbook, cast Mage Armor and Ray of Sickness, recover a slot on a short rest, settle (${viewport.width}px, seed ${seed})`,
     { timeout: 180000 },
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-340-browser-"));
@@ -212,7 +219,7 @@ for (const viewport of [
           "Cantrips 3 of 3 chosen; spellbook 6 of 6 chosen; prepared spells 4 of 4 chosen",
         );
         // Only spells in the spellbook can be prepared.
-        assert.equal(await page.locator("#prepare-thunderwave").count(), 0);
+        assert.equal(await page.locator("#prepare-ray-of-sickness").count(), 0);
         // Taking Magic Missile out of the spellbook unprepares it.
         await page.locator("#spellbook-magic-missile").uncheck();
         await page
@@ -224,8 +231,8 @@ for (const viewport of [
           .waitFor();
         assert.equal(await page.locator("#prepare-magic-missile").count(), 0);
         assert.equal(await page.locator("#save-character").isDisabled(), true);
-        await page.locator("#spellbook-thunderwave").check();
-        await page.locator("#prepare-thunderwave").check();
+        await page.locator("#spellbook-ray-of-sickness").check();
+        await page.locator("#prepare-ray-of-sickness").check();
         await page
           .locator("#spells-error:empty")
           .waitFor({ state: "attached" });
@@ -252,10 +259,10 @@ for (const viewport of [
           [
             "Shield. ",
             "Mage Armor. ",
-            "Sleep. ",
             "Burning Hands. ",
             "Chromatic Orb. ",
             "Thunderwave. ",
+            "Ray of Sickness. ",
           ],
         );
         assert.match(sheetText, /Ritual Adept\. Omitted/u);
@@ -271,7 +278,7 @@ for (const viewport of [
         // spellbook only.
         assert.equal(await page.locator("#prepared-magic-missile").count(), 0);
         await page.locator("#prepared-shield").uncheck();
-        await page.locator("#prepared-burning-hands").check();
+        await page.locator("#prepared-thunderwave").check();
         await page.locator("#save-prepared").click();
         await page
           .locator("#feedback")
@@ -288,7 +295,12 @@ for (const viewport of [
           {
             revision: library.revision,
             characterId: library.characters[0].sheet.id,
-            prepared: ["magic-missile", "mage-armor", "sleep", "thunderwave"],
+            prepared: [
+              "magic-missile",
+              "mage-armor",
+              "burning-hands",
+              "thunderwave",
+            ],
           },
         );
         assert.equal(outside.status, 409);
@@ -307,10 +319,10 @@ for (const viewport of [
         );
         await clickAction(page, "move", "rat-cellar");
         await page.locator("#cast-spell").waitFor();
-        await castNamed(page, "Sleep (1st-level slot)");
+        await castNamed(page, "Ray of Sickness (1st-level slot)");
         assert.match(
           await text(page.locator("#log")),
-          /You cast Sleep at Giant Rat with a 1st-level spell slot \(0 of 2 left\)\.\nGiant Rat makes a Wisdom saving throw against Sleep/u,
+          /You cast Ray of Sickness at Giant Rat with a 1st-level spell slot \(0 of 2 left\)\./u,
         );
         await fight(page);
         // A short rest: Arcane Recovery regains a slot.
