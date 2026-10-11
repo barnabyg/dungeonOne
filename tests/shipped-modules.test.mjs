@@ -3,7 +3,7 @@
 // qualifies at its declared difficulty for every class (#310), and takes its
 // place in the browser's adventure list; and a new character's career
 // through them reaches the required level in every class (#290, #310), and
-// Turn Undead stays under the control cap in every undead module (#349).
+// the gate judges Turn Undead in every undead module (#349).
 // Besides each released module's own content and release tests, these are
 // the only tests that read a shipped module; engine tests play the fixtures
 // in tests/fixtures/.
@@ -36,6 +36,7 @@ import {
   GATE_VERDICTS_PATH,
   recordGateVerdicts,
 } from "../dist/gate-verdicts-5e.js";
+import { TURN_UNDEAD_ID } from "../dist/encounter-5e.js";
 import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
@@ -374,33 +375,50 @@ test("the gate gives each released module the figures its proposal quotes (#241,
   }
 });
 
-/** The shipped modules with undead opponents, where Turn Undead is judged (#349). */
-const UNDEAD_MODULES = [
-  "abandoned-delve",
-  "drowned-chapel",
-  "gravediggers-lodge",
-  "silvervein-mine",
-  "warden-crypt",
-];
+/**
+ * Turn Undead in each shipped module with undead opponents (#349): the cap
+ * the module's difficulty sets and, for each ordinary undead enemy, the
+ * Cleric's chance in percent that one use at the fight's opening keeps it
+ * out of the fight (the figures docs/character-rules.md quotes).
+ */
+const TURN_UNDEAD_FIGURES = {
+  "abandoned-delve": {
+    cap: 0.4,
+    enemies: [
+      ["zombie", 27.5],
+      ["skeleton-sergeant", 34.3],
+      ["skeleton-guard", 34.3],
+    ],
+  },
+  "drowned-chapel": { cap: 0.5, enemies: [["drowned-sexton", 27.5]] },
+  "gravediggers-lodge": { cap: 0.3, enemies: [["risen-corpse", 27.5]] },
+  "silvervein-mine": {
+    cap: 0.4,
+    enemies: [
+      ["drowned-miner", 27.5],
+      ["miners-bones", 34.3],
+    ],
+  },
+  "warden-crypt": { cap: 0.4, enemies: [["risen-warden", 27.5]] },
+};
 
-test("in every undead module the Cleric's Turn Undead is judged against the control cap and stays under it (#348, #349)", () => {
+test("in every undead module the gate judges the Cleric's Turn Undead against the control cap (#348, #349)", () => {
   const undeadIn = (adventure) =>
-    adventure.encounters.flatMap(({ opponents }) =>
-      opponents.flatMap(({ id, boss, statBlock }) =>
-        boss !== true && creatureTypeOf(statBlock.type) === "undead"
-          ? [id]
-          : [],
-      ),
-    );
+    opponents(adventure)
+      .filter(
+        ({ boss, statBlock }) =>
+          boss !== true && creatureTypeOf(statBlock.type) === "undead",
+      )
+      .map(({ id }) => id);
   assert.deepEqual(
     shipped
       .filter((adventure) => undeadIn(adventure).length > 0)
       .map(({ id }) => id),
-    UNDEAD_MODULES,
+    Object.keys(TURN_UNDEAD_FIGURES),
   );
   for (const adventure of gated) {
-    const undead = undeadIn(adventure);
-    if (undead.length === 0) {
+    const quoted = TURN_UNDEAD_FIGURES[adventure.id];
+    if (quoted === undefined) {
       continue;
     }
     const { control } = gateOf(adventure).classes.find(
@@ -408,15 +426,19 @@ test("in every undead module the Cleric's Turn Undead is judged against the cont
     ).result.verdict;
     assert.ok(control, `${adventure.id} judges no control`);
     assert.equal(control.ok, true, adventure.id);
-    for (const opponentId of undead) {
-      const enemy = control.enemies.find(
-        (entry) => entry.opponentId === opponentId,
-      );
-      const label = `${adventure.id} ${opponentId}`;
-      assert.equal(enemy.control, "turn-undead", label);
-      assert.ok(enemy.chance > 0, label);
-      assert.ok(enemy.chance <= control.cap, `${label} ${enemy.chance}`);
-    }
+    assert.equal(control.cap, quoted.cap, adventure.id);
+    const undead = undeadIn(adventure);
+    assert.deepEqual(
+      control.enemies
+        .filter(({ opponentId }) => undead.includes(opponentId))
+        .map(({ opponentId, control: used, chance }) => [
+          opponentId,
+          used,
+          Math.round(chance * 1000) / 10,
+        ]),
+      quoted.enemies.map(([id, chance]) => [id, TURN_UNDEAD_ID, chance]),
+      adventure.id,
+    );
   }
 });
 
