@@ -254,7 +254,7 @@ html{scroll-padding-bottom:var(--session-dock-height,0px)}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 @media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
-.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -1947,10 +1947,8 @@ function renderActions() {
     if (!thing) {
       thing = make("span", undefined, "thing-actions");
       thing.dataset.target = target.id;
-      // An item to take shows its icon, as in the room's list (#377).
-      const name = unspoken(make("span", undefined, "thing-name"));
-      name.append(...iconned(session.room.items.find(({ id }) => id === target.id)?.icon, target.name));
-      thing.append(name, make("span", undefined, "thing-verbs"));
+      // No icon here (#377): on a phone the bar has no room to spare (#198).
+      thing.append(unspoken(make("span", target.name, "thing-name")), make("span", undefined, "thing-verbs"));
       groups[group].push(thing);
     }
     thing.lastChild.append(wrap);
