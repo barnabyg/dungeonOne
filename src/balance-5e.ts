@@ -748,8 +748,8 @@ export const CONTROL_TURNS = 3;
  * throw and then each save it repeats at the end of its turns until then:
  * Hold Person's and Turn Undead's every turn, Sleep's once (its second
  * failure leaves it Unconscious for the spell). Sleep's target rolls both
- * with advantage (#369), so both d20s of each must fail. 0 when it is immune, or not
- * the creature type the control works on (Hold Person's humanoid, Turn
+ * with advantage (#369), so both d20s of each must fail. 0 when it is
+ * immune, or not the creature type the control works on (Hold Person's humanoid, Turn
  * Undead's undead).
  */
 export function controlChance(

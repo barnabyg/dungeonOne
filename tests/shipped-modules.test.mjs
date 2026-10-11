@@ -485,7 +485,7 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
   }
 });
 
-test("in every shipped module the gate judges the Wizard's Sleep and Hold Person, and no ordinary foe is over the cap (#369)", () => {
+test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
       const { control } = gateOf(adventure).classes.find(

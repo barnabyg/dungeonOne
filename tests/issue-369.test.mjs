@@ -10,6 +10,11 @@ import test from "node:test";
 
 import { CLASSES } from "../dist/character-5e.js";
 import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
+import {
+  FIFTH_DM_SYSTEM_PROMPT,
+  renderFifthResult,
+  spellSummary,
+} from "../dist/runtime-5e.js";
 import { SPELLS, spellAtLevel } from "../dist/spells-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 
@@ -118,6 +123,13 @@ test("Sleep's target rolls its first save and its repeat with advantage (#369)",
     advantage: ["Sleep"],
     disadvantage: [],
   });
+  assert.match(
+    renderFifthResult({
+      state: { encounter: slept.state },
+      events: slept.events,
+    }),
+    /saving throw with advantage or falls unconscious/u,
+  );
   // At the end of its turn it saves again, with advantage: 3 and 9, a
   // failure, and it falls unconscious.
   const asleep = accepted(slept.state, endTurn, dice([20, 3], [20, 9]));
@@ -153,4 +165,16 @@ test("Sleep is back on the Wizard's list, Hold Person on the Wizard's and the Cl
   assert.ok(wizard.spellcasting.list.includes("hold-person"));
   assert.ok(cleric.spellcasting.list.includes("hold-person"));
   assert.ok(!cleric.spellcasting.list.includes("sleep"));
+});
+
+test("Sleep's description and the DM prompt say its target saves with advantage; Hold Person's doesn't (#369)", () => {
+  assert.match(
+    spellSummary(SPELLS.sleep),
+    /its target makes both saves with advantage \(house rule\)/u,
+  );
+  assert.doesNotMatch(spellSummary(SPELLS["hold-person"]), /advantage/u);
+  assert.match(
+    FIFTH_DM_SYSTEM_PROMPT,
+    /Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious/u,
+  );
 });

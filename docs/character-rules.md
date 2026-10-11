@@ -190,7 +190,7 @@ The SRD 5.2 Wizard at level 1. Its class data gives SRD 5.2's spell tables for e
 | ------------------------- | -------------------- | ------------------------------------------------------------------- | ------ | ------- | ---------------- |
 | d6: 6 + Con, then 4 + Con | Intelligence, Wisdom | Arcana, History, Insight, Investigation, Medicine, Nature, Religion | None   | Simple  | None             |
 
-- **Creation.** A fresh Wizard creation places the rolls in the priority Intelligence, Dexterity, Constitution, Wisdom, Charisma, Strength (Intelligence for its spells; Dexterity for AC, with Mage Armor or without, and its daggers; Constitution for hit points and concentration) and starts with +2 Intelligence and +1 Constitution; Arcana and Investigation; Fire Bolt, Ray of Frost and Shocking Grasp; six 1st-level spells in its spellbook, the first six of its list (every one but Thunderwave until #348, when Sleep left the list), with Mage Armor, Magic Missile, Shield and Burning Hands prepared (Sleep until #348); and the quarterstaff kit. It masters no weapon. Nature joined the skill list with the Wizard.
+- **Creation.** A fresh Wizard creation places the rolls in the priority Intelligence, Dexterity, Constitution, Wisdom, Charisma, Strength (Intelligence for its spells; Dexterity for AC, with Mage Armor or without, and its daggers; Constitution for hit points and concentration) and starts with +2 Intelligence and +1 Constitution; Arcana and Investigation; Fire Bolt, Ray of Frost and Shocking Grasp; six 1st-level spells in its spellbook, the first six of its list (every one but Thunderwave until #348, when Sleep left the list; #369 put Sleep back seventh, outside the six), with Mage Armor, Magic Missile, Shield and Burning Hands prepared (Sleep until #348); and the quarterstaff kit. It masters no weapon. Nature joined the skill list with the Wizard.
 - **Spellcasting.** Intelligence: spell attack bonus = proficiency + Intelligence modifier, save DC = 8 + both. At level 1 a Wizard knows 3 cantrips, prepares 4 spells and has two 1st-level slots (SRD 5.2). The owner's list (D3, 10 October 2026):
   - Cantrips: Fire Bolt, Ray of Frost, Shocking Grasp and Chill Touch.
   - 1st level: Magic Missile, Shield, Mage Armor, Burning Hands, Chromatic Orb and Thunderwave (Sleep left the list in #348, owner's choice: it failed the gate's too-easy-by-control check; it came back in #369, with its target saving with advantage, but the default spellbook and prepared spells keep Thunderwave and Burning Hands).
@@ -414,7 +414,7 @@ A character carries its equipment and its **stowed** gear: catalogue weapons, ar
   | The Silvervein Mine     | two Potions of Healing, Silver Locket (art, 25 gp), Uncut Sapphire (gem, 100 gp), the bugbear's Rough Gem (gem, 10 gp), 60 gp, 40 sp and the rolled 12 sp, 9 cp and 8 cp | 300 gp 3 sp 7 cp of 450 gp |
   | The Drowned Chapel      | Potion of Healing (50 gp), Silver Reliquary (art, 250 gp), Moss Agate (gem, 10 gp), Chrysoprase Fob (gem, 50 gp), 60 gp and 50 sp                                        | 425 gp of 450 gp           |
   | The Goblin Warren       | two Potions of Healing, the boss's Silver Chain of Office (art, 25 gp), Gilded Idol (art, 250 gp), Malachite Chip (gem, 10 gp), 9 gp 6 sp                                | 394 gp 6 sp of 450 gp      |
-  | The Ravager's Tower     | three Potions of Healing, Gilt-bronze Icon (art, 250 gp), Tiger-eye Earrings (gem, 10 gp), 38 gp, the Gnoll Ravager's 11 sp (#348)                                     | 449 gp 1 sp of 450 gp      |
+  | The Ravager's Tower     | three Potions of Healing, Gilt-bronze Icon (art, 250 gp), Tiger-eye Earrings (gem, 10 gp), 38 gp, the Gnoll Ravager's 11 sp (#348)                                       | 449 gp 1 sp of 450 gp      |
   | The Wolfstone Hillfort  | four Potions of Healing, Silver Sheep Bell (art, 25 gp), Silver-gilt Drinking Horn (art, 250 gp), Bloodstone and Moonstone (gem, 50 gp each), 55 gp, the Reaver's 6 gp   | 586 gp of 600 gp           |
   | The Thornwood Lodge     | four Potions of Healing, Gilt Hunting Cup (art, 25 gp), Gold-chased Hunting Horn (art, 250 gp), Topaz and Jade (gem, 100 gp each), 60 gp, Captain Hesk's 8 gp            | 743 gp of 750 gp           |
 
@@ -805,27 +805,27 @@ A module the harness can't play fails the gate with the harness's named reason. 
 
 **The casters (#348).** The harness plays a Cleric's healing spells (#339): below its style's heal threshold it casts one on itself before a potion, in a fight a bonus-action spell (Healing Word) first, which leaves its action to attack, and out of a fight the one with the most healing dice (Cure Wounds), after a long or short rest it may take. From level 2 it spends Channel Divinity by policy (#341): Turn Undead whenever an undead foe is left to turn, before any attack; turned foes are attacked only once every foe is turned, so the others stay out of the fight; Divine Spark's radiant damage at the weakest untouched foe while it leaves a use for Turn Undead or Preserve Life; and, below the heal threshold, Preserve Life after its healing spells and before a potion. It never leaves a room with every foe turned. A Wizard (#340) casts Mage Armor on itself once, outside a fight before its first one (a base-AC spell that outlasts a fight), attacks with a cantrip, a ranged one (Fire Bolt) in the opening round and a melee one from round 2, when a ranged spell attack has disadvantage, and answers a hit with Shield at its lowest slot, only when Shield's +5 AC turns the hit into a miss. Every other spell is cast by the casting policies (see Balance harness). Every run records the spells cast and the uses of Channel Divinity spent. Until #348 the gate reported the Cleric (#339) and the Wizard (#340) on 50 seeds and judged neither; since #348 it judges both on the same 200 seeds as every class. The weakest survival of each caster, seeded (and when every check fails, where different), at the level and with the kit it survives least with, with the policy that kit played (a level below 3 is reported, not judged):
 
-| Module                  | Declared | Cleric                          | Wizard                         |
-| ----------------------- | -------- | ------------------------------- | ------------------------------ |
-| The Robbers' Barrow     | Medium   | 79.5% spend-early (reported)    | 88.0% spend-early (reported)   |
-| The Smugglers' Cellar   | Hard     | 69.5% spend-early (reported)    | 78.5% spend-early (reported)   |
-| The Tinker's Toll       | Hard     | 75.5% spend-early (reported)    | 75.0% spend-early (reported)   |
-| The Shepherd's Bothy    | Easy     | 94.5% conserve (reported)       | 95.5% conserve (reported)      |
-| The Abandoned Delve     | Medium   | 88.5% spend-early (reported)    | 80.0% (78.0%) spend-early (reported) |
+| Module                  | Declared | Cleric                               | Wizard                               |
+| ----------------------- | -------- | ------------------------------------ | ------------------------------------ |
+| The Robbers' Barrow     | Medium   | 79.5% spend-early (reported)         | 88.0% spend-early (reported)         |
+| The Smugglers' Cellar   | Hard     | 69.5% spend-early (reported)         | 78.5% spend-early (reported)         |
+| The Tinker's Toll       | Hard     | 75.5% spend-early (reported)         | 75.0% spend-early (reported)         |
+| The Shepherd's Bothy    | Easy     | 94.5% conserve (reported)            | 95.5% conserve (reported)            |
+| The Abandoned Delve     | Medium   | 88.5% spend-early (reported)         | 80.0% (78.0%) spend-early (reported) |
 | The Warden's Crypt      | Medium   | 90.0% (91.5%) spend-early (reported) | 82.5% (84.5%) spend-early (reported) |
-| The Gravedigger's Lodge | Hard     | 44.0% spend-early (reported)    | 69.0% spend-early (reported)   |
-| The Silvervein Mine     | Medium   | 94.5% spend-early (level 3)     | 98.5% conserve (level 3)       |
-| The Drowned Chapel      | Easy     | 99.0% spend-early               | 99.5% spend-early              |
-| The Goblin Warren       | Medium   | 93.0% conserve                  | 91.5% conserve                 |
-| The Ravager's Tower     | Hard     | 79.5% spend-early               | 84.5% spend-early              |
-| The Counting-House      | Medium   | 95.0% conserve                  | 94.5% (94.0%) conserve         |
-| The Wolfstone Hillfort  | Medium   | 95.0% conserve                  | 93.5% spend-early              |
-| The Thornwood Lodge     | Hard     | 87.0% conserve                  | 95.0% spend-early              |
-| The Hollow Chantry      | Medium   | 96.5% spend-early               | 90.0% (92.0%) spend-early      |
+| The Gravedigger's Lodge | Hard     | 44.0% spend-early (reported)         | 69.0% spend-early (reported)         |
+| The Silvervein Mine     | Medium   | 94.5% spend-early (level 3)          | 98.5% conserve (level 3)             |
+| The Drowned Chapel      | Easy     | 99.0% spend-early                    | 99.5% spend-early                    |
+| The Goblin Warren       | Medium   | 93.0% conserve                       | 91.5% conserve                       |
+| The Ravager's Tower     | Hard     | 79.5% spend-early                    | 84.5% spend-early                    |
+| The Counting-House      | Medium   | 95.0% conserve                       | 94.5% (94.0%) conserve               |
+| The Wolfstone Hillfort  | Medium   | 95.0% conserve                       | 93.5% spend-early                    |
+| The Thornwood Lodge     | Hard     | 87.0% conserve                       | 95.0% spend-early                    |
+| The Hollow Chantry      | Medium   | 96.5% spend-early                    | 90.0% (92.0%) spend-early            |
 
 The owner approved two module changes for the casters (11 October 2026): the Ravager's Tower's dead pedlar hides a third Potion of Healing (the Cleric at level 3 76.5% → 79.5%; the earrings became a 10 gp gem and the cashbox 38 gp to stay within budget), and the Wolfstone Hillfort became a level-4 module, Medium (the weakest level-3 Cleric survived its dire wolf 74.0%, and neither a potion nor another beast fixed that without breaking the other classes). Before #348 the harness cast no levelled damage or control spell and the Cleric never cast Sacred Flame: the weakest Cleric then survived 21–92% and the Wizard 54–93%, failing 13 and 11 of the fourteen modules. A conserving caster's two level-1 slots go to healing or Shield, so at level 1 spending them early wins more fights (the Cleric in the Smugglers' Cellar 44.5% → 69.5%); conserving wins the longer modules.
 
-**Formats (#348).** The library (25), save (50) and trace (44) formats bump: a sheet may no longer prepare or hold Sleep or Hold Person (only the test-only caster may), and a turned undead's condition carries the save it repeats. The prompt (v34) says a turned undead saves again at the end of each of its turns.
+**Formats (#348).** The library (25), save (50) and trace (44) formats bump: a sheet may no longer prepare or hold Sleep or Hold Person (only the test-only caster may, until #369 below), and a turned undead's condition carries the save it repeats. The prompt (v34) says a turned undead saves again at the end of each of its turns.
 
 **Formats (#369).** The library (26), save (51) and trace (45) formats bump: a Wizard's sheet may hold and prepare Sleep and Hold Person again, a Cleric's Hold Person, and a condition's save may carry what gives it advantage (Sleep's). The prompt (v35) says Sleep's target saves with advantage, and the cast tool's description of Sleep says so.
 

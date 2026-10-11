@@ -89,7 +89,7 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "mind-spike",
     "blur",
     "mirror-image",
-    // Back in #369, as written.
+    // Back in #369, as written; last of its level, as Sleep is.
     "hold-person",
     // 3rd level (#344, owner-approved).
     "fireball",
