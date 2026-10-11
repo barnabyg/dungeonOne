@@ -72,6 +72,13 @@ import {
 } from "./equipment-5e.js";
 import { CLERIC } from "./cleric-5e.js";
 import { FIGHTER } from "./fighter-5e.js";
+import {
+  copyCost,
+  heldItemName,
+  readHeldMagicItems,
+  rechargedBetweenAdventures,
+  type HeldMagicItem,
+} from "./magic-items-5e.js";
 import type { RandomSource } from "./random.js";
 import { ROGUE } from "./rogue-5e.js";
 import {
@@ -205,6 +212,8 @@ export type Possessions = Readonly<{
   treasure: readonly TreasureRecord[];
   /** Its coin, in copper. */
   purse: number;
+  /** The spell scrolls and wands it holds (#346). */
+  magicItems: readonly HeldMagicItem[];
 }>;
 
 /**
@@ -286,6 +295,12 @@ export type CharacterSheet = Readonly<{
    * class has one: it prepares only these.
    */
   spellbook?: readonly SpellId[];
+  /**
+   * The spells copied into its spellbook from scrolls (#346), beyond those
+   * `spellbook` holds by level; present only for a class with a spellbook.
+   * It prepares these too.
+   */
+  copiedSpells?: readonly SpellId[];
   /** The kinds of weapon whose mastery it can use. */
   weaponMasteries: readonly WeaponId[];
   /** What it has equipped; see `Possessions`. */
@@ -298,7 +313,12 @@ export type CharacterSheet = Readonly<{
   treasure: readonly TreasureRecord[];
   /** The coin the character holds, in copper. */
   purse: number;
-  /** The ids of the treasure, coin and gear found, so none is found twice. */
+  /** The spell scrolls and wands the character holds (#346). */
+  magicItems: readonly HeldMagicItem[];
+  /**
+   * The ids of the treasure, coin, gear, scrolls and wands found, so none is
+   * found twice.
+   */
   finds: readonly string[];
   /** The ids of the XP awards credited, so none is credited twice. */
   xpAwards: readonly string[];
@@ -322,6 +342,7 @@ const SHEET_KEYS = [
   "ammunition",
   "treasure",
   "purse",
+  "magicItems",
   "finds",
   "xpAwards",
 ];
@@ -646,7 +667,7 @@ export function alwaysPrepared(
  * doesn't always have prepared.
  */
 export function preparableSpells(
-  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook" | "copiedSpells">,
 ): readonly SpellId[] {
   const definition = classOf(sheet);
   const casting = definition.spellcasting;
@@ -655,7 +676,7 @@ export function preparableSpells(
   }
   const highest = casting.slots[sheet.level].length;
   const always = alwaysPrepared(definition, sheet.level);
-  return (sheet.spellbook ?? casting.list).filter(
+  return (spellbookOf(sheet) ?? casting.list).filter(
     (id) =>
       SPELLS[id].level >= 1 &&
       SPELLS[id].level <= highest &&
@@ -717,10 +738,11 @@ export function spellbookOwed(
  * first and then in the list's order.
  */
 export function spellbookOptions(
-  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook" | "copiedSpells">,
 ): readonly SpellId[] {
   const casting = classOf(sheet).spellcasting;
-  const book = sheet.spellbook;
+  // A spell copied from a scroll (#346) is in the book already.
+  const book = spellbookOf(sheet);
   if (casting === undefined || book === undefined) {
     return [];
   }
@@ -1189,6 +1211,56 @@ function validateSpellbook(
 }
 
 /**
+ * The spells a sheet copied into its spellbook from scrolls (#346): only
+ * for a class with a spellbook, different levelled spells from its list,
+ * each of a level it has slots for and none already in `spellbook`.
+ */
+function validateCopiedSpells(
+  definition: ClassDefinition,
+  level: Level,
+  spellbook: readonly SpellId[] | undefined,
+  value: unknown,
+): readonly SpellId[] {
+  if (value === undefined) {
+    return [];
+  }
+  const casting = definition.spellcasting;
+  if (spellbook === undefined || casting === undefined) {
+    throw new Error(`A ${definition.name} has no spellbook to copy into.`);
+  }
+  const highest = casting.slots[level].length;
+  if (
+    !Array.isArray(value) ||
+    new Set(value).size !== value.length ||
+    !value.every(
+      (id) =>
+        isSpellId(id) &&
+        casting.list.includes(id) &&
+        SPELLS[id].level >= 1 &&
+        SPELLS[id].level <= highest &&
+        !spellbook.includes(id),
+    )
+  ) {
+    throw new Error(
+      `A ${definition.name}'s copied spells are different levelled spells from its list that it has slots for, none already in its spellbook.`,
+    );
+  }
+  return value as SpellId[];
+}
+
+/**
+ * Every spell in `sheet`'s spellbook (#340): those written by level, then
+ * those copied from scrolls (#346). Undefined for a class without one.
+ */
+export function spellbookOf(
+  sheet: Pick<CharacterSheet, "spellbook" | "copiedSpells">,
+): readonly SpellId[] | undefined {
+  return sheet.spellbook === undefined
+    ? undefined
+    : [...sheet.spellbook, ...(sheet.copiedSpells ?? [])];
+}
+
+/**
  * How many cantrips and prepared spells a caster of `level` has (#336):
  * its class's counts, with its Divine Order's extra cantrips (#339).
  */
@@ -1575,6 +1647,7 @@ export function buildCharacter(
     ammunition: { arrows: 0, bolts: 0 },
     treasure: [],
     purse: 0,
+    magicItems: [],
     finds: [],
     xpAwards: [],
   };
@@ -1867,7 +1940,10 @@ export function validateCharacter(value: unknown): CharacterSheet {
     !isRecord(value) ||
     !SHEET_KEYS.every((key) => Object.hasOwn(value, key)) ||
     !Object.keys(value).every(
-      (key) => SHEET_KEYS.includes(key) || CLASS_CHOICE_KEYS.includes(key),
+      (key) =>
+        SHEET_KEYS.includes(key) ||
+        CLASS_CHOICE_KEYS.includes(key) ||
+        key === "copiedSpells",
     )
   ) {
     throw new Error("Invalid character sheet.");
@@ -1924,6 +2000,13 @@ export function validateCharacter(value: unknown): CharacterSheet {
   if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
     throw new Error("Invalid purse.");
   }
+  if (
+    !Array.isArray(sheet.magicItems) ||
+    sheet.magicItems.length > MAX_EARNED
+  ) {
+    throw new Error("Invalid magic items.");
+  }
+  readHeldMagicItems(sheet.magicItems, TREASURE_ID);
   validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
   validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
   if (sheet.level !== levelForXp(sheet.xp, classMaxLevel(definition))) {
@@ -1932,14 +2015,21 @@ export function validateCharacter(value: unknown): CharacterSheet {
   // A new level may leave Expertise (#343) and spells (#341, `spellsOwed`)
   // still to choose, and spells to write into a spellbook (#343).
   validateSheetExpertise(definition, sheet.level, skills, sheet.expertise);
+  const spellbook = validateSpellbook(
+    definition,
+    sheet.level,
+    sheet.spellbook,
+    "sheet",
+  );
+  const copied = validateCopiedSpells(
+    definition,
+    sheet.level,
+    spellbook,
+    sheet.copiedSpells,
+  );
   validateSpellChoices(definition, sheet.level, sheet.spells, {
     divineOrder: validateDivineOrder(definition, sheet.divineOrder),
-    spellbook: validateSpellbook(
-      definition,
-      sheet.level,
-      sheet.spellbook,
-      "sheet",
-    ),
+    spellbook: spellbook === undefined ? undefined : [...spellbook, ...copied],
     partial: true,
   });
   // Each level choice (#286) is an Ability Score Improvement and its level's
@@ -2145,6 +2235,7 @@ type ProfiledSheet = Pick<
   | "spells"
   | "divineOrder"
   | "spellbook"
+  | "copiedSpells"
   | "equipment"
   | "weaponMasteries"
 >;
@@ -2201,6 +2292,7 @@ const PROFILED_FIELDS = Object.keys({
   spells: true,
   divineOrder: true,
   spellbook: true,
+  copiedSpells: true,
   equipment: true,
   weaponMasteries: true,
 } satisfies Record<keyof ProfiledSheet, true>) as (keyof ProfiledSheet)[];
@@ -2393,10 +2485,10 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
             cantrips: sheet.spells.cantrips,
             prepared: sheet.spells.prepared,
             slots: casting.slots[level],
-            // A Wizard's spellbook (#340).
+            // A Wizard's spellbook (#340), with what it copied (#346).
             ...(sheet.spellbook === undefined
               ? {}
-              : { spellbook: sheet.spellbook }),
+              : { spellbook: spellbookOf(sheet)! }),
             // The Life Domain's (#341).
             ...(always.length === 0 ? {} : { alwaysPrepared: always }),
             ...(has("disciple-of-life")
@@ -2460,6 +2552,7 @@ export function possessionsOf(sheet: CharacterSheet): Possessions {
     ammunition: sheet.ammunition,
     treasure: sheet.treasure,
     purse: sheet.purse,
+    magicItems: sheet.magicItems,
   };
 }
 
@@ -2536,6 +2629,8 @@ export function settleCharacter(
       ({ id, name, description, value }) => ({ id, name, description, value }),
     ),
     purse: settlement.possessions.purse,
+    // The rest between adventures gives each wand all its charges (#346).
+    magicItems: rechargedBetweenAdventures(settlement.possessions.magicItems),
     finds: [...sheet.finds, ...finds],
     xpAwards: [...sheet.xpAwards, ...awards.map(({ id }) => id)],
   });
@@ -3105,6 +3200,88 @@ export function addToSpellbook(
   return validateCharacter({
     ...sheet,
     spellbook: [...sheet.spellbook, ...(written as SpellId[])],
+  });
+}
+
+/**
+ * Why `sheet` can't copy the spell scroll it holds as `scrollId` into its
+ * spellbook (#346), or undefined when it can: it needs a spellbook, the
+ * scroll's spell on its class's list, of a level it has slots for and not
+ * in its spellbook yet, and the coin.
+ */
+export function copyScrollRefusal(
+  sheet: CharacterSheet,
+  scrollId: string,
+): string | undefined {
+  const scroll = sheet.magicItems.find(({ id }) => id === scrollId);
+  if (scroll?.scroll === undefined) {
+    return `${sheet.name} holds no such spell scroll.`;
+  }
+  const book = spellbookOf(sheet);
+  const casting = classOf(sheet).spellcasting;
+  if (book === undefined || casting === undefined) {
+    return `${sheet.name} has no spellbook to copy a spell into.`;
+  }
+  const spell = SPELLS[scroll.scroll];
+  if (!casting.list.includes(scroll.scroll)) {
+    return `${spell.name} isn't a ${classOf(sheet).name} spell.`;
+  }
+  if (book.includes(scroll.scroll)) {
+    return `${spell.name} is in the spellbook already.`;
+  }
+  if (spell.level > casting.slots[sheet.level].length) {
+    return `${spell.name} is ${ordinal(spell.level)}-level, and ${sheet.name} has no slots of that level yet.`;
+  }
+  const cost = copyCost(scroll.scroll);
+  return sheet.purse < cost
+    ? `Copying ${spell.name} costs ${formatCoins(cost)}, and ${sheet.name} has ${sheet.purse === 0 ? "no coin" : formatCoins(sheet.purse)}.`
+    : undefined;
+}
+
+/**
+ * `sheet` with the spell of the scroll it holds as `scrollId` copied into
+ * its spellbook between adventures (#346, SRD 5.2): 50 gp a spell level
+ * leaves its purse, and copying uses up the scroll. It may prepare the spell
+ * from then on. Throws with `copyScrollRefusal`'s reason when it can't.
+ */
+export function copyScroll(
+  sheet: CharacterSheet,
+  scrollId: string,
+): CharacterSheet {
+  const refusal = copyScrollRefusal(sheet, scrollId);
+  if (refusal !== undefined) {
+    throw new Error(refusal);
+  }
+  const scroll = sheet.magicItems.find(({ id }) => id === scrollId)!;
+  const spell = scroll.scroll!;
+  return validateCharacter({
+    ...sheet,
+    copiedSpells: [...(sheet.copiedSpells ?? []), spell],
+    purse: sheet.purse - copyCost(spell),
+    magicItems: sheet.magicItems.filter(({ id }) => id !== scrollId),
+  });
+}
+
+/** The scrolls `sheet` could copy into its spellbook now (#346), with what each costs. */
+export function copyableScrolls(sheet: CharacterSheet): readonly Readonly<{
+  id: string;
+  name: string;
+  cost: number;
+  reason?: string;
+}>[] {
+  return sheet.magicItems.flatMap((item) => {
+    if (item.scroll === undefined || spellbookOf(sheet) === undefined) {
+      return [];
+    }
+    const reason = copyScrollRefusal(sheet, item.id);
+    return [
+      {
+        id: item.id,
+        name: heldItemName(item),
+        cost: copyCost(item.scroll),
+        ...(reason === undefined ? {} : { reason }),
+      },
+    ];
   });
 }
 

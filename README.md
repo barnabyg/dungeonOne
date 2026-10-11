@@ -418,6 +418,18 @@ mastered keeps its mastery. Its entry under **You carry** explains the bonus,
 and the sheet lists it under **Magic items**. No merchant sells or buys magic
 items.
 
+### Spell scrolls and wands
+
+A spell scroll casts its spell with no spell slot: read it from its entry under
+**You carry**, or choose it in the fight's **Cast** list. Only a character whose
+class has the spell on its list can read it, so a Fighter or Rogue reads none
+and a Cleric can't read a Wizard spell; a spell above your spell slots needs a
+check first. Reading takes the spell's usual casting time and uses the scroll up. A Wand of Magic
+Missiles works for anyone: each charge casts Magic Missile a level higher, a
+long rest gives some charges back, and between adventures it is fully charged.
+You keep the scrolls and wands you get out with. Between adventures a Wizard can
+copy a scroll's spell into the spellbook on the sheet, for 50 gp a spell level.
+
 ### Bows and crossbows
 
 The shortbow, light crossbow and longbow are bought from merchants or found;
@@ -475,14 +487,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 23.
+- The character library (`characters.json` by default) is format version 24.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 48.
+  `characters-adventures` directory beside the library, in format version 49.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 29. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 30. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline.
 

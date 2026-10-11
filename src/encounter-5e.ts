@@ -558,6 +558,8 @@ export type Combatant = DamageDefenses &
     potions?: readonly Potion[];
     /** Its spellcasting (#336), for a combatant that casts spells. */
     spellcasting?: CombatSpellcasting;
+    /** The spell scrolls and wands it holds (#346), which cast spells. */
+    magicItems?: readonly CombatMagicItem[];
     /** The ongoing spell effects on it (#337). */
     effects?: readonly ActiveEffect[];
     /** It wears body armour (#337): a base-AC effect gives it nothing. */
@@ -610,6 +612,25 @@ export type Healing = Readonly<{
 export type Potion = Readonly<{ id: string; name: string; healing: Healing }>;
 
 export type FeatureUses = Readonly<{ uses: number; max: number }>;
+
+/**
+ * A spell scroll or wand a combatant holds (#346): the spell it casts with
+ * no slot, and for a scroll whether the spell is on the holder's class's
+ * spell list (only then can it read it), for a wand its charges and the
+ * highest level they can raise its spell to.
+ */
+export type CombatMagicItem = Readonly<
+  { id: string; name: string; spell: SpellDefinition } & (
+    | {
+        kind: "scroll";
+        onList: boolean;
+        /** The scroll's own save DC and attack bonus (SRD 5.2). */
+        saveDc: number;
+        attackBonus: number;
+      }
+    | { kind: "wand"; charges: number; max: number; maxLevel: number }
+  )
+>;
 
 /**
  * A combatant's spellcasting (#336): its spell attack bonus and save DC, the
@@ -993,6 +1014,12 @@ export type CastAction = Readonly<{
   damageType?: DamageType;
   /** Bestow Curse's curse (#342), chosen at casting. */
   curse?: CurseId;
+  /**
+   * The spell scroll or wand it is cast from (#346), by the caster's id for
+   * it: no slot is spent. A scroll's spell is cast at its own level (no
+   * `slotLevel`); a wand's at `slotLevel`, a charge for each level.
+   */
+  itemId?: string;
 }>;
 
 export type AttackEvent = Readonly<{
@@ -1232,6 +1259,45 @@ export type CastEvent = Readonly<{
   castingTime: CastingTime;
   slot?: Readonly<{ level: number; left: number; max: number }>;
   targetIds: readonly string[];
+  /**
+   * The scroll or wand it was cast from (#346), and for a wand the charges
+   * spent and left of its most.
+   */
+  item?: Readonly<{
+    id: string;
+    name: string;
+    kind: "scroll" | "wand";
+    charges?: Readonly<{ spent: number; left: number; max: number }>;
+  }>;
+}>;
+
+/**
+ * Reading a scroll whose spell is above the highest level of slot its
+ * reader has (#346, SRD 5.2): d20 + its spellcasting modifier against 10 +
+ * the spell's level. On a failure the scroll is used up with no effect.
+ */
+export type ScrollCheckEvent = Readonly<{
+  type: "scroll-check";
+  combatantId: string;
+  item: string;
+  spell: string;
+  d20: number;
+  modifier: number;
+  total: number;
+  dc: number;
+  success: boolean;
+}>;
+
+/**
+ * A wand's last charge spent (#346): a d20, and on a 1 it crumbles to ash
+ * and is gone.
+ */
+export type WandLastChargeEvent = Readonly<{
+  type: "wand-last-charge";
+  combatantId: string;
+  item: string;
+  roll: number;
+  crumbled: boolean;
 }>;
 
 /**
@@ -1571,6 +1637,8 @@ export type EncounterEvent =
   | ReactionOfferedEvent
   | PotionEvent
   | CastEvent
+  | ScrollCheckEvent
+  | WandLastChargeEvent
   | SpellAreaEvent
   | SpellSaveEvent
   | SpellConditionEvent
@@ -1643,6 +1711,9 @@ export type EncounterRefusalCode =
   | "no-arrows"
   | "no-bolts"
   | "no-spellcasting"
+  | "no-item"
+  | "not-on-list"
+  | "no-charges"
   | "unknown-spell"
   | "reaction-spell"
   | "slot-level"
@@ -4490,6 +4561,97 @@ function spellOf(
   return actor.spellcasting?.spells.find(({ id }) => id === spellId);
 }
 
+/** The scroll or wand `actor` holds as `itemId` (#346), if it holds it. */
+function magicItemOf(
+  actor: Combatant,
+  itemId: string | undefined,
+): CombatMagicItem | undefined {
+  return itemId === undefined
+    ? undefined
+    : actor.magicItems?.find(({ id }) => id === itemId);
+}
+
+/**
+ * The spell `action` casts (#336): one `actor` knows or has prepared, or
+ * the spell of the scroll or wand it casts from (#346).
+ */
+function castSpellOf(
+  actor: Combatant,
+  action: Pick<CastAction, "spellId" | "itemId">,
+): SpellDefinition | undefined {
+  if (action.itemId === undefined) {
+    return spellOf(actor, action.spellId);
+  }
+  const item = magicItemOf(actor, action.itemId);
+  return item?.spell.id === action.spellId ? item.spell : undefined;
+}
+
+/**
+ * The levels a scroll's or wand's spell could be cast at (#346): a
+ * scroll's at its own level, named by no slot level; a wand's from its
+ * spell's level up to as many charges as it has, and no higher than its
+ * highest. None when it has no charges.
+ */
+export function itemCastLevels(
+  item: CombatMagicItem,
+): readonly (number | undefined)[] {
+  if (item.kind === "scroll") {
+    return [undefined];
+  }
+  const highest = Math.min(item.charges, item.maxLevel);
+  return Array.from(
+    { length: Math.max(0, highest - item.spell.level + 1) },
+    (_, index) => item.spell.level + index,
+  );
+}
+
+/**
+ * Why `actor` can't cast from the scroll or wand `action` names (#346), or
+ * undefined when it can: it must hold it, with the spell it names; a
+ * scroll's spell must be on its class's list and is cast at its own level;
+ * a wand needs a charge for each level it is cast at.
+ */
+function itemRefusal(
+  actor: Combatant,
+  action: Pick<CastAction, "spellId" | "slotLevel" | "itemId">,
+): EncounterRejection | undefined {
+  const item = magicItemOf(actor, action.itemId);
+  if (item === undefined) {
+    return refused("no-item", "You don't carry that scroll or wand.");
+  }
+  if (item.spell.id !== action.spellId) {
+    return refused(
+      "unknown-spell",
+      `The ${item.name} casts ${item.spell.name}, nothing else.`,
+    );
+  }
+  if (item.kind === "scroll") {
+    if (!item.onList) {
+      return refused(
+        "not-on-list",
+        `${item.spell.name} isn't on your class's spell list, so you can't read the scroll.`,
+      );
+    }
+    return action.slotLevel === undefined
+      ? undefined
+      : refused(
+          "slot-level",
+          `A scroll casts ${item.spell.name} at its own level: it takes no slot level.`,
+        );
+  }
+  if (item.charges === 0) {
+    return refused("no-charges", `The ${item.name} has no charges left.`);
+  }
+  const level = action.slotLevel;
+  const highest = Math.min(item.charges, item.maxLevel);
+  return level !== undefined && itemCastLevels(item).includes(level)
+    ? undefined
+    : refused(
+        "slot-level",
+        `The ${item.name} casts ${item.spell.name} at 1st level for 1 charge and a level higher for each charge more: from 1st to ${ordinal(highest)} level now.`,
+      );
+}
+
 /**
  * The slot levels `actor` could cast `spell` with (#336): none for a
  * cantrip; for a levelled spell, its own level up to the highest slot level
@@ -4520,15 +4682,25 @@ export function slotLevels(
 function spellRefusal(
   state: EncounterState,
   actor: Combatant,
-  action: Pick<CastAction, "spellId" | "slotLevel" | "damageType" | "curse">,
+  action: Pick<
+    CastAction,
+    "spellId" | "slotLevel" | "damageType" | "curse" | "itemId"
+  >,
   reacting = false,
   outside = false,
 ): EncounterRejection | undefined {
+  // A scroll or wand (#346) casts with no slot, a wand even for a
+  // combatant that casts no spells.
+  const fromItem = action.itemId !== undefined;
   const casting = actor.spellcasting;
-  if (casting === undefined) {
+  if (casting === undefined && !fromItem) {
     return refused("no-spellcasting", "You can't cast spells.");
   }
-  const spell = spellOf(actor, action.spellId);
+  const itemProblem = fromItem ? itemRefusal(actor, action) : undefined;
+  if (itemProblem !== undefined) {
+    return itemProblem;
+  }
+  const spell = castSpellOf(actor, action);
   if (spell === undefined) {
     return refused(
       "unknown-spell",
@@ -4582,15 +4754,17 @@ function spellRefusal(
       );
     }
   }
+  // A scroll or wand casts in the spell's own time (#346, SRD 5.2).
+  const { castingTime } = spell;
   // A spell cast in minutes (#341, Prayer of Healing) needs time outside a
   // fight.
-  if (spell.castingTime === "minutes" && !outside) {
+  if (castingTime === "minutes" && !outside) {
     return refused(
       "not-in-fight",
       `${spell.name} takes ten minutes to cast: only outside a fight.`,
     );
   }
-  if ((spell.castingTime === "reaction") !== reacting) {
+  if ((castingTime === "reaction") !== reacting) {
     return reacting
       ? refused(
           "reaction-pending",
@@ -4602,7 +4776,9 @@ function spellRefusal(
         );
   }
   const { slotLevel } = action;
-  if (spell.level === 0) {
+  if (fromItem) {
+    // `itemRefusal` checked its level: no slot is spent.
+  } else if (spell.level === 0) {
     if (slotLevel !== undefined) {
       return refused(
         "slot-level",
@@ -4619,7 +4795,7 @@ function spellRefusal(
       `${spell.name} needs a spell slot of ${ordinal(spell.level)} level or higher.`,
     );
   } else {
-    const slots = casting.slots[slotLevel - 1];
+    const slots = casting!.slots[slotLevel - 1];
     if (slots === undefined || slots.max === 0) {
       return refused(
         "no-slot",
@@ -4639,13 +4815,13 @@ function spellRefusal(
       );
     }
   }
-  if (spell.castingTime === "action" && state.economy.actions === 0) {
+  if (castingTime === "action" && state.economy.actions === 0) {
     return refused(
       "action-used",
       "You have already used your action this turn.",
     );
   }
-  return spell.castingTime === "bonus-action" && !state.economy.bonusAction
+  return castingTime === "bonus-action" && !state.economy.bonusAction
     ? BONUS_ACTION_USED
     : undefined;
 }
@@ -4754,7 +4930,7 @@ function castRefusal(
   actor: Combatant,
   action: Pick<
     CastAction,
-    "spellId" | "slotLevel" | "targetIds" | "damageType" | "curse"
+    "spellId" | "slotLevel" | "targetIds" | "damageType" | "curse" | "itemId"
   >,
   reacting = false,
   outside = false,
@@ -4763,7 +4939,7 @@ function castRefusal(
   if (refusal !== undefined) {
     return refusal;
   }
-  const spell = spellOf(actor, action.spellId)!;
+  const spell = castSpellOf(actor, action)!;
   const { targetIds } = action;
   // One target, or an area spell's chosen few (#338), each once.
   if (targetIds.length === 0) {
@@ -4843,10 +5019,17 @@ export function resistsDamage(spell: SpellDefinition): boolean {
   );
 }
 
-/** Whether `actor` can cast any of its spells at anyone now (#336). */
+/**
+ * Whether `actor` can cast any of its spells at anyone now (#336), or any
+ * spell of a scroll or wand it holds (#346).
+ */
 function canCast(state: EncounterState, actor: Combatant): boolean {
-  return (actor.spellcasting?.spells ?? []).some((spell) =>
-    slotLevels(actor, spell).some((slotLevel) =>
+  const castable = (
+    spell: SpellDefinition,
+    levels: readonly (number | undefined)[],
+    itemId?: string,
+  ) =>
+    levels.some((slotLevel) =>
       state.combatants.some(
         (target) =>
           castRefusal(state, actor, {
@@ -4857,9 +5040,17 @@ function canCast(state: EncounterState, actor: Combatant): boolean {
               ? {}
               : { damageType: spell.damageTypes[0]! }),
             ...(spell.effect.kind === "curse" ? { curse: CURSES[0] } : {}),
+            ...(itemId === undefined ? {} : { itemId }),
           }) === undefined,
       ),
-    ),
+    );
+  return (
+    (actor.spellcasting?.spells ?? []).some((spell) =>
+      castable(spell, slotLevels(actor, spell)),
+    ) ||
+    (actor.magicItems ?? []).some((item) =>
+      castable(item.spell, itemCastLevels(item), item.id),
+    )
   );
 }
 
@@ -5049,10 +5240,21 @@ function spellDamage(
 }
 
 /**
- * Casts `action`, which `castRefusal` has accepted (#336): the slot (a
- * levelled spell's) and the action or bonus action are spent (a reaction
- * spell's reaction is its answer's, #337), then the effect lands. The
- * fight is not concluded here.
+ * The spellcasting a wand's spell uses in the hands of a combatant that
+ * casts no spells (#346): Magic Missile needs no attack bonus or save DC.
+ */
+const ITEM_CASTING: CombatSpellcasting = {
+  attackBonus: 0,
+  saveDc: 0,
+  modifier: 0,
+  spells: [],
+  slots: [],
+};
+
+/**
+ * Casts `action`, which `castRefusal` has accepted (#336), as
+ * `castAndLand` does; then, when it spent a wand's last charge (#346),
+ * rolls a d20 for the wand, which crumbles on a 1.
  */
 function castSpell(
   state: EncounterState,
@@ -5061,14 +5263,109 @@ function castSpell(
   random: Roller,
   events: EncounterEvent[],
 ): EncounterState {
-  const casting = actor.spellcasting!;
-  const spell = spellOf(actor, action.spellId)!;
+  const landed = castAndLand(state, actor, action, random, events);
+  // A scroll's own save DC and attack bonus (SRD 5.2) last only its cast:
+  // the reader's own come back. Lasting effects that roll again later
+  // (Spirit Guardians, Slow's repeat saves) use the reader's.
+  const next =
+    magicItemOf(actor, action.itemId)?.kind === "scroll"
+      ? {
+          ...landed,
+          combatants: landed.combatants.map((candidate) =>
+            candidate.id === actor.id
+              ? { ...candidate, spellcasting: actor.spellcasting! }
+              : candidate,
+          ),
+        }
+      : landed;
+  const item = magicItemOf(combatant(next, actor.id), action.itemId);
+  if (item?.kind !== "wand" || item.charges > 0) {
+    return next;
+  }
+  const roll = random.roll(20);
+  events.push({
+    type: "wand-last-charge",
+    combatantId: actor.id,
+    item: item.name,
+    roll,
+    crumbled: roll === 1,
+  });
+  return roll !== 1
+    ? next
+    : {
+        ...next,
+        combatants: next.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? {
+                ...candidate,
+                magicItems: candidate.magicItems!.filter(
+                  ({ id }) => id !== item.id,
+                ),
+              }
+            : candidate,
+        ),
+      };
+}
+
+/**
+ * The highest level of spell slot `actor` has (#346): a scroll of a higher
+ * level needs a check to read.
+ */
+function highestSlotLevel(actor: Combatant): number {
+  return (actor.spellcasting?.slots ?? []).filter(({ max }) => max > 0).length;
+}
+
+/**
+ * Casts `action`, which `castRefusal` has accepted (#336): the slot (a
+ * levelled spell's) and the action or bonus action are spent (a reaction
+ * spell's reaction is its answer's, #337), then the effect lands. Cast from
+ * a scroll (#346), no slot is spent and the scroll is used up, and one of a
+ * level above its reader's slots lands only after a passed check; from a
+ * wand, a charge is spent for each level. The fight is not concluded here.
+ */
+function castAndLand(
+  state: EncounterState,
+  actor: Combatant,
+  action: CastAction,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const item = magicItemOf(actor, action.itemId);
+  // A scroll casts with its own save DC and attack bonus (SRD 5.2), the
+  // reader's spellcasting modifier otherwise.
+  const casting =
+    item?.kind === "scroll"
+      ? {
+          ...(actor.spellcasting ?? ITEM_CASTING),
+          saveDc: item.saveDc,
+          attackBonus: item.attackBonus,
+        }
+      : (actor.spellcasting ?? ITEM_CASTING);
+  const spell = castSpellOf(actor, action)!;
   const effect = effectAtSlot(spell, action.slotLevel);
-  const slotIndex = spell.level === 0 ? undefined : action.slotLevel! - 1;
+  const { castingTime } = spell;
+  const slotIndex =
+    item !== undefined || spell.level === 0 ? undefined : action.slotLevel! - 1;
   const slots = casting.slots.map((slot, index) =>
     index === slotIndex ? { ...slot, uses: slot.uses - 1 } : slot,
   );
-  const caster: Combatant = { ...actor, spellcasting: { ...casting, slots } };
+  // A wand spends a charge for each level, from its spell's own (#346).
+  const charges =
+    item?.kind === "wand" ? action.slotLevel! - spell.level + 1 : 0;
+  const caster: Combatant =
+    item === undefined
+      ? { ...actor, spellcasting: { ...casting, slots } }
+      : {
+          ...actor,
+          ...(item.kind === "scroll" ? { spellcasting: casting } : {}),
+          magicItems: actor.magicItems!.flatMap((held) =>
+            held.id !== item.id
+              ? [held]
+              : held.kind === "scroll"
+                ? []
+                : [{ ...held, charges: held.charges - charges }],
+          ),
+        };
   let spent: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
@@ -5078,11 +5375,11 @@ function castSpell(
     // the turn's actions, nor its one slot; nor does one cast in minutes
     // outside a fight (#341).
     economy:
-      spell.castingTime === "reaction" || spell.castingTime === "minutes"
+      castingTime === "reaction" || castingTime === "minutes"
         ? state.economy
         : {
             ...state.economy,
-            ...(spell.castingTime === "bonus-action"
+            ...(castingTime === "bonus-action"
               ? { bonusAction: false }
               : { actions: state.economy.actions - 1 }),
             slotSpent: state.economy.slotSpent || slotIndex !== undefined,
@@ -5094,7 +5391,7 @@ function castSpell(
     spellId: spell.id,
     spell: spell.name,
     level: spell.level,
-    castingTime: spell.castingTime,
+    castingTime,
     ...(slotIndex === undefined
       ? {}
       : {
@@ -5105,7 +5402,46 @@ function castSpell(
           },
         }),
     targetIds: action.targetIds,
+    ...(item === undefined
+      ? {}
+      : {
+          item: {
+            id: item.id,
+            name: item.name,
+            kind: item.kind,
+            ...(item.kind === "wand"
+              ? {
+                  charges: {
+                    spent: charges,
+                    left: item.charges - charges,
+                    max: item.max,
+                  },
+                }
+              : {}),
+          },
+        }),
   });
+  // A scroll above its reader's slots needs a check (#346, SRD 5.2): on a
+  // failure it is used up with no effect.
+  if (item?.kind === "scroll" && spell.level > highestSlotLevel(actor)) {
+    const d20 = random.roll(20);
+    const dc = 10 + spell.level;
+    const total = d20 + casting.modifier;
+    events.push({
+      type: "scroll-check",
+      combatantId: actor.id,
+      item: item.name,
+      spell: spell.name,
+      d20,
+      modifier: casting.modifier,
+      total,
+      dc,
+      success: total >= dc,
+    });
+    if (total < dc) {
+      return spent;
+    }
+  }
   // A spell aimed at a turned opponent ends its turning first (#341, D13).
   if (
     effect.kind !== "healing" &&
@@ -6239,7 +6575,7 @@ export function castOutsideFight(
 ):
   | Readonly<{ caster: Combatant; events: readonly EncounterEvent[] }>
   | Readonly<{ rejection: EncounterRejection }> {
-  const spell = spellOf(caster, action.spellId);
+  const spell = castSpellOf(caster, action);
   if (spell !== undefined && spell.castingTime !== "reaction") {
     const { effect } = spell;
     if (effect.kind === "buff") {

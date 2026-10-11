@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 23,
+  "formatVersion": 24,
   "revision": "00000000000000000000000000000000",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -45,6 +45,7 @@
         },
         "treasure": [],
         "purse": 2000,
+        "magicItems": [],
         "finds": [],
         "xpAwards": []
       },

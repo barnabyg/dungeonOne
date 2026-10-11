@@ -79,7 +79,9 @@ import {
   spellCounts,
   spellsOwed,
   learnableCantrips,
+  spellbookOf,
   spellbookOptions,
+  copyableScrolls,
   spellbookOwed,
   expertiseOptions,
   expertiseOwed,
@@ -89,6 +91,7 @@ import {
   type CreationChoices,
   type TreasureRecord,
 } from "./character-5e.js";
+import { heldItemName, heldItemText } from "./magic-items-5e.js";
 import type { ClassId } from "./class-5e.js";
 import {
   ABILITIES,
@@ -317,6 +320,8 @@ function libraryView(
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => {
       const levelUp = pendingLevelUp(sheet);
+      // The scrolls a Wizard may copy into its spellbook (#346).
+      const copyable = copyableScrolls(sheet);
       return {
         sheet,
         className: classOf(sheet).name,
@@ -324,13 +329,35 @@ function libraryView(
         purse: formatCoins(sheet.purse),
         carrying: characterCarrying(sheet),
         stowed: sheet.stowed.map(itemName),
-        // Each kind of magic item held, its bonus explained (#345).
-        magicItems: [...new Set([...sheet.equipment, ...sheet.stowed])].flatMap(
-          (id) => {
-            const text = magicItemText(id);
-            return text === undefined ? [] : [{ name: itemName(id), text }];
-          },
-        ),
+        // Each kind of magic item held, its bonus explained (#345), then
+        // each spell scroll and wand (#346), a scroll a Wizard may copy
+        // with its cost, or why it can't.
+        magicItems: [
+          ...[...new Set([...sheet.equipment, ...sheet.stowed])].flatMap(
+            (id) => {
+              const text = magicItemText(id);
+              return text === undefined ? [] : [{ name: itemName(id), text }];
+            },
+          ),
+          ...sheet.magicItems.map((item) => {
+            const copy = copyable.find(({ id }) => id === item.id);
+            return {
+              id: item.id,
+              name: heldItemName(item),
+              text: heldItemText(item),
+              ...(copy === undefined
+                ? {}
+                : {
+                    copy: {
+                      cost: formatCoins(copy.cost),
+                      ...(copy.reason === undefined
+                        ? {}
+                        : { reason: copy.reason }),
+                    },
+                  }),
+            };
+          }),
+        ],
         ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
           ammunitionCount(id, count),
         ),
@@ -365,7 +392,8 @@ function libraryView(
                 ...(sheet.spellbook === undefined
                   ? {}
                   : {
-                      spellbook: sheet.spellbook.map(spellView),
+                      // With the spells copied from scrolls (#346).
+                      spellbook: spellbookOf(sheet)!.map(spellView),
                       spellbookOwed: spellbookOwed(sheet),
                       writable: spellbookOptions(sheet).map(spellView),
                     }),
@@ -905,12 +933,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           !hasExactKeys(
             body,
             ["sessionId", "sequence", "spellId", "slotLevel", "targetIds"],
-            // Resistance's damage type (#339), Bestow Curse's curse (#342).
-            ["damageType", "curse"],
+            // Resistance's damage type (#339), Bestow Curse's curse (#342),
+            // the scroll or wand cast from (#346).
+            ["damageType", "curse", "itemId"],
           ) ||
           (body.damageType !== undefined &&
             typeof body.damageType !== "string") ||
           (body.curse !== undefined && typeof body.curse !== "string") ||
+          (body.itemId !== undefined && typeof body.itemId !== "string") ||
           typeof body.spellId !== "string" ||
           !Array.isArray(body.targetIds) ||
           !body.targetIds.every((id) => typeof id === "string") ||
@@ -930,6 +960,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             ? {}
             : { damageType: body.damageType as DamageType }),
           ...(body.curse === undefined ? {} : { curse: body.curse as CurseId }),
+          ...(body.itemId === undefined
+            ? {}
+            : { itemId: body.itemId as string }),
         });
       case "/api/5e/session/long-rest":
         // A long rest at a rest site (#335); the engine refuses it elsewhere.
@@ -1112,6 +1145,26 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.learnCantrips(
               body.characterId as string,
               body.cantrips,
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/copy-scroll":
+        // A spell scroll copied into a Wizard's spellbook (#346), between
+        // adventures.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "scrollId"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string" ||
+          typeof body.scrollId !== "string"
+        ) {
+          throw new Error("Invalid copy request.");
+        }
+        return view(
+          await serialized(() =>
+            library.copyScroll(
+              body.characterId as string,
+              body.scrollId as string,
               body.revision as string,
             ),
           ),

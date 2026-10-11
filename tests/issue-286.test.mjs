@@ -132,6 +132,7 @@ test("settling past 2,700 XP credits level 4 and leaves its choices pending", ()
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [{ id: "barrow/encounter/goblin", name: "Goblin", xp: 1800 }],
     finds: [],

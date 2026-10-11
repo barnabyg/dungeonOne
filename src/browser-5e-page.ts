@@ -29,7 +29,9 @@
 //   with its reason as visible text linked by aria-describedby. Outside a
 //   fight, what the character carries is acted on from the room panel's
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
-//   on its entry, and the character's own gear heads the list with its
+//   on its entry, a spell scroll's Read too (#346; in a fight a scroll or
+//   wand is cast from the Cast choice), and the character's own gear heads
+//   the list with its
 //   Unequip, Wield, Equip and Drop (#209), so a laden character's bar stays
 //   short enough for a phone. A short rest (#334) sits in the room panel's
 //   #rest-group, never the bar: the short rests and hit dice left, a choice
@@ -762,26 +764,60 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
 }
 
-// The magic items held (#345), each with its bonus explained; none, no heading.
-function magicItemNodes(items) {
+// The magic items held (#345), each with its bonus explained, then the
+// spell scrolls and wands (#346); none, no heading. Between adventures a
+// Wizard copies a scroll into its spellbook from its entry, disabled with
+// why when it can't.
+function magicItemNodes(items, entry) {
   if (items.length === 0) return [];
   const heading = make("h3", "Magic items");
   heading.id = "magic-items-title";
   const list = make("ul", undefined, "features");
   list.id = "magic-items";
   list.setAttribute("aria-labelledby", "magic-items-title");
-  list.append(...items.map(({ name, text }) => {
+  list.append(...items.map(({ id, name, text, copy }) => {
     const item = make("li");
     item.append(make("strong", name + ". "), document.createTextNode(text));
+    if (copy && !entry.session && !entry.defeated) item.append(copyControl(entry, id, name, copy));
     return item;
   }));
   return [heading, list];
+}
+
+// "Copy into spellbook (50 gp)" for a scroll on a Wizard's sheet (#346).
+function copyControl(entry, scrollId, name, copy) {
+  const controls = make("div", undefined, "controls copy-scroll");
+  const button = make("button", "Copy into spellbook (" + copy.cost + ")", "secondary");
+  button.type = "button";
+  button.dataset.scroll = scrollId;
+  button.setAttribute("aria-label", "Copy " + name + " into your spellbook for " + copy.cost);
+  button.disabled = Boolean(copy.reason);
+  const error = make("p", copy.reason || "", copy.reason ? "hint" : "error");
+  error.id = "copy-reason-" + scrollId.replace(/[^a-z0-9-]/g, "-");
+  if (copy.reason) button.setAttribute("aria-describedby", error.id);
+  button.addEventListener("click", async () => {
+    if (isBusy(button)) return;
+    setBusy(button, "Copying…");
+    try {
+      library = await request("/api/5e/characters/copy-scroll", { revision: library.revision, characterId: entry.sheet.id, scrollId });
+      clearBusy(button);
+      openSheet(entry.sheet.id);
+      feedback(entry.sheet.name + " copied " + name + " into the spellbook.");
+    } catch (failure) {
+      clearBusy(button);
+      error.textContent = failure.message;
+      error.className = "error";
+      error.setAttribute("role", "alert");
+    }
+  });
+  controls.append(button, error);
+  return controls;
 }
 
 // Treasure kept from adventures (#133), each with its description.
@@ -1544,8 +1580,8 @@ function renderRoom(room, fighting) {
       item.dataset.id = entry.id;
       if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
-      // A gem or art object shows its value (#239).
-      text.append(make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "")), document.createTextNode(" — " + entry.description));
+      // A gem or art object shows its value (#239), a wand its charges (#346).
+      text.append(make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : "")), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
@@ -1727,6 +1763,10 @@ const ACTIONS = {
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
   // A spell (#337), chosen with its slot level and target beside the button.
   cast: { label: "Cast", busy: "Casting", busyLabel: "Casting…" },
+  // A spell scroll read, or a wand used, outside a fight (#346), on its
+  // "You carry" entry.
+  read: { label: "Read ", short: "Read", busy: "Reading ", busyLabel: "Reading…" },
+  "use-wand": { label: "Use ", short: "Use", busy: "Using ", busyLabel: "Using…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   // On the check just failed (#315): a use of Second Wind adds 1d10.
   "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
@@ -1777,9 +1817,13 @@ function renderActions() {
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
   renderRest(session.actions.find(({ action }) => action === "rest"), fighting);
   renderLongRest(session.actions.find(({ action }) => action === "long-rest"));
-  // Spells (#337) go in one choice of spell and target, with Cast.
-  const casts = session.actions.filter(({ action }) => action === "cast");
+  // Spells (#337) go in one choice of spell and target, with Cast; outside
+  // a fight a scroll or wand's (#346) go on its "You carry" entry instead.
+  const casts = session.actions.filter(({ action, spell }) => action === "cast" && (fighting || !spell.item));
   if (casts.length) groups.feature.push(castPanel(casts));
+  session.actions.forEach((option, index) => {
+    if (option.action === "cast" && option.spell.item && !fighting) groups.carried.push(itemRead(option, index));
+  });
   // Divine Spark (#341): one choice of target and mode, with its button.
   const sparks = session.actions.filter(({ action }) => action === "divine-spark");
   if (sparks.length) groups.feature.push(sparkPanel(sparks));
@@ -2091,7 +2135,47 @@ async function leaveAdventure() {
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"];
 // Resistance's damage type (#339) and Bestow Curse's curse (#342) are part
 // of the choice.
-const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "") + ":" + (spell.curse || "");
+const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "") + ":" + (spell.curse || "") + ":" + (spell.item ? spell.item.id : "");
+
+// A scroll's or wand's cast (#346) as the Cast choice names it: "Magic
+// Missile — Wand of Magic Missiles, 2nd level for 2 charges (7 left)".
+function fromItem({ item, level, slotLevel }) {
+  if (!item) return "";
+  if (!item.charges) return " — " + item.name;
+  const spent = slotLevel - level + 1;
+  return " — " + item.name + ", " + ORDINALS[slotLevel] + " level for " + spent + (spent === 1 ? " charge" : " charges") + " (" + item.charges.left + " left)";
+}
+
+/**
+ * A spell scroll read, or a wand used, outside a fight (#346): a button on
+ * its "You carry" entry, disabled with the engine's reason when it would
+ * refuse.
+ */
+function itemRead(option, index) {
+  const { spell, target } = option;
+  const verb = spell.item.kind === "scroll" ? "read" : "use-wand";
+  const typed = spell.damageType ? " (" + spell.damageType + ")" : "";
+  const button = make("button");
+  button.append(make("span", ACTIONS[verb].short + typed));
+  button.dataset.busyLabel = ACTIONS[verb].busyLabel;
+  button.type = "button";
+  button.className = "carried secondary act";
+  button.dataset.action = verb;
+  button.dataset.target = spell.item.id;
+  button.setAttribute("aria-label", ACTIONS[verb].label + spell.item.name + typed);
+  button.disabled = acting || !option.available;
+  button.addEventListener("click", () => castSpell(spell, [target.id], "button.act[data-action=" + verb + "][data-target=" + JSON.stringify(spell.item.id) + "]"));
+  const wrap = make("span", undefined, "action");
+  wrap.dataset.target = spell.item.id;
+  wrap.append(button);
+  if (!option.available) {
+    const reason = make("span", option.reason, "reason");
+    reason.id = "read-reason-" + index;
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  return wrap;
+}
 
 /**
  * Casting (#337): a choice of spell, each at each slot level it may spend
@@ -2131,7 +2215,7 @@ function castPanel(casts) {
     const typed = !spell.damageType ? "" : spell.damageTypeUse === "dealt" ? " of " + spell.damageType : " against " + spell.damageType;
     // Bestow Curse's curse (#342).
     const cursed = spell.curseName ? ": " + spell.curseName : "";
-    const choice = make("option", spell.name + typed + cursed + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    const choice = make("option", spell.name + typed + cursed + (spell.item ? fromItem(spell) : spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
     choice.value = key;
     choice.selected = key === castChoice;
     spellSelect.append(choice);
@@ -2259,8 +2343,9 @@ function areaTargets(area) {
   return group;
 }
 
-async function castSpell(spell, targetIds) {
-  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}), ...(spell.curse ? { curse: spell.curse } : {}) }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
+async function castSpell(spell, targetIds, control = "button.act[data-action=cast]") {
+  // A scroll or wand (#346) names its item.
+  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}), ...(spell.curse ? { curse: spell.curse } : {}), ...(spell.item ? { itemId: spell.item.id } : {}) }, control, ACTIONS.cast.busy + " " + spell.name + "…");
   keepFocus("cast", "");
 }
 

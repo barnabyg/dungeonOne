@@ -276,6 +276,7 @@ const credited = (sheet, xp) =>
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [{ id: "keep/encounter/ogre", name: "Ogre", xp }],
     finds: [],

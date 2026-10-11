@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 23,
+  "formatVersion": 24,
   "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -121,6 +121,7 @@
         },
         "treasure": [],
         "purse": 0,
+        "magicItems": [],
         "finds": [],
         "xpAwards": [
           "cellar/ending/out",
