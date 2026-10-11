@@ -435,6 +435,8 @@ export type Weapon = Readonly<{
   disadvantage?: readonly string[];
   /** Great Weapon Fighting: each 1 or 2 on a damage die counts as 3. */
   greatWeaponFighting?: true;
+  /** A +1 weapon's bonus (#345), already in `bonus` and the damage modifier. */
+  magicBonus?: number;
   /** The Finesse property, which Sneak Attack needs unless it is ranged (#306). */
   finesse?: true;
   /** What a hit does besides its damage. */
@@ -457,6 +459,17 @@ export type Weapon = Readonly<{
    */
   missHalf?: true;
 }>;
+
+/**
+ * What a Graze weapon deals on a miss (SRD 5.2): the ability modifier the
+ * attack used, which is its damage modifier without a +1 weapon's bonus
+ * (#345).
+ */
+export function grazeDamage(
+  weapon: Pick<Weapon, "damage" | "magicBonus">,
+): number {
+  return weapon.damage.modifier - (weapon.magicBonus ?? 0);
+}
 
 export type Combatant = DamageDefenses &
   Readonly<{
@@ -3766,9 +3779,9 @@ function landAttack(
         ),
       }
     : undefined;
-  // Graze: a miss still deals the damage modifier, if above 0.
+  // Graze: a miss still deals the ability modifier, if above 0.
   const graze =
-    !rolledHit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
+    !rolledHit && weapon.mastery === "Graze" && grazeDamage(weapon) > 0;
   const rolled = hit
     ? Math.max(
         0,
@@ -3779,7 +3792,7 @@ function landAttack(
         ) + weapon.damage.modifier,
       ) + (sneak?.damageRolls.reduce((sum, value) => sum + value, 0) ?? 0)
     : graze
-      ? weapon.damage.modifier
+      ? grazeDamage(weapon)
       : missHalf
         ? Math.floor(sum(damageRolls) / 2)
         : 0;

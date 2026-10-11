@@ -10,14 +10,17 @@
  *
  * Each item has an availability tier, and a module may hide an item only if
  * its tier is allowed at the module's maximum recommended level: common
- * always, uncommon from level 3, and no rare treasure yet. The budgets and
- * the tier levels are parameter tables, recorded in `docs/character-rules.md`;
- * tune them here.
+ * always, uncommon from level 3, and no rare treasure yet. A module hides
+ * at most one magic item (#345, D10), for level 3 and up, outside its
+ * budget, and none that needs attunement (D11). The budgets, the tier levels
+ * and the magic item limits are parameter tables, recorded in
+ * `docs/character-rules.md`; tune them here.
  */
 import {
   POTION_WEIGHT,
   type Coin,
   type Coins,
+  type MagicItemData,
   type Tier,
 } from "./equipment-5e.js";
 import type { RandomSource } from "./random.js";
@@ -39,6 +42,43 @@ export const TIER_MIN_LEVEL: Readonly<Partial<Record<Tier, number>>> = {
   common: 1,
   uncommon: 3,
 };
+
+/**
+ * The magic items a module may hide (#345, D10): at most `perModule`, only
+ * in a module whose maximum recommended level is `minLevel` or more. They
+ * are outside the treasure budget. Potions are priced inside it, and are not
+ * counted here.
+ */
+export const MAGIC_ITEM_LIMITS = { perModule: 1, minLevel: 3 } as const;
+
+/**
+ * What is wrong with the magic items a module hides, each `id` with what
+ * makes it magic, for a module whose maximum recommended level is `level`:
+ * one past `MAGIC_ITEM_LIMITS.perModule`, any below its level, and any that
+ * needs attunement (D11). Empty when they may be hidden.
+ */
+export function magicItemProblems(
+  items: readonly Readonly<{ id: string; magic: MagicItemData }>[],
+  level: number,
+): readonly string[] {
+  return items.flatMap(({ id, magic }, index) => [
+    ...(index >= MAGIC_ITEM_LIMITS.perModule
+      ? [
+          `${id} is one magic item too many: a module hides at most ${MAGIC_ITEM_LIMITS.perModule}.`,
+        ]
+      : []),
+    ...(level < MAGIC_ITEM_LIMITS.minLevel
+      ? [
+          `${id} is a magic item, but magic items are found only in modules for level ${MAGIC_ITEM_LIMITS.minLevel} and up.`,
+        ]
+      : []),
+    ...(magic.attunement
+      ? [
+          `${id} needs attunement, and no item that needs attunement is found yet.`,
+        ]
+      : []),
+  ]);
+}
 
 /** The budget for a module whose maximum recommended level is `level`, in copper. */
 export function treasureBudget(level: number): number {

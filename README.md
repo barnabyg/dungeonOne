@@ -409,6 +409,15 @@ shows your gear after the adventure. Like treasure, gear is kept only on
 getting out alive: what you dropped or left behind is gone, and a defeat or an
 abandoned adventure leaves you with exactly the gear you started with.
 
+### Magic weapons and armour
+
+A module for level 3 and up may hide one magic item: a +1 weapon, which adds 1
+to its attack and damage rolls, or +1 armour or a +1 shield, which adds 1 to
+your AC. It is otherwise the item it is made from, and a weapon you have
+mastered keeps its mastery. Its entry under **You carry** explains the bonus,
+and the sheet lists it under **Magic items**. No merchant sells or buys magic
+items.
+
 ### Bows and crossbows
 
 The shortbow, light crossbow and longbow are bought from merchants or found;
@@ -466,14 +475,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 15.
+- The character library (`characters.json` by default) is format version 23.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 38.
+  `characters-adventures` directory beside the library, in format version 48.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 28. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 29. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline.
 

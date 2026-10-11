@@ -98,7 +98,62 @@ export type WeaponData = Readonly<{
    * ranged weapons, which attack with Dexterity.
    */
   ammunition?: AmmunitionId;
+  /** What makes it magic: present exactly on a +1 weapon (#345). */
+  magic?: MagicItemData;
 }>;
+
+/** SRD 5.2 magic item rarities the catalogue holds (#345). */
+export type Rarity = "uncommon";
+
+/**
+ * What makes a catalogue item a magic item (#345): the mundane item it is
+ * made from, its bonus (to attack and damage rolls for a weapon, to AC for
+ * armour or a shield), its rarity and whether it needs attunement. No item
+ * that needs attunement ships (D11), and the module validator refuses one.
+ */
+export type MagicItemData = Readonly<{
+  base: string;
+  bonus: number;
+  rarity: Rarity;
+  attunement: boolean;
+}>;
+
+/**
+ * What a magic item is worth, in copper, by rarity: SRD 5.2's magic item
+ * values. No merchant buys or sells one, and a module's treasure budget
+ * leaves it out (D10).
+ */
+export const MAGIC_ITEM_VALUES: Readonly<Record<Rarity, number>> = {
+  uncommon: 40000,
+};
+
+/** The +1 version of a catalogue id: "shortsword-plus-1" (#345). */
+export type PlusOne<Id extends string> = `${Id}-plus-1`;
+
+/**
+ * SRD 5.2's +1 Weapon, +1 Armor and +1 Shield (#345): the uncommon version
+ * of each mundane item, named "+1 Shortsword" and worth an uncommon magic
+ * item's value. Its tier is uncommon, or its mundane item's when rarer, so
+ * it is found no earlier than either.
+ */
+function plusOne<Id extends string, Data extends WeaponData | ArmourData>(
+  items: Readonly<Record<Id, Data>>,
+): Record<PlusOne<Id>, Data> {
+  return Object.fromEntries(
+    (Object.entries(items) as [Id, Data][]).map(
+      ([id, data]): [string, Data] => [
+        `${id}-plus-1`,
+        {
+          ...data,
+          name: `+1 ${data.name}`,
+          price: MAGIC_ITEM_VALUES.uncommon,
+          tier: data.tier === "common" ? "uncommon" : data.tier,
+          magic: { base: id, bonus: 1, rarity: "uncommon", attunement: false },
+        },
+      ],
+    ),
+  ) as Record<PlusOne<Id>, Data>;
+}
 
 /**
  * SRD 5.2 ammunition, bought, sold and found in bundles of 20. Price and
@@ -132,7 +187,7 @@ export const NO_AMMUNITION: Ammunition = { arrows: 0, bolts: 0 };
  * SRD 5.2 melee weapons, then ranged weapons. Prices in copper: 1 sp = 10
  * cp, 1 gp = 100 cp.
  */
-export const WEAPONS = {
+const MUNDANE_WEAPONS = {
   club: {
     name: "Club",
     category: "simple",
@@ -252,7 +307,14 @@ export const WEAPONS = {
     ammunition: "arrows",
   },
 } as const satisfies Record<string, WeaponData>;
-export type WeaponId = keyof typeof WEAPONS;
+/** A mundane weapon: the kind a character masters and a +1 weapon is made from. */
+export type MundaneWeaponId = keyof typeof MUNDANE_WEAPONS;
+/** Every catalogue weapon: the mundane ones, then each one's +1 version (#345). */
+export type WeaponId = MundaneWeaponId | PlusOne<MundaneWeaponId>;
+export const WEAPONS: Readonly<Record<WeaponId, WeaponData>> = {
+  ...MUNDANE_WEAPONS,
+  ...plusOne<MundaneWeaponId, WeaponData>(MUNDANE_WEAPONS),
+};
 
 /** SRD 5.2 armour categories; a class is trained with some (#300). */
 export type ArmourCategory = "light" | "medium" | "heavy" | "shield";
@@ -272,10 +334,12 @@ export type ArmourData = Readonly<{
   strength?: number;
   stealthDisadvantage: boolean;
   tier: Tier;
+  /** What makes it magic: present exactly on +1 armour or a +1 shield (#345). */
+  magic?: MagicItemData;
 }>;
 
 /** SRD 5.2 armour, and the shield. */
-export const ARMOUR = {
+const MUNDANE_ARMOUR = {
   leather: {
     name: "Leather armour",
     price: 1000,
@@ -327,7 +391,13 @@ export const ARMOUR = {
     tier: "common",
   },
 } as const satisfies Record<string, ArmourData>;
-export type ArmourId = keyof typeof ARMOUR;
+type MundaneArmourId = keyof typeof MUNDANE_ARMOUR;
+/** Every catalogue armour and shield: the mundane ones, then each one's +1 version (#345). */
+export type ArmourId = MundaneArmourId | PlusOne<MundaneArmourId>;
+export const ARMOUR: Readonly<Record<ArmourId, ArmourData>> = {
+  ...MUNDANE_ARMOUR,
+  ...plusOne<MundaneArmourId, ArmourData>(MUNDANE_ARMOUR),
+};
 
 /**
  * SRD 5.2 tools (#309): carried, never equipped. Thieves' tools let a
@@ -390,6 +460,49 @@ export function isArmourId(id: string): id is ArmourId {
 /** Whether `id` names a kind of ammunition. */
 export function isAmmunitionId(id: string): id is AmmunitionId {
   return Object.hasOwn(AMMUNITION, id);
+}
+
+/** Whether `id` names a shield, mundane or +1 (#345). */
+export function isShieldId(id: string): id is ArmourId {
+  return isArmourId(id) && ARMOUR[id].category === "shield";
+}
+
+/** Whether `id` names body armour, mundane or +1 (#345). */
+export function isBodyArmourId(id: string): id is ArmourId {
+  return isArmourId(id) && ARMOUR[id].category !== "shield";
+}
+
+/** What makes a catalogue item magic, if it is (#345). */
+export function magicOf(id: CatalogueId): MagicItemData | undefined {
+  return isWeaponId(id)
+    ? WEAPONS[id].magic
+    : isArmourId(id)
+      ? ARMOUR[id].magic
+      : undefined;
+}
+
+/**
+ * The kind of weapon `id` is: itself, or for a +1 weapon its mundane weapon,
+ * whose mastery a character may have (#345).
+ */
+export function weaponKind(id: WeaponId): MundaneWeaponId {
+  return (WEAPONS[id].magic?.base ?? id) as MundaneWeaponId;
+}
+
+/**
+ * What a magic item's bonus does, as the sheet and "You carry" explain it:
+ * "Uncommon magic weapon: +1 to attack and damage rolls." Undefined for a
+ * mundane item.
+ */
+export function magicItemText(id: CatalogueId): string | undefined {
+  const magic = magicOf(id);
+  if (magic === undefined) {
+    return undefined;
+  }
+  const rarity = magic.rarity.charAt(0).toUpperCase() + magic.rarity.slice(1);
+  return isWeaponId(id)
+    ? `${rarity} magic weapon: +${magic.bonus} to attack and damage rolls.`
+    : `${rarity} magic ${isShieldId(id) ? "shield" : "armour"}: +${magic.bonus} to AC.`;
 }
 
 /** Whether `value` names anything in the catalogue, ammunition included. */
@@ -498,9 +611,9 @@ export const MASTERIES: Readonly<
  * whose mastery is used. The club's Slow needs positions; the quarterstaff's
  * Topple is not used yet (#340).
  */
-export const MASTERY_WEAPONS = (Object.keys(WEAPONS) as WeaponId[]).filter(
-  (id) => MASTERIES[WEAPONS[id].mastery].used,
-);
+export const MASTERY_WEAPONS: readonly WeaponId[] = (
+  Object.keys(MUNDANE_WEAPONS) as MundaneWeaponId[]
+).filter((id) => MASTERIES[WEAPONS[id].mastery].used);
 
 /** What a character has equipped, read from its equipment list. */
 export type Loadout = Readonly<{
@@ -533,10 +646,8 @@ export function readLoadout(equipment: readonly string[]): Loadout {
     throw new Error("Unsupported character equipment.");
   }
   const ids = equipment as readonly ItemId[];
-  const body = ids.filter(
-    (id): id is ArmourId => isArmourId(id) && id !== "shield",
-  );
-  const shields = ids.filter((id) => id === "shield").length;
+  const body = ids.filter(isBodyArmourId);
+  const shields = ids.filter(isShieldId).length;
   const weapons = ids.filter(isWeaponId);
   if (body.length > 1 || shields > 1) {
     throw new Error("A character wears at most one armour and one shield.");
@@ -623,7 +734,7 @@ function withoutOne(list: readonly ItemId[], id: ItemId): ItemId[] {
 
 /** Equipment in the sheet's order: body armour, shield, then weapons. */
 function ordered(equipment: readonly ItemId[]): ItemId[] {
-  const rank = (id: ItemId) => (isWeaponId(id) ? 2 : id === "shield" ? 1 : 0);
+  const rank = (id: ItemId) => (isWeaponId(id) ? 2 : isShieldId(id) ? 1 : 0);
   return [...equipment]
     .map((id, index) => ({ id, index }))
     .sort((a, b) => rank(a.id) - rank(b.id) || a.index - b.index)
@@ -646,7 +757,7 @@ const heldWeapons = (gear: Gear) => gear.equipment.filter(isWeaponId);
 /** Why a weapon can't be held with what else is equipped, if it can't. */
 function twoHandedRefusal(gear: Gear, id: WeaponId): GearChange | undefined {
   return (WEAPONS[id] as WeaponData).properties.includes("two-handed") &&
-    gear.equipment.includes("shield")
+    gear.equipment.some(isShieldId)
     ? refuse(
         "two-handed",
         `The ${lower(id)} needs both hands, and your shield is on your arm.`,
@@ -680,10 +791,10 @@ export function swapWeapon(gear: Gear, id: ItemId): GearChange {
 }
 
 /**
- * Equips a stowed item: body armour (the armour worn is stowed), a shield,
- * or a second light weapon beside a light weapon held, for the Light extra
- * attack. Any other weapon is swapped in with `swapWeapon`. A shield and a
- * second weapon each need a free hand.
+ * Equips a stowed item: body armour (the armour worn is stowed), a shield
+ * (the shield carried is stowed), or a second light weapon beside a light
+ * weapon held, for the Light extra attack. Any other weapon is swapped in
+ * with `swapWeapon`. A shield and a second weapon each need a free hand.
  */
 export function equipItem(gear: Gear, id: ItemId): GearChange {
   if (!gear.stowed.includes(id)) {
@@ -705,10 +816,11 @@ export function equipItem(gear: Gear, id: ItemId): GearChange {
     if (blocked !== undefined) {
       return blocked;
     }
-    if (gear.equipment.includes("shield") || held.length > 1) {
+    const shield = gear.equipment.find(isShieldId);
+    if (shield !== undefined || held.length > 1) {
       return refuse(
         "hands-full",
-        `Your hands are full: unequip the ${gear.equipment.includes("shield") ? "shield" : lower(held[1]!)} first, or swap to wield the ${lower(id)} instead.`,
+        `Your hands are full: unequip the ${lower(shield ?? held[1]!)} first, or swap to wield the ${lower(id)} instead.`,
       );
     }
     const light = (weapon: WeaponId) =>
@@ -721,7 +833,7 @@ export function equipItem(gear: Gear, id: ItemId): GearChange {
     }
     return changed([...gear.equipment, id], stowed);
   }
-  if (id === "shield") {
+  if (isShieldId(id)) {
     if ((WEAPONS[main] as WeaponData).properties.includes("two-handed")) {
       return refuse(
         "two-handed",
@@ -734,11 +846,15 @@ export function equipItem(gear: Gear, id: ItemId): GearChange {
         `Your hands are full: unequip the ${lower(held[1]!)} first.`,
       );
     }
-    return changed([...gear.equipment, id], stowed);
+    // A +1 shield (#345) takes the place of the shield carried.
+    const carried: ItemId[] = gear.equipment.filter(isShieldId);
+    return changed(
+      [...gear.equipment.filter((item) => !carried.includes(item)), id],
+      [...stowed, ...carried],
+      carried,
+    );
   }
-  const worn: ItemId[] = gear.equipment.filter(
-    (item) => isArmourId(item) && item !== "shield",
-  );
+  const worn: ItemId[] = gear.equipment.filter(isBodyArmourId);
   return changed(
     [...gear.equipment.filter((item) => !worn.includes(item)), id],
     [...stowed, ...worn],
@@ -818,6 +934,11 @@ export type AttackProfile = Readonly<{
    * with that style and a two-handed weapon or a versatile one in two hands.
    */
   greatWeaponFighting?: true;
+  /**
+   * A +1 weapon's bonus (#345), already in `bonus` and the damage modifier;
+   * Graze's damage on a miss leaves it out, as it is the ability modifier.
+   */
+  magicBonus?: number;
 }>;
 
 /** Everything a character's equipment gives it in a fight. */
@@ -907,6 +1028,8 @@ function attackWith(
       ? "dexterity"
       : "strength";
   const modifier = context.modifiers[ability];
+  // A +1 weapon adds its bonus to attack and damage rolls (#345).
+  const magic = weapon.magic?.bonus ?? 0;
   const dice =
     grip === "two-handed" && weapon.versatile !== undefined
       ? weapon.versatile
@@ -928,21 +1051,23 @@ function attackWith(
       (proficientWith(context.weaponProficiencies, weaponId)
         ? context.proficiency
         : 0) +
-      (ranged && context.fightingStyle === "archery" ? 2 : 0),
+      (ranged && context.fightingStyle === "archery" ? 2 : 0) +
+      magic,
     damage: {
       dice: dice.dice,
       sides: dice.sides,
       // The Light extra attack adds the modifier only when it is negative,
-      // or with Two-Weapon Fighting.
+      // or with Two-Weapon Fighting; a +1 weapon's bonus always.
       modifier:
-        extra && context.fightingStyle !== "two-weapon-fighting"
+        (extra && context.fightingStyle !== "two-weapon-fighting"
           ? Math.min(0, modifier)
-          : modifier,
+          : modifier) + magic,
       type: weapon.damageType,
     },
     criticalRange: context.criticalRange,
     // Nick acts only on the extra attack; an unused mastery never applies.
-    ...(context.masteries.includes(weaponId) &&
+    // A +1 weapon is its mundane weapon's kind, so shares its mastery.
+    ...(context.masteries.includes(weaponKind(weaponId)) &&
     MASTERIES[weapon.mastery].used &&
     (weapon.mastery !== "Nick" || extra)
       ? { mastery: weapon.mastery as UsedMastery }
@@ -961,20 +1086,24 @@ function attackWith(
     grip === "two-handed"
       ? { greatWeaponFighting: true as const }
       : {}),
+    ...(magic === 0 ? {} : { magicBonus: magic }),
   };
 }
 
 /**
  * Derives armour class and attacks from an equipment list: body armour's
  * base AC plus the Dexterity modifier up to its cap (10 + Dexterity with
- * none), +2 for a shield, +1 for Defense while wearing body armour; the main
- * weapon's attack (finesse uses the higher of Strength and Dexterity, a
- * versatile weapon held in two hands its larger die, a ranged weapon uses
- * Dexterity, +2 to hit with Archery, a heavy weapon below Strength 13, or a
- * heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon
- * Fighting marks a weapon in two hands); and the Light extra attack when a second light weapon is held
- * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
- * mastered and is holding. Without the class's training (SRD 5.2), body
+ * none), +2 for a shield, +1 for Defense while wearing body armour, and +1
+ * for each of +1 armour and a +1 shield (#345); the main weapon's attack
+ * (finesse uses the higher of Strength and Dexterity, a versatile weapon
+ * held in two hands its larger die, a ranged weapon uses Dexterity, +2 to
+ * hit with Archery, a heavy weapon below Strength 13, or a heavy ranged one
+ * below Dexterity 13, has disadvantage, and Great Weapon Fighting marks a
+ * weapon in two hands); and the Light extra attack when a second light
+ * weapon is held (with its ability modifier under Two-Weapon Fighting). A
+ * mastery applies only to a weapon the character has mastered and is
+ * holding, or the +1 version of one, and a +1 weapon adds 1 to its attack
+ * and damage rolls (#345). Without the class's training (SRD 5.2), body
  * armour gives every attack disadvantage and a shield adds no AC.
  */
 export function equipmentProfile(
@@ -996,9 +1125,14 @@ export function equipmentProfile(
   // SRD 5.2: a shield gives its AC only with training.
   const untrainedShield =
     loadout.shield && !context.armourTraining.includes("shield");
+  const shield = equipment.find(isShieldId);
   const armorClass =
     body +
-    (loadout.shield && !untrainedShield ? ARMOUR.shield.armorClass : 0) +
+    // +1 armour and a +1 shield add their bonus (#345).
+    (armour?.magic?.bonus ?? 0) +
+    (shield !== undefined && !untrainedShield
+      ? ARMOUR[shield].armorClass + (ARMOUR[shield].magic?.bonus ?? 0)
+      : 0) +
     (context.fightingStyle === "defense" && armour !== undefined ? 1 : 0);
   return {
     loadout,
@@ -1245,6 +1379,8 @@ export type TradeRefusalCode =
   | "sale-unconfirmed"
   /** Ammunition sells by the bundle of 20, and fewer are carried. */
   | "short-bundle"
+  /** No merchant buys a magic item (#345, D10). */
+  | "magic-item"
   /** Selling equipped gear unequips it first, which may refuse. */
   | GearRefusalCode;
 
@@ -1335,7 +1471,8 @@ export function buyItem(
  * Sells an item for half its price. A stowed copy is sold unless `equipped`
  * confirms selling the one equipped, which is taken off first; selling what
  * is only equipped needs that confirmation. The last weapon held is never
- * sold. Ammunition sells by the bundle of 20.
+ * sold. Ammunition sells by the bundle of 20. No merchant buys a magic
+ * item (#345): its worth is outside every treasure budget (D10).
  */
 export function sellItem(
   holding: Holding,
@@ -1343,6 +1480,14 @@ export function sellItem(
   equipped = false,
 ): Trade {
   const price = salePrice(id);
+  if (magicOf(id) !== undefined) {
+    return {
+      refusal: {
+        code: "magic-item",
+        reason: `No merchant here deals in magic items: you keep the ${lower(id as ItemId)}.`,
+      },
+    };
+  }
   if (isAmmunitionId(id)) {
     const held = (holding.ammunition ?? NO_AMMUNITION)[id];
     if (held === 0) {
