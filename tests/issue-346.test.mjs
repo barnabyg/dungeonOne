@@ -915,3 +915,27 @@ test("abandoning or losing the adventure gives back a scroll read in it", async 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("a scroll casts in the spell's own time: Healing Word takes the bonus action, not the action", () => {
+  const state = fightFor(
+    holding(mira, [{ id: "a/word", scroll: "healing-word" }]),
+  );
+  const result = act(
+    state,
+    {
+      type: "cast",
+      actorId: "pc",
+      spellId: "healing-word",
+      targetIds: ["pc"],
+      itemId: "a/word",
+    },
+    dice([4, 2], [4, 2]),
+  );
+  assert.equal(result.rejection, undefined, result.rejection?.reason);
+  assert.equal(
+    result.events.find(({ type }) => type === "cast").castingTime,
+    "bonus-action",
+  );
+  assert.equal(result.state.economy.bonusAction, false);
+  assert.equal(result.state.economy.actions, 1);
+});

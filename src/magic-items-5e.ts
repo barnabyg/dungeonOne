@@ -2,9 +2,9 @@
  * Spell scrolls and wands (#346): magic items that cast a spell.
  *
  * A Spell Scroll (SRD 5.2) holds one levelled spell. A character whose
- * class has the spell on its list reads it as a Magic action and casts the
- * spell with no slot, using its own spell attack bonus and save DC; the
- * scroll is used up. A spell above the highest level of slot the reader has
+ * class has the spell on its list reads it and casts the spell in its normal
+ * casting time with no slot, at the scroll's own save DC and attack bonus;
+ * the scroll is used up. A spell above the highest level of slot the reader has
  * needs a check first (d20 + its spellcasting modifier against 10 + the
  * spell's level): on a failure the scroll is used up with no effect. A
  * Wizard may copy a scroll's spell into its spellbook between adventures,
@@ -92,7 +92,7 @@ export function isWandId(value: unknown): value is WandId {
  * Why `spell` can't be written on a scroll, or undefined when it can: only
  * a levelled spell that is cast on the reader's own turn. A cantrip's scroll
  * is never worth finding (and the one flavour spell is a cantrip), and a
- * reaction spell has nothing to answer on a Magic action.
+ * reaction spell is left out (D3's curated reading, owner-approved).
  */
 export function scrollSpellProblem(spell: string): string | undefined {
   if (!isSpellId(spell)) {
@@ -171,7 +171,7 @@ export function heldItemText(item: HeldMagicItem): string {
   if (item.scroll !== undefined) {
     const { name, level } = SPELLS[item.scroll];
     const { saveDc, attackBonus } = scrollCasting(item.scroll);
-    return `A spell scroll of ${name} (${ordinal(level)} level): a character with ${name} on its class's spell list reads it to cast the spell with no slot, as its action, at the scroll's save DC ${saveDc} and attack bonus +${attackBonus}, and the scroll is used up.`;
+    return `A spell scroll of ${name} (${ordinal(level)} level): a character with ${name} on its class's spell list reads it to cast the spell with no slot, in its normal casting time, at the scroll's save DC ${saveDc} and attack bonus +${attackBonus}, and the scroll is used up.`;
   }
   const wand = WANDS[item.wand];
   return `An uncommon wand: spend 1 charge to cast ${SPELLS[wand.spell].name} at 1st level, each charge more raising its level by one (up to ${ordinal(WAND_MAX_LEVEL)}); anyone may use it. Spending its last charge rolls a d20: on a 1 it crumbles to ash. It regains ${wand.regain.dice}d${wand.regain.sides} + ${wand.regain.modifier} charges on a long rest, and every charge between adventures. ${chargesText(item)!}.`;

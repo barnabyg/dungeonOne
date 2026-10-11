@@ -424,7 +424,7 @@ A spell scroll casts its spell with no spell slot: read it from its entry under
 **You carry**, or choose it in the fight's **Cast** list. Only a character whose
 class has the spell on its list can read it, so a Fighter or Rogue reads none
 and a Cleric can't read a Wizard spell; a spell above your spell slots needs a
-check first. Reading takes your action and uses the scroll up. A Wand of Magic
+check first. Reading takes the spell's usual casting time and uses the scroll up. A Wand of Magic
 Missiles works for anyone: each charge casts Magic Missile a level higher, a
 long rest gives some charges back, and between adventures it is fully charged.
 You keep the scrolls and wands you get out with. Between adventures a Wizard can

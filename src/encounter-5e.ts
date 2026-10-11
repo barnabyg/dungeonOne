@@ -4587,22 +4587,6 @@ function castSpellOf(
 }
 
 /**
- * How long casting `spell` takes from `action`'s source: reading a scroll
- * is a Magic action (#346, SRD 5.2) whatever the spell's casting time, but
- * one cast in minutes still needs the time.
- */
-function castingTimeOf(
-  actor: Combatant,
-  spell: SpellDefinition,
-  action: Pick<CastAction, "itemId">,
-): CastingTime {
-  return magicItemOf(actor, action.itemId)?.kind === "scroll" &&
-    spell.castingTime !== "minutes"
-    ? "action"
-    : spell.castingTime;
-}
-
-/**
  * The levels a scroll's or wand's spell could be cast at (#346): a
  * scroll's at its own level, named by no slot level; a wand's from its
  * spell's level up to as many charges as it has, and no higher than its
@@ -4770,7 +4754,8 @@ function spellRefusal(
       );
     }
   }
-  const castingTime = castingTimeOf(actor, spell, action);
+  // A scroll or wand casts in the spell's own time (#346, SRD 5.2).
+  const { castingTime } = spell;
   // A spell cast in minutes (#341, Prayer of Healing) needs time outside a
   // fight.
   if (castingTime === "minutes" && !outside) {
@@ -5358,7 +5343,7 @@ function castAndLand(
       : (actor.spellcasting ?? ITEM_CASTING);
   const spell = castSpellOf(actor, action)!;
   const effect = effectAtSlot(spell, action.slotLevel);
-  const castingTime = castingTimeOf(actor, spell, action);
+  const { castingTime } = spell;
   const slotIndex =
     item !== undefined || spell.level === 0 ? undefined : action.slotLevel! - 1;
   const slots = casting.slots.map((slot, index) =>
