@@ -200,6 +200,7 @@
  */
 import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
 import type { Ability } from "./class-5e.js";
+import { isOneOf } from "./json-shape.js";
 import type { RandomSource } from "./random.js";
 import {
   CURSES,
@@ -4728,7 +4729,7 @@ function spellRefusal(
   if (
     choices === undefined
       ? action.damageType !== undefined
-      : !(choices as readonly unknown[]).includes(action.damageType)
+      : !isOneOf(choices, action.damageType)
   ) {
     return refused(
       "damage-type",
@@ -4740,7 +4741,7 @@ function spellRefusal(
   // Bestow Curse (#342) names its curse; no other spell names one.
   if (
     spell.effect.kind === "curse"
-      ? !(CURSES as readonly unknown[]).includes(action.curse)
+      ? !isOneOf(CURSES, action.curse)
       : action.curse !== undefined
   ) {
     return refused(
@@ -7083,7 +7084,7 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      if (!(DIVINE_SPARK_MODES as readonly unknown[]).includes(action.mode)) {
+      if (!isOneOf(DIVINE_SPARK_MODES, action.mode)) {
         return reject(
           "damage-type",
           "Divine Spark heals, or deals radiant or necrotic damage.",
