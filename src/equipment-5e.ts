@@ -391,7 +391,7 @@ const MUNDANE_ARMOUR = {
     tier: "common",
   },
 } as const satisfies Record<string, ArmourData>;
-type MundaneArmourId = keyof typeof MUNDANE_ARMOUR;
+export type MundaneArmourId = keyof typeof MUNDANE_ARMOUR;
 /** Every catalogue armour and shield: the mundane ones, then each one's +1 version (#345). */
 export type ArmourId = MundaneArmourId | PlusOne<MundaneArmourId>;
 export const ARMOUR: Readonly<Record<ArmourId, ArmourData>> = {

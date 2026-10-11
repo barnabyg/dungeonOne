@@ -66,6 +66,14 @@
  * damage, advantage, discoveries, items or outcomes of its own.
  */
 import {
+  catalogueIcon,
+  type GameIconId,
+  itemIcon,
+  SCROLL_ICON,
+  TREASURE_ICON,
+  WAND_ICON,
+} from "./icons-5e.js";
+import {
   approachesOf,
   authoredBand,
   type AuthoredApproach,
@@ -984,6 +992,8 @@ export type FifthEvent =
       description: string;
       /** The descriptions of the opponents whose fight begins here. */
       opponents: readonly string[];
+      /** Their ids, in the same order. */
+      opponentIds: readonly string[];
     }>
   | Readonly<{
       type: "examined";
@@ -2102,13 +2112,19 @@ function timing(item: ItemId): Readonly<{ don: number; doff: number }> {
 export type ShownGear = Readonly<{
   id: string;
   name: string;
+  icon: GameIconId;
   /** A magic item's bonus, explained (#345). */
   magic?: string;
 }>;
 
 function shownGear(id: ItemId): ShownGear {
   const magic = magicItemText(id);
-  return { id, name: itemName(id), ...(magic === undefined ? {} : { magic }) };
+  return {
+    id,
+    name: itemName(id),
+    icon: catalogueIcon(id),
+    ...(magic === undefined ? {} : { magic }),
+  };
 }
 
 function shown(attack: AttackProfile): ShownAttack {
@@ -3375,7 +3391,129 @@ export const ROLL_GROUP_KEYS = Object.keys(
 export type ResultLine = Readonly<{
   text: string;
   rolls: readonly RollGroup[];
+  /**
+   * The icons shown in the line (#377), in order: each before the character
+   * at `at`, where the monster or item it shows is named, or at 0 for a line
+   * about one item.
+   */
+  icons?: readonly LineIcon[];
 }>;
+
+export type LineIcon = Readonly<{ at: number; icon: GameIconId }>;
+
+/**
+ * Where a result's monsters and items get their icons (#377): the runtime's
+ * own, from its module.
+ */
+export type IconLookup = Readonly<{
+  /** The icon of opponent `id` in the character's fight or room. */
+  opponent(state: FifthState, id: string): GameIconId | undefined;
+  /** The icon of a module item, catalogue item or treasure kept, by id. */
+  item(id: string): GameIconId | undefined;
+  /** The icon of a module item, by name. */
+  itemNamed(name: string): GameIconId | undefined;
+}>;
+
+/** Fields of an event that may hold the ids of the fight's combatants. */
+const COMBATANT_FIELD = /Ids?$/u;
+/**
+ * The fight's events whose lines show the opponents they involve (#377):
+ * blows and falls. Others, such as a sap or a morale check, go without, so a
+ * card with rolls stays no taller than its text (#196).
+ */
+const OPPONENT_EVENTS: ReadonlySet<FifthEvent["type"]> = new Set([
+  "attack",
+  "reaction-offered",
+  "spell-damage",
+  "defeated",
+  "fled",
+  "surrendered",
+]);
+
+/**
+ * A line's icons: before each opponent met and each item found or given; at
+ * the start of a line about one item taken, recovered, traded, changed or
+ * drunk; and before the first naming of each opponent a blow or a fall
+ * involves.
+ */
+function lineIcons(
+  state: FifthState,
+  event: FifthEvent | undefined,
+  text: string,
+  icons: IconLookup,
+): LineIcon[] {
+  if (event === undefined) {
+    return [];
+  }
+  const marks: LineIcon[] = [];
+  const mark = (at: number, icon: GameIconId | undefined) => {
+    if (at >= 0 && icon !== undefined) {
+      marks.push({ at, icon });
+    }
+  };
+  /** Before each of `names` listed after `lead`. */
+  const listedAfter = (lead: string, names: readonly string[]) => {
+    let from = text.lastIndexOf(lead);
+    if (from < 0) {
+      return;
+    }
+    for (const name of names) {
+      const at = text.indexOf(name, from);
+      mark(at, icons.itemNamed(name));
+      from = at < 0 ? from : at + name.length;
+    }
+  };
+  switch (event.type) {
+    case "entered": {
+      let at = text.length - event.opponents.join(" ").length;
+      event.opponents.forEach((description, index) => {
+        mark(at, icons.opponent(state, event.opponentIds[index]!));
+        at += description.length + 1;
+      });
+      break;
+    }
+    case "examined":
+      listedAfter("You find the ", event.found);
+      break;
+    case "talked":
+      listedAfter(" offers you the ", event.given);
+      break;
+    case "taken":
+    case "potion":
+      mark(0, icons.item(event.itemId));
+      break;
+    case "sold-treasure":
+      mark(0, icons.item(event.item) ?? TREASURE_ICON);
+      break;
+    case "recovered":
+      mark(0, catalogueIcon(event.kind));
+      break;
+    case "gear":
+    case "traded":
+      mark(0, catalogueIcon(event.item));
+      break;
+    default:
+      if (state.encounter !== undefined && OPPONENT_EVENTS.has(event.type)) {
+        const ids = Object.entries(event)
+          .filter(([field]) => COMBATANT_FIELD.test(field))
+          .flatMap(([, value]: [string, unknown]) =>
+            Array.isArray(value) ? value : [value],
+          );
+        for (const id of new Set(ids)) {
+          const opponent =
+            typeof id === "string" && id !== PLAYER_ID
+              ? state.encounter.combatants.find((entrant) => entrant.id === id)
+              : undefined;
+          if (opponent !== undefined) {
+            mark(text.indexOf(opponent.name), icons.opponent(state, id));
+          }
+        }
+      }
+  }
+  return marks
+    .sort((one, other) => one.at - other.at)
+    .filter((one, index, sorted) => sorted[index - 1]?.at !== one.at);
+}
 
 /** How an attack's d20s were rolled, for its roll group. */
 function modeLabel(mode: RollMode): string {
@@ -3399,6 +3537,7 @@ export function describeFifthResult(
   result: FifthResult,
   rolls: readonly Readonly<{ sides: number; value: number }>[],
   playerName: string,
+  icons?: IconLookup,
 ): ResultLine[] {
   const { state } = result;
   const name = (id: string) =>
@@ -4062,10 +4201,15 @@ export function describeFifthResult(
         return [];
     }
   };
-  const lines = resultLines(result).map(({ text, event }) => ({
-    text,
-    rolls: groups(event),
-  }));
+  const lines = resultLines(result).map(({ text, event }) => {
+    const marks =
+      icons === undefined ? [] : lineIcons(state, event, text, icons);
+    return {
+      text,
+      rolls: groups(event),
+      ...(marks.length === 0 ? {} : { icons: marks }),
+    };
+  });
   if (next !== rolls.length) {
     throw new Error("A result's dice do not match its events.");
   }
@@ -4125,24 +4269,27 @@ export type RoomView = Readonly<{
       wares?: readonly Readonly<{
         id: CatalogueId;
         name: string;
+        icon: GameIconId;
         price: string;
       }>[];
       /** What it pays for each kind of gear the character carries. */
       salePrices?: readonly Readonly<{
         id: CatalogueId;
         name: string;
+        icon: GameIconId;
         price: string;
       }>[];
       tradeMinutes?: number;
     }>)[];
-  items: readonly Named[];
+  /** The items to take here, each with its icon (#377). */
+  items: readonly (Named & Readonly<{ icon: GameIconId }>)[];
   /**
    * What the character carries besides its gear: the items taken here, then
    * the treasure it brought in, then its spell scrolls and wands (#346). A
    * gem or art object shows its value, a wand its charges.
    */
   inventory: readonly (Named &
-    Readonly<{ value?: string; charges?: string }>)[];
+    Readonly<{ icon: GameIconId; value?: string; charges?: string }>)[];
   /** The coin the character holds, in mixed denominations, if it has any. */
   purse?: string;
   /** The character's gear as it stands, and the AC and attacks it gives. */
@@ -4157,6 +4304,7 @@ export type RoomView = Readonly<{
     ammunition: readonly Readonly<{
       id: AmmunitionId;
       name: string;
+      icon: GameIconId;
       count: number;
     }>[];
     armorClass: number;
@@ -4573,6 +4721,8 @@ export type FifthRuntime = Omit<
     projectRests(state: FifthState, kind: RestKind): RestsView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
+    /** Its module's monster and item icons, for result lines (#377). */
+    icons: IconLookup;
     /**
      * The action bar: in a fight, the character's whole toolkit (an attack
      * on each living opponent, drinking each carried potion, Second Wind,
@@ -4641,6 +4791,8 @@ export type FightView = Readonly<{
     combatants: readonly Readonly<{
       id: string;
       name: string;
+      /** An opponent's icon (#377). */
+      icon?: GameIconId;
       side: Combatant["side"];
       hp: number;
       maxHp: number;
@@ -4797,6 +4949,7 @@ function projectFight(
   self: Combatant,
   options: readonly EncounterActionType[],
   targets: readonly Combatant[],
+  iconOf: (id: string) => GameIconId | undefined,
 ): FightView {
   const encounter = state.encounter;
   const uses = (feature: FeatureUses) => ({
@@ -4850,9 +5003,12 @@ function projectFight(
                 const entrant = combatant(encounter, combatantId);
                 // The character's HP may have changed since the fight ended.
                 const hp = entrant.id === PLAYER_ID ? self.hp : entrant.hp;
+                const icon =
+                  entrant.id === PLAYER_ID ? undefined : iconOf(entrant.id);
                 return {
                   id: entrant.id,
                   name: entrant.name,
+                  ...(icon === undefined ? {} : { icon }),
                   side: entrant.side,
                   hp,
                   maxHp: entrant.maxHp,
@@ -4941,6 +5097,24 @@ export function createFifthRuntime(
       placed.map((item) => [item.id, item] as const),
     ),
   );
+  /** Item icons by name, for the items a result names (#377). */
+  const itemIconsByName = new Map(
+    [...items.values()].map((item) => [item.name, itemIcon(item)] as const),
+  );
+  const icons: IconLookup = {
+    opponent: (state, id) =>
+      encounterOf(state)?.opponents.find((opponent) => opponent.id === id)
+        ?.icon,
+    item: (id) => {
+      const item = items.get(id);
+      if (item !== undefined) {
+        return itemIcon(item);
+      }
+      const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
+      return isCatalogueId(gear) ? catalogueIcon(gear) : undefined;
+    },
+    itemNamed: (name) => itemIconsByName.get(name),
+  };
   const featureById = new Map(
     adventure.rooms.flatMap(({ features }) =>
       features.map((feature) => [feature.id, feature] as const),
@@ -5040,11 +5214,10 @@ export function createFifthRuntime(
         };
   };
   /** What the character carries besides its gear, as the room panel lists it. */
-  const carriedEntries = (
-    state: FifthState,
-  ): readonly (Named & Readonly<{ value?: string; charges?: string }>)[] => [
+  const carriedEntries = (state: FifthState): RoomView["inventory"] => [
     ...carried(state).map((item) => ({
       ...named(item),
+      icon: itemIcon(item),
       ...(item.treasure === undefined
         ? {}
         : { value: formatCoins(tradeGoodValue(item.treasure)) }),
@@ -5053,12 +5226,14 @@ export function createFifthRuntime(
       id,
       name,
       description,
+      icon: TREASURE_ICON,
       value: formatCoins(value),
     })),
     // Spell scrolls and wands (#346), a wand with its charges.
     ...heldItems(state).map((item) => ({
       id: item.id,
       name: heldItemName(item),
+      icon: item.wand === undefined ? SCROLL_ICON : WAND_ICON,
       description: heldItemText(item),
       ...(item.wand === undefined ? {} : { charges: chargesText(item)! }),
     })),
@@ -5466,7 +5641,7 @@ export function createFifthRuntime(
     magicItems: state.possessions.magicItems,
   });
   /** Gear the character dropped in this room, one entry per kind of item. */
-  const droppedHere = (state: FifthState): readonly Named[] => {
+  const droppedHere = (state: FifthState): RoomView["items"] => {
     const counts = new Map<ItemId, number>();
     for (const { roomId, item } of state.dropped) {
       if (roomId === state.roomId) {
@@ -5476,6 +5651,7 @@ export function createFifthRuntime(
     return [...counts].map(([item, count]) => ({
       id: `${DROPPED}${item}`,
       name: count === 1 ? itemName(item) : `${itemName(item)} (${count})`,
+      icon: catalogueIcon(item),
       description:
         count === 1 ? "You dropped it here." : "You dropped them here.",
     }));
@@ -8161,12 +8337,12 @@ export function createFifthRuntime(
         void left;
         const arrived: FifthState = { ...kept, roomId: destination.id };
         const fight = encounterOf(arrived);
-        const opponentsHere =
+        const metHere =
           fight === undefined || settled(state, fight.id)
             ? []
-            : fight.opponents
-                .filter(({ id }) => !fallen(arrived, fight.id, id))
-                .map(({ description }) => description);
+            : fight.opponents.filter(
+                ({ id }) => !fallen(arrived, fight.id, id),
+              );
         const sneaked =
           action.type === "sneak"
             ? sneakUp(arrived, ahead!, destination.name, random)
@@ -8194,7 +8370,8 @@ export function createFifthRuntime(
             roomId: destination.id,
             name: destination.name,
             description: destination.description,
-            opponents: opponentsHere,
+            opponents: metHere.map(({ description }) => description),
+            opponentIds: metHere.map(({ id }) => id),
           },
           ...(lurked.event === undefined ? [] : [lurked.event]),
         ];
@@ -9881,6 +10058,7 @@ export function createFifthRuntime(
     items.map((id) => ({
       id,
       name: itemName(id),
+      icon: catalogueIcon(id),
       price: formatCoins(price(id)),
     }));
   const wares = (merchant: FifthMerchant) => priced(merchant.stock, itemPrice);
@@ -10213,7 +10391,13 @@ export function createFifthRuntime(
               tradeMinutes: creature.merchant.minutes,
             }),
       })),
-      items: [...roomItems(state).map(named), ...droppedHere(state)],
+      items: [
+        ...roomItems(state).map((item) => ({
+          ...named(item),
+          icon: itemIcon(item),
+        })),
+        ...droppedHere(state),
+      ],
       inventory: carriedEntries(state),
       ...(state.possessions.purse === 0
         ? {}
@@ -10227,7 +10411,12 @@ export function createFifthRuntime(
           held: state.possessions.equipment.filter(isWeaponId).map(shownGear),
           stowed: state.possessions.stowed.map(shownGear),
           ammunition: ammunitionHeld(ammunitionOf(state)).map(
-            ({ id, count }) => ({ id, name: AMMUNITION[id].name, count }),
+            ({ id, count }) => ({
+              id,
+              name: AMMUNITION[id].name,
+              icon: catalogueIcon(id),
+              count,
+            }),
           ),
           // With its ongoing effects, such as Mage Armor (#337).
           armorClass: armorClassOf(self(state)),
@@ -11390,11 +11579,18 @@ export function createFifthRuntime(
     projectDmScene,
     attackTargets,
     projectFight: (state) =>
-      projectFight(state, self(state), options(state), attackTargets(state)),
+      projectFight(
+        state,
+        self(state),
+        options(state),
+        attackTargets(state),
+        (id) => icons.opponent(state, id),
+      ),
     projectHitDice,
     projectEffects: (state: FifthState) => effectViews(self(state)),
     projectRests,
     projectRoom,
+    icons,
     projectActions,
     actionOf: (view) => projectedActions.get(view),
     projectSettlement,

@@ -133,6 +133,14 @@ far too deadly when every check fails. `coalStore` (_The Coal Store_) is the
 graded cellar with its rubble heap and ring in a room that is no exit, so a
 run whose heap check fails must leave without the ring.
 
+## Icons (issue 377)
+
+`modules.mjs` also builds `goblinYard` (_The Goblin Yard_), which is not in
+`FIXTURE_MODULES`: the lone goblin's cellar with an inn yard before it, a
+purse of silver behind the yard's water butt and a dagger under its woodpile.
+`tests/issue-377.test.mjs` and `tests/issue-377-browser.test.mjs` find, take
+and fight through it to check the icons beside each.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

@@ -378,6 +378,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
     id: "lintel-barrow/blue-opal",
     name: "Blue Opal",
     description: "A milky opal flecked with blue fire.",
+    icon: "chest",
     value: "50 gp",
   });
   const sold = accept(later, start, sellTreasure("lintel-barrow/blue-opal"));

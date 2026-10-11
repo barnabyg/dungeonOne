@@ -172,6 +172,7 @@ test("coin looted from a body goes into the purse at once, not the pack", () => 
       name: "Pouch of Old Coins",
       description:
         "A greasy leather pouch of tarnished coins, robbed from the barrow's dead.",
+      icon: "two-coins",
     },
   ]);
   const taken = runtime.handleAction(searched.state, TAKE_POUCH);

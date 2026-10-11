@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 50).
+ * A 5e adventure session and its save file (format version 52).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -11,6 +11,7 @@
  * A save in any other format version is refused with a message naming the
  * file, and left untouched.
  */
+import { isGameIconId } from "./icons-5e.js";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -47,7 +48,7 @@ import {
   SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 51;
+export const FIFTH_SESSION_FORMAT = 52;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -147,14 +148,37 @@ function validHistory(value: unknown): value is HistoryEntry[] {
             card.lines.every(
               (line) =>
                 isRecord(line) &&
-                Object.keys(line).sort().join(",") === "rolls,text" &&
+                ["rolls,text", "icons,rolls,text"].includes(
+                  Object.keys(line).sort().join(","),
+                ) &&
                 text(line.text) &&
                 Array.isArray(line.rolls) &&
-                line.rolls.every(validRollGroup),
+                line.rolls.every(validRollGroup) &&
+                (line.icons === undefined ||
+                  validIcons(line.icons, line.text as string)),
             ) &&
             card.lines.map((line) => (line as ResultLine).text).join("\n") ===
               card.text,
         ),
+    )
+  );
+}
+
+/** A line's icons (#377): known icons, in order, within its text. */
+function validIcons(value: unknown, line: string): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (mark, index) =>
+        isRecord(mark) &&
+        Object.keys(mark).sort().join(",") === "at,icon" &&
+        Number.isSafeInteger(mark.at) &&
+        (mark.at as number) >= 0 &&
+        (mark.at as number) < line.length &&
+        (index === 0 ||
+          (mark.at as number) > (value[index - 1] as { at: number }).at) &&
+        isGameIconId(mark.icon),
     )
   );
 }
@@ -393,7 +417,12 @@ export class FifthSession {
 
   /** The engine-authored card for a resolved action and the dice it drew. */
   card(result: FifthResult, rolls: readonly RollRecord[]): HistoryCard {
-    const lines = describeFifthResult(result, rolls, this.character.name);
+    const lines = describeFifthResult(
+      result,
+      rolls,
+      this.character.name,
+      this.runtime.icons,
+    );
     return {
       kind:
         result.rejection !== undefined

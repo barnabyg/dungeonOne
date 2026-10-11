@@ -478,6 +478,60 @@ export function restingTunnelsFile(chance) {
 export const restingTunnels = validateModule(restingTunnelsFile(25));
 
 /** Every fixture module above, for checks that play each one. */
+/**
+ * The Lone Goblin with an inn yard before its cellar: a purse behind the
+ * yard's water butt and a dagger under its woodpile (#377's icons).
+ */
+export const goblinYardFile = (() => {
+  const module = moduleFile("lone-goblin");
+  module.id = "goblin-yard";
+  module.startRoomId = "yard";
+  module.rooms.unshift({
+    id: "yard",
+    name: "Inn Yard",
+    description: "A muddy yard behind the inn. Steps lead down to the cellar.",
+    features: [
+      {
+        id: "woodpile",
+        name: "Woodpile",
+        description: "A stack of split logs against the wall.",
+        discovery: "Something glints under the bottom log.",
+      },
+      {
+        id: "water-butt",
+        name: "Water Butt",
+        description: "A barrel of rainwater by the door.",
+        discovery: "A purse lies in the mud behind it.",
+      },
+    ],
+    items: [
+      {
+        id: "lost-purse",
+        name: "Lost Purse",
+        description: "A purse a drinker dropped in the mud.",
+        kind: "coin",
+        coins: { sp: 5 },
+        hiddenIn: "water-butt",
+      },
+      {
+        id: "yard-dagger",
+        name: "Dagger",
+        description: "A dagger tucked under the logs.",
+        kind: "gear",
+        gear: "dagger",
+        hiddenIn: "woodpile",
+      },
+    ],
+  });
+  module.passages.push({
+    id: "yard-to-cellar",
+    between: ["yard", "cellar"],
+    description: "Steps down to the cellar.",
+  });
+  return module;
+})();
+export const goblinYard = validateModule(structuredClone(goblinYardFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

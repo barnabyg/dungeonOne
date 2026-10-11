@@ -312,7 +312,7 @@ test("winning a fight recovers half the ammunition spent, rounded down, and the 
   );
   // In the fight, the views count what is left.
   assert.deepEqual(runtime.projectRoom(missed.state).gear.ammunition, [
-    { id: "arrows", name: "Arrows", count: 2 },
+    { id: "arrows", name: "Arrows", icon: "quiver", count: 2 },
   ]);
   const won = accept(runtime, missed.state, ATTACK, random);
   assert.equal(random.remaining(), 0);
@@ -465,7 +465,7 @@ test("a quiver behind the lintel adds 20 arrows; the bowyer buys them back by th
   );
   state = taken.state;
   assert.deepEqual(runtime.projectRoom(state).gear.ammunition, [
-    { id: "arrows", name: "Arrows", count: 22 },
+    { id: "arrows", name: "Arrows", icon: "quiver", count: 22 },
   ]);
   assert.equal(runtime.projectRoom(state).carrying.weight, 17.1);
   const status = runtime.projectCharacterStatus(state);
@@ -477,10 +477,15 @@ test("a quiver behind the lintel adds 20 arrows; the bowyer buys them back by th
     .projectRoom(state)
     .creatures.find(({ id }) => id === "bowyer");
   assert.deepEqual(bowyer.wares, [
-    { id: "shortbow", name: "Shortbow", price: "25 gp" },
-    { id: "light-crossbow", name: "Light crossbow", price: "25 gp" },
-    { id: "arrows", name: "Arrows (20)", price: "1 gp" },
-    { id: "bolts", name: "Bolts (20)", price: "1 gp" },
+    { id: "shortbow", name: "Shortbow", icon: "pocket-bow", price: "25 gp" },
+    {
+      id: "light-crossbow",
+      name: "Light crossbow",
+      icon: "crossbow",
+      price: "25 gp",
+    },
+    { id: "arrows", name: "Arrows (20)", icon: "quiver", price: "1 gp" },
+    { id: "bolts", name: "Bolts (20)", icon: "arrowhead", price: "1 gp" },
   ]);
   assert.ok(
     bowyer.salePrices.some(

@@ -38,6 +38,7 @@ import {
   recordGateVerdicts,
 } from "../dist/gate-verdicts-5e.js";
 import { TURN_UNDEAD_ID } from "../dist/encounter-5e.js";
+import { MONSTER_ICONS, OPPONENT_ICON } from "../dist/icons-5e.js";
 import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
@@ -114,6 +115,16 @@ const gateOf = (adventure) => {
   }
   return gates.get(adventure.id);
 };
+
+test("every shipped opponent shows its own monster's icon (#377)", () => {
+  for (const adventure of shipped) {
+    for (const { opponents } of adventure.encounters) {
+      for (const { id, icon } of opponents) {
+        assert.notEqual(icon, OPPONENT_ICON, `${adventure.id} ${id}`);
+      }
+    }
+  }
+});
 
 test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
@@ -564,6 +575,8 @@ test("every shipped opponent names its bestiary monster instead of an inline sta
       opponent.name ??= statBlock.name;
       opponent.description ??= description;
       opponent.statBlock = structuredClone(statBlock);
+      // Its monster's icon goes with it (#377).
+      opponent.icon ??= MONSTER_ICONS[opponent.monster];
       delete opponent.monster;
     }
     assert.deepEqual(

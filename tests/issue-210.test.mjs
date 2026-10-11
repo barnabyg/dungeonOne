@@ -322,9 +322,14 @@ test("a merchant offers only its authored stock, at engine prices, and only outs
   const runtime = createFifthRuntime(marketBarrow, ada);
   const looted = loot(runtime);
   assert.deepEqual(runtime.projectRoom(looted).creatures[0].wares, [
-    { id: "shortsword", name: "Shortsword", price: "10 gp" },
-    { id: "shield", name: "Shield", price: "10 gp" },
-    { id: "dagger", name: "Dagger", price: "2 gp" },
+    {
+      id: "shortsword",
+      name: "Shortsword",
+      icon: "pointy-sword",
+      price: "10 gp",
+    },
+    { id: "shield", name: "Shield", icon: "bordered-shield", price: "10 gp" },
+    { id: "dagger", name: "Dagger", icon: "plain-dagger", price: "2 gp" },
   ]);
   assert.deepEqual(
     runtime
@@ -473,8 +478,13 @@ test("selling pays half price; equipped gear is sold only once confirmed", () =>
   );
   // The panel shows what the merchant pays for each kind carried.
   assert.deepEqual(runtime.projectRoom(start.state).creatures[0].salePrices, [
-    { id: "leather", name: "Leather armour", price: "5 gp" },
-    { id: "mace", name: "Mace", price: "2 gp 5 sp" },
+    {
+      id: "leather",
+      name: "Leather armour",
+      icon: "leather-armor",
+      price: "5 gp",
+    },
+    { id: "mace", name: "Mace", icon: "flanged-mace", price: "2 gp 5 sp" },
   ]);
   const sold = accept(runtime, start.state, sell("leather", true));
   assert.equal(

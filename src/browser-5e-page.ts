@@ -98,6 +98,7 @@
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
+import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
@@ -107,7 +108,7 @@ export const FIFTH_DM_OFF_NOTICE =
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
-<body><a class="skip" href="#content">Skip to content</a>
+<body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
 <header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><h1>Dungeon One</h1></div></header>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
@@ -188,6 +189,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </div>
 </section>
 </main>
+<footer class="credits">${iconCredits()}</footer>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
@@ -252,6 +254,7 @@ html{scroll-padding-bottom:var(--session-dock-height,0px)}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 @media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -1207,6 +1210,37 @@ const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Cri
 
 /** Text only screen readers hear, standing in for a compact visible form. */
 const spoken = (text) => make("span", text, "visually-hidden");
+
+// A monster's or item's silhouette from the page's sprite (#377). It is
+// decorative: the text beside it names the thing.
+function icon(id) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("aria-hidden", "true");
+  svg.dataset.icon = id;
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use.setAttribute("href", "#icon-" + id);
+  svg.append(use);
+  return svg;
+}
+
+// A name, after its icon when it has one.
+const iconned = (id, name) => (id ? [icon(id), name] : [name]);
+
+// A line's text with its icons, each before the character it marks.
+function iconText(line) {
+  const parts = [];
+  let from = 0;
+  for (const mark of line.icons ?? []) {
+    parts.push(line.text.slice(from, mark.at), icon(mark.icon));
+    from = mark.at;
+  }
+  parts.push(line.text.slice(from));
+  return parts.filter((part) => part !== "");
+}
+
+// The icon a line marks a name with, for its compact form.
+const nameIcon = (line, name) => line.icons?.find((mark) => line.text.startsWith(name, mark.at))?.icon;
 const unspoken = (node) => {
   node.setAttribute("aria-hidden", "true");
   return node;
@@ -1389,26 +1423,35 @@ function compactRoll(group) {
 /** An attack, initiative or healing line built from its roll groups. */
 function compactLine(line) {
   const node = unspoken(make("span", undefined, "compact"));
+  // Names, each after the icon the line marks it with (#377).
+  const who = (...names) => {
+    const span = make("span", undefined, "who");
+    names.forEach((name, index) => span.append(...(index > 0 ? [" → "] : []), ...iconned(nameIcon(line, name), name)));
+    return span;
+  };
   const attack = line.rolls.find((group) => group.purpose === "attack");
   if (attack) {
-    node.append(make("span", attack.roller + " → " + attack.target, "who"), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
+    node.append(who(attack.roller, attack.target), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
     line.rolls.forEach((group, index) => node.append(index > 0 ? " · " : " ", compactRoll(group)));
   } else if (line.rolls[0].purpose === "healing") {
-    node.append(make("span", line.rolls[0].roller, "who"), " heals ", compactRoll(line.rolls[0]));
+    // A potion's icon heads its line (#377).
+    const potion = line.icons?.find(({ at }) => at === 0);
+    if (potion) node.append(icon(potion.icon));
+    node.append(who(line.rolls[0].roller), " heals ", compactRoll(line.rolls[0]));
   } else if (line.rolls[0].purpose === "check" || line.rolls[0].purpose === "save") {
     // A check or saving throw (#132): its label, outcome (or band, #281) and roll against the DC.
     const check = line.rolls[0];
-    node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
+    node.append(who(check.roller), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
   } else if (line.rolls[0].purpose === "reaction") {
     // A reaction roll (#304): its band and the dice with the Charisma modifier.
     const reaction = line.rolls[0];
-    node.append(make("span", reaction.roller, "who"), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
+    node.append(who(reaction.roller), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
   } else if (line.rolls[0].purpose === "wandering") {
     // A rest's d100 (#335): whether the wandering encounter came.
     const watch = line.rolls[0];
     node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Interrupted" : "Undisturbed", "tag " + watch.outcome), " ", compactRoll(watch));
   } else if (line.rolls[0].purpose === "damage") {
-    node.append(make("span", line.rolls[0].roller + " → " + line.rolls[0].target, "who"), " ", compactRoll(line.rolls[0]));
+    node.append(who(line.rolls[0].roller, line.rolls[0].target), " ", compactRoll(line.rolls[0]));
   } else {
     node.append(make("span", "Initiative: ", "roll-label"));
     line.rolls.forEach((group, index) => node.append(...(index > 0 ? [" · "] : []), compactRoll(group)));
@@ -1419,13 +1462,17 @@ function compactLine(line) {
 const compactable = (line) => line.rolls.length > 0;
 
 function historyCard(card) {
-  if (card.kind === "narration") return part("p", "narration", card.text);
+  if (card.kind === "narration") {
+    const node = part("p", "narration");
+    card.lines.forEach((line, index) => node.append(...(index > 0 ? ["\n"] : []), ...iconText(line)));
+    return node;
+  }
   const node = part("div", card.kind);
   for (const line of card.lines) {
     const block = make("div", undefined, "card-line");
     const paragraph = make("p");
     if (compactable(line)) paragraph.append(spoken(line.text), compactLine(line));
-    else paragraph.textContent = line.text;
+    else paragraph.append(...iconText(line));
     block.append(paragraph);
     node.append(block);
   }
@@ -1558,14 +1605,14 @@ function gearEntries(gear) {
   // A magic item explains its bonus after where it is (#345).
   const counted = (items, slot, describe) => {
     const counts = new Map();
-    for (const { id, name, magic } of items) counts.set(id, { name, magic, count: (counts.get(id)?.count ?? 0) + 1 });
-    return [...counts].map(([id, { name, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", description: describe(count) + (magic ? " " + magic : "") }));
+    for (const { id, name, icon, magic } of items) counts.set(id, { name, icon, magic, count: (counts.get(id)?.count ?? 0) + 1 });
+    return [...counts].map(([id, { name, icon, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", icon, description: describe(count) + (magic ? " " + magic : "") }));
   };
   return [
     ...counted(gear.worn, "equipped", () => "Worn."),
     ...counted(gear.held, "equipped", () => "In hand."),
     ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
-    ...gear.ammunition.map(({ id, name, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", description: "Ammunition: each shot spends one." })),
+    ...gear.ammunition.map(({ id, name, icon, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", icon, description: "Ammunition: each shot spends one." })),
   ];
 }
 
@@ -1581,7 +1628,8 @@ function renderRoom(room, fighting) {
       if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
       // A gem or art object shows its value (#239), a wand its charges (#346).
-      text.append(make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : "")), document.createTextNode(" — " + entry.description));
+      // An item's icon before its name (#377).
+      text.append(...iconned(entry.icon, make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : ""))), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
@@ -1601,7 +1649,7 @@ function renderRoom(room, fighting) {
           const line = make("li");
           line.dataset.ware = ware.id;
           const text = make("p");
-          text.append(make("strong", ware.name), document.createTextNode(" — " + ware.price));
+          text.append(...iconned(ware.icon, make("strong", ware.name)), document.createTextNode(" — " + ware.price));
           line.append(text, make("div", undefined, "controls"));
           return line;
         }));
@@ -1613,7 +1661,7 @@ function renderRoom(room, fighting) {
     }));
   }
   // The purse shows with what the character carries, once it holds coin.
-  element("purse").textContent = room.purse ? "Purse: " + room.purse : "";
+  element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
   if (room.purse) element("inventory-group").hidden = false;
   element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
@@ -1660,6 +1708,7 @@ function renderInitiative(encounter, fighting) {
     if (current) row.setAttribute("aria-current", "true");
     const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : "") + (combatant.hidden ? " (hidden)" : ""));
     name.scope = "row";
+    if (combatant.icon) name.prepend(icon(combatant.icon));
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
@@ -1898,7 +1947,10 @@ function renderActions() {
     if (!thing) {
       thing = make("span", undefined, "thing-actions");
       thing.dataset.target = target.id;
-      thing.append(unspoken(make("span", target.name, "thing-name")), make("span", undefined, "thing-verbs"));
+      // An item to take shows its icon, as in the room's list (#377).
+      const name = unspoken(make("span", undefined, "thing-name"));
+      name.append(...iconned(session.room.items.find(({ id }) => id === target.id)?.icon, target.name));
+      thing.append(name, make("span", undefined, "thing-verbs"));
       groups[group].push(thing);
     }
     thing.lastChild.append(wrap);
