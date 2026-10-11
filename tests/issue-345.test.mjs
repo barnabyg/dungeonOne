@@ -318,6 +318,7 @@ test("a +1 shortsword found behind the lintel is wielded at once and kept on lea
     {
       id: "shortsword-plus-1",
       name: "+1 Shortsword",
+      icon: "pointy-sword",
       magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
     },
   ]);
@@ -335,6 +336,7 @@ test("a +1 shortsword found behind the lintel is wielded at once and kept on lea
     {
       id: "shortsword-plus-1",
       name: "+1 Shortsword",
+      icon: "pointy-sword",
       magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
     },
   ]);

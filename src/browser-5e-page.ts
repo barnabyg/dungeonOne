@@ -76,6 +76,8 @@
 // above actions and composer. From 900 x 560 px the session fills the window
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
+// The footer's icon credits (#377) show on every screen but that one-column
+// session, where the page's end would lift the sticky dock off the bottom.
 //
 // A level-4 character's sheet (#286) leads with #level-choice, the level-up
 // card that asks for its Ability Score Improvement (#asi-mode-two or
@@ -98,6 +100,7 @@
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
+import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
@@ -107,7 +110,7 @@ export const FIFTH_DM_OFF_NOTICE =
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
-<body><a class="skip" href="#content">Skip to content</a>
+<body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
 <header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><h1>Dungeon One</h1></div></header>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
@@ -188,6 +191,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </div>
 </section>
 </main>
+<footer class="credits">${iconCredits()}</footer>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
@@ -247,11 +251,12 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 .controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
-@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
+@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}#explore-controls .thing-name .icon{display:inline-block}html body:has(#adventure:not([hidden])) .credits{display:block}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.dice{gap:2px}.die{width:18px;height:18px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 @media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.thing-name .icon{display:none}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}body:has(#adventure:not([hidden])) .credits{display:none}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -1207,6 +1212,37 @@ const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Cri
 
 /** Text only screen readers hear, standing in for a compact visible form. */
 const spoken = (text) => make("span", text, "visually-hidden");
+
+// A monster's or item's silhouette from the page's sprite (#377). It is
+// decorative: the text beside it names the thing.
+function icon(id) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("aria-hidden", "true");
+  svg.dataset.icon = id;
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use.setAttribute("href", "#icon-" + id);
+  svg.append(use);
+  return svg;
+}
+
+// A name, after its icon when it has one.
+const iconned = (id, name) => (id ? [icon(id), name] : [name]);
+
+// A line's text with its icons, each before the character it marks.
+function iconText(line) {
+  const parts = [];
+  let from = 0;
+  for (const mark of line.icons ?? []) {
+    parts.push(line.text.slice(from, mark.at), icon(mark.icon));
+    from = mark.at;
+  }
+  parts.push(line.text.slice(from));
+  return parts.filter((part) => part !== "");
+}
+
+// The icon a line marks a name with, for its compact form.
+const nameIcon = (line, name) => line.icons?.find((mark) => line.text.startsWith(name, mark.at))?.icon;
 const unspoken = (node) => {
   node.setAttribute("aria-hidden", "true");
   return node;
@@ -1389,26 +1425,35 @@ function compactRoll(group) {
 /** An attack, initiative or healing line built from its roll groups. */
 function compactLine(line) {
   const node = unspoken(make("span", undefined, "compact"));
+  // Names, each after the icon the line marks it with (#377).
+  const who = (...names) => {
+    const span = make("span", undefined, "who");
+    names.forEach((name, index) => span.append(...(index > 0 ? [" → "] : []), ...iconned(nameIcon(line, name), name)));
+    return span;
+  };
   const attack = line.rolls.find((group) => group.purpose === "attack");
   if (attack) {
-    node.append(make("span", attack.roller + " → " + attack.target, "who"), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
+    node.append(who(attack.roller, attack.target), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
     line.rolls.forEach((group, index) => node.append(index > 0 ? " · " : " ", compactRoll(group)));
   } else if (line.rolls[0].purpose === "healing") {
-    node.append(make("span", line.rolls[0].roller, "who"), " heals ", compactRoll(line.rolls[0]));
+    // A potion's icon heads its line (#377).
+    const potion = line.icons?.find(({ at }) => at === 0);
+    if (potion) node.append(icon(potion.icon));
+    node.append(who(line.rolls[0].roller), " heals ", compactRoll(line.rolls[0]));
   } else if (line.rolls[0].purpose === "check" || line.rolls[0].purpose === "save") {
     // A check or saving throw (#132): its label, outcome (or band, #281) and roll against the DC.
     const check = line.rolls[0];
-    node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
+    node.append(who(check.roller), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
   } else if (line.rolls[0].purpose === "reaction") {
     // A reaction roll (#304): its band and the dice with the Charisma modifier.
     const reaction = line.rolls[0];
-    node.append(make("span", reaction.roller, "who"), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
+    node.append(who(reaction.roller), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
   } else if (line.rolls[0].purpose === "wandering") {
     // A rest's d100 (#335): whether the wandering encounter came.
     const watch = line.rolls[0];
     node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Interrupted" : "Undisturbed", "tag " + watch.outcome), " ", compactRoll(watch));
   } else if (line.rolls[0].purpose === "damage") {
-    node.append(make("span", line.rolls[0].roller + " → " + line.rolls[0].target, "who"), " ", compactRoll(line.rolls[0]));
+    node.append(who(line.rolls[0].roller, line.rolls[0].target), " ", compactRoll(line.rolls[0]));
   } else {
     node.append(make("span", "Initiative: ", "roll-label"));
     line.rolls.forEach((group, index) => node.append(...(index > 0 ? [" · "] : []), compactRoll(group)));
@@ -1419,13 +1464,17 @@ function compactLine(line) {
 const compactable = (line) => line.rolls.length > 0;
 
 function historyCard(card) {
-  if (card.kind === "narration") return part("p", "narration", card.text);
+  if (card.kind === "narration") {
+    const node = part("p", "narration");
+    card.lines.forEach((line, index) => node.append(...(index > 0 ? ["\n"] : []), ...iconText(line)));
+    return node;
+  }
   const node = part("div", card.kind);
   for (const line of card.lines) {
     const block = make("div", undefined, "card-line");
     const paragraph = make("p");
     if (compactable(line)) paragraph.append(spoken(line.text), compactLine(line));
-    else paragraph.textContent = line.text;
+    else paragraph.append(...iconText(line));
     block.append(paragraph);
     node.append(block);
   }
@@ -1558,14 +1607,14 @@ function gearEntries(gear) {
   // A magic item explains its bonus after where it is (#345).
   const counted = (items, slot, describe) => {
     const counts = new Map();
-    for (const { id, name, magic } of items) counts.set(id, { name, magic, count: (counts.get(id)?.count ?? 0) + 1 });
-    return [...counts].map(([id, { name, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", description: describe(count) + (magic ? " " + magic : "") }));
+    for (const { id, name, icon, magic } of items) counts.set(id, { name, icon, magic, count: (counts.get(id)?.count ?? 0) + 1 });
+    return [...counts].map(([id, { name, icon, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", icon, description: describe(count) + (magic ? " " + magic : "") }));
   };
   return [
     ...counted(gear.worn, "equipped", () => "Worn."),
     ...counted(gear.held, "equipped", () => "In hand."),
     ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
-    ...gear.ammunition.map(({ id, name, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", description: "Ammunition: each shot spends one." })),
+    ...gear.ammunition.map(({ id, name, icon, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", icon, description: "Ammunition: each shot spends one." })),
   ];
 }
 
@@ -1581,7 +1630,8 @@ function renderRoom(room, fighting) {
       if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
       // A gem or art object shows its value (#239), a wand its charges (#346).
-      text.append(make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : "")), document.createTextNode(" — " + entry.description));
+      // An item's icon before its name (#377).
+      text.append(...iconned(entry.icon, make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : ""))), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
@@ -1601,7 +1651,7 @@ function renderRoom(room, fighting) {
           const line = make("li");
           line.dataset.ware = ware.id;
           const text = make("p");
-          text.append(make("strong", ware.name), document.createTextNode(" — " + ware.price));
+          text.append(...iconned(ware.icon, make("strong", ware.name)), document.createTextNode(" — " + ware.price));
           line.append(text, make("div", undefined, "controls"));
           return line;
         }));
@@ -1613,7 +1663,7 @@ function renderRoom(room, fighting) {
     }));
   }
   // The purse shows with what the character carries, once it holds coin.
-  element("purse").textContent = room.purse ? "Purse: " + room.purse : "";
+  element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
   if (room.purse) element("inventory-group").hidden = false;
   element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
@@ -1660,6 +1710,7 @@ function renderInitiative(encounter, fighting) {
     if (current) row.setAttribute("aria-current", "true");
     const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : "") + (combatant.hidden ? " (hidden)" : ""));
     name.scope = "row";
+    if (combatant.icon) name.prepend(icon(combatant.icon));
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
@@ -1898,7 +1949,11 @@ function renderActions() {
     if (!thing) {
       thing = make("span", undefined, "thing-actions");
       thing.dataset.target = target.id;
-      thing.append(unspoken(make("span", target.name, "thing-name")), make("span", undefined, "thing-verbs"));
+      // An item to take shows its icon, as in the room's list (#377), but
+      // only in the wide layout: on a phone the bar has no room (#198).
+      const name = unspoken(make("span", undefined, "thing-name"));
+      name.append(...iconned(session.room.items.find(({ id }) => id === target.id)?.icon, target.name));
+      thing.append(name, make("span", undefined, "thing-verbs"));
       groups[group].push(thing);
     }
     thing.lastChild.append(wrap);

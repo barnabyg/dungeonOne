@@ -69,6 +69,12 @@
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
+import {
+  type GameIconId,
+  isGameIconId,
+  MONSTER_ICONS,
+  OPPONENT_ICON,
+} from "./icons-5e.js";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -169,7 +175,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 30;
+export const FIFTH_ADVENTURE_FORMAT = 31;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -180,6 +186,11 @@ export type FifthOpponent = Readonly<{
   name: string;
   description: string;
   statBlock: StatBlock;
+  /**
+   * The icon shown beside its name (#377): authored, or else its bestiary
+   * monster's, or else a generic one.
+   */
+  icon: GameIconId;
   /**
    * A boss is exempt from the balance gate's one-hit-kill cap; every other
    * opponent is ordinary.
@@ -1661,13 +1672,14 @@ function validateModule(
                 "statBlock",
                 "surrender",
                 "reacts",
+                "icon",
               ],
               at,
             )
           : knownKeys(
               raw,
               ["id", "name", "description", "statBlock"],
-              ["boss", "surrender", "reacts"],
+              ["boss", "surrender", "reacts", "icon"],
               at,
             );
         if (opponent.boss !== undefined && opponent.boss !== true) {
@@ -1677,6 +1689,12 @@ function validateModule(
           fail(`${at} reacts must be true, or left out.`);
         }
         const opponentId = id(opponent.id, `${at} id`);
+        if (opponent.icon !== undefined && !isGameIconId(opponent.icon)) {
+          fail(
+            `${at} (${opponentId}) icon must name an icon in src/icons-5e.ts.`,
+          );
+        }
+        const authoredIcon = opponent.icon as GameIconId | undefined;
         if (opponent.reacts === true && encounter.reaction === undefined) {
           fail(
             `${at} (${opponentId}) reacts, but ${where} has no reaction: author one, with each band's options.`,
@@ -1725,6 +1743,7 @@ function validateModule(
             name: text(opponent.name, `${at} name`, 60),
             description: text(opponent.description, `${at} description`),
             statBlock: block,
+            icon: authoredIcon ?? OPPONENT_ICON,
             ...boss,
             ...yielding(block),
           };
@@ -1754,6 +1773,7 @@ function validateModule(
               ? monster.description
               : text(opponent.description, `${at} description`),
           statBlock: monster.statBlock,
+          icon: authoredIcon ?? MONSTER_ICONS[monsterId] ?? OPPONENT_ICON,
           ...boss,
           ...yielding(monster.statBlock),
         };

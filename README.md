@@ -287,6 +287,13 @@ round, whose turn it is, and pips for your Action (two after Action Surge),
 Bonus action and Reaction, filled while unused. Screen readers hear each in
 words, such as "HP 6 of 11" and "Bonus action: used".
 
+Small silhouettes sit beside the text that names a monster or an item: before
+each opponent as you meet it, before its name in the lines about its blows and
+its fall and in the initiative table, before an item as you find it, at the start of a line
+that takes, recovers, trades, equips or drinks one, and before each item in the
+room panel's lists, the purse and a merchant's wares. Only the engine's lines
+have them, never the Dungeon Master's own words; screen readers skip them.
+
 The room panel shows the current room, its exits, its features (with any
 discovery you have made), the items you can see and what you carry, leaving out
 any list that is empty. Outside a fight, under what you carry, **Short rest**
@@ -496,16 +503,18 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 25.
+- The character library (`characters.json` by default) is format version 26.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 50.
+  `characters-adventures` directory beside the library, in format version 52.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 30. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 31. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
-  format version 10, or author a one-off stat block inline.
+  format version 10, or author a one-off stat block inline. An opponent may
+  name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
+  or crossed swords for a one-off stat block.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -692,3 +701,11 @@ This work includes material from the System Reference Document 5.2 ("SRD 5.2")
 by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The
 SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International
 License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
+## Icon attribution
+
+The icons are from [game-icons.net](https://game-icons.net) by Carl Olsen,
+Caro Asercion, Delapouite, Lorc, Skoll and Willdabeast, licensed under the
+Creative Commons Attribution 3.0 Unported License, available at
+https://creativecommons.org/licenses/by/3.0/. `src/icons-5e.ts` names each
+icon's source; the game's footer credits them too.
