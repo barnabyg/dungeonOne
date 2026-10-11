@@ -60,6 +60,13 @@
  *   burst, hit or miss, for a saving throw against more damage (Ice Knife).
  * - Buffs (#343) may also give attacks on their holder disadvantage (Blur)
  *   or illusory duplicates that a hit may strike instead (Mirror Image).
+ * - `drain` (#344): a melee spell attack that heals the caster half the
+ *   damage dealt, made again with the action on each later turn while the
+ *   caster concentrates (Vampiric Touch).
+ * - `slow` (#344): each opponent caught saves or is slowed while the
+ *   caster concentrates, saving again at the end of each of its turns
+ *   (Slow). Haste (#344) is a buff: +2 AC, advantage on Dexterity saves and
+ *   one more attack a turn, with lethargy if it ends before the fight.
  *
  * Without positions or a clock, ranges are left out and areas and
  * durations are abstracted; the rules document lists what that omits.
@@ -169,6 +176,25 @@ export type Buff = Readonly<
    * at the end of its next turn.
    */
   | { kind: "later-damage"; damage: SpellDamage }
+  /**
+   * Vampiric Touch (#344) on its caster: while it concentrates, its action
+   * makes the touch's melee spell attack again, dealing `damage` and
+   * healing it half the damage dealt.
+   */
+  | { kind: "drain"; damage: SpellDamage }
+  /**
+   * Haste (#344): +2 AC, advantage on Dexterity saving throws, and one
+   * more attack on each of its holder's turns. Ended before the fight is
+   * over, it leaves its holder incapacitated until the end of its next
+   * turn.
+   */
+  | { kind: "haste" }
+  /**
+   * Slow (#344) on an opponent: −2 AC and on Dexterity saving throws, and
+   * one attack a turn; it saves on Wisdom at the end of each of its turns,
+   * ending it on a success.
+   */
+  | { kind: "slowed" }
 >;
 
 /**
@@ -406,6 +432,29 @@ export type SpellEffect = Readonly<
       ability: Ability;
       onSuccess: "half";
       damage: SpellDamage;
+      duration: SpellDuration;
+      concentration: true;
+    }
+  /**
+   * A draining touch (#344, Vampiric Touch): a melee spell attack as it is
+   * cast, whose hit heals the caster half the damage dealt; then, while
+   * the caster concentrates, its action makes the attack again on each
+   * later turn.
+   */
+  | {
+      kind: "drain";
+      damage: SpellDamage;
+      duration: SpellDuration;
+      concentration: true;
+    }
+  /**
+   * Slow (#344): each opponent caught saves on `ability` or is slowed
+   * while the caster concentrates, saving again at the end of each of its
+   * turns.
+   */
+  | {
+      kind: "slow";
+      ability: Ability;
       duration: SpellDuration;
       concentration: true;
     }
@@ -1065,6 +1114,68 @@ export const SPELLS = {
     },
     damageTypes: ENERGY_DAMAGE_TYPES,
   },
+  // The Wizard's 3rd-level spells (#344, owner-approved), besides Fireball,
+  // Bestow Curse and Protection from Energy. Lightning Bolt's 100-foot line
+  // catches four (D4). Without companions Haste has one target, its caster;
+  // its speed and its Dash, Disengage, Hide and Utilize are omitted. Slow's
+  // 40-foot cube catches four; its speed, reaction, spell-delay and
+  // bonus-action riders are omitted. All three end with the fight.
+  "lightning-bolt": {
+    id: "lightning-bolt",
+    name: "Lightning Bolt",
+    level: 3,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "half",
+      damage: { dice: 8, sides: 6, type: "lightning" },
+    },
+    area: { shape: "line", feet: 100 },
+    upcast: { dice: 1 },
+  },
+  "vampiric-touch": {
+    id: "vampiric-touch",
+    name: "Vampiric Touch",
+    level: 3,
+    school: "necromancy",
+    castingTime: "action",
+    effect: {
+      kind: "drain",
+      damage: { dice: 3, sides: 6, type: "necrotic" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+    upcast: { dice: 1 },
+  },
+  haste: {
+    id: "haste",
+    name: "Haste",
+    level: 3,
+    school: "transmutation",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "haste" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  slow: {
+    id: "slow",
+    name: "Slow",
+    level: 3,
+    school: "transmutation",
+    castingTime: "action",
+    effect: {
+      kind: "slow",
+      ability: "wisdom",
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+    area: { shape: "cube", feet: 40 },
+  },
   // A reaction to being hit by an attack roll (#337): +5 AC until the start
   // of the caster's next turn, against that attack too.
   shield: {
@@ -1176,6 +1287,7 @@ export function effectAtSlot(
     case "control":
     case "restoration":
     case "curse":
+    case "slow":
       return effect;
     // Acid Arrow (#343): its later damage grows with its first.
     case "attack":

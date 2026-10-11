@@ -1807,6 +1807,7 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "turn-undead": "use Turn Undead",
   "preserve-life": "use Preserve Life",
   "spectral-attack": "attack with your spiritual weapon",
+  "drain-attack": "touch again with Vampiric Touch",
   "end-turn": "end your turn",
   "uncanny-dodge": "use Uncanny Dodge",
   "take-hit": "take the hit",
@@ -2179,6 +2180,11 @@ export function spellSummary(spell: SpellDefinition): string {
     case "guardians":
       // Spirit Guardians (#342).
       return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, half on a success, as it is cast and at the end of each caught foe's turn until the fight ends; concentration`;
+    // Vampiric Touch and Slow (#344).
+    case "drain":
+      return `a melee spell attack, ${dice(effect.damage)} ${effect.damage.type}, and you regain half the damage dealt; then again with your action each turn until the fight ends, concentration`;
+    case "slow":
+      return `${titleCase(effect.ability)} save or slowed until the fight ends: −2 AC and Dexterity saves, one attack a turn; a save at the end of each of its turns ends it, concentration`;
   }
 }
 
@@ -2228,6 +2234,13 @@ export function buffText(buff: Buff, damageType?: string): string {
       return `${buff.duplicates} illusory ${buff.duplicates === 1 ? "duplicate" : "duplicates"}: each hit rolls a d6 for each, and a 3 or higher strikes a duplicate instead`;
     case "later-damage":
       return `${buff.damage.dice}d${buff.damage.sides} ${buff.damage.type} more at the end of its next turn`;
+    // Vampiric Touch, Haste and Slow (#344).
+    case "drain":
+      return `a draining touch: your action makes a melee spell attack for ${buff.damage.dice}d${buff.damage.sides} ${buff.damage.type}, and you regain half the damage dealt`;
+    case "haste":
+      return "hasted: +2 AC, advantage on Dexterity saving throws, and one more weapon attack each turn; if it ends before the fight does, you can't act until the end of your next turn";
+    case "slowed":
+      return "slowed: −2 AC and Dexterity saving throws, and one attack a turn; a Wisdom save at the end of each of its turns ends it";
   }
 }
 
@@ -2381,7 +2394,9 @@ function spellText(
         | "spell-condition"
         | "spell-damage"
         | "spell-healing"
-        | "spell-curse";
+        | "spell-curse"
+        | "spell-slow"
+        | "drained";
     }
   >,
   name: (id: string) => string,
@@ -2477,6 +2492,23 @@ function spellText(
           ? `${target} makes a Wisdom saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
           : `${target} fails a Wisdom saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
       return `${rolled}${event.success ? ": the curse has no effect." : `: cursed, ${CURSE_NAMES[event.curse]}.`}`;
+    }
+    case "spell-slow": {
+      // Slow's save (#344), as it is cast or at the end of a slowed turn.
+      const { save } = event;
+      const target = name(event.targetId);
+      const rolled =
+        save.autoFail === undefined
+          ? `${target} makes a Wisdom saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a Wisdom saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
+      return event.repeat === true
+        ? `${rolled}${event.success ? "." : `: still slowed.`}`
+        : `${rolled}${event.success ? ": the spell has no effect on it." : ": slowed."}`;
+    }
+    case "drained": {
+      // Vampiric Touch's healing (#344).
+      const self = event.combatantId === PLAYER_ID;
+      return `${event.spell}: ${self ? "you regain" : `${name(event.combatantId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "spell-healing": {
       // Disciple of Life (#341) adds 2 + the slot level.
@@ -2757,6 +2789,8 @@ export function renderFifthEvent(
     case "spell-damage":
     case "spell-healing":
     case "spell-curse":
+    case "spell-slow":
+    case "drained":
       return spellText(
         event,
         name,
@@ -3673,7 +3707,8 @@ export function describeFifthResult(
         ];
       }
       case "spell-curse":
-        // Bestow Curse's save (#342).
+      case "spell-slow":
+        // Bestow Curse's save (#342), and Slow's (#344).
         return event.save.autoFail !== undefined
           ? []
           : [
@@ -4187,6 +4222,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-undead": "No undead to turn",
   "not-bloodied": "Not Bloodied",
   "no-spectral-weapon": "No spiritual weapon",
+  "no-drain": "No draining touch",
   "creature-type": "Wrong creature",
   "no-condition": "Nothing to cure",
   "not-in-fight": "Not in a fight",
