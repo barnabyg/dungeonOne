@@ -2404,6 +2404,8 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
               : {}),
             // The Evoker's (#343).
             ...(has("potent-cantrip") ? { potentCantrip: true as const } : {}),
+            // Memorize Spell (#344).
+            ...(has("memorize-spell") ? { memorizeSpell: true as const } : {}),
           },
         }),
     // Channel Divinity (#341), against the spell save DC.
@@ -2562,6 +2564,11 @@ export type SpellcastingProfile = Readonly<{
   discipleOfLife?: true;
   /** Potent Cantrip (#343): a cantrip's miss or saved damage is halved. */
   potentCantrip?: true;
+  /**
+   * Memorize Spell (#344): a short rest may swap one prepared levelled spell
+   * for another in the spellbook, for the rest of the adventure.
+   */
+  memorizeSpell?: true;
 }>;
 
 /**

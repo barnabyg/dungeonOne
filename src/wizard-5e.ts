@@ -1,13 +1,13 @@
 /**
- * The SRD 5.2 Wizard at levels 1–3, as class data (#340, #343). The
+ * The SRD 5.2 Wizard at levels 1–5, as class data (#340, #343, #344). The
  * character module (`character-5e.ts`) derives a Wizard's hit points,
- * saves, skills, spellcasting, spellbook, Arcane Recovery, Scholar and the
- * Evoker from this definition alone. Its spell tables follow SRD 5.2 at
- * every level, but a Wizard stays at level 3 (`maxLevel`) until its level
- * 4–5 features come; XP above level 3's is kept. `docs/character-rules.md`
- * records the numbers and the abstractions.
+ * saves, skills, spellcasting, spellbook, Arcane Recovery, Scholar, the
+ * Evoker, its Ability Score Improvement and Memorize Spell from this
+ * definition alone. `docs/character-rules.md` records the numbers and the
+ * abstractions.
  */
 import {
+  abilityScoreImprovementText,
   SKILLS,
   type Ability,
   type ClassDefinition,
@@ -88,6 +88,14 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "mind-spike",
     "blur",
     "mirror-image",
+    // 3rd level (#344, owner-approved).
+    "fireball",
+    "lightning-bolt",
+    "bestow-curse",
+    "protection-from-energy",
+    "vampiric-touch",
+    "haste",
+    "slow",
   ],
   spellbook: 6,
   spellbookPerLevel: 2,
@@ -189,10 +197,26 @@ export const WIZARD: ClassDefinition = {
           : `Expertise in ${SKILLS[chosen].name}: your proficiency bonus is doubled for checks with it.`,
       effect: { kind: "expertise", count: 1, skills: SCHOLAR_SKILLS },
     },
+    {
+      // The Wizard's level 4 brings no weapon mastery: the choice is the
+      // improvement alone (#344).
+      id: "ability-score-improvement",
+      level: 4,
+      name: "Ability Score Improvement",
+      text: ({ abilityScoreImprovements: [chosen] }) =>
+        abilityScoreImprovementText(chosen),
+      effect: { kind: "ability-score-improvement" },
+    },
+    {
+      id: "memorize-spell",
+      level: 5,
+      name: "Memorize Spell",
+      text: "When you finish a short rest, you may swap one of your prepared 1st-level or higher spells for another in your spellbook. The swap lasts until the adventure ends; your prepared spells in the library are unchanged (D8).",
+      effect: { kind: "memorize-spell" },
+    },
   ],
   subclasses: [EVOKER],
   defaults: WIZARD_DEFAULT_CHOICES,
   kits: ["quarterstaff-and-dagger", "daggers"],
   spellcasting: WIZARD_SPELLCASTING,
-  maxLevel: 3,
 };
