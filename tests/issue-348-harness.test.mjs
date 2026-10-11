@@ -18,6 +18,7 @@ import {
   gateVerdictAt,
   percentileCharacters,
   playAdventure,
+  POLICY_SEED_COUNT,
   renderGateResult,
   spellKillChance,
 } from "../dist/balance-5e.js";
@@ -418,4 +419,18 @@ test("Sleep and Hold Person are off the Wizard's and Cleric's lists, still in th
     "shield",
     "burning-hands",
   ]);
+});
+
+test("a caster tries both policies on the first 50 seeds and plays the rest by the better", () => {
+  assert.equal(POLICY_SEED_COUNT, 50);
+  const seeds = Array.from({ length: 60 }, (_, seed) => seed);
+  const { verdict } = gateAdventure(goblinBand, {
+    classId: "wizard",
+    seeds,
+    reportStealth: false,
+    reportReactions: false,
+  });
+  assert.equal(verdict.survival.runs, 60);
+  assert.equal(verdict.alwaysFail.runs, 60);
+  assert.equal(verdict.spendEarly.runs, 50);
 });

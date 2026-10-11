@@ -720,7 +720,10 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
 test("passesGate is the gate's verdict at the defaults, as the browser offers modules", () => {
   assert.equal(passesGate(sealedCrypt), true);
   assert.equal(passesGate(GOBLIN_PAIR), false);
-  assert.equal(passesGate(declared(GOBLIN_PAIR, "hard")), true);
+  // Hard suits the Fighter and the Rogue, but the weakest level-3 Cleric
+  // survives the pair 71.0% with its mace kit (#348): every class must
+  // qualify.
+  assert.equal(passesGate(declared(GOBLIN_PAIR, "hard")), false);
   assert.equal(passesGate(GOBLIN_PAIR), false);
 });
 

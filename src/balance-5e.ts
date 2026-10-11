@@ -2705,6 +2705,13 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
  */
 export const CASTER_JUDGED_LEVEL = 3;
 
+/**
+ * The seeds a caster plays both casting policies on (#348, owner's choice
+ * for D12): each kit and level then plays the rest by the one that
+ * survived more of them, and the spend-early report covers these alone.
+ */
+export const POLICY_SEED_COUNT = 50;
+
 /** The weakest and strongest sampled characters, as percentiles. */
 export const WEAKEST_PERCENTILE = 5;
 export const STRONGEST_PERCENTILE = 95;
@@ -3172,9 +3179,10 @@ export function gateAdventure(
      * check is the always-fail run on its seed too, so only runs that made
      * one are played again. Beside them, its stealth-first runs on seeded
      * checks (#302), and its cautious runs taking the peaceful option of a
-     * reaction roll (#304). A caster (#348) plays its seeded runs with both
-     * casting policies, and every other branch with the one that survives
-     * more of them (`casting`), as a player keeps to one way of playing.
+     * reaction roll (#304). A caster (#348) plays its first
+     * `POLICY_SEED_COUNT` seeded runs with both casting policies, and every
+     * other run with the one that survives more of them (`casting`), as a
+     * player keeps to one way of playing.
      */
     const played = levels.flatMap((level) =>
       classKits.map((kit) => {
@@ -3190,24 +3198,21 @@ export function gateAdventure(
         const failing = createFifthRuntime(adventure, sheet, {
           checks: "always-fail",
         });
-        const conserving = seeds.map((seed) =>
-          playAdventure(seeded, GATE_STYLE, seed, limit),
-        );
-        const spent = spending
-          ? seeds.map((seed) =>
-              playAdventure(seeded, GATE_STYLE, seed, {
-                ...limit,
-                casting: "spend-early",
-              }),
-            )
-          : undefined;
+        const play = (seed: number, casting: CastingPolicy) =>
+          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
+        // A caster tries both policies on the first seeds (#348).
+        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
+        const tried = {
+          conserve: trial.map((seed) => play(seed, "conserve")),
+          "spend-early": trial.map((seed) => play(seed, "spend-early")),
+        };
         const casting: CastingPolicy =
-          spent !== undefined && rateOf(spent) > rateOf(conserving)
+          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
             ? "spend-early"
             : "conserve";
         const policy = { ...limit, casting };
         const runs = seeds.map((seed, index) => {
-          const run = (casting === "spend-early" ? spent! : conserving)[index]!;
+          const run = tried[casting][index] ?? play(seed, casting);
           return {
             seeded: run,
             failing:
@@ -3227,7 +3232,7 @@ export function gateAdventure(
                     ...policy,
                     reactions: "peaceful",
                   }),
-            spending: spent?.[index],
+            spending: tried["spend-early"][index],
           };
         });
         return { kit, level, runs, ...(spending ? { casting } : {}) };
@@ -3271,7 +3276,7 @@ export function gateAdventure(
         level: weakestKit.level,
         percentile: WEAKEST_PERCENTILE,
         style,
-        runs: seeds.length,
+        runs: branchRuns(played[0]!.runs, branch).length,
         rate: weakestKit.rate,
         kit: weakestKit.kit,
         kits,

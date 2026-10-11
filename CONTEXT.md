@@ -73,7 +73,7 @@ _Avoid_: Memorising (Memorize Spell is the Wizard's feature, below)
 The Wizard's level-5 feature (#344): a short rest may swap one prepared levelled spell for another in its spellbook. The swap lasts only the adventure; the library's prepared spells never change during one.
 
 **Casting policy**:
-How the balance harness spends a caster's spell slots in a fight (#348): conserve, the default, casts only cantrips until below its heal threshold; spend-early casts its best levelled damage or control spell on every turn it can. The gate judges each caster's kit and level on the one that survives more of its seeded runs, and reports spend-early beside it.
+How the balance harness spends a caster's spell slots in a fight (#348): conserve, the default, casts only cantrips until below its heal threshold; spend-early casts its best levelled damage or control spell on every turn it can. The gate judges each caster's kit and level on the one that survives more of its first 50 seeded runs, and reports spend-early over those beside it.
 _Avoid_: Caster style, Nova
 
 **Control chance**:
