@@ -1,0 +1,109 @@
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 25,
+  "revision": "00000000000000000000000000000000",
+  "creationsStarted": 1,
+  "sessionsStarted": 0,
+  "characters": [
+    {
+      "sheet": {
+        "id": "cccccccccccccccccccccccccccccccc",
+        "name": "Mira",
+        "class": "cleric",
+        "level": 3,
+        "xp": 900,
+        "hp": 24,
+        "abilityRolls": {
+          "strength": [
+            3,
+            6,
+            4,
+            2
+          ],
+          "dexterity": [
+            4,
+            4,
+            4,
+            4
+          ],
+          "constitution": [
+            5,
+            5,
+            4,
+            2
+          ],
+          "intelligence": [
+            2,
+            2,
+            4,
+            2
+          ],
+          "wisdom": [
+            6,
+            5,
+            4,
+            1
+          ],
+          "charisma": [
+            1,
+            3,
+            3,
+            4
+          ]
+        },
+        "backgroundIncrease": {
+          "wisdom": 2,
+          "constitution": 1
+        },
+        "abilityScoreImprovements": [],
+        "abilities": {
+          "strength": 13,
+          "dexterity": 12,
+          "constitution": 15,
+          "intelligence": 8,
+          "wisdom": 17,
+          "charisma": 10
+        },
+        "skills": [
+          "insight",
+          "persuasion"
+        ],
+        "spells": {
+          "cantrips": [
+            "sacred-flame",
+            "guidance",
+            "resistance"
+          ],
+          "prepared": [
+            "guiding-bolt",
+            "healing-word",
+            "inflict-wounds",
+            "shield-of-faith",
+            "spiritual-weapon",
+            "protection-from-poison"
+          ]
+        },
+        "divineOrder": "protector",
+        "weaponMasteries": [],
+        "equipment": [
+          "leather",
+          "mace"
+        ],
+        "stowed": [
+          "dagger",
+          "dagger"
+        ],
+        "ammunition": {
+          "arrows": 0,
+          "bolts": 0
+        },
+        "treasure": [],
+        "purse": 0,
+        "magicItems": [],
+        "finds": [],
+        "xpAwards": []
+      },
+      "revision": 1
+    }
+  ]
+}

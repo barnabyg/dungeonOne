@@ -21,7 +21,8 @@ const PLAYER = "pc";
  * `["react", option, approach]` (#311) answering a reaction,
  * `["examine", featureId, approach]` (#350) choosing a check's approach,
  * `["long-rest"]` and `["rest", hitDice]` (#350) resting, and
- * `["equip", itemId]` or `["swap", itemId]` (#350) wielding found gear.
+ * `["equip", itemId]` or `["swap", itemId]` (#350) wielding found gear and
+ * `["read", itemId, spellId]` (#350) reading a held scroll on oneself.
  */
 export function routeAction([type, target, approach, retry]) {
   switch (type) {
@@ -41,6 +42,14 @@ export function routeAction([type, target, approach, retry]) {
     case "equip":
     case "swap":
       return { type, itemId: target };
+    case "read":
+      return {
+        type: "cast",
+        actorId: PLAYER,
+        spellId: approach,
+        targetIds: [PLAYER],
+        itemId: target,
+      };
     case "take":
       return { type, itemId: target };
     case "leave":
@@ -64,10 +73,17 @@ export function routeAction([type, target, approach, retry]) {
   }
 }
 
+/** The engine action for a projected cast, from a scroll or wand too (#346). */
+const castAction = (view) => ({
+  ...engineAction(view),
+  ...(view.spell?.item === undefined ? {} : { itemId: view.spell.item.id }),
+});
+
 /**
  * One fight turn: a hit a reaction could answer is taken (#350); at half HP
  * or less, Second Wind, or else drink a potion;
- * otherwise, with `cast`, cast the first spell offered (#350), or attack the
+ * otherwise, with `cast`, cast the first spell offered, or with a `cast`
+ * function the offered action it picks from the views (#350), or attack the
  * first opponent offered, then make the extra attack
  * with a second light weapon (#311, as the browser's first attack button
  * does), and end the turn once both are spent. The first of these the
@@ -75,12 +91,13 @@ export function routeAction([type, target, approach, retry]) {
  */
 function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
   const [target] = runtime.attackTargets(state);
-  // A caster (#350) casts the first spell offered, as the Cast panel starts.
-  const spell = cast
-    ? runtime
-        .projectActions(state)
-        .find(({ action, available }) => action === "cast" && available)
-    : undefined;
+  // A caster (#350) casts the first spell offered, as the Cast panel starts,
+  // or what its chooser picks.
+  const views = cast ? runtime.projectActions(state) : [];
+  const spell =
+    typeof cast === "function"
+      ? cast(views, state)
+      : views.find(({ action, available }) => action === "cast" && available);
   // The extra attack's target, offered once the attack is spent.
   const light = runtime
     .projectActions(state)
@@ -97,7 +114,7 @@ function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
             : [{ type: "use-item", itemId: potion }]),
         ]
       : []),
-    ...(spell === undefined ? [] : [engineAction(spell)]),
+    ...(spell === undefined ? [] : [castAction(spell)]),
     ...(target === undefined
       ? []
       : [{ type: "attack", actorId: PLAYER, targetId: target.id }]),
@@ -122,7 +139,8 @@ function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
  * is the browser server's: the dice are its first session's, and each fight
  * is clicked as `fight` in browser-journey.mjs clicks it, attacking the
  * first target or ending the turn, never healing. With `cast`, each fight
- * turn casts the first spell offered first (#350).
+ * turn first casts the first spell offered, or what a `cast` function picks
+ * (#350).
  */
 export function journey(
   adventure,
