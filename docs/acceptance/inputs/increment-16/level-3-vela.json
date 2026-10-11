@@ -1,0 +1,121 @@
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 25,
+  "revision": "00000000000000000000000000000000",
+  "creationsStarted": 1,
+  "sessionsStarted": 0,
+  "characters": [
+    {
+      "sheet": {
+        "id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "name": "Vela",
+        "class": "wizard",
+        "level": 3,
+        "xp": 900,
+        "hp": 20,
+        "abilityRolls": {
+          "strength": [
+            2,
+            2,
+            4,
+            2
+          ],
+          "dexterity": [
+            5,
+            5,
+            4,
+            2
+          ],
+          "constitution": [
+            3,
+            6,
+            4,
+            2
+          ],
+          "intelligence": [
+            6,
+            5,
+            4,
+            1
+          ],
+          "wisdom": [
+            4,
+            4,
+            4,
+            4
+          ],
+          "charisma": [
+            1,
+            3,
+            3,
+            4
+          ]
+        },
+        "backgroundIncrease": {
+          "intelligence": 2,
+          "constitution": 1
+        },
+        "abilityScoreImprovements": [],
+        "abilities": {
+          "strength": 8,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 17,
+          "wisdom": 12,
+          "charisma": 10
+        },
+        "skills": [
+          "arcana",
+          "investigation"
+        ],
+        "spells": {
+          "cantrips": [
+            "fire-bolt",
+            "ray-of-frost",
+            "shocking-grasp"
+          ],
+          "prepared": [
+            "mage-armor",
+            "magic-missile",
+            "shield",
+            "burning-hands",
+            "chromatic-orb",
+            "thunderwave"
+          ]
+        },
+        "spellbook": [
+          "magic-missile",
+          "shield",
+          "mage-armor",
+          "burning-hands",
+          "chromatic-orb",
+          "thunderwave",
+          "ray-of-sickness",
+          "ice-knife",
+          "scorching-ray",
+          "shatter"
+        ],
+        "weaponMasteries": [],
+        "equipment": [
+          "quarterstaff"
+        ],
+        "stowed": [
+          "dagger"
+        ],
+        "ammunition": {
+          "arrows": 0,
+          "bolts": 0
+        },
+        "treasure": [],
+        "purse": 0,
+        "magicItems": [],
+        "finds": [],
+        "xpAwards": [],
+        "expertise": [
+          "arcana"
+        ]
+      },
+      "revision": 1
+    }
+  ]
+}

@@ -65,6 +65,14 @@ export const CONTENT_TESTS = new Map([
     "the Gravedigger's Lodge's content, gate verdict and journeys",
   ],
   [
+    "tests/hollow-chantry.test.mjs",
+    "the Hollow Chantry's content, routes, rests, magic items and journeys",
+  ],
+  [
+    "tests/issue-350-browser.test.mjs",
+    "the increment 16 handoff runs of the Hollow Chantry through the browser",
+  ],
+  [
     "tests/ravagers-tower.test.mjs",
     "the Ravager's Tower's content, gate verdict and journeys",
   ],

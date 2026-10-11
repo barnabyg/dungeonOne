@@ -219,6 +219,22 @@ first session's (`sessionSeed(seed, 1)`) and each fight is fought as
 `fight` in `browser-journey.mjs` clicks it, attacking and never healing, so a
 browser test can search for the seed its clicks need.
 `xpOf(runtime, state)` lists the ending's XP awards.
+Since #350 a route may also choose a check's approach
+(`["examine", "warding-sigils", "arcana"]`), rest (`["rest", hitDice]`,
+`["long-rest"]`), wield found gear (`["equip", id]`, `["swap", id]`) and
+read a held scroll on oneself (`["read", itemId, spellId]`). Every fight turn
+first takes a hit a reaction could answer (a Wizard's Shield prompt). With
+`{ cast: true }` a caster casts the first spell offered each turn; with a
+`cast` function `(views, state) => view`, the action it picks (a scroll's
+cast carries its item).
+
+## Level-3 casters (issue 350)
+
+`level-3-casters.mjs` builds the increment 16 handoff's casters from one set
+of dice with their class's default choices and kit, raised as the gate
+raises a character: `miraAt3()`, a Life Domain Cleric, and `velaAt3()`, an
+Evoker. `libraryOf(sheet)` is a library holding only that sheet, as
+`docs/acceptance/inputs/increment-16/` gives it.
 
 ## Surrendering goblins (issue 238)
 

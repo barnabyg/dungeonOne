@@ -13,7 +13,9 @@ The [rules document](docs/character-rules.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no map. The
 [5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
 ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
-records how the 5e release was qualified, with manual test scenarios.
+records how the 5e release was qualified, with manual test scenarios. The
+latest, the [increment 16 handoff](docs/acceptance/increment-16-release.md),
+covers rests, the Cleric and Wizard, and magic items.
 
 ## Requirements
 
@@ -216,6 +218,13 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   Hard): two rooms in a churchyard. Two potions wait at the lychgate; in the
   dead-house a false gravedigger (a Bandit) and a corpse he dug up (a Zombie)
   fight together over a coffin packed with grave goods.
+- _The Hollow Chantry_ (`adventures/5e/hollow-chantry.json`, level 3,
+  Medium): eight rooms under a hillside chantry whose dead have woken. A
+  barred vestry is the place for a long rest, if the wandering dead let you.
+  Two ways lead down to the Risen Prior: the sexton's iron grille, opened
+  with his key, a pick or a strong shoulder, or a warded stair that a caster
+  can read open with Arcana or Religion. Two spell scrolls wait on the way,
+  and an optional Ghoul guards the founder's +1 Mace.
 - _The Ravager's Tower_ (`adventures/5e/ravagers-tower.json`, level 3, Hard):
   two rooms in a ruined watchtower. A dead pedlar at the tower's foot still
   has three potions; at the top a Gnoll Ravager guards the plunder of the road.
