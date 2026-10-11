@@ -117,6 +117,16 @@ import {
 } from "./treasure-5e.js";
 import { MAX_LEVEL, proficiencyBonus } from "./character-5e.js";
 import {
+  isWandId,
+  scrollName,
+  scrollSpellProblem,
+  scrollTier,
+  scrollValue,
+  WANDS,
+  type WandId,
+} from "./magic-items-5e.js";
+import type { SpellId } from "./spells-5e.js";
+import {
   ABILITIES,
   SKILLS,
   type Ability,
@@ -159,7 +169,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 29;
+export const FIFTH_ADVENTURE_FORMAT = 30;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -488,7 +498,9 @@ export function authoredChecks(
  * (#284), such as a rope, does nothing by itself: a check's circumstance or
  * retry cost names it, and it is not kept after the adventure. A carried
  * item weighs its kind's `weight` in pounds (#224); coin and gear weigh what
- * the purse, the gear and the ammunition they become weigh.
+ * the purse, the gear and the ammunition they become weigh. A spell scroll
+ * or a wand (#346) is kept with the character's magic items as it is taken,
+ * ready to cast from, and weighs nothing.
  */
 export const ITEM_KINDS = {
   ...POTIONS,
@@ -497,6 +509,8 @@ export const ITEM_KINDS = {
   coin: { weight: 0 },
   gear: { weight: 0 },
   tool: { weight: 0 },
+  scroll: { weight: 0 },
+  wand: { weight: 0 },
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 /** The kinds that are found once per character: never there to find again. */
@@ -504,6 +518,8 @@ export const FOUND_ONCE_KINDS: readonly ItemKind[] = [
   "treasure",
   "coin",
   "gear",
+  "scroll",
+  "wand",
 ];
 /**
  * The kinds that are loot: carrying treasure, or coin found here, out of an
@@ -531,6 +547,10 @@ export type FifthItem = Readonly<{
   gear?: CatalogueId;
   /** The catalogue gem or art object it is; present exactly on treasure. */
   treasure?: TradeGoodId;
+  /** The spell it holds; present exactly on a spell scroll (#346). */
+  spell?: SpellId;
+  /** The catalogue wand it is; present exactly on a wand (#346). */
+  wand?: WandId;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
 }>;
@@ -691,8 +711,9 @@ export type WanderingEncounter = Readonly<{
 
 /**
  * What a placed item is worth toward the treasure budget, in copper: coin's
- * amount, a gem or art object's value, a potion's value and gear's price.
- * A key is worth nothing, and a magic item is outside the budget (#345, D10).
+ * amount, a gem or art object's value, a potion's or spell scroll's value
+ * (#346) and gear's price. A key is worth nothing, and a magic item (a +1
+ * item or a wand) is outside the budget (#345, #346, D10).
  */
 export function itemValue(item: FifthItem): number {
   if (item.coins !== undefined) {
@@ -703,6 +724,9 @@ export function itemValue(item: FifthItem): number {
   }
   if (item.gear !== undefined) {
     return magicOf(item.gear) === undefined ? itemPrice(item.gear) : 0;
+  }
+  if (item.spell !== undefined) {
+    return scrollValue(item.spell);
   }
   return isPotionKind(item.kind) ? POTIONS[item.kind].value : 0;
 }
@@ -716,9 +740,13 @@ function isPotionKind(kind: ItemKind): kind is PotionId {
 function catalogueName(item: FifthItem): string {
   return item.gear !== undefined
     ? itemName(item.gear).toLowerCase()
-    : isPotionKind(item.kind)
-      ? POTIONS[item.kind].name
-      : item.name;
+    : item.spell !== undefined
+      ? scrollName(item.spell)
+      : item.wand !== undefined
+        ? WANDS[item.wand].name
+        : isPotionKind(item.kind)
+          ? POTIONS[item.kind].name
+          : item.name;
 }
 
 /** A placed item's availability tier; a key and coin have none. */
@@ -728,6 +756,12 @@ function findableTier(item: FifthItem): Tier | undefined {
   }
   if (item.treasure !== undefined) {
     return TRADE_GOOD_TIER;
+  }
+  if (item.spell !== undefined) {
+    return scrollTier(item.spell);
+  }
+  if (item.wand !== undefined) {
+    return WANDS[item.wand].rarity;
   }
   return isPotionKind(item.kind) ? POTIONS[item.kind].tier : undefined;
 }
@@ -1842,7 +1876,7 @@ function validateModule(
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["coins", "gear", "treasure", "hiddenIn"],
+          ["coins", "gear", "treasure", "spell", "wand", "hiddenIn"],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -1879,6 +1913,27 @@ function validateModule(
         }
         if (item.kind !== "treasure" && item.treasure !== undefined) {
           fail(`${at} has treasure, but only treasure has treasure.`);
+        }
+        // A spell scroll names its spell, a wand its catalogue wand (#346).
+        if (item.kind === "scroll") {
+          const problem =
+            item.spell === undefined
+              ? "it needs a spell"
+              : scrollSpellProblem(String(item.spell));
+          if (problem !== undefined) {
+            fail(`${at} is a spell scroll, but ${problem}`);
+          }
+        }
+        if (item.kind !== "scroll" && item.spell !== undefined) {
+          fail(`${at} has a spell, but only a spell scroll has one.`);
+        }
+        if (item.kind === "wand" && !isWandId(item.wand)) {
+          fail(
+            `${at} is a wand, so it needs wand: one of ${Object.keys(WANDS).join(", ")}.`,
+          );
+        }
+        if (item.kind !== "wand" && item.wand !== undefined) {
+          fail(`${at} has wand, but only a wand has one.`);
         }
         // An opponent of this room's fight may carry it: searching its body
         // once the fight is won finds it.
@@ -1924,6 +1979,8 @@ function validateModule(
           ...(item.treasure === undefined
             ? {}
             : { treasure: item.treasure as TradeGoodId }),
+          ...(item.spell === undefined ? {} : { spell: item.spell as SpellId }),
+          ...(item.wand === undefined ? {} : { wand: item.wand as WandId }),
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
@@ -1995,11 +2052,17 @@ function validateModule(
     };
   });
   const roomIds = unique(rooms, "room");
-  // D10 and D11 (#345): one magic item, from level 3, none needing attunement.
+  // D10 and D11 (#345): one magic item, from level 3, none needing
+  // attunement; a wand (#346) is one.
   const [magicProblem] = magicItemProblems(
     rooms.flatMap(({ items }) =>
-      items.flatMap(({ id: itemId, gear }) => {
-        const magic = gear === undefined ? undefined : magicOf(gear);
+      items.flatMap(({ id: itemId, gear, wand }) => {
+        const magic =
+          wand !== undefined
+            ? WANDS[wand]
+            : gear === undefined
+              ? undefined
+              : magicOf(gear);
         return magic === undefined ? [] : [{ id: itemId, magic }];
       }),
     ),
@@ -2384,9 +2447,14 @@ function validateModule(
         if (placed === undefined) {
           fail(`${on} names unknown item ${entry.item}.`);
         }
-        if (placed.kind === "coin" || placed.kind === "gear") {
+        if (
+          placed.kind === "coin" ||
+          placed.kind === "gear" ||
+          placed.kind === "scroll" ||
+          placed.kind === "wand"
+        ) {
           fail(
-            `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : "stowed gear"}, so it is never held.`,
+            `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : placed.kind === "gear" ? "stowed gear" : "magic items"}, so it is never held.`,
           );
         }
         break;

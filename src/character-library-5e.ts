@@ -35,6 +35,7 @@ import {
   prepareSpells,
   learnCantrips,
   addToSpellbook,
+  copyScroll,
   chooseExpertise,
   expertiseOwed,
   characterProfile,
@@ -54,7 +55,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 23;
+export const FIFTH_LIBRARY_FORMAT = 24;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -488,6 +489,26 @@ export class FifthCharacterLibrary {
       revision,
       "spells are written into the spellbook only between adventures",
       (sheet) => addToSpellbook(sheet, written),
+    );
+  }
+
+  /**
+   * Copies the spell of the scroll `characterId` holds as `scrollId` into
+   * its spellbook (#346), only between adventures: 50 gp a spell level, and
+   * the scroll is used up. Refused for a character on an adventure,
+   * defeated, without a spellbook, or that can't copy it; nothing is
+   * written then.
+   */
+  async copyScroll(
+    characterId: string,
+    scrollId: string,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.changeBetweenAdventures(
+      characterId,
+      revision,
+      "spells are copied into the spellbook only between adventures",
+      (sheet) => copyScroll(sheet, scrollId),
     );
   }
 

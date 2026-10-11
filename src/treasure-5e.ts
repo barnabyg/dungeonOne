@@ -58,7 +58,10 @@ export const MAGIC_ITEM_LIMITS = { perModule: 1, minLevel: 3 } as const;
  * needs attunement (D11). Empty when they may be hidden.
  */
 export function magicItemProblems(
-  items: readonly Readonly<{ id: string; magic: MagicItemData }>[],
+  items: readonly Readonly<{
+    id: string;
+    magic: Pick<MagicItemData, "attunement">;
+  }>[],
   level: number,
 ): readonly string[] {
   return items.flatMap(({ id, magic }, index) => [

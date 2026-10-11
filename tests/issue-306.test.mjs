@@ -299,6 +299,7 @@ test("a Rogue that levels up gains its hit points and Sneak Attack dice", () => 
       ammunition: VEX.ammunition,
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [{ id: "test/ending/won", name: "Won", xp: 900 }],
     finds: [],

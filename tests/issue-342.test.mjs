@@ -66,6 +66,7 @@ const earn = (sheet, xp, id = "cellar") =>
       ammunition: sheet.ammunition,
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [{ id: `${id}/ending/out`, name: "Out", xp }],
     finds: [],

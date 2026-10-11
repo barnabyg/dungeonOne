@@ -2,59 +2,59 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "1ff6ec52033aabc984015e65deb3ce449f6f2e334f2e9698e079cc466bd8f85a",
+      "hash": "940f1b4e95073311361b67e5301b0565d0f90ba22ce0a5903414c67ee695f382",
       "qualified": true
     },
     "drowned-chapel": {
-      "hash": "12291d5057f20ce4d153cf875951af56e2359bf898393a982a10d1cbb3f5fefd",
+      "hash": "f9f62342a4e2e1bc2f8f8054f41c0ab916fab7bac698d7df838e81114b9b8793",
       "qualified": true
     },
     "goblin-warren": {
-      "hash": "ea3f5a357093e5c2638e8dfc72ecb2cd08454984c6839f6ed4691b9b82103c32",
+      "hash": "8014fcb8ffe8840e40cab9da15d5e23feb6645b791edd2c6e52480e4cd5cd8b1",
       "qualified": true
     },
     "gravediggers-lodge": {
-      "hash": "0f37d691655f28b841fbd4968191cf38f04b85c844b0d6f0e04c7360962c4f67",
+      "hash": "4c7ae95eed89be4d7803730445ed53501d3f8265d41fb99ad3b6988599d5e04b",
       "qualified": true
     },
     "mallow-counting-house": {
-      "hash": "113d42f979e19ebb62980ceed6aa888f15febd6a25f6d675616b4f61a196ac26",
+      "hash": "eaa35c766781c53afa65a4a0d84101075c6aa6e7ae6dc7b1fc88284624e7c747",
       "qualified": true
     },
     "ravagers-tower": {
-      "hash": "ea311e5501864fdfade61699322ae932c8dbce2f751e27db046bf03d2a3fb4d3",
+      "hash": "e93ccbd79028b9d67ed175faf18ccfd18e09140056cb8528a676654b2a523360",
       "qualified": true
     },
     "robbers-barrow": {
-      "hash": "6eda8c91a3fa51b8bce4184a7033ede7ecb7ca22d801ddff982f7bd0ebdeb599",
+      "hash": "681961a257e7cea228fa931dc9de9aac101a17d2df7e54df3e742392c99054d5",
       "qualified": true
     },
     "shepherds-bothy": {
-      "hash": "cd4bf9fe8ce5249f0ea8ea400167ad2d2e29a4bb5f586aa4b6a5345667405b6a",
+      "hash": "912d93be2f0b31a7578250d30474f5e379ac5fab82a63b16eab4eb3ef466615d",
       "qualified": true
     },
     "silvervein-mine": {
-      "hash": "371058c47014a428012bda48e1b8ce05460804afc9e069f5565604518bf6ff65",
+      "hash": "70c160944725eae761cb9750efc96f59e1772ddc76804db5402cd375ec7892c6",
       "qualified": true
     },
     "smugglers-cellar": {
-      "hash": "5745dd3277d8203ddc118fc1387cede07f8242de4e18870c9fe4a7cb3198f8c8",
+      "hash": "9bce2873baabaeb121fd120b18e68570caefcc7d271ceeb0adfd9e6f2761b2c2",
       "qualified": true
     },
     "thornwood-lodge": {
-      "hash": "55fbd91073195568ed6d2b9cf196c230c1feb31145c83994cba976df38b30c1b",
+      "hash": "45ada373e1382d3fa600e811e3f413bbee2fe8834d83aa863d6ead0d1e1f2b82",
       "qualified": true
     },
     "tinkers-toll": {
-      "hash": "e202b6c1e759a328dc5a2b0a5299f17891cca90f60dfc4d7db4271c6c14e7595",
+      "hash": "e49d49ecbcd4a7e973e37ab21dff37f82cc832d0ccbf7653a6bafc21d7efce75",
       "qualified": true
     },
     "warden-crypt": {
-      "hash": "5fbc75d8e208a3e6f9958716dae736749ddbd08d19715e616a6b6c58ba5b8203",
+      "hash": "2dac2f2fcf739ce15b64546954339dce17cd7bd85450aaf8ce3696c7b850b580",
       "qualified": true
     },
     "wolfstone-hillfort": {
-      "hash": "e0e5052204f5e09efc14c514ae46b7b72339a31194b7a4bd8bf09d079931e9cf",
+      "hash": "a9a92e849f37374b22ec1519c7b7645eeb2a64aaeaf38d662cc7fe3ec46a83d0",
       "qualified": true
     }
   }

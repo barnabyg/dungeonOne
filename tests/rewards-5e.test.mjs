@@ -128,6 +128,7 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [],
     finds: [],
@@ -164,6 +165,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [torc],
       purse: 0,
+      magicItems: [],
     },
     xp: [
       {
@@ -324,6 +326,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [
       {
@@ -363,6 +366,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
       ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
+      magicItems: [],
     },
     xp: [
       { id: "lintel-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
@@ -629,6 +633,7 @@ test("an adventure starts holding the character's equipment and kept treasure (#
     ammunition: { arrows: 0, bolts: 0 },
     treasure: veteran.treasure,
     purse: 0,
+    magicItems: [],
   });
 });
 
@@ -757,8 +762,12 @@ test("abandonment restores the sheet from the start exactly, and defeat restores
         archeryBarrow,
         CHANGE_EVERY_POSSESSION,
       );
+      // A Fighter holds no scroll to read (#346): its magic items stay
+      // empty, and issue-346's tests cover changing them.
       for (const [field, held] of Object.entries(session.state.possessions)) {
-        assert.notDeepEqual(held, before[field], field);
+        if (field !== "magicItems") {
+          assert.notDeepEqual(held, before[field], field);
+        }
       }
       assert.deepEqual(session.state.dropped, [
         { roomId: "barrow-mouth", item: "mace" },

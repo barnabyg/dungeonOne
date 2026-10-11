@@ -147,6 +147,7 @@ import {
   DIVINE_SPARK_MODES,
   everyFoeTurned,
   type DivineSparkMode,
+  itemCastLevels,
   slotLevels,
   armorClassOf,
   concentrationOf,
@@ -157,6 +158,7 @@ import {
   type EffectDie,
   type CastAction,
   type Combatant,
+  type CombatMagicItem,
   type ConditionKind,
   type CunningStrikeId,
   type CurseDamage,
@@ -229,6 +231,16 @@ import {
   type WeaponData,
 } from "./equipment-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
+import {
+  chargesText,
+  heldItemName,
+  heldItemText,
+  scrollCasting,
+  WAND_MAX_LEVEL,
+  WANDS,
+  wandsSpent,
+  type HeldMagicItem,
+} from "./magic-items-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   effectEnds,
@@ -284,7 +296,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v32";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v33";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1096,6 +1108,16 @@ export type FifthEvent =
       hitDice: HitDiceView;
       longRests: RestsView;
     }>
+  /** A wand's charges regained on a long rest (#346): its dice, and how many it has now. */
+  | Readonly<{
+      type: "wand-recharged";
+      name: string;
+      rolls: readonly number[];
+      modifier: number;
+      regained: number;
+      charges: number;
+      max: number;
+    }>
   /**
    * The d100 a rest rolls against the module's wandering encounter (#335):
    * at `chance` or less it is interrupted, and the opponents named come
@@ -1503,7 +1525,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the action and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1803,6 +1825,12 @@ export function playerCombatant(
     ...(profile.spellcasting === undefined
       ? {}
       : { spellcasting: combatSpellcasting(sheet, resources) }),
+    // Its spell scrolls and wands (#346).
+    ...(sheet.magicItems.length === 0
+      ? {}
+      : {
+          magicItems: sheet.magicItems.map((item) => combatItem(sheet, item)),
+        }),
     // Its ongoing effects (#337), and whether a base-AC one can work.
     ...(resources.effects === undefined ? {} : { effects: resources.effects }),
     ...(readLoadout(sheet.equipment).armour === undefined
@@ -1810,6 +1838,54 @@ export function playerCombatant(
       : { armour: true as const }),
     ammunition: sheet.ammunition,
   };
+}
+
+/**
+ * A scroll or wand the character holds (#346) as the engine casts from it:
+ * a scroll readable only when its spell is on the class's list.
+ */
+function combatItem(
+  sheet: CharacterSheet,
+  item: HeldMagicItem,
+): CombatMagicItem {
+  const name = heldItemName(item);
+  if (item.scroll !== undefined) {
+    return {
+      id: item.id,
+      name,
+      spell: SPELLS[item.scroll],
+      kind: "scroll",
+      onList: classOf(sheet).spellcasting?.list.includes(item.scroll) === true,
+      ...scrollCasting(item.scroll),
+    };
+  }
+  return {
+    id: item.id,
+    name,
+    spell: SPELLS[WANDS[item.wand].spell],
+    kind: "wand",
+    charges: item.charges,
+    max: WANDS[item.wand].charges,
+    maxLevel: WAND_MAX_LEVEL,
+  };
+}
+
+/**
+ * The scrolls and wands the character holds after a cast (#346): those the
+ * combatant still holds, a wand with the charges it has left.
+ */
+function heldAfter(
+  held: readonly HeldMagicItem[],
+  pc: Combatant,
+): readonly HeldMagicItem[] {
+  return held.flatMap((item) => {
+    const left = pc.magicItems?.find(({ id }) => id === item.id);
+    return left === undefined
+      ? []
+      : left.kind === "wand"
+        ? [{ id: item.id, wand: item.wand!, charges: left.charges }]
+        : [item];
+  });
 }
 
 /**
@@ -2474,10 +2550,16 @@ function spellText(
       : `, plus ${curse.damageRolls.join(" + ")} = ${rolledDamage(curse.damage, curse.damageAdjustment)} ${curse.damageType} (${curse.spell})${adjustedText(curse.damage, curse.damageAdjustment)}`;
   switch (event.type) {
     case "cast": {
+      // From a scroll or wand (#346), no slot is spent.
+      const { item } = event;
       const slot =
-        event.slot === undefined
-          ? ""
-          : ` with a ${ordinal(event.slot.level)}-level spell slot (${event.slot.left} of ${event.slot.max} left)`;
+        item !== undefined
+          ? item.charges === undefined
+            ? ` from the ${item.name}, which is used up`
+            : ` from the ${item.name} at ${ordinal(event.level + item.charges.spent - 1)} level (${item.charges.spent} ${item.charges.spent === 1 ? "charge" : "charges"} spent, ${item.charges.left} of ${item.charges.max} left)`
+          : event.slot === undefined
+            ? ""
+            : ` with a ${ordinal(event.slot.level)}-level spell slot (${event.slot.left} of ${event.slot.max} left)`;
       const bonus =
         event.castingTime === "bonus-action" ? " as a bonus action" : "";
       const player = event.combatantId === PLAYER_ID;
@@ -2847,6 +2929,11 @@ export function renderFifthEvent(
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
       return `You drink the ${event.name}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
+    case "scroll-check":
+      // A scroll above the reader's slots (#346).
+      return `${event.combatantId === PLAYER_ID ? "You" : name(event.combatantId)} must master ${event.spell}, above ${event.combatantId === PLAYER_ID ? "your" : "its"} spell slots: d20 ${event.d20} ${signed(event.modifier)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success: the spell takes hold." : `Failure: the ${event.item} crumbles with no effect.`}`;
+    case "wand-last-charge":
+      return `The ${event.item}'s last charge is spent: d20 ${event.roll}. ${event.crumbled ? "It crumbles to ash and is gone." : "It holds together, to recharge."}`;
     case "cast":
     case "spell-area":
     case "spell-save":
@@ -3032,6 +3119,11 @@ export function renderFifthEvent(
       const { healing, hpAfter, maxHp, regainedHitDice, hitDice, longRests } =
         event;
       return `You take a long rest: you regain ${healing} HP (${hpAfter}/${maxHp} HP) and ${regainedHitDice} ${regainedHitDice === 1 ? "hit die" : "hit dice"} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Long rests: ${longRests.left} of ${longRests.max} left in this adventure.`;
+    }
+    case "wand-recharged": {
+      const rolled =
+        event.rolls.reduce((sum, roll) => sum + roll, 0) + event.modifier;
+      return `The ${event.name} regains charges: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; it gains ${event.regained} and has ${event.charges} of ${event.max}.`;
     }
     case "wandering-roll":
       return event.interrupted
@@ -3972,9 +4064,11 @@ export type RoomView = Readonly<{
   items: readonly Named[];
   /**
    * What the character carries besides its gear: the items taken here, then
-   * the treasure it brought in. A gem or art object shows its value.
+   * the treasure it brought in, then its spell scrolls and wands (#346). A
+   * gem or art object shows its value, a wand its charges.
    */
-  inventory: readonly (Named & Readonly<{ value?: string }>)[];
+  inventory: readonly (Named &
+    Readonly<{ value?: string; charges?: string }>)[];
   /** The coin the character holds, in mixed denominations, if it has any. */
   purse?: string;
   /** The character's gear as it stands, and the AC and attacks it gives. */
@@ -4158,6 +4252,16 @@ export type ActionView = Readonly<{
     /** Bestow Curse's curse (#342), and what it does. */
     curse?: CurseId;
     curseName?: string;
+    /**
+     * The spell scroll or wand it is cast from (#346): no slot, and for a
+     * wand `slotLevel` spends a charge a level, with the charges it has.
+     */
+    item?: Readonly<{
+      id: string;
+      name: string;
+      kind: "scroll" | "wand";
+      charges?: Readonly<{ left: number; max: number }>;
+    }>;
   }>;
   /**
    * An area spell's cast (#338): the foes it may catch, up to its
@@ -4235,6 +4339,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "nothing-to-examine": "Nothing to examine",
   "already-carried": "Already carried",
   "no-item": "Not here",
+  "not-on-list": "Not on your list",
+  "no-charges": "No charges",
   "not-carried": "Not carried",
   "not-drinkable": "Not drinkable",
   "door-shut": "Door shut",
@@ -4860,7 +4966,9 @@ export function createFifthRuntime(
         };
   };
   /** What the character carries besides its gear, as the room panel lists it. */
-  const carriedEntries = (state: FifthState) => [
+  const carriedEntries = (
+    state: FifthState,
+  ): readonly (Named & Readonly<{ value?: string; charges?: string }>)[] => [
     ...carried(state).map((item) => ({
       ...named(item),
       ...(item.treasure === undefined
@@ -4872,6 +4980,13 @@ export function createFifthRuntime(
       name,
       description,
       value: formatCoins(value),
+    })),
+    // Spell scrolls and wands (#346), a wand with its charges.
+    ...heldItems(state).map((item) => ({
+      id: item.id,
+      name: heldItemName(item),
+      description: heldItemText(item),
+      ...(item.wand === undefined ? {} : { charges: chargesText(item)! }),
     })),
   ];
 
@@ -5238,12 +5353,43 @@ export function createFifthRuntime(
       other: otherWeight(state),
     });
 
-  /** The sheet with the gear and ammunition the character holds now. */
+  /**
+   * The spell scrolls and wands the character holds now (#346): in a
+   * fight, what its combatant has left; the possessions keep what it had
+   * before the fight's last step.
+   */
+  const heldItems = (state: FifthState): readonly HeldMagicItem[] =>
+    fighting(state)
+      ? heldAfter(
+          state.possessions.magicItems,
+          combatant(state.encounter!, PLAYER_ID),
+        )
+      : state.possessions.magicItems;
+  /** A held scroll or wand as a cast's entry names it (#346). */
+  const itemView = (
+    state: FifthState,
+    itemId: string,
+  ): NonNullable<NonNullable<ActionView["spell"]>["item"]> => {
+    const item = heldItems(state).find(({ id }) => id === itemId);
+    if (item === undefined) {
+      throw new Error(`No held scroll or wand ${itemId}.`);
+    }
+    return {
+      id: item.id,
+      name: heldItemName(item),
+      kind: item.wand === undefined ? "scroll" : "wand",
+      ...(item.wand === undefined
+        ? {}
+        : { charges: { left: item.charges, max: WANDS[item.wand].charges } }),
+    };
+  };
+  /** The sheet with the gear, ammunition and magic items the character holds now. */
   const sheetOf = (state: FifthState): CharacterSheet => ({
     ...sheet,
     equipment: state.possessions.equipment,
     stowed: state.possessions.stowed,
     ammunition: ammunitionOf(state),
+    magicItems: state.possessions.magicItems,
   });
   /** Gear the character dropped in this room, one entry per kind of item. */
   const droppedHere = (state: FifthState): readonly Named[] => {
@@ -5409,6 +5555,11 @@ export function createFifthRuntime(
       character: resourcesAfter(state.character, pc),
       inventory: state.inventory.filter((id) => !drunk.includes(id)),
       usedItemIds: [...state.usedItemIds, ...drunk],
+      // A scroll read or a wand's charges spent (#346).
+      possessions: {
+        ...state.possessions,
+        magicItems: heldAfter(state.possessions.magicItems, pc),
+      },
     };
     if (encounter.outcome === "ongoing") {
       return { state: next, events };
@@ -6404,20 +6555,64 @@ export function createFifthRuntime(
   const longRestRestores = (state: FifthState) =>
     state.character.hp < maxHpOf(state) ||
     state.character.hitDice < characterProfile(sheet).hitDice.count ||
-    restRecovery(state, "long").length > 0;
+    restRecovery(state, "long").length > 0 ||
+    // A wand's spent charges (#346).
+    wandsSpent(state.possessions.magicItems);
+
+  /**
+   * Each wand's charges after a long rest (#346, D9's "dawn"): its regain
+   * dice, up to its most, with an event for each wand that gained some.
+   */
+  const rechargeWands = (
+    held: readonly HeldMagicItem[],
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): Readonly<{ held: readonly HeldMagicItem[]; events: FifthEvent[] }> => {
+    const events: FifthEvent[] = [];
+    const after = held.map((item): HeldMagicItem => {
+      if (item.wand === undefined) {
+        return item;
+      }
+      const { charges: most, regain } = WANDS[item.wand];
+      if (item.charges >= most) {
+        return item;
+      }
+      const rolls = Array.from({ length: regain.dice }, () =>
+        need(random, "Recharging a wand").roll(regain.sides),
+      );
+      const rolled = rolls.reduce((sum, roll) => sum + roll, regain.modifier);
+      const charges = Math.min(most, item.charges + rolled);
+      events.push({
+        type: "wand-recharged",
+        name: WANDS[item.wand].name,
+        rolls,
+        modifier: regain.modifier,
+        regained: charges - item.charges,
+        charges,
+        max: most,
+      });
+      return { id: item.id, wand: item.wand, charges };
+    });
+    return { held: after, events };
+  };
 
   /**
    * A long rest (#335), once the engine has accepted it: every hit point,
-   * every hit die and each feature's long-rest uses come back.
+   * every hit die and each feature's long-rest uses come back, and each
+   * wand regains charges (#346).
    */
-  const longRest = (state: FifthState): FifthResult => {
+  const longRest = (
+    state: FifthState,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
     const recovered = restRecovery(state, "long");
     const total = characterProfile(sheet).hitDice.count;
+    const wands = rechargeWands(state.possessions.magicItems, random);
     const next = recover(
       {
         ...state,
         longRests: state.longRests + 1,
         character: { ...state.character, hp: baseMaxHp, hitDice: total },
+        possessions: { ...state.possessions, magicItems: wands.held },
       },
       recovered,
     );
@@ -6435,6 +6630,7 @@ export function createFifthRuntime(
           longRests: projectRests(next, "long"),
         },
         ...regainedEvents(recovered),
+        ...wands.events,
         ...ended.events,
       ],
     };
@@ -7177,9 +7373,11 @@ export function createFifthRuntime(
         // Resistance (#339) names a damage type it resists, Chromatic Orb
         // (#340) one it deals.
         // Bestow Curse (#342) names its curse.
+        // A scroll or wand (#346) names its item id.
         const spellId = field("spellId");
         const damageType = field("damageType");
         const curse = field("curse");
+        const itemId = field("itemId");
         const { slotLevel, targetIds } = action;
         return actorId === undefined ||
           spellId === undefined ||
@@ -7187,7 +7385,8 @@ export function createFifthRuntime(
           !targetIds.every((id) => typeof id === "string") ||
           (slotLevel !== undefined && !Number.isInteger(slotLevel)) ||
           (action.damageType !== undefined && damageType === undefined) ||
-          (action.curse !== undefined && curse === undefined)
+          (action.curse !== undefined && curse === undefined) ||
+          (action.itemId !== undefined && itemId === undefined)
           ? undefined
           : {
               type: "cast",
@@ -7201,6 +7400,7 @@ export function createFifthRuntime(
                 ? {}
                 : { damageType: damageType as DamageType }),
               ...(curse === undefined ? {} : { curse: curse as CurseId }),
+              ...(itemId === undefined ? {} : { itemId }),
             };
       }
       case "rest": {
@@ -7600,10 +7800,16 @@ export function createFifthRuntime(
             "You are at full health with every hit die and feature use: a long rest would restore nothing.",
           );
         }
-        return watchedRest(state, "long", random, () => longRest(state));
+        return watchedRest(state, "long", random, () =>
+          longRest(state, random),
+        );
       }
       case "cast": {
-        const unknown = spellChoiceRefusal(state, action.spellId);
+        // A scroll or wand (#346) casts its own spell: the engine checks it.
+        const unknown =
+          action.itemId === undefined
+            ? spellChoiceRefusal(state, action.spellId)
+            : undefined;
         if (unknown !== undefined) {
           return reject(...unknown);
         }
@@ -7626,6 +7832,11 @@ export function createFifthRuntime(
         const after: FifthState = {
           ...state,
           character: resourcesAfter(state.character, cast.caster),
+          // A scroll read or a wand's charges spent (#346).
+          possessions: {
+            ...state.possessions,
+            magicItems: heldAfter(state.possessions.magicItems, cast.caster),
+          },
         };
         // Prayer of Healing (#341) gives a short rest's feature uses back,
         // without counting as one of the adventure's short rests.
@@ -8391,6 +8602,31 @@ export function createFifthRuntime(
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
         }
+        if (item.spell !== undefined || item.wand !== undefined) {
+          // A spell scroll or wand (#346) joins the magic items, ready to
+          // cast from, and is found once; a wand is found fully charged.
+          const held: HeldMagicItem =
+            item.spell !== undefined
+              ? { id: treasureId(item), scroll: item.spell }
+              : {
+                  id: treasureId(item),
+                  wand: item.wand!,
+                  charges: WANDS[item.wand!].charges,
+                };
+          return taken(
+            {
+              ...state,
+              possessions: {
+                ...state.possessions,
+                magicItems: [...state.possessions.magicItems, held],
+              },
+              usedItemIds: [...state.usedItemIds, item.id],
+            },
+            `The ${item.name}`,
+            0,
+            { type: "taken", itemId: item.id, name: item.name },
+          );
+        }
         if (item.gear !== undefined && isAmmunitionId(item.gear)) {
           // Found ammunition adds a bundle to the count, found once.
           const kind = item.gear;
@@ -8858,6 +9094,10 @@ export function createFifthRuntime(
                 curse: action.curse,
                 curseName: CURSE_NAMES[action.curse],
               }),
+          // The scroll or wand it is cast from (#346).
+          ...(action.itemId === undefined
+            ? {}
+            : { item: itemView(state, action.itemId) }),
         };
       }
       // Divine Spark's choice (#341).
@@ -8895,41 +9135,64 @@ export function createFifthRuntime(
       caster: Combatant,
       foes: readonly Combatant[],
       fight: boolean,
-    ): readonly ActionView[] =>
-      (caster.spellcasting?.spells ?? [])
-        .filter(
-          ({ id, castingTime, effect }) =>
-            // A cast the harness doesn't ask for is never listed (#347).
-            (kinds === undefined || kinds.has("cast")) &&
-            (spells === undefined || spells.has(id as SpellId)) &&
-            castingTime !== "reaction" &&
-            // Prayer of Healing (#341) takes minutes: never in a fight.
-            !(fight && castingTime === "minutes") &&
-            // Thaumaturgy (#339) is flavour only: never cast.
-            effect.kind !== "flavour" &&
-            (fight ||
-              effect.kind === "healing" ||
-              (effect.kind === "buff" &&
-                // Guidance (#339) waits outside a fight for a check.
-                (effect.buff.kind === "check-die" ||
-                  outlastsFight(effectEnds(effect.duration))))),
-        )
-        .flatMap((spell) =>
-          slotLevels(caster, spell).flatMap((slotLevel) =>
-            // Resistance (#339): an entry for each damage type the foes'
-            // attacks deal; Chromatic Orb (#340): for each it may deal.
-            (reducesDamage(spell)
-              ? foeDamageTypes(foes)
-              : (spell.damageTypes ?? [undefined])
-            ).flatMap((damageType) =>
-              // Bestow Curse (#342): an entry for each curse.
-              (spell.effect.kind === "curse" ? CURSES : [undefined]).flatMap(
-                (curse) =>
-                  spellCasts(caster, foes, spell, slotLevel, damageType, curse),
-              ),
+    ): readonly ActionView[] => {
+      // A cast the harness doesn't ask for is never listed (#347).
+      if (kinds !== undefined && !kinds.has("cast")) {
+        return [];
+      }
+      const castable = ({ id, castingTime, effect }: SpellDefinition) =>
+        (spells === undefined || spells.has(id as SpellId)) &&
+        castingTime !== "reaction" &&
+        // Prayer of Healing (#341) takes minutes: never in a fight.
+        !(fight && castingTime === "minutes") &&
+        // Thaumaturgy (#339) is flavour only: never cast.
+        effect.kind !== "flavour" &&
+        (fight ||
+          effect.kind === "healing" ||
+          (effect.kind === "buff" &&
+            // Guidance (#339) waits outside a fight for a check.
+            (effect.buff.kind === "check-die" ||
+              outlastsFight(effectEnds(effect.duration)))));
+      // Each slot level (or a scroll's or wand's levels, #346), damage
+      // type and curse a spell may be cast with.
+      const entries = (
+        spell: SpellDefinition,
+        levels: readonly (number | undefined)[],
+        item?: CombatMagicItem,
+      ) =>
+        levels.flatMap((slotLevel) =>
+          // Resistance (#339): an entry for each damage type the foes'
+          // attacks deal; Chromatic Orb (#340): for each it may deal.
+          (reducesDamage(spell)
+            ? foeDamageTypes(foes)
+            : (spell.damageTypes ?? [undefined])
+          ).flatMap((damageType) =>
+            // Bestow Curse (#342): an entry for each curse.
+            (spell.effect.kind === "curse" ? CURSES : [undefined]).flatMap(
+              (curse) =>
+                spellCasts(
+                  caster,
+                  foes,
+                  spell,
+                  slotLevel,
+                  damageType,
+                  curse,
+                  item,
+                ),
             ),
           ),
         );
+      return [
+        ...(caster.spellcasting?.spells ?? [])
+          .filter(castable)
+          .flatMap((spell) => entries(spell, slotLevels(caster, spell))),
+        // The spell scrolls and wands it holds (#346), a scroll even when
+        // its spell is not on the class's list, refused with why.
+        ...(caster.magicItems ?? [])
+          .filter(({ spell }) => castable(spell))
+          .flatMap((item) => entries(item.spell, itemCastLevels(item), item)),
+      ];
+    };
     /**
      * The damage types Resistance may resist that `foes`' attacks and
      * their riders deal (#339), in the spell's order.
@@ -8949,6 +9212,7 @@ export function createFifthRuntime(
       slotLevel: number | undefined,
       damageType: DamageType | undefined,
       curse: CurseId | undefined,
+      item?: CombatMagicItem,
     ): readonly ActionView[] => {
       const cast = (targetIds: readonly string[]): CastAction => ({
         type: "cast",
@@ -8958,6 +9222,7 @@ export function createFifthRuntime(
         ...(slotLevel === undefined ? {} : { slotLevel }),
         ...(damageType === undefined ? {} : { damageType }),
         ...(curse === undefined ? {} : { curse }),
+        ...(item === undefined ? {} : { itemId: item.id }),
       });
       // An area spell (#338), or Scorching Ray's rays (#343): one entry,
       // its targets chosen from the foes, up to its most; it dry-runs the
@@ -10414,8 +10679,12 @@ export function createFifthRuntime(
           spell!.curse === undefined ? [] : [spell!.curse],
         ),
       );
-    const described = spells.map((id) => {
-      const mine = offers.filter(({ spell }) => spell!.id === id);
+    // A spell scroll's or wand's casts (#346) are described by item.
+    const own = offers.filter(({ spell }) => spell!.item === undefined);
+    const fromItems = offers.filter(({ spell }) => spell!.item !== undefined);
+    const items = unique(fromItems.map(({ spell }) => spell!.item!.id));
+    const described = unique(own.map(({ spell }) => spell!.id)).map((id) => {
+      const mine = own.filter(({ spell }) => spell!.id === id);
       const { name, level, maxTargets: most } = mine[0]!.spell!;
       const slots = unique(mine.map(({ spell }) => spell!.slotLevel));
       const targets = unique(
@@ -10448,6 +10717,22 @@ export function createFifthRuntime(
       const summary = isSpellId(id) ? `: ${spellSummary(SPELLS[id])}` : "";
       return `${id} (${name}${summary}; ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom}${resists}${cursed})`;
     });
+    const itemsDescribed = items.map((itemId) => {
+      const mine = fromItems.filter(({ spell }) => spell!.item!.id === itemId);
+      const { id, name, item } = mine[0]!.spell!;
+      const slots = unique(mine.map(({ spell }) => spell!.slotLevel));
+      const targets = unique(
+        mine.flatMap((offer) =>
+          targetsOf(offer).map((target) => `${target.id} (${target.name})`),
+        ),
+      );
+      const types = damageTypesOf(mine);
+      const level =
+        item!.kind === "scroll"
+          ? "slot_level null, at the spell's own level; the scroll is used up"
+          : `slot_level ${listed(slots.map(String))}, a charge for each level (${item!.charges!.left} of ${item!.charges!.max} charges left)`;
+      return `item ${itemId} (${item!.name}: spell ${id}, ${name}; ${level}; targets from ${listed(targets)}${types.length === 0 ? "" : `; damage_type ${listed(types)}`})`;
+    });
     const damageTypes = damageTypesOf(offers);
     const curses = cursesOf(offers);
     const slotLevelsOffered = unique(
@@ -10459,7 +10744,7 @@ export function createFifthRuntime(
       {
         type: "function",
         name: "cast",
-        description: `Only when the player asks to cast a spell: cast it at its targets, one unless an area spell lists more. The engine spends the slot (only one a turn, though a reaction spell's slot isn't the turn's) and the action, bonus action or reaction, and rolls the attack, save, damage or healing, or puts the spell's effect on its target until it ends. Spells: ${described.join("; ")}.`,
+        description: `Only when the player asks to cast a spell: cast it at its targets, one unless an area spell lists more. The engine spends the slot (only one a turn, though a reaction spell's slot isn't the turn's) and the action, bonus action or reaction, and rolls the attack, save, damage or healing, or puts the spell's effect on its target until it ends.${described.length === 0 ? "" : ` Spells: ${described.join("; ")}.`}${itemsDescribed.length === 0 ? "" : ` Only when the player asks to read a spell scroll or use a wand they carry: cast with item set to its id and spell to its spell; it spends no slot, reading a scroll takes the action, and the engine uses up the scroll or spends the wand's charges. From items: ${itemsDescribed.join("; ")}.`}`,
         strict: true,
         parameters: {
           type: "object",
@@ -10510,6 +10795,17 @@ export function createFifthRuntime(
                       "The curse the player chose for Bestow Curse from those listed; null for every other spell.",
                   },
                 }),
+            // Only while a scroll or wand can be cast from (#346).
+            ...(items.length === 0
+              ? {}
+              : {
+                  item: {
+                    type: ["string", "null"],
+                    enum: [...items, null],
+                    description:
+                      "The id of the spell scroll or wand the player reads or uses; null for a spell the character knows or has prepared.",
+                  },
+                }),
           },
           required: [
             "spell",
@@ -10517,6 +10813,7 @@ export function createFifthRuntime(
             "targets",
             ...(damageTypes.length === 0 ? [] : ["damage_type"]),
             ...(curses.length === 0 ? [] : ["curse"]),
+            ...(items.length === 0 ? [] : ["item"]),
           ],
           additionalProperties: false,
         },
@@ -10667,6 +10964,8 @@ export function createFifthRuntime(
     const damageType = isRecord(parsed) ? parsed.damage_type : undefined;
     // Bestow Curse's curse (#342), or null, while it is offered.
     const curse = isRecord(parsed) ? parsed.curse : undefined;
+    // The scroll or wand cast from (#346), or null, while one is offered.
+    const castItem = isRecord(parsed) ? parsed.item : undefined;
     // Divine Spark (#341) takes its target and mode.
     const isSpark = call.name === "divine_spark";
     if (
@@ -10676,12 +10975,22 @@ export function createFifthRuntime(
           typeof parsed.target !== "string" ||
           !(DIVINE_SPARK_MODES as readonly unknown[]).includes(parsed.mode))) ||
       (isCast &&
-        (![
-          "slot_level,spell,targets",
-          "damage_type,slot_level,spell,targets",
-          "curse,slot_level,spell,targets",
-          "curse,damage_type,slot_level,spell,targets",
-        ].includes(Object.keys(parsed).sort().join(",")) ||
+        (!["slot_level", "spell", "targets"].every((key) =>
+          Object.hasOwn(parsed, key),
+        ) ||
+          !Object.keys(parsed).every((key) =>
+            [
+              "slot_level",
+              "spell",
+              "targets",
+              "damage_type",
+              "curse",
+              "item",
+            ].includes(key),
+          ) ||
+          (castItem !== undefined &&
+            castItem !== null &&
+            typeof castItem !== "string") ||
           (damageType !== undefined &&
             damageType !== null &&
             typeof damageType !== "string") ||
@@ -10740,6 +11049,7 @@ export function createFifthRuntime(
               ? { damageType: damageType as DamageType }
               : {}),
             ...(typeof curse === "string" ? { curse: curse as CurseId } : {}),
+            ...(typeof castItem === "string" ? { itemId: castItem } : {}),
           }
         : isRest
           ? {
@@ -10926,9 +11236,15 @@ export function createFifthRuntime(
         id: treasureId(item),
         copper: coinsInCopper(item.coins!),
       })),
+      // Gear, scrolls and wands (#346) taken here, kept or not.
       gear: state.usedItemIds
         .map((id) => items.get(id)!)
-        .filter((item) => item.kind === "gear")
+        .filter(
+          (item) =>
+            item.kind === "gear" ||
+            item.kind === "scroll" ||
+            item.kind === "wand",
+        )
         .map(treasureId)
         .filter((id) => !found.has(id)),
     };

@@ -420,6 +420,7 @@ const settlement = (xp, finds = [], treasure = finds) => ({
     ammunition: { arrows: 0, bolts: 0 },
     treasure,
     purse: 0,
+    magicItems: [],
   },
   xp,
   finds,
