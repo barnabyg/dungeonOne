@@ -81,7 +81,6 @@ import {
   specAbility,
   type Band,
   type CheckSpec,
-  type Movement,
 } from "./checks-5e.js";
 import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
@@ -139,6 +138,7 @@ import {
   fail,
   id,
   integer,
+  isOneOf,
   isRecord,
   knownKeys,
   list,
@@ -864,10 +864,10 @@ function coins(value: unknown, where: string): Coins {
 }
 
 function ability(value: unknown, where: string): Ability {
-  if (!(ABILITIES as readonly unknown[]).includes(value)) {
+  if (!isOneOf(ABILITIES, value)) {
     fail(`${where} must be an ability.`);
   }
-  return value as Ability;
+  return value;
 }
 
 /** The most circumstances one approach's advantage or disadvantage may name. */
@@ -881,16 +881,15 @@ const CIRCUMSTANCE_TYPES = ["holds", "discovered", "won"] as const;
  * whole module is read.
  */
 function circumstance(value: unknown, where: string): Circumstance {
-  const type = isRecord(value) ? value.type : undefined;
+  const kind = isRecord(value) ? value.type : undefined;
   const target = {
     holds: "item",
     discovered: "feature",
     won: "encounter",
   } as const;
-  if (!(CIRCUMSTANCE_TYPES as readonly unknown[]).includes(type)) {
+  if (!isOneOf(CIRCUMSTANCE_TYPES, kind)) {
     fail(`${where} type must be ${CIRCUMSTANCE_TYPES.join(", ")}.`);
   }
-  const kind = type as (typeof CIRCUMSTANCE_TYPES)[number];
   const raw = knownKeys(value, ["type", target[kind], "name"], ["not"], where);
   if (raw.not !== undefined && raw.not !== true) {
     fail(`${where} not must be true when given.`);
@@ -959,7 +958,7 @@ function approach(value: unknown, where: string): AuthoredApproach {
   }
   // Second-Story Work (#307) swaps Strength for Dexterity on a marked climb
   // or jump; no other ability's check is one.
-  if (!(MOVEMENTS as readonly unknown[]).includes(raw.movement)) {
+  if (!isOneOf(MOVEMENTS, raw.movement)) {
     fail(`${where} movement must be ${MOVEMENTS.join(" or ")}.`);
   }
   if (specAbility(made) !== "strength") {
@@ -967,7 +966,7 @@ function approach(value: unknown, where: string): AuthoredApproach {
       `${where} movement marks a climb or jump, which needs a Strength check (Athletics or Strength).`,
     );
   }
-  return { ...made, movement: raw.movement as Movement };
+  return { ...made, movement: raw.movement };
 }
 
 /** An approach's tool (#309): thieves' tools, the only one checks use. */
@@ -1551,7 +1550,7 @@ function validateModule(
       ["xp"],
       where,
     );
-    if (!(ENDING_KINDS as readonly unknown[]).includes(ending.kind)) {
+    if (!isOneOf(ENDING_KINDS, ending.kind)) {
       fail(`${where} kind must be ${ENDING_KINDS.join(", ")}.`);
     }
     if (ending.kind === "defeat" && ending.xp !== undefined) {
@@ -1559,7 +1558,7 @@ function validateModule(
     }
     return {
       id: id(ending.id, `${where} id`),
-      kind: ending.kind as EndingKind,
+      kind: ending.kind,
       title: text(ending.title, `${where} title`, 80),
       text: text(ending.text, `${where} text`),
       ...(ending.xp === undefined

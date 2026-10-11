@@ -48,7 +48,7 @@ import { PLAYER_ID, spellSummary, type FifthAction } from "./runtime-5e.js";
 import type { DamageType } from "./encounter-5e.js";
 import { SPELLS, type CurseId, type SpellId } from "./spells-5e.js";
 import { loadGateVerdicts, recordedOrGated } from "./gate-verdicts-5e.js";
-import { isRecord } from "./json-shape.js";
+import { isOneOf, isRecord } from "./json-shape.js";
 import {
   ammunitionCount,
   ammunitionHeld,
@@ -874,7 +874,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       case "/api/5e/session/action":
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "action"]) ||
-          !(CLICK_ACTIONS as readonly unknown[]).includes(body.action)
+          !isOneOf(CLICK_ACTIONS, body.action)
         ) {
           throw new Error("Invalid action request.");
         }

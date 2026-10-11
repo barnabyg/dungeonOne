@@ -740,7 +740,7 @@ const BARE_TOOLS: Readonly<Record<string, FifthAction>> = {
 /** Cunning Strike's effects (#308), as the AI DM and the browser name them. */
 const CUNNING_STRIKE_IDS = Object.keys(CUNNING_STRIKES) as CunningStrikeId[];
 const isCunningStrike = (value: unknown): value is CunningStrikeId =>
-  (CUNNING_STRIKE_IDS as readonly unknown[]).includes(value);
+  isOneOf(CUNNING_STRIKE_IDS, value);
 
 /**
  * An action's `approach` (#283) and `retry` (#284) fields, when they were
@@ -7373,13 +7373,13 @@ export function createFifthRuntime(
         const mode = action.mode;
         return actorId === undefined ||
           targetId === undefined ||
-          !(DIVINE_SPARK_MODES as readonly unknown[]).includes(mode)
+          !isOneOf(DIVINE_SPARK_MODES, mode)
           ? undefined
           : {
               type: "divine-spark",
               actorId,
               targetId,
-              mode: mode as DivineSparkMode,
+              mode,
             };
       }
       case "spectral-attack":
@@ -11047,7 +11047,7 @@ export function createFifthRuntime(
       (isSpark &&
         (Object.keys(parsed).sort().join(",") !== "mode,target" ||
           typeof parsed.target !== "string" ||
-          !(DIVINE_SPARK_MODES as readonly unknown[]).includes(parsed.mode))) ||
+          !isOneOf(DIVINE_SPARK_MODES, parsed.mode))) ||
       (isCast &&
         (!["slot_level", "spell", "targets"].every((key) =>
           Object.hasOwn(parsed, key),

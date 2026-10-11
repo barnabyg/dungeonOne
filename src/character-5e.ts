@@ -79,6 +79,7 @@ import {
   rechargedBetweenAdventures,
   type HeldMagicItem,
 } from "./magic-items-5e.js";
+import { isOneOf } from "./json-shape.js";
 import type { RandomSource } from "./random.js";
 import { ROGUE } from "./rogue-5e.js";
 import {
@@ -618,8 +619,8 @@ function validateSheetExpertise(
     const allowed = slots[index]!.skills;
     if (
       typeof skill !== "string" ||
-      !(skills as readonly string[]).includes(skill) ||
-      (allowed !== undefined && !(allowed as readonly string[]).includes(skill))
+      !isOneOf(skills, skill) ||
+      (allowed !== undefined && !isOneOf(allowed, skill))
     ) {
       throw new Error(expertiseSlotChoice(slots[index]!, skills));
     }
@@ -1001,9 +1002,7 @@ function validatePartialIncrease(value: unknown): {
 } {
   if (
     !isRecord(value) ||
-    !Object.keys(value).every((key) =>
-      (ABILITIES as readonly string[]).includes(key),
-    )
+    !Object.keys(value).every((key) => isOneOf(ABILITIES, key))
   ) {
     throw new Error("Invalid background increase.");
   }
@@ -1040,9 +1039,7 @@ function validatePartialImprovement(value: unknown): {
 } {
   if (
     !isRecord(value) ||
-    !Object.keys(value).every((key) =>
-      (ABILITIES as readonly string[]).includes(key),
-    )
+    !Object.keys(value).every((key) => isOneOf(ABILITIES, key))
   ) {
     throw new Error(ASI_SHAPE);
   }
@@ -1105,7 +1102,7 @@ function validatePartialSkills(
     !value.every(
       (skill) =>
         typeof skill === "string" &&
-        (definition.skillChoices.options as readonly string[]).includes(skill),
+        isOneOf(definition.skillChoices.options, skill),
     )
   ) {
     throw new Error(skillChoice(definition));
@@ -1404,11 +1401,7 @@ function validatePartialExpertise(
     !Array.isArray(value) ||
     value.length > count ||
     new Set(value).size !== value.length ||
-    !value.every(
-      (skill) =>
-        typeof skill === "string" &&
-        (skills as readonly string[]).includes(skill),
-    )
+    !value.every((skill) => typeof skill === "string" && isOneOf(skills, skill))
   ) {
     throw new Error(expertiseChoice(count));
   }
@@ -1429,10 +1422,10 @@ function validateExpertise(
 }
 
 function validateKit(definition: ClassDefinition, value: unknown): KitId {
-  if (!(definition.kits as readonly unknown[]).includes(value)) {
+  if (!isOneOf(definition.kits, value)) {
     throw new Error("Choose one of the starting kits.");
   }
-  return value as KitId;
+  return value;
 }
 
 const masteryChoice = (count: number) =>
@@ -3001,17 +2994,16 @@ export function masteryOptions(
 function validateNewMastery(sheet: CharacterSheet, value: unknown): WeaponId {
   if (
     typeof value !== "string" ||
-    !(classMasteryWeapons(classOf(sheet)) as readonly string[]).includes(value)
+    !isOneOf(classMasteryWeapons(classOf(sheet)), value)
   ) {
     throw new Error("Choose a kind of weapon to master.");
   }
-  const id = value as WeaponId;
-  if (sheet.weaponMasteries.includes(id)) {
+  if (sheet.weaponMasteries.includes(value)) {
     throw new Error(
-      `${sheet.name} already masters the ${WEAPONS[id].name.toLowerCase()}; choose another kind of weapon.`,
+      `${sheet.name} already masters the ${WEAPONS[value].name.toLowerCase()}; choose another kind of weapon.`,
     );
   }
-  return id;
+  return value;
 }
 
 /** The scores after `increase`, refusing any above ABILITY_SCORE_CAP. */
@@ -3133,7 +3125,7 @@ export function learnCantrips(
   const open = learnableCantrips(sheet);
   if (
     new Set(learned).size !== learned.length ||
-    !learned.every((id) => (open as readonly unknown[]).includes(id))
+    !learned.every((id) => isOneOf(open, id))
   ) {
     throw new Error(
       `${sheet.name} learns only cantrips on its list it doesn't know: ${open.map((id) => SPELLS[id].name).join(", ")}.`,
@@ -3175,7 +3167,7 @@ export function addToSpellbook(
   const open = spellbookOptions(sheet);
   if (
     new Set(written).size !== written.length ||
-    !written.every((id) => (open as readonly unknown[]).includes(id))
+    !written.every((id) => isOneOf(open, id))
   ) {
     throw new Error(
       `${sheet.name} writes into the spellbook only ${classOf(sheet).name} spells it lacks of a level it has slots for: ${open.map((id) => SPELLS[id].name).join(", ")}.`,
@@ -3312,10 +3304,9 @@ export function chooseExpertise(
     const slot = slots[had.length + index]!;
     if (
       typeof skill !== "string" ||
-      !(sheet.skills as readonly string[]).includes(skill) ||
-      (had as readonly string[]).includes(skill) ||
-      (slot.skills !== undefined &&
-        !(slot.skills as readonly string[]).includes(skill))
+      !isOneOf(sheet.skills, skill) ||
+      isOneOf(had, skill) ||
+      (slot.skills !== undefined && !isOneOf(slot.skills, skill))
     ) {
       throw new Error(expertiseSlotChoice(slot, sheet.skills));
     }
