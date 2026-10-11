@@ -310,7 +310,7 @@ takes in the same process, timed before and after `work`, against its
 `REFERENCE_SECONDS` on the machine the budget was set on. CI runners differ in
 speed by nearly 2× between runs of one commit, so plain CPU seconds judge the
 runner rather than the code. `shipped-modules.test.mjs` uses it for the
-default qualification's 150-second budget (45 for the Fighter alone until #310).
+default qualification's 180-second budget (45 for the Fighter alone until #310).
 
 Browser and server tests that start the browser server on fixture modules
 pass `qualifies: () => true`: the fixtures are engine material, and since
