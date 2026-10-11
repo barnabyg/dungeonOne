@@ -170,10 +170,11 @@ test(
         await scholar.innerText(),
         /Not chosen yet: Expertise in one skill you are proficient in among Arcana, History, Investigation, Medicine, Nature and Religion/u,
       );
-      // The card offers the 1st-level spells the book lacks.
+      // The card offers the 1st-level spells the book lacks (Thunderwave
+      // is in the default book since Sleep left the list, #348).
       assert.deepEqual(
         await page.locator("#level-up-spellbook summary").allInnerTexts(),
-        ["Thunderwave", "Ray of Sickness", "Ice Knife"],
+        ["Ray of Sickness", "Ice Knife"],
       );
       assert.match(
         await text(page.locator("#level-up")),
@@ -209,7 +210,6 @@ test(
         "expertise-investigation",
       ]);
       assert.deepEqual(await ids(page.locator("#spellbook-choices input")), [
-        "spellbook-thunderwave",
         "spellbook-ray-of-sickness",
         "spellbook-ice-knife",
       ]);
@@ -222,11 +222,6 @@ test(
       await page.locator("#expertise-card").waitFor({ state: "detached" });
       await page.locator("#spellbook-ray-of-sickness").check();
       await page.locator("#spellbook-ice-knife").check();
-      // A third is disabled once two are ticked.
-      assert.equal(
-        await page.locator("#spellbook-thunderwave").isDisabled(),
-        true,
-      );
       await page.locator("#save-spellbook").click();
       await page.locator("#spellbook-card").waitFor({ state: "detached" });
       await page.locator("#prepared-ice-knife").check();
@@ -296,7 +291,7 @@ test(
       assert.deepEqual(spellbook.slice(0, 3), [
         "Scorching Ray",
         "Shatter",
-        "Hold Person",
+        "Acid Arrow",
       ]);
       await page.locator("#ending-next").click();
       await page.locator("#spellbook-card").waitFor();

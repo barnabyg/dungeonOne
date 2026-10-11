@@ -1,8 +1,8 @@
 // #346, browser → API → storage: a Wizard with 60 gp finds two spell
 // scrolls behind the barrow's lintel, reads Mage Armor from "You carry" (no slot
 // spent, the scroll used up), and leaves. The saved sheet keeps the unread
-// Thunderwave scroll and not the read one; between adventures the sheet
-// copies Thunderwave into the spellbook for 50 gp, using up the scroll.
+// Ray of Sickness scroll and not the read one; between adventures the sheet
+// copies Ray of Sickness into the spellbook for 50 gp, using up the scroll.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -21,7 +21,7 @@ const scrollJourney = validateModule(
   scrollBarrowFile(
     [
       scroll("armour-scroll", "mage-armor"),
-      scroll("thunder-scroll", "thunderwave"),
+      scroll("sickness-scroll", "ray-of-sickness"),
     ],
     2,
   ),
@@ -75,19 +75,20 @@ test(
 
       await explore(page, "examine", "scratched-lintel");
       await explore(page, "take", "armour-scroll");
-      await explore(page, "take", "thunder-scroll");
+      await explore(page, "take", "sickness-scroll");
       const armour = page.locator(
         '#inventory > li[data-id="lintel-barrow/armour-scroll"]',
       );
-      const thunder = page.locator(
-        '#inventory > li[data-id="lintel-barrow/thunder-scroll"]',
+      const sickness = page.locator(
+        '#inventory > li[data-id="lintel-barrow/sickness-scroll"]',
       );
       assert.match(
         await armour.locator("p").first().innerText(),
         /^Spell Scroll \(Mage Armor\) — A spell scroll of Mage Armor \(1st level\)/u,
       );
-      // Thunderwave is cast only in a fight: no Read outside one.
-      assert.equal(await thunder.locator("button").count(), 0);
+      // Ray of Sickness is cast only in a fight: no Read outside one (a
+      // Thunderwave scroll until #348 put Thunderwave in the default book).
+      assert.equal(await sickness.locator("button").count(), 0);
       const read = armour.locator("button.act[data-action=read]");
       assert.equal(
         await read.getAttribute("aria-label"),
@@ -100,7 +101,7 @@ test(
         /^You cast Mage Armor on yourself from the Spell Scroll \(Mage Armor\), which is used up\./u,
       );
       assert.equal(await armour.count(), 0);
-      assert.equal(await thunder.count(), 1);
+      assert.equal(await sickness.count(), 1);
 
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
@@ -110,28 +111,31 @@ test(
 
       const settled = await saved(libraryPath);
       assert.deepEqual(settled.magicItems, [
-        { id: "lintel-barrow/thunder-scroll", scroll: "thunderwave" },
+        { id: "lintel-barrow/sickness-scroll", scroll: "ray-of-sickness" },
       ]);
       assert.deepEqual(settled.finds, [
         "lintel-barrow/armour-scroll",
-        "lintel-barrow/thunder-scroll",
+        "lintel-barrow/sickness-scroll",
       ]);
       assert.equal(settled.purse, start.purse);
 
       const entry = page.locator("#magic-items li");
       assert.equal(await entry.count(), 1);
-      assert.match(await entry.innerText(), /^Spell Scroll \(Thunderwave\)\./u);
+      assert.match(
+        await entry.innerText(),
+        /^Spell Scroll \(Ray of Sickness\)\./u,
+      );
       const copy = entry.locator("button[data-scroll]");
       assert.equal(await copy.innerText(), "Copy into spellbook (50 gp)");
       await copy.click();
       await page
         .locator("#sheet-spellbook")
-        .filter({ hasText: "Thunderwave" })
+        .filter({ hasText: "Ray of Sickness" })
         .waitFor();
       assert.equal(await page.locator("#magic-items").count(), 0);
 
       const copied = await saved(libraryPath);
-      assert.deepEqual(copied.copiedSpells, ["thunderwave"]);
+      assert.deepEqual(copied.copiedSpells, ["ray-of-sickness"]);
       assert.deepEqual(copied.magicItems, []);
       assert.equal(copied.purse, settled.purse - 5000);
     } finally {

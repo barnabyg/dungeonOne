@@ -224,7 +224,7 @@ test(
       await page.locator("#learn-light").check();
       await page.locator("#save-cantrips").click();
       await page.locator("#learn-cantrips").waitFor({ state: "detached" });
-      await page.locator("#prepared-protection-from-poison").check();
+      await page.locator("#prepared-prayer-of-healing").check();
       await page.locator("#save-prepared").click();
       await page
         .locator('.start-adventure[data-adventure="bandit-tunnels"]')
