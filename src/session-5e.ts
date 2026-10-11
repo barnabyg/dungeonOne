@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 47).
+ * A 5e adventure session and its save file (format version 50).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
