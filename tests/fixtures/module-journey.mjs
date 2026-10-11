@@ -93,15 +93,17 @@ function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
   const [target] = runtime.attackTargets(state);
   // A caster (#350) casts the first spell offered, as the Cast panel starts,
   // or what its chooser picks.
-  const views = cast ? runtime.projectActions(state) : [];
+  const views = runtime.projectActions(state);
   const spell =
     typeof cast === "function"
       ? cast(views, state)
-      : views.find(({ action, available }) => action === "cast" && available);
+      : cast
+        ? views.find(({ action, available }) => action === "cast" && available)
+        : undefined;
   // The extra attack's target, offered once the attack is spent.
-  const light = runtime
-    .projectActions(state)
-    .find(({ action, available }) => action === "light-attack" && available);
+  const light = views.find(
+    ({ action, available }) => action === "light-attack" && available,
+  );
   const potion = state.inventory.find((id) => potions.has(id));
   const choices = [
     // A hit a reaction could answer (a Wizard's Shield, #340) is taken.

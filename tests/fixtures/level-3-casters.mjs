@@ -27,10 +27,10 @@ const casterAt3 = (classId, id, name) =>
   });
 
 /** Mira, a level-3 Life Domain Cleric with the default kit. */
-export const mira = () => casterAt3("cleric", "c", "Mira");
+export const miraAt3 = () => casterAt3("cleric", "c", "Mira");
 
 /** Vela, a level-3 Evoker with the default kit. */
-export const vela = () => casterAt3("wizard", "e", "Vela");
+export const velaAt3 = () => casterAt3("wizard", "e", "Vela");
 
 /** A character library holding only `sheet`, as the handoff gives it. */
 export const libraryOf = (sheet) => ({

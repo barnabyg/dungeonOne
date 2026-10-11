@@ -217,8 +217,20 @@ const QUOTED_FIGURES = {
       xp: 350,
     },
   },
-  // The Wizard is 2 points over Medium's 88% with its slack, the ward read
-  // (92.0% when every check fails). Every fight's XP, the restless dead's
+  // 8.5 points over Hard's 75%, and 4.5 under the 88% that would make it Medium.
+  "gravediggers-lodge": {
+    fighter: {
+      survival: [2, "two-daggers", 0.835],
+      overCap: [],
+      enemies: [
+        ["false-gravedigger", 2.9],
+        ["risen-corpse", 0.4],
+      ],
+      xp: 375,
+    },
+  },
+  // The Wizard is 2 points over Medium's 88% with its slack (92.0% when
+  // every check fails). Every fight's XP, the restless dead's
   // included (#335), and the ending's 400. The Fighter's
   // found +1 Mace kills the Prior's Guard, a Skeleton, in one blow 60% of
   // the time: one of five ordinary foes over the cap.
@@ -246,18 +258,6 @@ const QUOTED_FIGURES = {
       alwaysFail: [3, 0.92],
       overCap: [],
       xp: 850,
-    },
-  },
-  // 8.5 points over Hard's 75%, and 4.5 under the 88% that would make it Medium.
-  "gravediggers-lodge": {
-    fighter: {
-      survival: [2, "two-daggers", 0.835],
-      overCap: [],
-      enemies: [
-        ["false-gravedigger", 2.9],
-        ["risen-corpse", 0.4],
-      ],
-      xp: 375,
     },
   },
   // The Fighter is 5.5 points over Medium's 85% with its slack (83.0% and

@@ -23,7 +23,7 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
 import { settled, startAdventure, text } from "./fixtures/browser-journey.mjs";
-import { libraryOf, mira, vela } from "./fixtures/level-3-casters.mjs";
+import { libraryOf, miraAt3, velaAt3 } from "./fixtures/level-3-casters.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
@@ -134,15 +134,25 @@ async function fightTurn(page, who) {
   );
 }
 
+/** The character's HP as the status strip shows it, "13/28". */
+const hp = async (page) =>
+  /\d+\/\d+/u.exec(await page.locator("#character-hp").textContent())[0];
+
 /**
  * Clicks each step of `route`, fighting each fight a step starts to its
- * end by `who`'s rule; returns the history's text.
+ * end by `who`'s rule, and pushes the HP each fight ends at onto `ends`;
+ * returns the history's text.
  */
-async function play(page, route, who) {
+async function play(page, route, who, ends = []) {
   for (const step of route) {
     await settled(page, () => button(page, step).click());
+    let fought = false;
     while (await fighting(page)) {
+      fought = true;
       await fightTurn(page, who);
+    }
+    if (fought) {
+      ends.push(await hp(page));
     }
   }
   return text(page.locator("#log"));
@@ -228,7 +238,10 @@ test(
         /The Hollow Chantry\nStart\nLevel 3\nMedium\n/u,
       );
       await startAdventure(page, "hollow-chantry");
-      const log = await play(page, FIGHTER_ROUTE, "fighter");
+      const ends = [];
+      const log = await play(page, FIGHTER_ROUTE, "fighter", ends);
+      // The HP Ada ends each fight at: nave, pit, ossuary, undercroft.
+      assert.deepEqual(ends, ["28/28", "23/28", "13/28", "13/28"]);
       await keep("fighter", log);
       says(log, [
         /In the coat's pocket is a heavy iron key on a loop of twine\. You find the Sexton's Key\./u,
@@ -259,6 +272,10 @@ test(
         [3, ada.xp + 750],
       );
       assert.ok(record.sheet.equipment.includes("mace-plus-1"));
+      assert.deepEqual(
+        record.sheet.treasure.map(({ name }) => name),
+        ["Jet Brooch", "Founder's Garnet"],
+      );
       // She keeps the scroll she can't read.
       assert.deepEqual(
         record.sheet.magicItems.map(({ scroll }) => scroll),
@@ -305,7 +322,7 @@ test(
   `increment 16 handoff 2: a Wizard's rest is interrupted, she reads the ward and casts Magic Missile from a scroll (seed ${WIZARD_SEED})`,
   { timeout: 180000 },
   async () => {
-    const sheet = vela();
+    const sheet = velaAt3();
     const played = journey(chantry, sheet, WIZARD_SEED, WIZARD_ROUTE, {
       browser: true,
       cast: fromScroll,
@@ -326,16 +343,15 @@ test(
         .filter({ hasText: "Vela" })
         .click();
       await startAdventure(page, "hollow-chantry");
-      await settled(page, () => button(page, WIZARD_ROUTE[0]).click());
-      while (await fighting(page)) {
-        await fightTurn(page, "wizard");
-      }
-      await settled(page, () => button(page, WIZARD_ROUTE[1]).click());
+      const ends = [];
+      await play(page, WIZARD_ROUTE.slice(0, 2), "wizard", ends);
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
         /^This is a safe place to rest\. Long rests: 1 of 1 left in this adventure/u,
       );
-      const log = await play(page, WIZARD_ROUTE.slice(2), "wizard");
+      const log = await play(page, WIZARD_ROUTE.slice(2), "wizard", ends);
+      // Nave, the restless dead, the Prior's Cell, the undercroft.
+      assert.deepEqual(ends, ["14/20", "7/20", "6/20", "6/20"]);
       await keep("wizard", log);
       says(log, [
         /Dead Sexton is defeated\./u,
@@ -398,7 +414,7 @@ test(
   `increment 16 handoff 3: a Cleric turns undead, reads a Cure Wounds scroll and takes a short rest (seed ${CLERIC_SEED})`,
   { timeout: 180000 },
   async () => {
-    const sheet = mira();
+    const sheet = miraAt3();
     const played = journey(chantry, sheet, CLERIC_SEED, CLERIC_ROUTE, {
       browser: true,
       cast: turnFirst,
@@ -418,7 +434,10 @@ test(
         .filter({ hasText: "Mira" })
         .click();
       await startAdventure(page, "hollow-chantry");
-      const log = await play(page, CLERIC_ROUTE, "cleric");
+      const ends = [];
+      const log = await play(page, CLERIC_ROUTE, "cleric", ends);
+      // Nave, pit, undercroft.
+      assert.deepEqual(ends, ["3/24", "24/24", "15/24"]);
       await keep("cleric", log);
       says(log, [
         /You present a holy symbol: Turn Undead reaches Dead Sexton\. 1 use of Channel Divinity left\./u,

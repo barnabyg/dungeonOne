@@ -85,12 +85,15 @@ The evidence comes in three kinds, kept apart below:
 - **Balance gate.** _The Hollow Chantry_ qualifies as Medium for all four
   classes (200 seeds, weakest kit at level 3):
 
-  | Class   | Cautious (judged)          | Every check fails |
-  | ------- | -------------------------- | ----------------- |
-  | Fighter | 98.0% (two daggers)        | 98.0%             |
-  | Rogue   | 99.0% (shortsword, dagger) | 99.0%             |
-  | Cleric  | 96.5% (mace, daggers)      | 96.5%             |
-  | Wizard  | 90.0% (quarterstaff)       | 92.0%             |
+  | Class   | Cautious (judged), weakest kit         | Every check fails |
+  | ------- | -------------------------------------- | ----------------- |
+  | Fighter | 98.0% (two daggers and leather)        | 98.0%             |
+  | Rogue   | 99.0% (shortsword, dagger and leather) | 99.0%             |
+  | Cleric  | 96.5% (mace, two daggers and leather)  | 96.5%             |
+  | Wizard  | 90.0% (quarterstaff and dagger)        | 92.0%             |
+
+  The weakest kit is the gate's, not the scenarios' characters' own.
+
   - **Thresholds.** Medium needs 85%, and 88% with the 3 points of slack
     the label rule asks. The Wizard sets the label, 2 points over that.
   - **Too easy.** Turn Undead keeps a zombie or the ghoul out of the fight
@@ -114,7 +117,7 @@ The evidence comes in three kinds, kept apart below:
 - **The handoff journeys** (`tests/issue-350-browser.test.mjs`):
   scenarios 1–3 below. Each runs in a real browser on its seed and is
   checked against the library file on disk and against an engine journey
-  with the same clicks. The tests assert the lines the scenarios quote, so
+  with the same clicks. The tests assert the lines and the HP at the end of each fight that the scenarios quote, so
   a change that moves them fails.
 - **All four classes complete every shipped module.**
   `tests/shipped-modules.test.mjs` qualifies all fifteen modules for the
@@ -210,9 +213,7 @@ enabled, press Ctrl+C in PowerShell, then rerun the exact same command.
 ### 1. The sexton's way and the founder's +1 Mace (Fighter)
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-350\fighter
-Copy-Item .\docs\acceptance\inputs\increment-13\level-3-ada.json .\.scratch\release-350\fighter\characters.json
-npm.cmd run browser -- --seed 0 --characters .\.scratch\release-350\fighter\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-350\fighter | Out-Null; Copy-Item .\docs\acceptance\inputs\increment-13\level-3-ada.json .\.scratch\release-350\fighter\characters.json; npm.cmd run browser -- --seed 0 --characters .\.scratch\release-350\fighter\characters.json
 ```
 
 Ada is a level-3 Fighter (28 HP, AC 14) with a mace and no thieves' tools.
@@ -241,7 +242,7 @@ Ada is a level-3 Fighter (28 HP, AC 14) with a mace and no thieves' tools.
    +1 mace. AC 14; +1 Mace +6 to hit, 1d6 + 4 bludgeoning."
 10. **Go** Sexton's Stair, then **Go** Undercroft. Expect "Ada attacks Risen
     Prior with +1 Mace: 18 + 6 = 24 against AC 8. Hit. Damage 4 + 4 = 8
-    bludgeoning". Ada wins in two blows.
+    bludgeoning". Ada wins in two blows, at 13/28.
 11. Expect **The chantry at rest**:
     - +50 XP each for the Dead Sexton, the Charnel Corpse and the Risen
       Prior;
@@ -254,9 +255,7 @@ Ada is a level-3 Fighter (28 HP, AC 14) with a mace and no thieves' tools.
 ### 2. An interrupted rest, the ward and a scroll (Wizard)
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-350\wizard
-Copy-Item .\docs\acceptance\inputs\increment-16\level-3-vela.json .\.scratch\release-350\wizard\characters.json
-npm.cmd run browser -- --seed 17 --characters .\.scratch\release-350\wizard\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-350\wizard | Out-Null; Copy-Item .\docs\acceptance\inputs\increment-16\level-3-vela.json .\.scratch\release-350\wizard\characters.json; npm.cmd run browser -- --seed 17 --characters .\.scratch\release-350\wizard\characters.json
 ```
 
 Vela is a level-3 Evoker with 900 XP, 20 HP and AC 12. She has not cast
@@ -299,9 +298,7 @@ Mage Armor.
 ### 3. Turn Undead, a Cure Wounds scroll and a short rest (Cleric)
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-350\cleric
-Copy-Item .\docs\acceptance\inputs\increment-16\level-3-mira.json .\.scratch\release-350\cleric\characters.json
-npm.cmd run browser -- --seed 59 --characters .\.scratch\release-350\cleric\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-350\cleric | Out-Null; Copy-Item .\docs\acceptance\inputs\increment-16\level-3-mira.json .\.scratch\release-350\cleric\characters.json; npm.cmd run browser -- --seed 59 --characters .\.scratch\release-350\cleric\characters.json
 ```
 
 Mira is a level-3 Life Domain Cleric with 900 XP, 24 HP and AC 12. Cure
@@ -323,7 +320,8 @@ Wounds is not among her prepared spells.
    Expect "You cast Cure Wounds on yourself from the Spell Scroll (Cure
    Wounds), which is used up." and "Cure Wounds: 6 + 2 + 3 = 11; you regain
    11 HP and have 14/24 HP."
-4. Under **Short rest**, leave the hit dice at 3 and press **Rest**. Expect:
+4. Under **Short rest**, leave the hit dice at 3 and press **Rest**. A rest
+   stops spending hit dice at full HP, so it spends only 2. Expect:
    - "You keep watch as you rest: d100 74, over 25: nothing disturbs
      you.";
    - "You take a short rest and spend 2 hit dice (1 of 3 d8 left). Short
@@ -340,10 +338,8 @@ Wounds is not among her prepared spells.
 ### 4. The AI DM: a rest, the ward and a scroll (needs `OPENAI_API_KEY`)
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-350\ai
-Copy-Item .\docs\acceptance\inputs\increment-16\level-3-vela.json .\.scratch\release-350\ai\characters.json
 $env:OPENAI_API_KEY = "<your key>"
-npm.cmd run browser -- --seed 17 --characters .\.scratch\release-350\ai\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-350\ai | Out-Null; Copy-Item .\docs\acceptance\inputs\increment-16\level-3-vela.json .\.scratch\release-350\ai\characters.json; npm.cmd run browser -- --seed 17 --characters .\.scratch\release-350\ai\characters.json
 ```
 
 Start _The Hollow Chantry_ with Vela. Type one at a time, and wait for each

@@ -16,7 +16,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { testRogueAt } from "../dist/test-rogue-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
-import { mira, vela } from "./fixtures/level-3-casters.mjs";
+import { miraAt3, velaAt3 } from "./fixtures/level-3-casters.mjs";
 import { firstJourney, journey, xpOf } from "./fixtures/module-journey.mjs";
 
 const chantry = (await loadBuiltInFifthAdventures()).find(
@@ -259,7 +259,7 @@ const WARD_ROUTE = [
 test("a level-3 Wizard reads the ward with Arcana and goes down the priests' stair, past the pit, with its scroll", () => {
   const { state, runtime } = firstJourney(
     chantry,
-    vela(),
+    velaAt3(),
     WARD_ROUTE,
     ({ status }) => status === "victory",
     { cast: true },
@@ -336,7 +336,7 @@ test("a Rogue picks the grille with thieves' tools, and a Cleric can read the ve
     ({ openedDoorIds }) => openedDoorIds.includes("iron-grille"),
   );
   assert.ok(bandOf(rogue.state, "pick:iron-grille").startsWith("success"));
-  const sheet = mira();
+  const sheet = miraAt3();
   const cleric = firstJourney(
     chantry,
     sheet,
