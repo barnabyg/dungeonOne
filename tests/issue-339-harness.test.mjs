@@ -1,7 +1,6 @@
 // #339: the balance harness builds and plays a level-1 Cleric. It heals
 // with its healing spells before potions, in a fight and out of one; the
-// gate reports the Cleric beside the classes it judges, never judging it,
-// and only at module levels a Cleric reaches yet.
+// gate judges the Cleric too since #348.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -11,11 +10,9 @@ import {
   gateModule,
   percentileCharacters,
   playAdventure,
-  REPORTED_CLASSES,
-  renderModuleGateResult,
 } from "../dist/balance-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { goblinBand, ratTunnels } from "./fixtures/modules.mjs";
+import { ratTunnels } from "./fixtures/modules.mjs";
 
 const [weakest] = percentileCharacters({
   percentiles: [5],
@@ -51,39 +48,16 @@ test("a Cleric heals with its spells before it drinks a potion", () => {
   assert.ok(spells > 0);
 });
 
-test("the gate reports the Cleric and never judges it", () => {
-  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue"]);
-  assert.deepEqual(REPORTED_CLASSES, ["cleric", "wizard"]);
+test("the gate judges the Cleric with both its kits (#348)", () => {
+  assert.ok(GATE_CLASSES.includes("cleric"));
   const gate = gateModule(ratTunnels, { seeds: [0, 1] });
+  const { result } = gate.classes.find(({ classId }) => classId === "cleric");
+  assert.equal(result.ok, true);
   assert.deepEqual(
-    gate.classes.map(({ classId }) => classId),
-    ["fighter", "rogue"],
-  );
-  const [reported] = gate.reported;
-  assert.equal(reported.classId, "cleric");
-  assert.equal(reported.ok, true);
-  assert.deepEqual(reported.levels, [1]);
-  assert.equal(reported.survival.runs, 2);
-  assert.deepEqual(
-    reported.survival.kits.map(({ kit }) => kit),
-    ["mace-and-daggers", "club-and-shield"],
-  );
-  assert.match(
-    renderModuleGateResult(ratTunnels, gate),
-    /^The Rat Tunnels \(rat-tunnels\) for the Cleric, reported \(not judged\): the level 1, 5th percentile Cleric playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(mace-and-daggers level 1 \d+\.\d%, club-and-shield level 1 \d+\.\d%\), casting \d+\.\d spells a run, \d+\.\d of them healing\.$/mu,
-  );
-  // A level-2 module is played for the Cleric since it reaches level 3
-  // (#341), and for the Wizard since #343.
-  const higher = gateModule(goblinBand, { seeds: [0] });
-  assert.deepEqual(
-    higher.reported.map(({ classId, levels }) => [classId, levels]),
+    result.verdict.survival.kits.map(({ kit, level }) => [kit, level]),
     [
-      ["cleric", [2]],
-      ["wizard", [2]],
+      ["mace-and-daggers", 1],
+      ["club-and-shield", 1],
     ],
   );
-  // Leaving the report out changes no verdict.
-  const plain = gateModule(ratTunnels, { seeds: [0, 1], reportClasses: false });
-  assert.equal(plain.reported, undefined);
-  assert.equal(plain.qualified, gate.qualified);
 });

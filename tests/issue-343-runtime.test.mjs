@@ -69,7 +69,7 @@ const vela = (written) => {
     "mage-armor",
     "magic-missile",
     "shield",
-    "sleep",
+    "burning-hands",
     ...written,
   ]);
 };

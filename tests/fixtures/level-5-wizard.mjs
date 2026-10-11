@@ -45,7 +45,7 @@ export const KEPT = [
   "mage-armor",
   "magic-missile",
   "shield",
-  "sleep",
+  "ice-knife",
   "burning-hands",
   "chromatic-orb",
   "thunderwave",

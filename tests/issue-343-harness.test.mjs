@@ -58,7 +58,7 @@ test("the harness builds a level-2 and a level-3 Wizard with every choice made",
   assert.equal(spellbookOwed(two), 0);
   assert.deepEqual(spellsOwed(two), { cantrips: 0, prepared: 0 });
   assert.equal(two.expertise.length, 1);
-  assert.deepEqual(two.spellbook.slice(6), ["thunderwave", "ray-of-sickness"]);
+  assert.deepEqual(two.spellbook.slice(6), ["ray-of-sickness", "ice-knife"]);
   assert.equal(two.spells.prepared.length, 5);
   const three = wizard(3);
   assert.equal(three.level, 3);
@@ -91,9 +91,12 @@ test("a level-3 Wizard's missed cantrips still deal half with Potent Cantrip", (
   assert.ok(halves > 0, "some missed cantrip dealt half");
 });
 
-test("the gate reports the Wizard at level 3", () => {
+test("the gate plays the Wizard at level 3", () => {
   const gate = gateModule(den, { seeds: [0, 1] });
-  const reported = gate.reported.find(({ classId }) => classId === "wizard");
-  assert.deepEqual(reported.levels, [3]);
-  assert.equal(reported.ok, true);
+  const { result } = gate.classes.find(({ classId }) => classId === "wizard");
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    [...new Set(result.verdict.survival.kits.map(({ level }) => level))],
+    [3],
+  );
 });

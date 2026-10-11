@@ -45,6 +45,10 @@ export const TEST_CASTER_SPELLCASTING: SpellcastingDefinition = {
     "burning-hands",
     "shatter",
     "fireball",
+    // Sleep and Hold Person (#348): off the Wizard's and Cleric's lists,
+    // still in the engine.
+    "sleep",
+    "hold-person",
   ],
 };
 

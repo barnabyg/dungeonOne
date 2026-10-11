@@ -1,6 +1,8 @@
 // #289, browser → API → storage: the player handoff for the Wolfstone
 // Hillfort. Ada, from the level-3 handoff library, finds it in the adventure
-// list under levels 3–4 and Hard, plays it with the buttons alone on a seed
+// list under level 4 and Medium (levels 3–4 and Hard until #348; the list
+// offers a module whatever the character's level), plays it with the
+// buttons alone on a seed
 // found by simulating her clicks: the wolf in the ditch, its lair, the
 // portcullis forced with the drover's crowbar as a lever, the gatehouse's
 // locker, and out by the camp. The library file holds what the ending says.
@@ -93,7 +95,7 @@ test(
         .click();
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Wolfstone Hillfort\nStart\nLevels 3–4\nHard\n/u,
+        /The Wolfstone Hillfort\nStart\nLevel 4\nMedium\n/u,
       );
       await startAdventure(page, "wolfstone-hillfort");
       let fought = false;

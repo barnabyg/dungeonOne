@@ -193,7 +193,9 @@ test("the career script reads its options and fails on a set that can't reach th
     },
   );
   assert.throws(() => parseArguments(["--required-level", "9"]), /Usage/u);
-  assert.throws(() => parseArguments(["--class", "wizard"]), /Usage/u);
+  // Every class the gate judges has a career (#348); a test-only one doesn't.
+  assert.equal(parseArguments(["--class", "wizard"]).classId, "wizard");
+  assert.throws(() => parseArguments(["--class", "test-caster"]), /Usage/u);
   assert.throws(() => parseArguments(["--seeds", "0"]), /Usage/u);
   assert.throws(() => parseArguments(["--bogus"]), /Usage/u);
 

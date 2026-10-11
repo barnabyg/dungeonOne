@@ -9,7 +9,7 @@ import {
   characterAtLevel,
   percentileCharacters,
   playAdventure,
-  reportClass,
+  gateAdventure,
 } from "../dist/balance-5e.js";
 import {
   characterProfile,
@@ -75,9 +75,11 @@ test("a level-5 Cleric plays a crypt and turns its undead", () => {
   assert.ok(runs >= 5, `${runs} of 10 runs used Channel Divinity`);
 });
 
-test("the gate reports the Cleric at levels 4 and 5", () => {
-  const report = reportClass(crypt, "cleric", { seeds: [0, 1] });
-  assert.equal(report.ok, true);
-  assert.deepEqual(report.levels, [4, 5]);
-  assert.ok(report.survival !== undefined);
+test("the gate plays the Cleric at levels 4 and 5", () => {
+  const result = gateAdventure(crypt, { classId: "cleric", seeds: [0, 1] });
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    [...new Set(result.verdict.survival.kits.map(({ level }) => level))],
+    [4, 5],
+  );
 });

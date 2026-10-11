@@ -220,7 +220,6 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
     "inflict-wounds",
     "shield-of-faith",
     "spiritual-weapon",
-    "hold-person",
     "protection-from-poison",
     "prayer-of-healing",
   ]);
@@ -244,7 +243,6 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
     alwaysPrepared: ["aid", "bless", "cure-wounds", "lesser-restoration"],
     newSpells: [
       "spiritual-weapon",
-      "hold-person",
       "protection-from-poison",
       "prayer-of-healing",
     ],

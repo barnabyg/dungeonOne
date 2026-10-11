@@ -1,4 +1,4 @@
-// Gates every shipped module for both classes and records the verdicts in
+// Gates every shipped module for every class and records the verdicts in
 // adventures/5e/gate-verdicts.json, which the browser reads at startup in
 // place of gating them (src/gate-verdicts-5e.ts). Run it when
 // tests/shipped-modules.test.mjs reports the file out of date.

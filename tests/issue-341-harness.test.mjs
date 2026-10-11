@@ -55,7 +55,7 @@ test("the harness builds a level-2 and a level-3 Cleric with every spell prepare
     "inflict-wounds",
     "shield-of-faith",
     "spiritual-weapon",
-    "hold-person",
+    "protection-from-poison",
   ]);
   assert.equal(characterProfile(three).channelDivinity.preserveLife, 15);
 });

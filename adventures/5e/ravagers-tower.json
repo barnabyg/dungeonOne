@@ -18,7 +18,7 @@
           "id": "dead-pedlar",
           "name": "Dead Pedlar",
           "description": "A pedlar's body lies at the foot of the stair, half gnawed.",
-          "discovery": "The gnoll missed two stoppered vials of red liquid, one in the pedlar's boot and one sewn into the pedlar's coat."
+          "discovery": "The gnoll missed three stoppered vials of red liquid: one in the pedlar's boot, one sewn into the pedlar's coat and one in the lining of the pedlar's hat."
         }
       ],
       "items": [
@@ -31,6 +31,13 @@
         },
         {
           "id": "pedlar-second-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "dead-pedlar"
+        },
+        {
+          "id": "pedlar-third-potion",
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
@@ -48,7 +55,7 @@
           "id": "plunder-heap",
           "name": "Plunder Heap",
           "description": "Torn packs, broken crates and bloodied cloth piled against the parapet.",
-          "discovery": "Among the rubbish are a pedlar's cashbox, a gilt-bronze icon still in its travelling case, and a pair of pearl earrings."
+          "discovery": "Among the rubbish are a pedlar's cashbox, a gilt-bronze icon still in its travelling case, and a pair of tiger-eye earrings."
         }
       ],
       "items": [
@@ -57,7 +64,7 @@
           "name": "Pedlar's Cashbox",
           "description": "A tin cashbox of gold pieces.",
           "kind": "coin",
-          "coins": { "gp": 40 },
+          "coins": { "gp": 38 },
           "hiddenIn": "plunder-heap"
         },
         {
@@ -69,11 +76,11 @@
           "hiddenIn": "plunder-heap"
         },
         {
-          "id": "pearl-earrings",
-          "name": "Pearl Earrings",
-          "description": "A pair of small pearls on gold wires.",
+          "id": "tiger-eye-earrings",
+          "name": "Tiger-eye Earrings",
+          "description": "A pair of polished tiger-eye stones on copper wires.",
           "kind": "treasure",
-          "treasure": "gem-50gp",
+          "treasure": "gem-10gp",
           "hiddenIn": "plunder-heap"
         },
         {

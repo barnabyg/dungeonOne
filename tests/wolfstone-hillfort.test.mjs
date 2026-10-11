@@ -1,5 +1,6 @@
-// #289: The Wolfstone Hillfort, the level 3–4 Hard module, as the owner
-// approved it: a drover who trades at the camp below an old hillfort, the
+// #289: The Wolfstone Hillfort, the level-4 Medium module (levels 3–4 and
+// Hard until #348, when the weakest level-3 Cleric survived its dire wolf
+// too rarely), as the owner approved it: a drover who trades at the camp below an old hillfort, the
 // Reaver's dire wolf in the ditch, a brown bear in the undercroft and the
 // Reaver himself in the keep, with graded checks that open and close the ways
 // in. Journeys reach its endings and its checks; shipped-modules.test.mjs
@@ -26,10 +27,10 @@ const room = (id) => hillfort.rooms.find((entry) => entry.id === id);
 const itemsIn = (roomId) =>
   room(roomId).items.map(({ id, kind, hiddenIn }) => [id, kind, hiddenIn]);
 
-test("the hillfort is a six-room level 3–4 Hard module, entered and left by the drovers' camp", () => {
+test("the hillfort is a six-room level-4 Medium module, entered and left by the drovers' camp", () => {
   assert.equal(hillfort.title, "The Wolfstone Hillfort");
-  assert.deepEqual(hillfort.recommendedLevels, { min: 3, max: 4 });
-  assert.equal(hillfort.difficulty, "hard");
+  assert.deepEqual(hillfort.recommendedLevels, { min: 4, max: 4 });
+  assert.equal(hillfort.difficulty, "medium");
   assert.equal(hillfort.startRoomId, "drovers-camp");
   assert.deepEqual(
     hillfort.rooms.map(({ id }) => id),

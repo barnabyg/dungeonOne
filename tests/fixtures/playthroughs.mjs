@@ -23,7 +23,12 @@ import { testCasterAt } from "../../dist/test-caster-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
 import { vela } from "./level-5-wizard.mjs";
-import { FIXTURE_MODULES, goblinTrio, sealedCrypt } from "./modules.mjs";
+import {
+  FIXTURE_MODULES,
+  goblinBand,
+  goblinTrio,
+  sealedCrypt,
+} from "./modules.mjs";
 
 export const PLAYER = "pc";
 
@@ -120,7 +125,7 @@ export function lifeCleric() {
         "healing-word",
         "shield-of-faith",
         "spiritual-weapon",
-        "hold-person",
+        "prayer-of-healing",
         "protection-from-poison",
       ],
     },
@@ -275,7 +280,7 @@ const AREAS = {
  * test caster's, with 1st- and 2nd-level slots (#336), with buffs and
  * Shield prepared (#337), and with area spells (#338); then a level-3
  * Life Cleric's (#341); then a level-5 Evoker's with Vampiric Touch and
- * Slow (#344).
+ * Slow (#344), against the trio and the band (#348).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -295,6 +300,9 @@ const PLAYTHROUGHS = [
   { adventure: sealedCrypt, fighters: [lifeCleric()] },
   { adventure: goblinTrio, fighters: [lifeCleric()] },
   { adventure: goblinTrio, fighters: [evoker()] },
+  // The goblin band's walk touches with Vampiric Touch and again (#348:
+  // since Sleep left the Wizard's list the trio's walk no longer does).
+  { adventure: goblinBand, fighters: [evoker()] },
 ];
 
 /**

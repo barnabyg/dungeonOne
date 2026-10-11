@@ -446,7 +446,7 @@ test("npm run balance qualifies the modules it is given for every class, or the 
     // The gate judges every class, whatever --classes says.
     assert.deepEqual(
       result.gate.classes.map(({ classId }) => classId),
-      ["fighter", "rogue"],
+      ["fighter", "rogue", "cleric", "wizard"],
     );
     assert.equal(code, result.gate.qualified ? 0 : 1);
     return result;
@@ -466,6 +466,8 @@ test("npm run balance qualifies the modules it is given for every class, or the 
     [
       ["fighter", true],
       ["rogue", true],
+      ["cleric", true],
+      ["wizard", true],
     ],
   );
   for (const { report } of result.reports) {
@@ -497,7 +499,7 @@ test("npm run balance qualifies the modules it is given for every class, or the 
   for (const bad of [
     ["--seeds", "0"],
     ["--styles", "reckless"],
-    ["--classes", "wizard"],
+    ["--classes", "test-caster"],
     ["--fast"],
     ["--seeds"],
   ]) {

@@ -334,7 +334,7 @@ test("the library won't start a level-4 Cleric's adventure until its choices are
     );
     data = await library.prepareSpells(
       sheet.id,
-      [...record.sheet.spells.prepared, "protection-from-poison"],
+      [...record.sheet.spells.prepared, "prayer-of-healing"],
       data.revision,
     );
     await library.attachSession(sheet.id, session, 1, data.revision);

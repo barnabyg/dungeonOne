@@ -246,8 +246,8 @@ test("a level-5 Wizard's short rest offers Memorize Spell even at full health", 
     "ray-of-sickness",
     "scorching-ray",
     "shatter",
-    "hold-person",
     "acid-arrow",
+    "mind-spike",
   ]);
   assert.deepEqual(view.rest.memorize.learn[1], {
     id: "scorching-ray",
@@ -268,19 +268,19 @@ test("Memorize Spell swaps a prepared spell until the adventure ends", () => {
   const state = begun(runtime);
   const rested = runtime.handleAction(
     state,
-    swap("sleep", "shatter"),
+    swap("ice-knife", "shatter"),
     uncheckedDice(),
   );
   assert.equal(rested.rejection, undefined, rested.rejection?.reason);
   const memorized = rested.events.find(({ type }) => type === "memorized");
   assert.deepEqual(memorized, {
     type: "memorized",
-    forgot: "sleep",
+    forgot: "ice-knife",
     learned: "shatter",
   });
   assert.match(
     renderFifthResult(rested),
-    /Memorize Spell: you study your spellbook and prepare Shatter in place of Sleep until the adventure ends\./u,
+    /Memorize Spell: you study your spellbook and prepare Shatter in place of Ice Knife until the adventure ends\./u,
   );
   assert.deepEqual(rested.state.character.prepared, [
     "mage-armor",
@@ -298,41 +298,45 @@ test("Memorize Spell swaps a prepared spell until the adventure ends", () => {
     runtime.projectCharacterStatus(rested.state).resources.join("\n"),
     /^Prepared for this adventure \(Memorize Spell\): .*Shatter.*$/mu,
   );
-  // In the cellar's fight Shatter is offered and Sleep isn't.
+  // In the cellar's fight Shatter is offered and Ice Knife isn't.
   const fight = runtime.handleAction(
     rested.state,
     { type: "move", destinationId: "rat-cellar" },
     uncheckedDice(20, 1),
   ).state;
   assert.ok(casts(runtime, fight, "shatter").length > 0);
-  assert.equal(casts(runtime, fight, "sleep").length, 0);
+  assert.equal(casts(runtime, fight, "ice-knife").length, 0);
   // The second rest can swap again, from the new list.
   const view = restView(runtime, rested.state);
   assert.ok(ids(view.rest.memorize.forget).includes("shatter"));
-  assert.ok(ids(view.rest.memorize.learn).includes("sleep"));
+  assert.ok(ids(view.rest.memorize.learn).includes("ice-knife"));
 });
 
 test("Memorize Spell refuses a spell not prepared, one not in the book or already prepared, and a Wizard below level 5", () => {
   const runtime = createFifthRuntime(den, vela(["vampiric-touch", "haste"]));
   const state = begun(runtime);
   assert.match(
-    refusedRest(runtime, state, swap("shatter", "sleep"), "memorize-forget")
+    refusedRest(runtime, state, swap("shatter", "ice-knife"), "memorize-forget")
       .reason,
     /^You haven't prepared Shatter, so there is nothing to swap out\.$/u,
   );
   assert.match(
-    refusedRest(runtime, state, swap("sleep", "fireball"), "memorize-learn")
+    refusedRest(runtime, state, swap("ice-knife", "fireball"), "memorize-learn")
       .reason,
     /^Fireball isn't in your spellbook\.$/u,
   );
   assert.match(
-    refusedRest(runtime, state, swap("sleep", "shield"), "memorize-learn")
+    refusedRest(runtime, state, swap("ice-knife", "shield"), "memorize-learn")
       .reason,
     /^Shield is prepared already\.$/u,
   );
   assert.match(
-    refusedRest(runtime, state, swap("sleep", "fire-bolt"), "memorize-learn")
-      .reason,
+    refusedRest(
+      runtime,
+      state,
+      swap("ice-knife", "fire-bolt"),
+      "memorize-learn",
+    ).reason,
     /^Fire Bolt is a cantrip: Memorize Spell swaps only 1st-level or higher spells\.$/u,
   );
   // A level-4 Wizard has no Memorize Spell.
@@ -341,8 +345,12 @@ test("Memorize Spell refuses a spell not prepared, one not in the book or alread
   const fresh = begun(younger);
   assert.equal(restView(younger, fresh), undefined);
   assert.match(
-    refusedRest(younger, fresh, swap("sleep", "shatter"), "no-memorize-spell")
-      .reason,
+    refusedRest(
+      younger,
+      fresh,
+      swap("ice-knife", "shatter"),
+      "no-memorize-spell",
+    ).reason,
     /^Memorize Spell comes with a Wizard's 5th level\.$/u,
   );
 });
@@ -356,7 +364,7 @@ test("the rest tool takes the spells Memorize Spell swaps, or null for none", ()
   const { forget_spell: forget, learn_spell: learn } =
     tool.parameters.properties;
   assert.deepEqual(forget.type, ["string", "null"]);
-  assert.ok(forget.enum.includes("sleep") && forget.enum.includes(null));
+  assert.ok(forget.enum.includes("ice-knife") && forget.enum.includes(null));
   assert.ok(learn.enum.includes("shatter") && learn.enum.includes(null));
   assert.deepEqual(tool.parameters.required, [
     "hit_dice",
@@ -371,13 +379,13 @@ test("the rest tool takes the spells Memorize Spell swaps, or null for none", ()
       name: "rest",
       argumentsJson: JSON.stringify({
         hit_dice: 0,
-        forget_spell: "sleep",
+        forget_spell: "ice-knife",
         learn_spell: "shatter",
       }),
     },
     uncheckedDice(),
   );
-  assert.deepEqual(result.action, swap("sleep", "shatter"));
+  assert.deepEqual(result.action, swap("ice-knife", "shatter"));
   assert.ok(result.state.character.prepared.includes("shatter"));
   // Null for both rests without a swap.
   const hurt = {

@@ -296,7 +296,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v33";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v34";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1546,7 +1546,7 @@ const featureDescriptions = (
   steady_aim:
     "Use Steady Aim, the character's bonus action: advantage on its next attack roll this turn.",
   turn_undead:
-    "Use Turn Undead, a use of Channel Divinity and the character's action: the engine rolls each undead opponent's Wisdom save; one that fails is turned, Frightened and Incapacitated, until it takes damage or is attacked, or the fight ends.",
+    "Use Turn Undead, a use of Channel Divinity and the character's action: the engine rolls each undead opponent's Wisdom save; one that fails is turned, Frightened and Incapacitated, until it succeeds on the save it repeats at the end of each of its turns, takes damage or is attacked, or the fight ends.",
   preserve_life:
     "Use Preserve Life, a use of Channel Divinity and the character's action: the engine restores hit points to the Bloodied character, up to half its maximum.",
   uncanny_dodge:

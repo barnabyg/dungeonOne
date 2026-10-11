@@ -194,13 +194,19 @@ test("creation refuses a spellbook or prepared spells the Wizard doesn't allow",
     /spellbook holds 6/u,
   );
   assert.throws(() => wizard({ spellbook: undefined }), /spellbook holds 6/u);
-  // Thunderwave isn't in the default spellbook, so it can't be prepared.
+  // Ray of Sickness isn't in the default spellbook (Thunderwave is since
+  // #348), so it can't be prepared.
   assert.throws(
     () =>
       wizard({
         spells: {
           cantrips: WIZARD.defaults.spells.cantrips,
-          prepared: ["mage-armor", "magic-missile", "shield", "thunderwave"],
+          prepared: [
+            "mage-armor",
+            "magic-missile",
+            "shield",
+            "ray-of-sickness",
+          ],
         },
       }),
     /A Wizard prepares only spells in its spellbook\./u,
@@ -228,8 +234,8 @@ test("the creation preview counts the spellbook as it is ticked", () => {
     DICE,
     {
       ...CHOICES,
-      spellbook: ["sleep", "mage-armor"],
-      spells: { cantrips: ["fire-bolt"], prepared: ["sleep"] },
+      spellbook: ["thunderwave", "mage-armor"],
+      spells: { cantrips: ["fire-bolt"], prepared: ["thunderwave"] },
     },
     "wizard",
   );
@@ -253,18 +259,24 @@ test("prepared spells change only to spells in the spellbook", () => {
   const changed = prepareSpells(vela, [
     "burning-hands",
     "chromatic-orb",
-    "sleep",
+    "thunderwave",
     "shield",
   ]);
   assert.deepEqual(changed.spells.prepared, [
     "burning-hands",
     "chromatic-orb",
-    "sleep",
+    "thunderwave",
     "shield",
   ]);
   assert.deepEqual(changed.spellbook, vela.spellbook);
   assert.throws(
-    () => prepareSpells(vela, ["thunderwave", "sleep", "shield", "mage-armor"]),
+    () =>
+      prepareSpells(vela, [
+        "ray-of-sickness",
+        "thunderwave",
+        "shield",
+        "mage-armor",
+      ]),
     /A Wizard prepares only spells in its spellbook\./u,
   );
   // The spellbook itself is checked on every sheet.
@@ -293,13 +305,18 @@ test("the library prepares a Wizard's spells from its spellbook, between adventu
     );
     const { id, spellbook } = created.characters[0].sheet;
     assert.deepEqual(spellbook, WIZARD.defaults.spellbook);
-    const prepared = ["burning-hands", "chromatic-orb", "sleep", "shield"];
+    const prepared = [
+      "burning-hands",
+      "chromatic-orb",
+      "thunderwave",
+      "shield",
+    ];
     const changed = await library.prepareSpells(id, prepared, created.revision);
     assert.deepEqual(changed.characters[0].sheet.spells.prepared, prepared);
     await assert.rejects(
       library.prepareSpells(
         id,
-        ["thunderwave", "sleep", "shield", "mage-armor"],
+        ["ray-of-sickness", "thunderwave", "shield", "mage-armor"],
         changed.revision,
       ),
       /A Wizard prepares only spells in its spellbook\./u,
@@ -328,12 +345,12 @@ test("a format-17 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 24);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 25);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 17, not 24/u.test(error.message),
+        /format version 17, not 25/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

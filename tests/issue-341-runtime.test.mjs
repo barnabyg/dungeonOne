@@ -194,10 +194,14 @@ test("D13: with every foe left turned Mira may leave; the fallen stay fallen", (
     renderFifthResult(turned),
     /Turn Undead reaches Skeleton and Zombie\. 1 use of Channel Divinity left\./u,
   );
-  state = accepted(runtime, turned.state, {
-    type: "end-turn",
-    actorId: "pc",
-  }).state;
+  // Each fails the Wisdom save it repeats at the end of its turn (#348).
+  state = accepted(
+    runtime,
+    turned.state,
+    { type: "end-turn", actorId: "pc" },
+    1,
+    1,
+  ).state;
   assert.equal(state.encounter.round, 2);
   // While both are turned the ways out are open.
   assert.deepEqual(

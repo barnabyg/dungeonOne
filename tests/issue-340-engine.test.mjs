@@ -23,6 +23,7 @@ import {
   startEncounter,
 } from "../dist/encounter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
+import { testCasterAt } from "../dist/test-caster-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { maxTargets, SPELLS, spellAtLevel } from "../dist/spells-5e.js";
 import { WIZARD } from "../dist/wizard-5e.js";
@@ -521,12 +522,21 @@ test("a short rest applies Arcane Recovery once; it isn't spent while no slot is
   );
 });
 
+/**
+ * Sleep left the Wizard's list in #348 (#369 brings it back): the
+ * test caster, who may still prepare it, casts it here.
+ */
+const SLEEPER = testCasterAt(1, {
+  cantrips: ["fire-bolt", "sacred-flame"],
+  prepared: ["sleep", "magic-missile", "shield"],
+});
+
 test("the bar offers Sleep at each foe; a zombie is immune to it", () => {
   const crypt = fightRoom("sleepy-crypt", "The Sleepy Crypt", [
     { id: "goblin", monster: "goblin-warrior" },
     { id: "zombie", monster: "zombie" },
   ]);
-  const runtime = createFifthRuntime(crypt, VELA);
+  const runtime = createFifthRuntime(crypt, SLEEPER);
   const random = createSeededRandom(1);
   let { state } = runtime.handleAction(
     runtime.createSession(),
@@ -569,14 +579,14 @@ test("the fight view says Sleep's Unconscious lasts until damage or the spell en
   const room = fightRoom("sleepy-cellar", "The Sleepy Cellar", [
     { id: "goblin", monster: "goblin-warrior" },
   ]);
-  const runtime = createFifthRuntime(room, VELA);
+  const runtime = createFifthRuntime(room, SLEEPER);
   let { state } = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
     dice([20, 18], [20, 2]),
   );
   // The goblin fails both Wisdom saves (5 - 1, then 3 - 1 at the end of
-  // its turn, which follows Vela's at once, against 13).
+  // its turn, which follows Sage's at once, against the DC).
   const result = runtime.handleAction(
     state,
     cast("sleep", "goblin", { slotLevel: 1 }),
@@ -589,6 +599,6 @@ test("the fight view says Sleep's Unconscious lasts until damage or the spell en
     .encounter.combatants.find(({ id }) => id === "goblin");
   assert.deepEqual(
     goblin.conditions.map(({ text }) => text),
-    ["Vela's Sleep; until it takes damage or Sleep ends"],
+    ["Sage's Sleep; until it takes damage or Sleep ends"],
   );
 });

@@ -206,9 +206,15 @@ test("Turn Undead: the Zombie and Ghoul fail and are turned, the Skeleton saves"
     "a use is spent",
   );
   assert.equal(turned.state.economy.actions, 0, "it takes the action");
-  // Turned, the Zombie and the Ghoul can't act; the Skeleton attacks (a
-  // natural 1 misses), and both are still turned when Ilse's turn returns.
-  const round = accepted(turned.state, endTurn, dice([20, 1]));
+  // Turned, the Zombie and the Ghoul can't act, and each fails the Wisdom
+  // save it repeats at the end of its turn (#348: 1 against DC 13); the
+  // Skeleton attacks (a natural 1 misses), and both are still turned when
+  // Ilse's turn returns.
+  const round = accepted(
+    turned.state,
+    endTurn,
+    dice([20, 1], [20, 1], [20, 1]),
+  );
   const attackers = round.events
     .filter(({ type }) => type === "attack")
     .map(({ actorId }) => actorId);
@@ -222,6 +228,30 @@ test("Turn Undead: the Zombie and Ghoul fail and are turned, the Skeleton saves"
     "frightened",
     "incapacitated",
   ]);
+});
+
+test("a turned undead that succeeds on its repeat save is turned no longer (#348)", () => {
+  // Initiative: Ilse 20, Zombie 15 − 2, Ghoul 4 + 2.
+  const state = opening([monster("zombie"), monster("ghoul")], [15, 4]);
+  const turned = accepted(state, turnUndead, dice([20, 1], [20, 1]));
+  // At the end of its turn the Zombie saves 13 + 0 against DC 13 and is
+  // freed; the Ghoul fails (1).
+  const round = accepted(turned.state, endTurn, dice([20, 13], [20, 1]));
+  const saves = round.events.filter(
+    ({ type, combatantId }) =>
+      type === "condition-ended" && combatantId === "zombie",
+  );
+  assert.ok(saves.some(({ reason }) => reason === "saved"));
+  assert.deepEqual(conditionsOn(round.state, "zombie"), []);
+  assert.deepEqual(
+    ended(round.events, "saved").map(({ targetId }) => targetId),
+    ["zombie"],
+  );
+  assert.deepEqual(conditionsOn(round.state, "ghoul"), [
+    "frightened",
+    "incapacitated",
+  ]);
+  assert.equal(everyFoeTurned(round.state, "pc"), false);
 });
 
 test("Turn Undead needs an undead opponent not yet turned, and a use", () => {
@@ -242,8 +272,9 @@ test("D13: with every foe turned Ilse may attack; an attack, even a miss, ends t
   const state = opening([monster("zombie"), monster("ghoul")], [15, 4]);
   const turned = accepted(state, turnUndead, dice([20, 1], [20, 1]));
   assert.equal(everyFoeTurned(turned.state, "pc"), true);
-  // Waiting changes nothing: turned undead never act, and stay turned.
-  const waited = accepted(turned.state, endTurn);
+  // Waiting changes nothing: turned undead never act, and stay turned
+  // while they fail their repeat saves (#348).
+  const waited = accepted(turned.state, endTurn, dice([20, 1], [20, 1]));
   assert.equal(waited.state.round, 2);
   assert.equal(everyFoeTurned(waited.state, "pc"), true);
   // The mace misses the Zombie (2 + 4 against AC 8), and still ends its
@@ -265,8 +296,9 @@ test("D13: with every foe turned Ilse may attack; an attack, even a miss, ends t
     "incapacitated",
   ]);
   assert.equal(everyFoeTurned(swung.state, "pc"), false);
-  // Freed, the Zombie acts on its turn again.
-  const round = accepted(swung.state, endTurn, dice([20, 1]));
+  // Freed, the Zombie acts on its turn again; the Ghoul fails its repeat
+  // save.
+  const round = accepted(swung.state, endTurn, dice([20, 1], [20, 1]));
   assert.deepEqual(
     round.events
       .filter(({ type }) => type === "attack")
@@ -285,13 +317,13 @@ test("Turn Undead ends on damage, and when the turner is incapacitated", () => {
     "frightened",
     "incapacitated",
   ]);
-  // The Ghoul's claw hits Ilse (15 + 4 against AC 16) for 2 + 2, and she
-  // fails its DC 10 Constitution save (2 + 2): paralysed, she can't keep
-  // the Zombie turned.
+  // The Zombie fails its repeat save (#348). The Ghoul's claw hits Ilse
+  // (15 + 4 against AC 16) for 2 + 2, and she fails its DC 10 Constitution
+  // save (2 + 2): paralysed, she can't keep the Zombie turned.
   const clawed = accepted(
     turned.state,
     endTurn,
-    dice([20, 15], [4, 2], [20, 2]),
+    dice([20, 1], [20, 15], [4, 2], [20, 2]),
   );
   assert.deepEqual(conditionsOn(clawed.state, "pc"), ["paralysed"]);
   assert.deepEqual(
@@ -680,12 +712,13 @@ test("a turner's fall ends the turning it gave", () => {
     "frightened",
     "incapacitated",
   ]);
-  // The Skeleton picks Ilse (1 of 2) and crits her (2d6 + 3): she falls,
-  // and the Zombie is no longer turned; Bram's turn comes.
+  // The Zombie fails its repeat save (#348). The Skeleton picks Ilse (1 of
+  // 2) and crits her (2d6 + 3): she falls, and the Zombie is no longer
+  // turned; Bram's turn comes.
   const felled = accepted(
     turned.state,
     endTurn,
-    dice([2, 1], [20, 20], [6, 3], [6, 3]),
+    dice([20, 1], [2, 1], [20, 20], [6, 3], [6, 3]),
   );
   assert.equal(combatant(felled.state, "pc").hp, 0);
   assert.deepEqual(
