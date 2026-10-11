@@ -255,9 +255,16 @@ export type DamageDefenses = Readonly<{
   immunities?: readonly DamageType[];
 }>;
 
+/** Every defence that can change a damage roll. */
+export const DAMAGE_ADJUSTMENTS = [
+  "resistance",
+  "vulnerability",
+  "immunity",
+] as const;
+
 /** Which defence changed a damage roll, and the damage rolled before it. */
 export type DamageAdjustment = Readonly<{
-  by: "resistance" | "vulnerability" | "immunity";
+  by: (typeof DAMAGE_ADJUSTMENTS)[number];
   rolled: number;
 }>;
 

@@ -242,6 +242,7 @@ import {
   type HeldMagicItem,
 } from "./magic-items-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
+import { isOneOf } from "./json-shape.js";
 import {
   effectEnds,
   isSpellId,
@@ -3289,11 +3290,11 @@ export type RollGroup = Readonly<{
   /** Check or saving throw: the proficiency bonus added, or 0. */
   proficiency?: number;
   dc?: number;
-  outcome?: "hit" | "critical" | "miss" | "success" | "failure";
+  outcome?: RollOutcome;
   /** Reaction roll only (#304): the band it landed in. */
   reaction?: ReactionBand;
   /** Authored check only: a failure or success by 5 or more (#281). */
-  band?: "failure-by-5" | "success-by-5";
+  band?: RollGroupBand;
   /** Damage only: a saving throw halved it, so `total` is half the dice. */
   halved?: true;
   /**
@@ -3305,6 +3306,54 @@ export type RollGroup = Readonly<{
   hpAfter?: number;
   maxHp?: number;
 }>;
+
+/** Every outcome a roll group may give: an attack's or a check's. */
+export const ROLL_OUTCOMES = [
+  "hit",
+  "critical",
+  "miss",
+  "success",
+  "failure",
+] as const;
+export type RollOutcome = (typeof ROLL_OUTCOMES)[number];
+
+/** The check bands a roll group names: the two beyond plain success or failure. */
+export const ROLL_GROUP_BANDS = [
+  "failure-by-5",
+  "success-by-5",
+] as const satisfies readonly Band[];
+export type RollGroupBand = (typeof ROLL_GROUP_BANDS)[number];
+
+/**
+ * Every field a roll group may have. The record's type makes the compiler
+ * check it against `RollGroup` both ways, so a saved session's history,
+ * checked against `ROLL_GROUP_KEYS`, accepts every field a card can carry.
+ */
+const ROLL_GROUP_FIELDS: Readonly<Record<keyof RollGroup, true>> = {
+  purpose: true,
+  roller: true,
+  target: true,
+  dice: true,
+  modifier: true,
+  total: true,
+  rollOff: true,
+  mode: true,
+  armorClass: true,
+  label: true,
+  proficiency: true,
+  dc: true,
+  outcome: true,
+  reaction: true,
+  band: true,
+  halved: true,
+  adjustment: true,
+  damageType: true,
+  hpAfter: true,
+  maxHp: true,
+};
+export const ROLL_GROUP_KEYS = Object.keys(
+  ROLL_GROUP_FIELDS,
+) as readonly (keyof RollGroup)[];
 
 /** One line of a result card's engine text, with the rolls behind it. */
 export type ResultLine = Readonly<{
@@ -3546,7 +3595,7 @@ export function describeFifthResult(
             ...(roll.mode === undefined ? {} : { mode: modeLabel(roll.mode) }),
             dc: roll.dc,
             outcome: roll.success ? "success" : "failure",
-            ...(event.band === "failure-by-5" || event.band === "success-by-5"
+            ...(isOneOf(ROLL_GROUP_BANDS, event.band)
               ? { band: event.band }
               : {}),
           },
@@ -3566,7 +3615,7 @@ export function describeFifthResult(
             total: roll.total,
             dc: roll.dc,
             outcome: roll.success ? "success" : "failure",
-            ...(event.band === "failure-by-5" || event.band === "success-by-5"
+            ...(isOneOf(ROLL_GROUP_BANDS, event.band)
               ? { band: event.band }
               : {}),
           },

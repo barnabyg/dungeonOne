@@ -14,6 +14,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Whether `value` is one of `list`'s entries, narrowing it to their type. */
+export function isOneOf<T>(list: readonly T[], value: unknown): value is T {
+  return (list as readonly unknown[]).includes(value);
+}
+
 export function exactKeys(
   value: unknown,
   keys: readonly string[],

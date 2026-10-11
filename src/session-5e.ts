@@ -25,6 +25,8 @@ import type {
 import { runDmTurn, type DmModel, type DmTurnResult } from "./dm-turn.js";
 import { acquireFileLock } from "./file-lock.js";
 import { validateCharacter, type CharacterSheet } from "./character-5e.js";
+import { DAMAGE_ADJUSTMENTS } from "./encounter-5e.js";
+import { isOneOf } from "./json-shape.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
 import { REACTION_BANDS } from "./reaction-5e.js";
 import type { GameToolCall } from "./runtime-contract.js";
@@ -37,6 +39,9 @@ import {
   type FifthResult,
   type FifthRuntime,
   type FifthState,
+  ROLL_GROUP_BANDS,
+  ROLL_GROUP_KEYS,
+  ROLL_OUTCOMES,
   ROLL_PURPOSES,
   type ResultLine,
 } from "./runtime-5e.js";
@@ -153,24 +158,6 @@ function validHistory(value: unknown): value is HistoryEntry[] {
   );
 }
 
-const OPTIONAL_GROUP_KEYS = [
-  "target",
-  "rollOff",
-  "mode",
-  "armorClass",
-  "label",
-  "proficiency",
-  "dc",
-  "outcome",
-  "reaction",
-  "band",
-  "halved",
-  "adjustment",
-  "damageType",
-  "hpAfter",
-  "maxHp",
-];
-
 function validRollGroup(value: unknown): boolean {
   const integer = (field: unknown) => Number.isSafeInteger(field);
   const optional = (field: unknown, check: (field: unknown) => boolean) =>
@@ -179,12 +166,8 @@ function validRollGroup(value: unknown): boolean {
     typeof field === "string" && field.length <= 200;
   return (
     isRecord(value) &&
-    Object.keys(value).every(
-      (key) =>
-        ["purpose", "roller", "dice", "modifier", "total"].includes(key) ||
-        OPTIONAL_GROUP_KEYS.includes(key),
-    ) &&
-    (ROLL_PURPOSES as readonly unknown[]).includes(value.purpose) &&
+    Object.keys(value).every((key) => isOneOf(ROLL_GROUP_KEYS, key)) &&
+    isOneOf(ROLL_PURPOSES, value.purpose) &&
     label(value.roller) &&
     optional(value.target, label) &&
     Array.isArray(value.dice) &&
@@ -206,23 +189,15 @@ function validRollGroup(value: unknown): boolean {
     ) &&
     optional(value.mode, label) &&
     optional(value.armorClass, integer) &&
-    optional(value.outcome, (outcome) =>
-      ["hit", "critical", "miss", "success", "failure"].includes(
-        String(outcome),
-      ),
-    ) &&
-    optional(value.reaction, (reaction) =>
-      (REACTION_BANDS as readonly unknown[]).includes(reaction),
-    ) &&
-    optional(value.band, (band) =>
-      ["failure-by-5", "success-by-5"].includes(String(band)),
-    ) &&
+    optional(value.outcome, (outcome) => isOneOf(ROLL_OUTCOMES, outcome)) &&
+    optional(value.reaction, (reaction) => isOneOf(REACTION_BANDS, reaction)) &&
+    optional(value.band, (band) => isOneOf(ROLL_GROUP_BANDS, band)) &&
     optional(value.label, label) &&
     optional(value.proficiency, integer) &&
     optional(value.dc, integer) &&
     optional(value.halved, (halved) => halved === true) &&
     optional(value.adjustment, (adjustment) =>
-      ["resistance", "vulnerability", "immunity"].includes(String(adjustment)),
+      isOneOf(DAMAGE_ADJUSTMENTS, adjustment),
     ) &&
     optional(value.damageType, label) &&
     optional(value.hpAfter, integer) &&
