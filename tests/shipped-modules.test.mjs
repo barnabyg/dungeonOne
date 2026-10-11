@@ -2,9 +2,11 @@
 // validates, names its monsters from the bestiary, fits its treasure budget,
 // qualifies at its declared difficulty for every class (#310), and takes its
 // place in the browser's adventure list; and a new character's career
-// through them reaches the required level in every class (#290, #310). Besides each released module's own content and release
-// tests, these are the only tests that read a shipped module; engine tests
-// play the fixtures in tests/fixtures/.
+// through them reaches the required level in every class (#290, #310), and
+// Turn Undead stays under the control cap in every undead module (#349).
+// Besides each released module's own content and release tests, these are
+// the only tests that read a shipped module; engine tests play the fixtures
+// in tests/fixtures/.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
@@ -34,6 +36,7 @@ import {
   GATE_VERDICTS_PATH,
   recordGateVerdicts,
 } from "../dist/gate-verdicts-5e.js";
+import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
@@ -367,6 +370,52 @@ test("the gate gives each released module the figures its proposal quotes (#241,
         assert.equal(oneHitKill.enemies.length, quoted.enemyCount, label);
       }
       assert.equal(xp.available, quoted.xp, label);
+    }
+  }
+});
+
+/** The shipped modules with undead opponents, where Turn Undead is judged (#349). */
+const UNDEAD_MODULES = [
+  "abandoned-delve",
+  "drowned-chapel",
+  "gravediggers-lodge",
+  "silvervein-mine",
+  "warden-crypt",
+];
+
+test("in every undead module the Cleric's Turn Undead is judged against the control cap and stays under it (#348, #349)", () => {
+  const undeadIn = (adventure) =>
+    adventure.encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ id, boss, statBlock }) =>
+        boss !== true && creatureTypeOf(statBlock.type) === "undead"
+          ? [id]
+          : [],
+      ),
+    );
+  assert.deepEqual(
+    shipped
+      .filter((adventure) => undeadIn(adventure).length > 0)
+      .map(({ id }) => id),
+    UNDEAD_MODULES,
+  );
+  for (const adventure of gated) {
+    const undead = undeadIn(adventure);
+    if (undead.length === 0) {
+      continue;
+    }
+    const { control } = gateOf(adventure).classes.find(
+      ({ classId }) => classId === "cleric",
+    ).result.verdict;
+    assert.ok(control, `${adventure.id} judges no control`);
+    assert.equal(control.ok, true, adventure.id);
+    for (const opponentId of undead) {
+      const enemy = control.enemies.find(
+        (entry) => entry.opponentId === opponentId,
+      );
+      const label = `${adventure.id} ${opponentId}`;
+      assert.equal(enemy.control, "turn-undead", label);
+      assert.ok(enemy.chance > 0, label);
+      assert.ok(enemy.chance <= control.cap, `${label} ${enemy.chance}`);
     }
   }
 });
