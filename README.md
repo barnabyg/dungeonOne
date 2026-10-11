@@ -177,8 +177,12 @@ choices, check the derived numbers and save:
   cantrip still deals half) with 2nd-level spells (Scorching Ray, Shatter,
   Hold Person, Acid Arrow, Mind Spike, Blur and Mirror Image). Each new level
   writes two spells into its spellbook. A new level's choices are made on the
-  sheet before the next adventure. A Wizard stays at level 3 for now, keeping
-  the XP it earns. Ritual Adept is omitted, as there is no time for rituals.
+  sheet before the next adventure. At level 4 it makes an Ability Score
+  Improvement and learns a fourth cantrip, and at level 5 it gains 3rd-level
+  spells (Fireball, Lightning Bolt, Bestow Curse, Protection from Energy,
+  Vampiric Touch, Haste and Slow) and **Memorize Spell**: a short rest may
+  swap one prepared spell for another in its spellbook until the adventure
+  ends. Ritual Adept is omitted, as there is no time for rituals.
 
 Each kit shows the AC, attack and damage it gives your scores before you
 choose. Better gear is found or bought in adventures. A pending creation keeps
@@ -278,7 +282,9 @@ discovery you have made), the items you can see and what you carry, leaving out
 any list that is empty. Outside a fight, under what you carry, **Short rest**
 shows the short rests (two per adventure) and hit dice you have left: choose how
 many hit dice to spend and press **Rest** to heal and regain Second Wind and
-Action Surge uses. Rest shows only while a rest would restore something, and is
+Action Surge uses. A level-5 Wizard may also choose a prepared spell to forget
+and a spellbook spell to prepare in its place (Memorize Spell) until the
+adventure ends. Rest shows only while a rest would restore something, and is
 disabled, with why, in a room with foes or after two short rests. In a room the
 adventure marks as a safe place to rest, **Long rest** shows the one long rest
 an adventure allows: press **Long rest** to regain every hit point, hit die and

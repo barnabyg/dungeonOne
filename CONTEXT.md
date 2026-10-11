@@ -66,8 +66,11 @@ A spell cast as a reaction (#337), such as Shield: offered only while an opponen
 The Cleric's choice at creation (#339): Protector (heavy armour and martial weapons) or Thaumaturge (one more cantrip, and its Wisdom modifier on Arcana and Religion checks).
 
 **Preparing spells**:
-Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure. Its cantrips are chosen once, at creation. A Wizard prepares only spells in its spellbook (#340).
-_Avoid_: Memorising (Memorize Spell is a separate spell)
+Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure, but for Memorize Spell. Its cantrips are chosen once, at creation. A Wizard prepares only spells in its spellbook (#340).
+_Avoid_: Memorising (Memorize Spell is the Wizard's feature, below)
+
+**Memorize Spell**:
+The Wizard's level-5 feature (#344): a short rest may swap one prepared levelled spell for another in its spellbook. The swap lasts only the adventure; the library's prepared spells never change during one.
 
 **Reported class**:
 A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric and the Wizard (#340), until the caster policies (#348). No module's verdict depends on it.
