@@ -819,7 +819,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           mode: body.mode,
         } as FifthAction);
       case "/api/5e/session/spectral-attack":
-        // Spiritual Weapon's attack (#341).
+      case "/api/5e/session/drain-attack":
+        // Spiritual Weapon's attack (#341), Vampiric Touch's again (#344).
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "targetId"]) ||
           typeof body.targetId !== "string"
@@ -827,7 +828,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid attack request.");
         }
         return click(body, {
-          type: "spectral-attack",
+          type: path.endsWith("drain-attack")
+            ? "drain-attack"
+            : "spectral-attack",
           actorId: PLAYER_ID,
           targetId: body.targetId,
         });

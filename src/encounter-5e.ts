@@ -2831,6 +2831,9 @@ function drainingTouch(
     return resolved.state;
   }
   const hpAfter = Math.min(drinker.maxHp, drinker.hp + Math.floor(dealt / 2));
+  if (hpAfter === drinker.hp) {
+    return resolved.state;
+  }
   events.push({
     type: "drained",
     combatantId: actorId,

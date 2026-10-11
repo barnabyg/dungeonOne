@@ -855,6 +855,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "turn-undead": "turn_undead",
   "preserve-life": "preserve_life",
   "spectral-attack": "spiritual_weapon",
+  "drain-attack": "vampiric_touch",
   "uncanny-dodge": "uncanny_dodge",
   "take-hit": "take_hit",
   "light-attack": "light_attack",

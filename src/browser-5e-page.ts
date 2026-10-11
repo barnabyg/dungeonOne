@@ -1697,6 +1697,8 @@ const ACTIONS = {
   "turn-undead": { label: "Turn Undead", busy: "Turning undead", busyLabel: "Turning…" },
   "preserve-life": { label: "Preserve Life", busy: "Using Preserve Life", busyLabel: "Healing…" },
   "spectral-attack": { label: "Spiritual Weapon: ", busy: "Striking with your spiritual weapon at ", busyLabel: "Striking…" },
+  // Vampiric Touch's touch again (#344) names its target.
+  "drain-attack": { label: "Vampiric Touch: ", busy: "Touching ", busyLabel: "Touching…" },
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
@@ -1765,7 +1767,7 @@ function renderActions() {
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
     // Trades go on the merchant's wares and on "You carry" (#210).
-    const group = ATTACKS.includes(action) || action === "spectral-attack" ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
+    const group = ATTACKS.includes(action) || action === "spectral-attack" || action === "drain-attack" ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
     // A check with several approaches (#283) offers one button per skill;
     // a parley (#305) names its DC too.
@@ -1785,7 +1787,7 @@ function renderActions() {
     button.type = "button";
     if (short || parley) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
+    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
     // "act" marks an action control, in the bar or on a carried item.
     button.classList.add("act");
     button.dataset.action = action;
@@ -2230,7 +2232,7 @@ async function perform({ action, target, approach, retry, cunningStrike: effect 
   if (action === "attack" || action === "light-attack") {
     cunningStrike = "";
     await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId, ...(effect ? { cunningStrike: effect } : {}) }, control, busy);
-  } else if (action === "spectral-attack") await act("/api/5e/session/spectral-attack", { targetId }, control, busy);
+  } else if (action === "spectral-attack" || action === "drain-attack") await act("/api/5e/session/" + action, { targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
   else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);

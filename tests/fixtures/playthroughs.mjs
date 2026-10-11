@@ -8,15 +8,20 @@
 // test's copy behind.
 import assert from "node:assert/strict";
 import {
+  addToSpellbook,
   applyLevelChoice,
   buildCharacter,
   characterProfile,
   defaultPlacement,
   levelForXp,
+  prepareSpells,
+  settleCharacter,
   validateCharacter,
+  withOwedChoices,
 } from "../../dist/character-5e.js";
 import { CLERIC } from "../../dist/cleric-5e.js";
 import { ROGUE } from "../../dist/rogue-5e.js";
+import { WIZARD } from "../../dist/wizard-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { testCasterAt } from "../../dist/test-caster-5e.js";
@@ -151,6 +156,7 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
     case "attack":
     case "light-attack":
     case "spectral-attack":
+    case "drain-attack":
       return { type: action, actorId: PLAYER, targetId: target.id };
     // Divine Spark (#341), with what it does.
     case "divine-spark":
@@ -235,6 +241,53 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
   }
 }
 
+/** `sheet` after an adventure that earned `xp`, keeping what it holds. */
+const earned = (sheet, xp, id) =>
+  settleCharacter(sheet, {
+    possessions: {
+      equipment: sheet.equipment,
+      stowed: sheet.stowed,
+      ammunition: sheet.ammunition,
+      treasure: [],
+      purse: 0,
+    },
+    xp: [{ id: `${id}/ending/out`, name: "Out", xp }],
+    finds: [],
+    sold: [],
+    coin: [],
+    gear: [],
+  });
+
+/**
+ * A level-5 Evoker (#344) with Vampiric Touch and Slow written into her
+ * spellbook and prepared, her other choices the harness's.
+ */
+export function evoker() {
+  let sheet = buildCharacter(
+    "f".repeat(32),
+    "Vela",
+    ADA_DICE,
+    { ...WIZARD.defaults, placement: defaultPlacement(ADA_DICE, WIZARD) },
+    "wizard",
+  );
+  sheet = withOwedChoices(earned(sheet, 300, "cellar"));
+  sheet = withOwedChoices(earned(sheet, 600, "barrow"));
+  sheet = withOwedChoices(
+    applyLevelChoice(earned(sheet, 1800, "crypt"), {
+      increase: { intelligence: 2 },
+    }),
+  );
+  sheet = addToSpellbook(earned(sheet, 3800, "tomb"), [
+    "vampiric-touch",
+    "slow",
+  ]);
+  return prepareSpells(sheet, [
+    ...sheet.spells.prepared,
+    "vampiric-touch",
+    "slow",
+  ]);
+}
+
 /** The test caster with buffs and Shield prepared (#337). */
 const BUFFED = {
   cantrips: ["fire-bolt", "sacred-flame"],
@@ -257,7 +310,8 @@ const AREAS = {
  * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
  * test caster's, with 1st- and 2nd-level slots (#336), with buffs and
  * Shield prepared (#337), and with area spells (#338); then a level-3
- * Life Cleric's (#341).
+ * Life Cleric's (#341); then a level-5 Evoker's with Vampiric Touch and
+ * Slow (#344).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -276,6 +330,7 @@ const PLAYTHROUGHS = [
   // A level-3 Life Cleric against a zombie and goblins (#341).
   { adventure: sealedCrypt, fighters: [lifeCleric()] },
   { adventure: goblinTrio, fighters: [lifeCleric()] },
+  { adventure: goblinTrio, fighters: [evoker()] },
 ];
 
 /**

@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest`, `cast`, `divine_spark`, `turn_undead`, `preserve_life` and `spiritual_weapon`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest`, `cast`, `divine_spark`, `turn_undead`, `preserve_life`, `spiritual_weapon` and `vampiric_touch`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -281,7 +281,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v31";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v32";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -531,6 +531,8 @@ export type FifthAction =
     }>
   /** Spiritual Weapon's attack (#341), with the bonus action. */
   | Readonly<{ type: "spectral-attack"; actorId: string; targetId: string }>
+  /** Vampiric Touch's attack again (#344), with the action. */
+  | Readonly<{ type: "drain-attack"; actorId: string; targetId: string }>
   | Readonly<{ type: "move"; destinationId: string }>
   /**
    * Sneaking into a neighbouring room where a fight waits (#301): a Stealth
@@ -751,6 +753,15 @@ const TARGET_TOOLS = {
     parameter: "target",
     action: (targetId: string): FifthAction => ({
       type: "spectral-attack",
+      actorId: PLAYER_ID,
+      targetId,
+    }),
+  },
+  // Vampiric Touch's attack again (#344), with the action.
+  vampiric_touch: {
+    parameter: "target",
+    action: (targetId: string): FifthAction => ({
+      type: "drain-attack",
       actorId: PLAYER_ID,
       targetId,
     }),
@@ -1457,7 +1468,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -3956,6 +3967,8 @@ export type ActionKind =
   | "turn-undead"
   | "preserve-life"
   | "spectral-attack"
+  /** Vampiric Touch's attack again (#344). */
+  | "drain-attack"
   | "end-turn"
   | ReactionAnswer
   | "move"
@@ -3997,6 +4010,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "turn-undead": true,
   "preserve-life": true,
   "spectral-attack": true,
+  "drain-attack": true,
   "end-turn": true,
   "uncanny-dodge": true,
   "take-hit": true,
@@ -6906,11 +6920,12 @@ export function createFifthRuntime(
               mode: mode as DivineSparkMode,
             };
       }
-      case "spectral-attack": {
+      case "spectral-attack":
+      case "drain-attack": {
         const targetId = field("targetId");
         return actorId === undefined || targetId === undefined
           ? undefined
-          : { type: "spectral-attack", actorId, targetId };
+          : { type: action.type, actorId, targetId };
       }
       case "move":
       case "sneak": {
@@ -7548,6 +7563,7 @@ export function createFifthRuntime(
       case "turn-undead":
       case "preserve-life":
       case "spectral-attack":
+      case "drain-attack":
       case "end-turn":
       case "uncanny-dodge":
       case "take-hit":
@@ -9028,6 +9044,20 @@ export function createFifthRuntime(
               ),
             )
           : []),
+        // Vampiric Touch's attack again (#344), while it lasts.
+        ...((pc.effects ?? []).some(({ buff }) => buff.kind === "drain")
+          ? targets.map((target) =>
+              view(
+                "drain-attack",
+                {
+                  type: "drain-attack",
+                  actorId: PLAYER_ID,
+                  targetId: target.id,
+                },
+                target,
+              ),
+            )
+          : []),
         ...casts(pc, targets, true),
         ...gearViews(true),
         // Every foe turned (#341, D13): the character may leave.
@@ -10017,6 +10047,13 @@ export function createFifthRuntime(
         choices("spectral-attack"),
         "The id of the opponent to attack.",
       ),
+      // Vampiric Touch's attack again (#344), while it lasts.
+      ...targetTool(
+        "vampiric_touch",
+        "Only when the player asks to touch a foe again with Vampiric Touch: its melee spell attack, with the character's action and no spell slot; the character regains half the necrotic damage it deals. The engine rolls the attack and damage. Targets:",
+        choices("drain-attack"),
+        "The id of the opponent to touch.",
+      ),
       // Divine Spark (#341), a use of Channel Divinity.
       ...divineSparkTool(actions),
       ...features,
@@ -10601,7 +10638,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v14",
+    toolSchemaVersion: "5e-tools-v15",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

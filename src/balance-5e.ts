@@ -863,6 +863,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   "preserve-life": true,
   // Spiritual Weapon waits for the caster policies (#348).
   "spectral-attack": false,
+  // Vampiric Touch's repeat (#344) waits for the caster policies (#348).
+  "drain-attack": false,
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,
