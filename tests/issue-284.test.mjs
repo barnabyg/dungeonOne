@@ -752,7 +752,7 @@ test("the validator rejects circumstances and retries naming what is not there",
   );
   rejects(
     (m) => (cliffCheck(m).advantage[0].type = "wields"),
-    /advantage 1 type must be holds, discovered, won\./,
+    /advantage 1 type must be holds, discovered, won, flag\./,
   );
   rejects(
     (m) => (cliffCheck(m).advantage[0].name = ""),

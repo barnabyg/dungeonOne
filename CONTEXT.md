@@ -287,6 +287,10 @@ _Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time
 
+**Flag**:
+A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled) or a check's band. A passage may open once a flag is set, or close once one is, and a circumstance may name one. The AI DM cannot set one.
+_Avoid_: Switch, Variable, Trigger, Quest state
+
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
@@ -356,7 +360,7 @@ Another try at a failed check, offered only when its adventure module authors on
 _Avoid_: Reroll, Second chance
 
 **Circumstance**:
-An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery or has won a named encounter (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
+An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery, has won a named encounter or has a named flag set (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
 _Avoid_: Situational modifier, Condition (which is a fight's)
 
 **Tool**:

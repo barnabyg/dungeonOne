@@ -160,6 +160,16 @@ hidden until the Rotten Beam's check opens it (failing it by 5 or more closes
 the way to the sump). `tests/issue-396.test.mjs` and
 `tests/issue-396-browser.test.mjs` flee through each.
 
+## Flags (issue 397)
+
+`modules.mjs` also builds `winchTunnels` (_The Winch Tunnels_), which is not
+in `FIXTURE_MODULES`: the rat tunnels with one flag, `portcullis-raised`. The
+way from the stair foot down to the rat's cellar is open only once it is
+set, and examining the Rusted Winch in the alcove sets it.
+`winchTunnelsFile` is its JSON: `tests/issue-397.test.mjs` moves the flag's
+setter and adds closing passages and circumstances for each trigger and the
+validator's refusals; `tests/issue-397-browser.test.mjs` pulls the winch.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

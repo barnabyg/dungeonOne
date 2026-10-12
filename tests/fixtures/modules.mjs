@@ -653,6 +653,31 @@ export const fleeingCellarFile = (() => {
 })();
 export const fleeingCellar = validateModule(structuredClone(fleeingCellarFile));
 
+/**
+ * Flags (#397): the rat tunnels as _The Winch Tunnels_. The passage from the
+ * stair foot down to the rat's cellar is shut behind an iron portcullis,
+ * open only once the flag `portcullis-raised` is set; examining the Rusted
+ * Winch in the alcove sets it.
+ */
+export const winchTunnelsFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "winch-tunnels";
+  module.title = "The Winch Tunnels";
+  module.flags = ["portcullis-raised"];
+  room(module, "alcove").features.push({
+    id: "rusted-winch",
+    name: "Rusted Winch",
+    description:
+      "A rusted winch is bolted to the wall, its chain running off through a hole toward the stair. You heave it round, and somewhere a portcullis grinds upward.",
+    sets: "portcullis-raised",
+  });
+  const down = module.passages.find(({ id }) => id === "stair-to-cellar");
+  down.description = "The passage, sloping down to an iron portcullis.";
+  down.openWhen = "portcullis-raised";
+  return module;
+})();
+export const winchTunnels = validateModule(structuredClone(winchTunnelsFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

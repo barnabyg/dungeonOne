@@ -1648,8 +1648,9 @@ function renderRoom(room) {
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
-      // (#282), and what each topic drew from a creature.
-      if (entry.route) item.append(make("p", entry.route === "closed" ? "The way is closed." : "A way you found.", "route"));
+      // (#282) or a flag opened or closed (#397), and what each topic drew
+      // from a creature.
+      if (entry.route) item.append(make("p", entry.route === "closed" ? "The way is closed." : entry.route === "open-now" ? "The way is open now." : "A way you found.", "route"));
       if (entry.door) item.append(make("p", entry.door.name + ": " + (entry.door.open ? "open" : "shut") + ". " + entry.door.description, "door"));
       if (entry.trap) item.append(make("p", entry.trap.name + ": " + TRAP_STATES[entry.trap.state] + ". " + entry.trap.description, "trap"));
       for (const topic of entry.topics || []) {

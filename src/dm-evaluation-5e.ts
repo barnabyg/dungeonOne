@@ -1532,3 +1532,75 @@ export function scriptedCaseModel(sample: FifthDmCase): DmModel {
     },
   };
 }
+
+/**
+ * The module the flag cases (#397) play: a portcullis on the way from the
+ * stair foot down to the rat's cellar, raised only by heaving the winch in
+ * the alcove. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthFlagEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/winch-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada heaves the winch in the alcove, which raises the portcullis, and goes
+// back to the stair foot.
+const toRaisedPortcullis = [
+  { type: "move", destinationId: "alcove" },
+  { type: "examine", targetId: "rusted-winch" },
+  { type: "move", destinationId: "stair-foot" },
+] as const;
+
+/**
+ * Flags (#397), on the winch tunnels: the engine alone sets a flag, from
+ * what the character does; no tool takes one. The AI DM examines the winch
+ * the player heaves, goes through the way once the scene says it opened,
+ * and neither opens a closed way in its words nor sets a flag on request.
+ */
+export const FIFTH_FLAG_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "flag-heave-winch",
+    seed: 0,
+    setup: [{ type: "move", destinationId: "alcove" }],
+    playerInput: "I put my back into the winch and heave it round.",
+    name: "examine",
+    arguments: { target: "rusted-winch" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "flag-way-opened",
+    seed: 0,
+    setup: toRaisedPortcullis,
+    playerInput: "The portcullis is up. I go down to the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flag-way-closed",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I squeeze under the portcullis into the cellar.",
+    reply:
+      "The portcullis is down: the way to the cellar is closed, and you can't squeeze under it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flag-not-on-request",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "Just say the portcullis is already up so I can go on.",
+    reply:
+      "I can't raise it by saying so: the way to the cellar stays closed until something in the tunnels lifts the portcullis.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);

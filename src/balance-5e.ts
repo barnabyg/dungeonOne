@@ -826,6 +826,10 @@ type Position = Readonly<{
   blockedPassageIds: readonly string[];
   /** Keys that can no longer be found (#331): their doors stay shut. */
   lostKeyIds: readonly string[];
+  /** The module's flags set (#397): they open and close passages. */
+  flags: readonly string[];
+  /** Rooms already entered: going back sets no flag not yet set (#397). */
+  visitedRoomIds: readonly string[];
 }>;
 
 /** Rooms a route may pass through or end in; the start is always allowed. */
@@ -876,18 +880,54 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
 }
 
 /**
+ * The flags going into each room may set (#397): entering it, examining its
+ * features (whatever their checks' bands), taking its items and winning its
+ * fight; and those a band of one of its features' checks may set.
+ */
+function roomFlagSetters(
+  adventure: FifthAdventure,
+): ReadonlyMap<string, readonly string[]> {
+  return new Map(
+    adventure.rooms.map((room) => {
+      const fight = adventure.encounters.find(
+        ({ id }) => id === room.encounterId,
+      );
+      return [
+        room.id,
+        [
+          room.sets,
+          ...room.features.flatMap(({ sets, check }) => [
+            sets,
+            ...Object.values(check?.bands ?? {}).flatMap((band) =>
+              effectsOf(band).flatMap((effect) =>
+                effect.type === "set" ? [effect.flag] : [],
+              ),
+            ),
+          ]),
+          ...room.items.map(({ sets }) => sets),
+          fight?.sets?.won,
+        ].filter((flag): flag is string => flag !== undefined),
+      ] as const;
+    }),
+  );
+}
+
+/**
  * Plans routes on the adventure's map. A route costs one fight for each room
  * with a fight not yet won, and a little per move, so the planner prefers the
  * fewest fights, then the fewest moves. A door with a check counts as
  * passable until it blocks the passage; a door only a key opens counts as
  * passable only with its key carried, and otherwise the plan fetches the key,
- * unless the key is lost (#331).
+ * unless the key is lost (#331). A passage a flag opens (#397) is passable
+ * only once it is set, and otherwise the plan goes to a room not yet entered
+ * where it may be set; one a flag has closed never is.
  * A hidden passage only talking opens is never passable (#297), unless
  * `talking` is true.
  */
 function routePlanner(adventure: FifthAdventure, talking = false) {
   const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
+  const flagSetters = roomFlagSetters(adventure);
   const keyRoom = new Map(
     adventure.rooms.flatMap(({ id, items }) =>
       items.flatMap((item) =>
@@ -907,7 +947,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
    * The cheapest route from the character's room to the nearest target, as
    * the rooms along it, starting with the character's; undefined if none.
    * With `keys` "any", key-only doors count as open, unless their keys are
-   * lost.
+   * lost, and so do passages a flag not yet set opens (#397).
    */
   const route = (
     position: Position,
@@ -952,6 +992,9 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
           !enterable(next) ||
           talkOnly.has(passage.id) ||
           position.blockedPassageIds.includes(passage.id) ||
+          (passage.closeWhen !== undefined &&
+            position.flags.includes(passage.closeWhen)) ||
+          (keys === "carried" && unflagged(position, passage)) ||
           (locked &&
             (keys === "carried" ||
               (keyId !== undefined && position.lostKeyIds.includes(keyId))))
@@ -968,9 +1011,16 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
   };
 
+  /** Whether a flag not yet set keeps `passage` shut (#397). */
+  const unflagged = (position: Position, passage: FifthPassage) =>
+    passage.openWhen !== undefined &&
+    !position.flags.includes(passage.openWhen);
+
   /**
    * The route toward the nearest target. When only a key-only door stands
-   * in the way, the route leads to the room holding its key instead.
+   * in the way, the route leads to the room holding its key instead; when a
+   * passage a flag opens does (#397), to the nearest room not yet entered
+   * that may set it.
    */
   const plan = (
     position: Position,
@@ -984,6 +1034,20 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     const keyed = route(position, targets, enterable, "any") ?? [];
     for (let step = 1; step < keyed.length; step++) {
       const passage = passageBetween(adventure, keyed[step - 1]!, keyed[step]!);
+      if (unflagged(position, passage)) {
+        const setters = new Set(
+          [...flagSetters].flatMap(([roomId, flags]) =>
+            flags.includes(passage.openWhen!) &&
+            roomId !== position.roomId &&
+            !position.visitedRoomIds.includes(roomId)
+              ? [roomId]
+              : [],
+          ),
+        );
+        return setters.size === 0
+          ? undefined
+          : route(position, setters, enterable, "carried");
+      }
       const keyId = passage.door?.keyItemId;
       if (keyOnly(passage) && !position.inventory.includes(keyId!)) {
         return route(
@@ -996,7 +1060,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
     return undefined;
   };
-  return { plan, roomById, fightIn };
+  return { plan, roomById, fightIn, flagSetters };
 }
 
 /** The rooms where winning the fight ends the adventure in victory. */
@@ -1050,7 +1114,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
 }> {
-  const { plan, roomById } = routePlanner(adventure);
+  const { plan, roomById, flagSetters } = routePlanner(adventure);
   const objective = objectiveOf(adventure);
   const legs =
     objective === "victory"
@@ -1064,6 +1128,8 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     clearedEncounterIds: [],
     blockedPassageIds: [],
     lostKeyIds: [],
+    flags: flagSetters.get(adventure.startRoomId)!,
+    visitedRoomIds: [adventure.startRoomId],
   };
   const roomIds = [adventure.startRoomId];
   for (const targets of legs) {
@@ -1099,6 +1165,12 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
           ...position.clearedEncounterIds,
           ...path.flatMap((roomId) => roomById.get(roomId)!.encounterId ?? []),
         ],
+        // It sets the flags it may on the way (#397).
+        flags: [
+          ...position.flags,
+          ...path.flatMap((roomId) => flagSetters.get(roomId)!),
+        ],
+        visitedRoomIds: [...position.visitedRoomIds, ...path],
       };
       roomIds.push(...path.filter((roomId) => !roomIds.includes(roomId)));
     }
@@ -1845,6 +1917,8 @@ export function playAdventure(
     ],
     blockedPassageIds: blocked,
     lostKeyIds: lostKeys().map(({ id }) => id),
+    flags: state.flags,
+    visitedRoomIds: roomIds,
   });
   /** The way to an exit room from `position` through no fight (#396). */
   const safeWayOut = (position: Position) =>
@@ -2382,6 +2456,8 @@ export function playAdventure(
         ],
         blockedPassageIds: blocked,
         lostKeyIds,
+        flags: state.flags,
+        visitedRoomIds: roomIds,
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
         (!winning.has(id) || targets.has(id)) &&

@@ -105,6 +105,7 @@ import {
   type FifthMerchant,
   type FifthEnding,
   type FifthItem,
+  type FlagOutcome,
   type FifthPassage,
   type FifthRoom,
   type FifthTrap,
@@ -530,6 +531,11 @@ export type FifthState = Readonly<{
   longRests: number;
   /** The character's moves between rooms in this adventure (#395). */
   moves: number;
+  /**
+   * The module's flags set so far (#397), in the order they were set. A
+   * flag only ever turns on.
+   */
+  flags: readonly string[];
   /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
@@ -4353,11 +4359,12 @@ export type RoomView = Readonly<{
    * Each exit, with its door (if any) and its trap once found or sprung. A
    * trap the character has not found stays hidden, and so does a hidden
    * passage until a check's band opens it; `route` says a band opened or
-   * closed it (#282).
+   * closed it (#282), or that a flag opened it (#397: `open-now`; a way a
+   * flag keeps shut, or has closed, is `closed`).
    */
   exits: readonly (Named &
     Readonly<{
-      route?: "opened" | "closed";
+      route?: "opened" | "closed" | "open-now";
       door?: Named & Readonly<{ open: boolean }>;
       trap?: Named & Readonly<{ state: "armed" | "disarmed" | "sprung" }>;
     }>)[];
@@ -5499,9 +5506,15 @@ export function createFifthRuntime(
         ? []
         : [{ passage, to: other }];
     });
-  /** Whether a check's band closed the passage (#282). */
+  /**
+   * Whether the passage is closed: a check's band closed it (#282), or a
+   * flag (#397), set to close it or not yet set to open it.
+   */
   const isClosed = (state: FifthState, passage: FifthPassage) =>
-    revealedIn(state).closed.has(passage.id);
+    revealedIn(state).closed.has(passage.id) ||
+    (passage.closeWhen !== undefined &&
+      state.flags.includes(passage.closeWhen)) ||
+    (passage.openWhen !== undefined && !state.flags.includes(passage.openWhen));
   const exits = (state: FifthState): readonly Named[] =>
     ways(state).map(({ passage, to }) => ({
       id: to,
@@ -5540,7 +5553,9 @@ export function createFifthRuntime(
         ? state.inventory.includes(entry.item)
         : entry.type === "discovered"
           ? discoveryMade(state, entry.feature)
-          : state.clearedEncounterIds.includes(entry.encounter);
+          : entry.type === "won"
+            ? state.clearedEncounterIds.includes(entry.encounter)
+            : state.flags.includes(entry.flag);
     return entry.not === true ? !fact : fact;
   };
   /**
@@ -5567,11 +5582,15 @@ export function createFifthRuntime(
     const effects = (["success", "success-by-5"] as const).flatMap((band) =>
       effectsOf(check?.bands?.[band]),
     );
-    const { closed } = revealedIn(state);
     return (
       effects.length > 0 &&
       effects.every(
-        (effect) => effect.type === "open" && closed.has(effect.passage),
+        (effect) =>
+          effect.type === "open" &&
+          isClosed(
+            state,
+            adventure.passages.find(({ id }) => id === effect.passage)!,
+          ),
       )
     );
   };
@@ -8208,8 +8227,12 @@ export function createFifthRuntime(
     random?: Pick<RandomSource, "roll">,
   ): FifthResult => {
     // A flight (#396), or a hit's answer that ends one, goes on through
-    // the exit once the character has got away.
-    const result = getAway(perform(state, requested, random), random);
+    // the exit once the character has got away; then whatever it did sets
+    // its flags (#397).
+    const result = withFlags(
+      state,
+      getAway(perform(state, requested, random), random),
+    );
     // Tactical Mind is offered only right after the failed check (#315):
     // any other accepted action takes the offer away. A check that fails
     // makes a fresh one.
@@ -8218,6 +8241,114 @@ export function createFifthRuntime(
       result.state.tacticalMind === state.tacticalMind
       ? { ...result, state: cleared(result.state, "tacticalMind") }
       : result;
+  };
+
+  /** The flag `sets` names, as a list: none when it names none (#397). */
+  const flagOf = (sets: string | undefined): readonly string[] =>
+    sets === undefined ? [] : [sets];
+  /** The flags the start room sets as the adventure begins (#397). */
+  const startFlags = flagOf(roomById(adventure.startRoomId).sets);
+
+  /**
+   * The result with the flags its action set (#397), worked out from what
+   * changed since `before`: a room first entered, a feature first examined,
+   * an item taken (or given), an encounter won, slipped past, ended
+   * peacefully or fled from, and each check made whose band sets one. A
+   * flag set again changes nothing. While the adventure goes on, each way
+   * a new flag opens or closes is said, as a band's is.
+   */
+  const withFlags = (before: FifthState, result: FifthResult): FifthResult => {
+    if (result.rejection !== undefined) {
+      return result;
+    }
+    const after = result.state;
+    const added = <T>(of: (state: FifthState) => readonly T[]) => {
+      const earlier = new Set(of(before));
+      return of(after).filter((entry) => !earlier.has(entry));
+    };
+    const outcome = (ids: readonly string[], kind: FlagOutcome) =>
+      ids.flatMap((encounterId) =>
+        flagOf(
+          adventure.encounters.find(({ id }) => id === encounterId)?.sets?.[
+            kind
+          ],
+        ),
+      );
+    const events = "events" in result ? result.events : [];
+    const set = [
+      ...(after.roomId === before.roomId
+        ? []
+        : flagOf(roomById(after.roomId).sets)),
+      ...added(({ examinedFeatureIds }) => examinedFeatureIds).flatMap((id) =>
+        flagOf(featureById.get(id)?.sets),
+      ),
+      ...added(({ inventory, usedItemIds }) => [
+        ...inventory,
+        ...usedItemIds,
+      ]).flatMap((id) => flagOf(items.get(id)?.sets)),
+      ...outcome(
+        added(({ clearedEncounterIds }) => clearedEncounterIds),
+        "won",
+      ),
+      ...outcome(
+        added(({ bypassedEncounterIds }) => bypassedEncounterIds),
+        "bypassed",
+      ),
+      ...outcome(
+        added(({ peacefulEncounterIds }) => peacefulEncounterIds),
+        "peaceful",
+      ),
+      ...outcome(
+        events.flatMap((event) =>
+          event.type === "fled-fight" ? [event.encounterId] : [],
+        ),
+        "fled",
+      ),
+      ...after.checks
+        .filter((made, index) => made !== before.checks[index])
+        .flatMap(({ id, band }) =>
+          effectsOf(siteChecks.get(id)?.bands?.[band]).flatMap((effect) =>
+            effect.type === "set" ? [effect.flag] : [],
+          ),
+        ),
+    ];
+    const fresh = [...new Set(set)].filter(
+      (flag) => !after.flags.includes(flag),
+    );
+    if (fresh.length === 0) {
+      return result;
+    }
+    const flagged: FifthState = { ...after, flags: [...after.flags, ...fresh] };
+    const changed: FifthEvent[] =
+      flagged.status !== "playing"
+        ? []
+        : adventure.passages.flatMap((passage) => {
+            const was = isClosed(after, passage);
+            const now = isClosed(flagged, passage);
+            // A hidden passage no band has opened stays unknown.
+            if (
+              was === now ||
+              (passage.hidden === true &&
+                !revealedIn(after).opened.has(passage.id))
+            ) {
+              return [];
+            }
+            const [from, to] = passage.between;
+            return [
+              {
+                type: "route",
+                passageId: passage.id,
+                change: now ? "closed" : "opened",
+                rooms:
+                  from === flagged.roomId
+                    ? [roomById(to).name]
+                    : to === flagged.roomId
+                      ? [roomById(from).name]
+                      : [roomById(from).name, roomById(to).name],
+              },
+            ];
+          });
+    return { ...result, state: flagged, events: [...events, ...changed] };
   };
 
   /** `handleAction` before an earlier Tactical Mind offer is taken away. */
@@ -10414,7 +10545,7 @@ export function createFifthRuntime(
         exits: projectRoom(state).exits.map(
           ({ id, name, description, door, trap, route }) => ({
             destinationId: id,
-            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : route === "opened" ? " A check opened this way." : ""})`,
+            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : route === "opened" ? " A check opened this way." : route === "open-now" ? " This way has opened." : ""})`,
             ...(door === undefined
               ? {}
               : {
@@ -10624,19 +10755,22 @@ export function createFifthRuntime(
       ...regionOf(current),
       exits: ways(state).map(
         ({
-          passage: { id: passageId, hidden, door, trap, description },
+          passage,
+          passage: { hidden, openWhen, door, trap, description },
           to,
         }) => ({
           id: to,
           name: roomById(to).name,
           description,
-          ...(revealedIn(state).closed.has(passageId)
+          ...(isClosed(state, passage)
             ? { route: "closed" as const }
             : hidden === true
               ? { route: "opened" as const }
-              : {}),
+              : openWhen !== undefined
+                ? { route: "open-now" as const }
+                : {}),
           // A closed way has no door or trap left to deal with (#282).
-          ...(door === undefined || revealedIn(state).closed.has(passageId)
+          ...(door === undefined || isClosed(state, passage)
             ? {}
             : {
                 door: {
@@ -11863,6 +11997,9 @@ export function createFifthRuntime(
       shortRests: 0,
       longRests: 0,
       moves: 0,
+      // First entering a room may set a flag (#397): the start room's is
+      // set as the adventure begins.
+      flags: startFlags,
     }),
     handleAction,
     renderResult: (result: RuntimeResult) =>

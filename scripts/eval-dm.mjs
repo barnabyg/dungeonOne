@@ -5,9 +5,11 @@ import {
   evaluationCallBudget,
   FIFTH_APPROACH_DM_CASES,
   FIFTH_DM_CASES,
+  FIFTH_FLAG_DM_CASES,
   FIFTH_PARLEY_DM_CASES,
   FIFTH_REACTION_DM_CASES,
   loadFifthApproachEvaluationAdventure,
+  loadFifthFlagEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -17,11 +19,13 @@ import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
-  "       [--max-calls <count>] [--suite delve|approaches|reactions|parley]",
+  "       [--max-calls <count>]",
+  "       [--suite delve|approaches|reactions|parley|flags]",
   "       Runs the abandoned-delve cases, with --suite approaches the",
   "       obstacle-yard approach-selection cases, or with --suite reactions",
   "       the wary-cellar reaction cases, or with --suite parley the",
-  "       bandit-toll parley and toll cases. It calls the live provider",
+  "       bandit-toll parley and toll cases, or with --suite flags the",
+  "       winch-tunnels flag cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -71,7 +75,7 @@ function parseArguments(args) {
       parsed.maxCalls = Number(value);
     } else if (
       name === "--suite" &&
-      ["delve", "approaches", "reactions", "parley"].includes(value)
+      ["delve", "approaches", "reactions", "parley", "flags"].includes(value)
     ) {
       parsed.suite = value;
     } else {
@@ -149,8 +153,8 @@ const outputPath = configuration.outputPath;
 try {
   const live = (model) =>
     createOpenAiDmModel({ apiKey: process.env.OPENAI_API_KEY, model });
-  // The approach (#283), reaction (#304) and parley (#305) cases play their
-  // own modules.
+  // The approach (#283), reaction (#304), parley (#305) and flag (#397)
+  // cases play their own modules.
   const suites = {
     delve: { cases: FIFTH_DM_CASES },
     approaches: {
@@ -164,6 +168,10 @@ try {
     parley: {
       cases: FIFTH_PARLEY_DM_CASES,
       load: loadFifthParleyEvaluationAdventure,
+    },
+    flags: {
+      cases: FIFTH_FLAG_DM_CASES,
+      load: loadFifthFlagEvaluationAdventure,
     },
   };
   const suite = suites[configuration.suite];

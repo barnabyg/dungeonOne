@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 32) and its validator.
+ * The 5e adventure module format (format version 33) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -69,6 +69,15 @@
  * A module may group its rooms into regions (#395), such as an upper and a
  * lower level: then every room names its region, and every region has a
  * room. Regions are a list, not a map.
+ *
+ * A module may declare flags (#397): named facts about the session that
+ * only ever turn on. A flag is set by a check band's `set` effect, an
+ * encounter's outcome (won, bypassed, ended peacefully or fled), taking an
+ * item, first entering a room or examining a feature. A passage may be open
+ * only once a flag is set (`openWhen`), or closed once one is
+ * (`closeWhen`), and a circumstance may name a flag. Reachability treats
+ * flags as a fixed point: the rooms reached and the flags set for sure are
+ * grown together until neither changes.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -179,12 +188,17 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 32;
+export const FIFTH_ADVENTURE_FORMAT = 33;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
 /** The most regions one module may declare (#395). */
 const MAX_REGIONS = 10;
+/** The most flags one module may declare (#397). */
+const MAX_FLAGS = 30;
+/** The encounter outcomes that may set a flag (#397). */
+export const FLAG_OUTCOMES = ["won", "bypassed", "peaceful", "fled"] as const;
+export type FlagOutcome = (typeof FLAG_OUTCOMES)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export type FifthOpponent = Readonly<{
@@ -251,6 +265,11 @@ export type FifthEncounter = Readonly<{
    * options. Off when left out.
    */
   reaction?: FifthReaction;
+  /**
+   * The flags its outcomes set (#397): won, slipped past unfought, ended
+   * peacefully, or fled from by the character.
+   */
+  sets?: Readonly<Partial<Record<FlagOutcome, string>>>;
 }>;
 
 /**
@@ -312,19 +331,22 @@ export type FifthFeature = Readonly<{
   description: string;
   discovery?: string;
   check?: AuthoredCheck;
+  /** The flag examining it sets (#397), whatever its check's band. */
+  sets?: string;
 }>;
 
 /**
  * One effect of a check's band (#281): a feature's discovery made, an item
  * hidden in a feature revealed (found once per character, like other
- * finds), damage of a type, which can defeat the character, or a passage
+ * finds), damage of a type, which can defeat the character, a passage
  * opened (a hidden one becomes a way) or closed for the rest of the
- * adventure (#282).
+ * adventure (#282), or a flag set (#397).
  */
 export type CheckEffect = Readonly<
   | { type: "discovery"; feature: string }
   | { type: "item"; item: string }
   | { type: "open" | "close"; passage: string }
+  | { type: "set"; flag: string }
   | {
       type: "damage";
       dice: number;
@@ -344,14 +366,15 @@ export type CheckBand = Readonly<{
 
 /**
  * A circumstance (#284): the character holds an item, has made a feature's
- * discovery, or has won an encounter; with `not`, while it hasn't. `name`
- * is how a check card and the action bar name it.
+ * discovery, or has won an encounter, or a flag is set (#397); with `not`,
+ * while it hasn't. `name` is how a check card and the action bar name it.
  */
 export type Circumstance = Readonly<
   (
     | { type: "holds"; item: string }
     | { type: "discovered"; feature: string }
     | { type: "won"; encounter: string }
+    | { type: "flag"; flag: string }
   ) & { name: string; not?: true }
 >;
 
@@ -570,6 +593,8 @@ export type FifthItem = Readonly<{
   wand?: WandId;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
+  /** The flag taking it sets (#397). */
+  sets?: string;
 }>;
 
 /** Something to ask a creature about; a check, if any, decides its answer. */
@@ -625,6 +650,8 @@ export type FifthRoom = Readonly<{
   restSite?: true;
   /** The id of the region it belongs to (#395), in a module with regions. */
   region?: string;
+  /** The flag first entering it sets (#397); the start room's, at the start. */
+  sets?: string;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
   creatures: readonly FifthCreature[];
@@ -679,13 +706,18 @@ export type FifthTrap = Readonly<{
 
 /**
  * A two-way way between two rooms. A hidden one (#282) is no way at all
- * until a check's band opens it.
+ * until a check's band opens it. One with `openWhen` (#397) is closed until
+ * its flag is set; one with `closeWhen` is closed once its flag is set.
  */
 export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
   hidden?: true;
+  /** The flag that opens it (#397): closed until it is set. */
+  openWhen?: string;
+  /** The flag that closes it (#397) for the rest of the adventure. */
+  closeWhen?: string;
   door?: FifthDoor;
   trap?: FifthTrap;
 }>;
@@ -718,6 +750,8 @@ export type FifthAdventure = Readonly<{
   startRoomId: string;
   /** Its regions (#395), each with a room; without them, rooms have none. */
   regions?: readonly FifthRegion[];
+  /** The ids of its flags (#397), each set by something and used by something. */
+  flags?: readonly string[];
   rooms: readonly FifthRoom[];
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
@@ -900,13 +934,13 @@ function ability(value: unknown, where: string): Ability {
 
 /** The most circumstances one approach's advantage or disadvantage may name. */
 const MAX_CIRCUMSTANCES = 4;
-const CIRCUMSTANCE_TYPES = ["holds", "discovered", "won"] as const;
+const CIRCUMSTANCE_TYPES = ["holds", "discovered", "won", "flag"] as const;
 
 /**
  * A circumstance (#284): `{ "type": "holds", "item" }`, `{ "type":
- * "discovered", "feature" }` or `{ "type": "won", "encounter" }`, each with
- * its `name` and optional `not: true`. What it names is checked once the
- * whole module is read.
+ * "discovered", "feature" }`, `{ "type": "won", "encounter" }` or `{
+ * "type": "flag", "flag" }` (#397), each with its `name` and optional `not:
+ * true`. What it names is checked once the whole module is read.
  */
 function circumstance(value: unknown, where: string): Circumstance {
   const kind = isRecord(value) ? value.type : undefined;
@@ -914,6 +948,7 @@ function circumstance(value: unknown, where: string): Circumstance {
     holds: "item",
     discovered: "feature",
     won: "encounter",
+    flag: "flag",
   } as const;
   if (!isOneOf(CIRCUMSTANCE_TYPES, kind)) {
     fail(`${where} type must be ${CIRCUMSTANCE_TYPES.join(", ")}.`);
@@ -928,10 +963,38 @@ function circumstance(value: unknown, where: string): Circumstance {
       ? { type: kind, item: named }
       : kind === "discovered"
         ? { type: kind, feature: named }
-        : { type: kind, encounter: named }),
+        : kind === "won"
+          ? { type: kind, encounter: named }
+          : { type: kind, flag: named }),
     name: text(raw.name, `${where} name`, 60),
     ...(raw.not === true ? { not: true as const } : {}),
   };
+}
+
+/**
+ * An encounter's `sets` (#397): one or more of `won`, `bypassed`,
+ * `peaceful` and `fled`, each naming the flag that outcome sets. What it
+ * names is checked once the whole module is read.
+ */
+function outcomeFlags(
+  value: unknown,
+  where: string,
+): Readonly<Partial<Record<FlagOutcome, string>>> {
+  const raw = knownKeys(value, [], FLAG_OUTCOMES, where);
+  const outcomes = FLAG_OUTCOMES.filter(
+    (outcome) => raw[outcome] !== undefined,
+  );
+  if (outcomes.length === 0) {
+    fail(
+      `${where} must name a flag for at least one of ${FLAG_OUTCOMES.join(", ")}.`,
+    );
+  }
+  return Object.fromEntries(
+    outcomes.map((outcome) => [
+      outcome,
+      id(raw[outcome], `${where} ${outcome}`),
+    ]),
+  );
 }
 
 /** An approach's advantage or disadvantage: 1–4 circumstances. */
@@ -1085,6 +1148,10 @@ function effect(value: unknown, where: string): CheckEffect {
       const raw = exactKeys(value, ["type", "passage"], where);
       return { type, passage: id(raw.passage, `${where} passage`) };
     }
+    case "set": {
+      const raw = exactKeys(value, ["type", "flag"], where);
+      return { type, flag: id(raw.flag, `${where} flag`) };
+    }
     case "damage":
       return {
         type,
@@ -1094,7 +1161,14 @@ function effect(value: unknown, where: string): CheckEffect {
       return fail(`${where} type must be ${EFFECT_TYPES.join(", ")}.`);
   }
 }
-const EFFECT_TYPES = ["discovery", "item", "damage", "open", "close"] as const;
+const EFFECT_TYPES = [
+  "discovery",
+  "item",
+  "damage",
+  "open",
+  "close",
+  "set",
+] as const;
 
 /** The most approaches one check may offer (#283). */
 const MAX_APPROACHES = 4;
@@ -1556,7 +1630,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["regions", "wanderingEncounter"],
+    ["regions", "flags", "wanderingEncounter"],
     "the module",
   );
   const moduleId = id(module.id, "id");
@@ -1662,7 +1736,14 @@ function validateModule(
       const encounter = knownKeys(
         entry,
         ["id", "opponents", "defeatEndingId"],
-        ["victoryEndingId", "bypassXp", "sneakAgain", "lurking", "reaction"],
+        [
+          "victoryEndingId",
+          "bypassXp",
+          "sneakAgain",
+          "lurking",
+          "reaction",
+          "sets",
+        ],
         where,
       );
       if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
@@ -1854,6 +1935,9 @@ function validateModule(
         ...(encounter.sneakAgain === true ? { sneakAgain: true as const } : {}),
         ...(encounter.lurking === true ? { lurking: true as const } : {}),
         ...(reaction === undefined ? {} : { reaction }),
+        ...(encounter.sets === undefined
+          ? {}
+          : { sets: outcomeFlags(encounter.sets, `${where} sets`) }),
       };
     },
   );
@@ -1870,12 +1954,25 @@ function validateModule(
           };
         });
   const regionIds = unique(regions ?? [], "region");
+  // Flags (#397): ids, each declared once; what sets and uses each is
+  // checked once the whole module is read.
+  const flags =
+    module.flags === undefined
+      ? []
+      : list(module.flags, "flags", MAX_FLAGS).map((entry, index) =>
+          id(entry, `flag ${index + 1}`),
+        );
+  distinct(
+    flags,
+    (flag) => flag,
+    (flag) => `flag ${flag} is declared twice.`,
+  );
   const rooms = list(module.rooms, "rooms", 50).map((entry, index) => {
     const where = `room ${index + 1}`;
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId", "creatures", "exit", "restSite", "region"],
+      ["encounterId", "creatures", "exit", "restSite", "region", "sets"],
       where,
     );
     if (room.region !== undefined && !regionIds.has(room.region as string)) {
@@ -1901,7 +1998,7 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check"],
+          ["discovery", "check", "sets"],
           at,
         );
         return {
@@ -1914,6 +2011,9 @@ function validateModule(
           ...(feature.check === undefined
             ? {}
             : { check: check(feature.check, `${at} check`) }),
+          ...(feature.sets === undefined
+            ? {}
+            : { sets: id(feature.sets, `${at} sets`) }),
         };
       },
     );
@@ -1929,7 +2029,7 @@ function validateModule(
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["coins", "gear", "treasure", "spell", "wand", "hiddenIn"],
+          ["coins", "gear", "treasure", "spell", "wand", "hiddenIn", "sets"],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -2037,6 +2137,9 @@ function validateModule(
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
+          ...(item.sets === undefined
+            ? {}
+            : { sets: id(item.sets, `${at} sets`) }),
         };
         const tier = findableTier(placed);
         if (tier !== undefined && !tierAllowed(tier, max)) {
@@ -2100,6 +2203,9 @@ function validateModule(
       ...(room.exit === true ? { exit: true as const } : {}),
       ...(room.restSite === true ? { restSite: true as const } : {}),
       ...(room.region === undefined ? {} : { region: room.region as string }),
+      ...(room.sets === undefined
+        ? {}
+        : { sets: id(room.sets, `${where} sets`) }),
       features,
       items,
       creatures,
@@ -2289,11 +2395,24 @@ function validateModule(
       const passage = knownKeys(
         entry,
         ["id", "between", "description"],
-        ["door", "trap", "hidden"],
+        ["door", "trap", "hidden", "openWhen", "closeWhen"],
         where,
       );
       if (passage.hidden !== undefined && passage.hidden !== true) {
         fail(`${where} hidden must be true, or left out.`);
+      }
+      // A hidden passage is opened by a band (#282); a flag opens one that
+      // is there to see (#397).
+      if (passage.hidden === true && passage.openWhen !== undefined) {
+        fail(
+          `${where} is hidden and has openWhen: a band opens a hidden passage, a flag one already there to see.`,
+        );
+      }
+      if (
+        passage.openWhen !== undefined &&
+        passage.openWhen === passage.closeWhen
+      ) {
+        fail(`${where} opens and closes on the same flag.`);
       }
       if (!Array.isArray(passage.between) || passage.between.length !== 2) {
         fail(`${where} between must name two rooms.`);
@@ -2312,6 +2431,12 @@ function validateModule(
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
         ...(passage.hidden === true ? { hidden: true as const } : {}),
+        ...(passage.openWhen === undefined
+          ? {}
+          : { openWhen: id(passage.openWhen, `${where} openWhen`) }),
+        ...(passage.closeWhen === undefined
+          ? {}
+          : { closeWhen: id(passage.closeWhen, `${where} closeWhen`) }),
         ...(passage.door === undefined
           ? {}
           : { door: door(passage.door, `${where} door`) }),
@@ -2405,6 +2530,47 @@ function validateModule(
     ),
   );
   const revealed = new Set<string>();
+  // Flags (#397): each one named is declared; each declared is set by
+  // something and used by something.
+  const declaredFlags = new Set(flags);
+  const flagNamed = (flag: string, on: string) => {
+    if (!declaredFlags.has(flag)) {
+      fail(`${on} names unknown flag ${flag}.`);
+    }
+  };
+  const setters = new Set<string>();
+  const flagUsers = new Set<string>();
+  for (const room of rooms) {
+    const sets = [
+      ...(room.sets === undefined
+        ? []
+        : [[room.sets, `room ${room.id}`] as const]),
+      ...room.features.flatMap(({ id: featureId, sets: flag }) =>
+        flag === undefined ? [] : [[flag, `feature ${featureId}`] as const],
+      ),
+      ...room.items.flatMap(({ id: itemId, sets: flag }) =>
+        flag === undefined ? [] : [[flag, `item ${itemId}`] as const],
+      ),
+    ];
+    for (const [flag, on] of sets) {
+      flagNamed(flag, on);
+      setters.add(flag);
+    }
+  }
+  for (const { id: encounterId, sets } of encounters) {
+    for (const [outcome, flag] of Object.entries(sets ?? {})) {
+      flagNamed(flag, `encounter ${encounterId}'s ${outcome}`);
+      setters.add(flag);
+    }
+  }
+  for (const { id: passageId, openWhen, closeWhen } of passages) {
+    for (const flag of [openWhen, closeWhen]) {
+      if (flag !== undefined) {
+        flagNamed(flag, `passage ${passageId}`);
+        flagUsers.add(flag);
+      }
+    }
+  }
   /** Hidden passages some band opens, and who can close each passage. */
   const openable = new Set<string>();
   const closers = new Map<string, string[]>();
@@ -2501,6 +2667,10 @@ function validateModule(
             }
             break;
           }
+          case "set":
+            flagNamed(entry.flag, on);
+            setters.add(entry.flag);
+            break;
         }
       }
     }
@@ -2541,6 +2711,10 @@ function validateModule(
         if (!encounterIds.has(entry.encounter)) {
           fail(`${on} names unknown encounter ${entry.encounter}.`);
         }
+        break;
+      case "flag":
+        flagNamed(entry.flag, on);
+        flagUsers.add(entry.flag);
         break;
     }
   };
@@ -2596,6 +2770,27 @@ function validateModule(
   for (const { id: passageId, hidden } of passages) {
     if (hidden === true && !openable.has(passageId)) {
       fail(`passage ${passageId} is hidden, but no check's band opens it.`);
+    }
+  }
+  for (const flag of flags) {
+    if (!setters.has(flag)) {
+      fail(
+        `flag ${flag} is never set: a band, an encounter, an item, a room or a feature must set it.`,
+      );
+    }
+    if (!flagUsers.has(flag)) {
+      fail(
+        `flag ${flag} is never used: a passage or a circumstance must name it, or leave it out.`,
+      );
+    }
+  }
+  // A passage a flag closes (#397) can cut a route off, as a band's close.
+  for (const { id: passageId, closeWhen } of passages) {
+    if (closeWhen !== undefined) {
+      closers.set(passageId, [
+        ...(closers.get(passageId) ?? []),
+        `flag ${closeWhen}`,
+      ]);
     }
   }
   for (const { item } of itemRooms.values()) {
@@ -2689,17 +2884,51 @@ function validateModule(
           )
         : []),
     ]);
-  const reachable = (
-    excluded: ReadonlySet<string>,
-    tools = false,
-  ): Set<string> => {
+  /** The flags a band sets (#397). */
+  const setsOn = (site: AuthoredSite, band: Band): readonly string[] =>
+    effectsOf(site.check.bands?.[band]).flatMap((entry) =>
+      entry.type === "set" ? [entry.flag] : [],
+    );
+  /**
+   * The flags reaching each room sets for sure (#397): entering it,
+   * examining its features, taking its items (but those a checked
+   * feature's band may never reveal) and winning its fight.
+   */
+  const roomFlags = new Map(
+    rooms.map((room) => {
+      const fight = encounters.find(
+        ({ id: encounterId }) => encounterId === room.encounterId,
+      );
+      return [
+        room.id,
+        [
+          room.sets,
+          ...room.features.map(({ sets }) => sets),
+          ...room.items
+            .filter(
+              ({ hiddenIn }) =>
+                featureById.get(hiddenIn ?? "")?.check === undefined,
+            )
+            .map(({ sets }) => sets),
+          fight?.sets?.won,
+        ].filter((flag): flag is string => flag !== undefined),
+      ] as const;
+    }),
+  );
+  /** The rooms reached for sure, and the flags set for sure (#397). */
+  type Reach = Readonly<{ rooms: Set<string>; flags: Set<string> }>;
+  const reachable = (excluded: ReadonlySet<string>, tools = false): Reach => {
     // The rooms reached from `from` through ways needing no check, and the
-    // passages in `extra` a band has made ways.
+    // passages in `extra` a band has made ways; and the flags set on the
+    // way, beside those in `set` (#397). Flags only turn on, so the two
+    // grow together until neither changes.
     const closure = (
       from: ReadonlySet<string>,
       extra: ReadonlySet<string>,
-    ): Set<string> => {
+      set: ReadonlySet<string>,
+    ): Reach => {
       const reached = new Set(from);
+      const flagged = new Set(set);
       // A key in a feature with a check is found only on some bands.
       const keyed = (shut: FifthDoor) =>
         shut.keyItemId !== undefined &&
@@ -2709,11 +2938,20 @@ function validateModule(
       const passable = (entry: FifthPassage) =>
         !excluded.has(entry.id) &&
         entry.trap === undefined &&
+        (entry.openWhen === undefined || flagged.has(entry.openWhen)) &&
         (extra.has(entry.id) ||
           (entry.hidden !== true &&
             (entry.door === undefined || keyed(entry.door))));
       for (let grew = true; grew;) {
         grew = false;
+        for (const roomId of reached) {
+          for (const flag of roomFlags.get(roomId)!) {
+            if (!flagged.has(flag)) {
+              flagged.add(flag);
+              grew = true;
+            }
+          }
+        }
         for (const entry of passages) {
           const [from, to] = entry.between;
           if (reached.has(from) !== reached.has(to) && passable(entry)) {
@@ -2722,30 +2960,49 @@ function validateModule(
           }
         }
       }
-      return reached;
+      return { rooms: reached, flags: flagged };
     };
-    let sure = closure(new Set([module.startRoomId as string]), new Set());
-    // A check reached for sure adds what every band of it reaches.
+    let sure = closure(
+      new Set([module.startRoomId as string]),
+      new Set(),
+      new Set(),
+    );
+    // A check reached for sure adds what every band of it reaches, and the
+    // flags every band of it sets (#397).
     for (let grew = true; grew;) {
       grew = false;
       for (const site of sites) {
         // A character may carry no thieves' tools (#309): a check only
         // they can make is never counted on.
         if (
-          !siteRooms(site).some((roomId) => sure.has(roomId)) ||
+          !siteRooms(site).some((roomId) => sure.rooms.has(roomId)) ||
           takeable(site, tools).length === 0
         ) {
           continue;
         }
         const ways = outcomesOf(site, tools).map((band) =>
-          closure(sure, opensOn(site, band)),
-        );
-        const forward = new Set(
-          [...ways[0]!].filter((roomId) =>
-            ways.every((way) => way.has(roomId)),
+          closure(
+            sure.rooms,
+            opensOn(site, band),
+            new Set([...sure.flags, ...setsOn(site, band)]),
           ),
         );
-        if (forward.size > sure.size) {
+        const forward: Reach = {
+          rooms: new Set(
+            [...ways[0]!.rooms].filter((roomId) =>
+              ways.every((way) => way.rooms.has(roomId)),
+            ),
+          ),
+          flags: new Set(
+            [...ways[0]!.flags].filter((flag) =>
+              ways.every((way) => way.flags.has(flag)),
+            ),
+          ),
+        };
+        if (
+          forward.rooms.size > sure.rooms.size ||
+          forward.flags.size > sure.flags.size
+        ) {
           sure = forward;
           grew = true;
         }
@@ -2753,8 +3010,9 @@ function validateModule(
     }
     return sure;
   };
-  const free = reachable(new Set());
-  const safe = reachable(new Set(closers.keys()));
+  const freeReach = reachable(new Set());
+  const free = freeReach.rooms;
+  const safe = reachable(new Set(closers.keys())).rooms;
   /** A door only thieves' tools open (#309): no key, force or break. */
   const toolsOnly = (shut: FifthDoor) =>
     shut.pick !== undefined &&
@@ -2762,14 +3020,14 @@ function validateModule(
     shut.force === undefined &&
     shut.break === undefined;
   /** What thieves' tools would reach (#309), to name a tools-only route. */
-  const tooled = reachable(new Set(), true);
+  const tooled = reachable(new Set(), true).rooms;
   /**
    * Fails naming the check whose close can cut `what` off, when one alone
    * can; otherwise the checks that can between them.
    */
   const cutOff = (what: string, gone: (sure: Set<string>) => boolean) => {
     for (const [passageId, who] of closers) {
-      if (gone(reachable(new Set([passageId])))) {
+      if (gone(reachable(new Set([passageId])).rooms)) {
         fail(
           `${who[0]!} closes passage ${passageId}, which can cut off ${what}.`,
         );
@@ -2819,6 +3077,11 @@ function validateModule(
                   : entry.door.id,
               entry.trap?.id,
               entry.hidden === true ? entry.id : undefined,
+              // A flag that opens it (#397), when nothing sure sets it.
+              entry.openWhen === undefined ||
+              freeReach.flags.has(entry.openWhen)
+                ? undefined
+                : `${entry.id}, which opens only once flag ${entry.openWhen} is set`,
             ].filter((guard): guard is string => guard !== undefined)
           : [];
       });
@@ -2919,6 +3182,7 @@ function validateModule(
     difficulty: module.difficulty as Difficulty,
     startRoomId: module.startRoomId as string,
     ...(regions === undefined ? {} : { regions }),
+    ...(flags.length === 0 ? {} : { flags }),
     rooms,
     passages,
     encounters,

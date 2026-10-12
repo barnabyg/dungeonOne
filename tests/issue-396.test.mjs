@@ -80,8 +80,8 @@ const wounded = (state, id, hp) => ({
 });
 
 test("the formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 54);
-  assert.equal(FIFTH_TRACE_FORMAT, 48);
+  assert.equal(FIFTH_SESSION_FORMAT, 55);
+  assert.equal(FIFTH_TRACE_FORMAT, 49);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v36");
 });
 
