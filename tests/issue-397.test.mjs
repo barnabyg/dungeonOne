@@ -250,6 +250,30 @@ test("the flags set and the rooms reached grow together until neither changes", 
   );
 });
 
+test("an encounter's flag is sure only if every final outcome it can reach sets it", () => {
+  // The Wary Tunnels' rat may let the character pass (#304): a way out that
+  // opens only once it is beaten may never open, and the character is
+  // stranded.
+  const wary = structuredClone(waryTunnelsFile);
+  wary.flags = ["rat-dead"];
+  wary.encounters[0].sets = { won: "rat-dead" };
+  wary.passages.find(({ id }) => id === "cellar-to-den").openWhen = "rat-dead";
+  assert.throws(
+    () => validateModule(wary),
+    /every exit needs a check or passes a trap; one must be free to reach\./u,
+  );
+  // Ending it peacefully sets the flag too: it is sure.
+  wary.encounters[0].sets.peaceful = "rat-dead";
+  assert.doesNotThrow(() => validateModule(wary));
+  // The Rat Run's rat can be slipped past (#302), but a fight slipped past
+  // is met again on coming back, so winning it is still sure.
+  const run = structuredClone(ratRunFile);
+  run.flags = ["rat-dead"];
+  run.encounters[0].sets = { won: "rat-dead" };
+  run.passages.find(({ id }) => id === "cellar-to-den").openWhen = "rat-dead";
+  assert.doesNotThrow(() => validateModule(run));
+});
+
 test("a flag-closed passage that can cut off every exit is refused", () => {
   // The Rat Run's way out is the den: a cave-in set on entering the cellar
   // closes the only way there.

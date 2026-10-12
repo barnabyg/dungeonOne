@@ -530,6 +530,23 @@ export function authoredChecks(
 }
 
 /**
+ * The flag ending `encounter` sets for sure (#397), as a list: the one its
+ * `won` sets, when every other final outcome it can reach sets it too. Only
+ * a reaction-eligible fight (#304) can end peacefully. Slipping past it
+ * (#302) or fleeing it (#396) leaves it unresolved, met again on coming
+ * back, so neither counts.
+ */
+export function encounterSureFlags(
+  encounter: FifthEncounter | undefined,
+): readonly string[] {
+  const won = encounter?.sets?.won;
+  return won === undefined ||
+    (encounter!.reaction !== undefined && encounter!.sets!.peaceful !== won)
+    ? []
+    : [won];
+}
+
+/**
  * What each kind of item does: the SRD 5.2 healing potions heal, a key
  * opens the locked doors that name it, treasure is kept on surviving, coin
  * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
@@ -2892,7 +2909,8 @@ function validateModule(
   /**
    * The flags reaching each room sets for sure (#397): entering it,
    * examining its features, taking its items (but those a checked
-   * feature's band may never reveal) and winning its fight.
+   * feature's band may never reveal) and ending its fight, when every
+   * final outcome it can reach sets the flag (`encounterSureFlags`).
    */
   const roomFlags = new Map(
     rooms.map((room) => {
@@ -2910,7 +2928,7 @@ function validateModule(
                 featureById.get(hiddenIn ?? "")?.check === undefined,
             )
             .map(({ sets }) => sets),
-          fight?.sets?.won,
+          ...encounterSureFlags(fight),
         ].filter((flag): flag is string => flag !== undefined),
       ] as const;
     }),
