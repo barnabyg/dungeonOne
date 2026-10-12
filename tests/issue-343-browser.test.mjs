@@ -161,11 +161,10 @@ test(
         await page.locator("#level-up-title").innerText(),
         "Level up: Vela is now level 2",
       );
-      // Scholar opens to its text.
+      // Scholar shows its text, open from the start (#387).
       const scholar = page
         .locator("#level-up-features details")
         .filter({ hasText: "Scholar" });
-      await scholar.locator("summary").click();
       assert.match(
         await scholar.innerText(),
         /Not chosen yet: Expertise in one skill you are proficient in among Arcana, History, Investigation, Medicine, Nature and Religion/u,
@@ -279,7 +278,6 @@ test(
       const potent = page
         .locator("#level-up-features details")
         .filter({ hasText: "Potent Cantrip" });
-      await potent.locator("summary").click();
       assert.match(
         await potent.innerText(),
         /misses with its attack roll, or its target succeeds on its saving throw, the target still takes half the cantrip's damage/u,

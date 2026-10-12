@@ -218,7 +218,7 @@ test(
       assert.match(ending, /Level up: Ada is now level 2/);
       assert.match(
         ending,
-        /Hit points \d+ → \d+\. New features:\n+Action Surge\n+Tactical Mind$/m,
+        /Hit points \d+ → \d+\. New features:\n+Action Surge\n+Take one additional action[^\n]*\n+Tactical Mind\n+When you fail an ability check[^\n]*$/m,
       );
       // The level-up and the way back sit below the history heading.
       assert.ok(
