@@ -330,7 +330,8 @@ a fixed order: **Attack** (each attack names its weapon, "Attack Zombie with
 Mace"; against several foes each foe's attacks sit beside its name, and a
 Rogue's **Cunning Strike** choice comes first), **Cast a spell** ("Sacred Flame
 (cantrip) on Zombie", then **Cast**), the class's features (**Channel
-Divinity**, with the uses its actions share shown once beside the name;
+Divinity**, with the uses its actions share shown once beside the name and each
+action on a line of its own, "Turn Undead every undead foe";
 **Fighter features**; **Rogue features**), **Items** (potions, and the scrolls
 and wands you can use), **Weapons** ("Swap Mace for Dagger", "Hold Dagger in
 your other hand"), **Answer the hit** while a hit waits for a reaction (Uncanny Dodge, a reaction

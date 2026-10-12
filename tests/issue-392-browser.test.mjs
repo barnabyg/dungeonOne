@@ -211,7 +211,23 @@ test(
       assert.match(await readRow(page, "cast"), /^\S.* on Zombie Cast$/u);
       assert.equal(
         await readRow(page, "channel-divinity"),
-        "Divine Spark on Zombie: radiant damage Turn Undead",
+        "Divine Spark on Zombie: radiant damage Turn Undead every undead foe",
+      );
+      // Each Channel Divinity action has a line of its own, so Turn Undead
+      // isn't read as part of Divine Spark's choice; its words say whom it
+      // reaches, for a screen reader too.
+      const spark = await page
+        .locator('button[data-action="divine-spark"]')
+        .boundingBox();
+      const turn = page.locator('button[data-action="turn-undead"]');
+      assert.ok((await turn.boundingBox()).y > spark.y + spark.height);
+      assert.equal(
+        await turn.evaluate(
+          (button) =>
+            document.getElementById(button.getAttribute("aria-describedby"))
+              ?.textContent,
+        ),
+        "every undead foe",
       );
       // The mace isn't light: the dagger can only be swapped in.
       assert.deepEqual(await buttons(page, "weapons"), [
