@@ -90,8 +90,8 @@ const CANTRIPS = { cleric: "Sacred Flame", wizard: "Fire Bolt" };
  * One fight turn by the handoff's rule for `who`, the clicks a `journey`
  * with the same chooser makes: take a hit a reaction could answer; Mira
  * turns undead while both uses are left; Vela uses a scroll she holds
- * from the Items row; a caster chooses her cantrip and presses Cast; otherwise attack,
- * or end the turn.
+ * from the Items row; a caster chooses her cantrip and presses Cast;
+ * otherwise attack, or end the turn.
  */
 async function fightTurn(page, who) {
   const enabled = async (locator) =>

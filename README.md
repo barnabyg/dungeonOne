@@ -333,7 +333,8 @@ Rogue's **Cunning Strike** choice comes first), **Cast a spell** ("Sacred Flame
 Divinity**, with the uses its actions share shown once beside the name;
 **Fighter features**; **Rogue features**), **Items** (potions, and the scrolls
 and wands you can use), **Weapons** ("Swap Mace for Dagger", "Hold Dagger in
-your other hand"), **Answer the hit** while a hit waits for a reaction, and
+your other hand"), **Answer the hit** while a hit waits for a reaction (Uncanny Dodge, a reaction
+spell such as Shield, or Take the hit), and
 **End turn** on its own at the end. Tab order follows the rows. A weapon change
 that can't work with what you hold, such as a second weapon beside one that
 isn't light, isn't offered.

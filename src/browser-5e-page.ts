@@ -1863,6 +1863,13 @@ const weaponOf = (action) => {
   return action === "attack" ? gear.attack.weapon : action === "light-attack" && gear.lightAttack ? gear.lightAttack.weapon : "";
 };
 const withWeapon = (action) => weaponOf(action) ? " with " + weaponOf(action) : "";
+// The weapons held, each kind once with a count as "You carry" shows them:
+// "Mace", "Shortsword and Dagger", "Dagger (2)".
+const heldNames = (held) => {
+  const counts = new Map();
+  for (const { name } of held) counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts].map(([name, count]) => (count === 1 ? name : name + " (" + count + ")")).join(" and ");
+};
 const busyName = ({ action, target }) => wordsOf(action).busy + named(action, target) + withWeapon(action) + "…";
 // The attacks on one of several foes, beside its name (#392): their words
 // without it.
@@ -1878,11 +1885,14 @@ const SALES = [...GEAR_SALES, "sell-treasure"];
 // A weapon verb the engine refuses for what is held (#392): a second
 // weapon beside one that isn't light, or with a shield or two weapons in
 // hand, or a two-handed weapon with a shield. In a fight only Wield and
-// Equip are offered, so none of these can change: the bar leaves them out.
+// Equip are offered, so only another weapon change, on a later turn, could
+// make one work: the bar leaves them out (owner decision, 12 October 2026).
 const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASONS["hands-full"], SHORT_REASONS["two-handed"]])};
 // The fight's rows (#392), in order, each named by its words; End turn's
-// row has none. "answer" holds the answers to a hit waiting for a reaction.
-const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["end", ""]];
+// row has none. "answer" holds the answers to a hit waiting for a reaction,
+// reaction spells such as Shield among them; "other" any fight action
+// FIGHT_ROW doesn't place.
+const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["other", "Other actions"], ["end", ""]];
 // The row each of the fight's actions goes in.
 const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
 const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
@@ -1916,7 +1926,9 @@ function renderActions() {
   // scroll's or wand's (#346) go in a choice of their own in a fight's Items
   // row (#392), and outside a fight on its "You carry" entry.
   const casts = session.actions.filter(({ action, spell }) => action === "cast" && !spell.item);
-  if (casts.length) (fighting ? rows.cast : groups.feature).push(castPanel(casts));
+  // While a hit waits, a reaction spell is one of its answers.
+  const answering = session.actions.some(({ action }) => action === "take-hit");
+  if (casts.length) (fighting ? rows[answering ? "answer" : "cast"] : groups.feature).push(castPanel(casts));
   const itemCasts = session.actions.filter(({ action, spell }) => action === "cast" && spell.item);
   if (fighting && itemCasts.length) rows.items.push(castPanel(itemCasts, "item"));
   session.actions.forEach((option, index) => {
@@ -1931,7 +1943,7 @@ function renderActions() {
     // A weapon verb that can't work with what is held is left out (#392).
     // So is swapping a weapon for another of the same kind.
     if (fighting && GEAR.includes(action) && !option.available && HELD_REFUSALS.includes(option.reason)) return;
-    if (fighting && action === "swap" && gear.held.every(({ id }) => id === target.id)) return;
+    if (fighting && action === "swap" && gear.held.length && gear.held.every(({ id }) => id === target.id)) return;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
@@ -1947,7 +1959,7 @@ function renderActions() {
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
     // Channel Divinity's uses show once, on its row (#392).
-    const label = fighting && action === "swap" ? "Swap " + [...new Set(gear.held.map(({ name }) => name))].join(" and ") + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
+    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -2008,7 +2020,7 @@ function renderActions() {
       return;
     }
     if (fighting && (group === "attack" || group === "feature")) {
-      rows[FIGHT_ROW[action] || "answer"].push(wrap);
+      rows[FIGHT_ROW[action] || "other"].push(wrap);
       return;
     }
     if (!short) {
@@ -2390,7 +2402,8 @@ function castPanel(casts, kind = "spell") {
   button.disabled = acting || Boolean(why);
   button.addEventListener("click", () => castSpell(chosen.spell, area ? state.targets : [chosen.target.id], "button.act[data-action=" + verb + "]", verb));
   // An area spell's boxes say how many they take; one target is "on" it.
-  wrap.append(spellSelect, ...(area ? [areaTargets(area, state, prefix)] : [joiner("on"), targetChoice(options, state, prefix)]), button);
+  // Outside a fight the bar is as it was (#392): no joining word.
+  wrap.append(spellSelect, ...(area ? [areaTargets(area, state, prefix)] : [...(fightingNow() ? [joiner("on")] : []), targetChoice(options, state, prefix)]), button);
   if (why) {
     const reason = make("span", why, "reason");
     reason.id = prefix + "-reason";

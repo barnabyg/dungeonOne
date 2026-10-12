@@ -253,6 +253,10 @@ test(
           ["end", ""],
         ],
       );
+      assert.deepEqual(
+        (await tabRows(page)).filter((row) => row !== "weapons"),
+        ["attack", "fighter", "end"],
+      );
       assert.deepEqual(await buttons(page, "fighter"), [
         "Second Wind (2 of 2 left)",
         "Action Surge (1 of 1 left)",
@@ -279,6 +283,10 @@ test(
         ],
       );
       assert.deepEqual(await buttons(page, "rogue"), ["Hide", "Steady Aim"]);
+      assert.deepEqual(
+        (await tabRows(page)).filter((row) => row !== "weapons"),
+        ["attack", "rogue", "end"],
+      );
       // Steady Aim's advantage makes Sneak Attack, and so Cunning Strike,
       // possible: its choice sits in the Attack row, named by its words.
       await settled(page, () =>
