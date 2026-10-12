@@ -304,11 +304,11 @@ test(
       await page.locator("#sheet-name").filter({ hasText: "Vela" }).waitFor();
       await startAdventure(page, "rat-tunnels");
       // A Wizard's strip has no feature pips (#385): hit dice alone.
-      const strip = () =>
+      const stripResources = () =>
         page
           .locator("#resources li")
           .evaluateAll((items) => items.map((item) => item.dataset.resource));
-      assert.deepEqual(await strip(), ["hit-dice"]);
+      assert.deepEqual(await stripResources(), ["hit-dice"]);
       // Mage Armor before the first fight: AC 13 + Dexterity.
       await castNamed(page, "Mage Armor (1st-level slot)");
       assert.match(
@@ -317,7 +317,11 @@ test(
       );
       await clickAction(page, "move", "rat-cellar");
       await page.locator("#cast-spell").waitFor();
-      assert.deepEqual(await strip(), ["action", "bonus-action", "reaction"]);
+      assert.deepEqual(await stripResources(), [
+        "action",
+        "bonus-action",
+        "reaction",
+      ]);
       await castNamed(page, "Ray of Sickness (1st-level slot)");
       assert.match(
         await text(page.locator("#log")),
