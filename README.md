@@ -281,9 +281,9 @@ entries unless you have scrolled up to read older ones.
 
 The status strip shows your HP as numbers and a bar with its health in words
 (Healthy, Bloodied at half or fewer, Critical at a quarter or fewer, Defeated at
-0), a pip for each Second Wind and Action Surge use, and outside a fight's turns
-a pip for each hit die (one per level). In a fight it adds the
-round, whose turn it is, and pips for your Action (two after Action Surge),
+0), a pip for each Second Wind, Action Surge and Channel Divinity use, and
+outside a fight's turns a pip for each hit die (one per level). In a fight it
+adds the round, whose turn it is, and pips for your Action (two after Action Surge),
 Bonus action and Reaction, filled while unused. Screen readers hear each in
 words, such as "HP 6 of 11" and "Bonus action: used".
 
