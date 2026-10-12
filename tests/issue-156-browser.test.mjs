@@ -234,7 +234,8 @@ test(
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.action),
           );
-      const toolkit = ["attack", "use", "second-wind", "end-turn"];
+      // In the fight's row order (#392): Attack, Fighter features, Items.
+      const toolkit = ["attack", "second-wind", "use", "end-turn"];
       assert.deepEqual(await bar(), toolkit);
       assert.equal(await page.locator("#explore-controls button").count(), 0);
 

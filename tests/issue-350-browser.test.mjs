@@ -89,8 +89,8 @@ const CANTRIPS = { cleric: "Sacred Flame", wizard: "Fire Bolt" };
 /**
  * One fight turn by the handoff's rule for `who`, the clicks a `journey`
  * with the same chooser makes: take a hit a reaction could answer; Mira
- * turns undead while both uses are left; Vela casts from a scroll she
- * holds; a caster chooses her cantrip and presses Cast; otherwise attack,
+ * turns undead while both uses are left; Vela uses a scroll she holds
+ * from the Items row; a caster chooses her cantrip and presses Cast; otherwise attack,
  * or end the turn.
  */
 async function fightTurn(page, who) {
@@ -99,24 +99,28 @@ async function fightTurn(page, who) {
   const takeHit = page.locator('button.act[data-action="take-hit"]');
   const turn = page.locator('button.act[data-action="turn-undead"]');
   const cast = page.locator("button.act[data-action=cast]");
+  const use = page.locator("button.act[data-action=cast-item]");
   const attack = page.locator("#attack-controls button.attack:enabled");
   if (await enabled(takeHit)) {
     return settled(page, () => takeHit.first().click());
   }
+  // Channel Divinity's uses show on its row (#392).
+  const uses = page.locator(
+    '.action-row[data-row="channel-divinity"] .row-uses',
+  );
   if (
     who === "cleric" &&
     (await enabled(turn)) &&
-    /\(2 of 2 left\)/u.test(await turn.first().innerText())
+    (await uses.innerText()) === "2 of 2 left"
   ) {
     return settled(page, () => turn.first().click());
   }
+  // A scroll's or wand's casts are the Items row's choice (#392).
+  if (who === "wizard" && (await enabled(use))) {
+    return settled(page, () => use.first().click());
+  }
   if (who !== "fighter" && (await page.locator("#cast-spell").count()) > 0) {
-    // A spell cast from an item names the item after a dash.
-    const scroll = page.locator("#cast-spell option", { hasText: " — " });
-    const label =
-      who === "wizard" && (await scroll.count()) > 0
-        ? await scroll.first().textContent()
-        : `${CANTRIPS[who]} (cantrip)`;
+    const label = `${CANTRIPS[who]} (cantrip)`;
     if (
       (await page.locator("#cast-spell option", { hasText: label }).count()) > 0
     ) {

@@ -325,6 +325,19 @@ button while it is still enabled, and otherwise moves to the newest history
 entry, so pressing Enter again repeats the action or does nothing; it never
 drinks a potion or leaves the room.
 
+In a fight the bar sorts the turn's options into rows, each under its name, in
+a fixed order: **Attack** (each attack names its weapon, "Attack Zombie with
+Mace"; against several foes each foe's attacks sit beside its name, and a
+Rogue's **Cunning Strike** choice comes first), **Cast a spell** ("Sacred Flame
+(cantrip) on Zombie", then **Cast**), the class's features (**Channel
+Divinity**, with the uses its actions share shown once beside the name;
+**Fighter features**; **Rogue features**), **Items** (potions, and the scrolls
+and wands you can use), **Weapons** ("Swap Mace for Dagger", "Hold Dagger in
+your other hand"), **Answer the hit** while a hit waits for a reaction, and
+**End turn** on its own at the end. Tab order follows the rows. A weapon change
+that can't work with what you hold, such as a second weapon beside one that
+isn't light, isn't offered.
+
 **The conversation history** shows each kind of entry differently: narration
 (the opening and entering a room) is plain text, your own words are a bubble
 marked **You:**, the AI Dungeon Master's replies are marked **Dungeon Master**,
