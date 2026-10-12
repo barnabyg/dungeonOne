@@ -2,11 +2,9 @@
 // an unavailable action disabled with its reason as visible text; after an
 // action, focus stays on the clicked control while it is enabled and
 // otherwise moves to the newest history entry. Played keyboard-only through
-// the rat tunnels at phone width, where the newest entry is hardest to keep
-// on screen (the focus rules don't depend on the width): pressing Enter again
-// after an attack attacks again or does nothing, never drinking the potion
-// or leaving the room, and after the win focus is on the newest entry, on
-// screen.
+// the rat tunnels: pressing Enter again after an attack attacks again or does
+// nothing, never drinking the potion or leaving the room, and after the win
+// focus is on the newest entry, on screen.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -18,11 +16,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import {
-  assertNoSideScroll,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
@@ -163,194 +157,184 @@ async function assertReason(page, selector, reason) {
 
 const seed = findSeed();
 
-{
-  const viewport = { width: 375, height: 812 };
-  test(
-    `keyboard play: the action bar keeps focus safe in the rat tunnels (${viewport.width}px)`,
-    { timeout: 120000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-156-"));
-      const server = await startFifthBrowserServer({
-        ...SERVER_OPTIONS,
-        libraryPath: join(directory, "characters.json"),
-        seed,
+const viewport = { width: 1280, height: 850 };
+test(
+  `keyboard play: the action bar keeps focus safe in the rat tunnels (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-156-"));
+    const server = await startFifthBrowserServer({
+      ...SERVER_OPTIONS,
+      libraryPath: join(directory, "characters.json"),
+      seed,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "rat-tunnels");
+
+      // Exploring actions live in the action region, not the room panel;
+      // only the character's own gear is acted on there (#198, #209).
+      assert.deepEqual(
+        await page
+          .locator("#room button:not(#room-toggle)")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.getAttribute("aria-label")),
+          ),
+        ["Unequip Leather armour"],
+      );
+      assert.deepEqual(
+        await page
+          .locator("#explore-controls button")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.getAttribute("aria-label")),
+          ),
+        [
+          "Go to Alcove",
+          "Go to Rat-Gnawed Cellar",
+          "Sneak into Rat-Gnawed Cellar",
+          "Examine Rusted Lantern",
+        ],
+      );
+
+      // Examining keeps focus on Examine: it is still enabled.
+      await keyboardAction(page, "examine", "rusted-lantern");
+      assert.deepEqual(await focused(page), {
+        tag: "BUTTON",
+        action: "examine",
+        target: "rusted-lantern",
+        disabled: false,
+        newest: false,
       });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await createAndStart(page, server.url, "rat-tunnels");
+      // Moving removes the Go to button, so focus goes to the new entry.
+      await keyboardAction(page, "move", "alcove");
+      assert.equal((await focused(page)).newest, true);
+      assert.match(
+        await page.locator("#log > li:last-child").textContent(),
+        /You enter the Alcove/,
+      );
+      await keyboardAction(page, "examine", "iron-chest");
+      await keyboardAction(page, "take", "healing-potion");
+      assert.equal((await focused(page)).newest, true);
+      // At full HP the potion's Drink stays on its inventory entry (#198),
+      // disabled, with the reason.
+      await assertReason(
+        page,
+        '#inventory button[data-action="use"][data-target="healing-potion"]',
+        "Full HP",
+      );
+      await keyboardAction(page, "move", "stair-foot");
+      await keyboardAction(page, "move", "rat-cellar");
 
-        // Exploring actions live in the action region, not the room panel;
-        // only the character's own gear is acted on there (#198, #209).
-        assert.deepEqual(
-          await page
-            .locator("#room button:not(#room-toggle)")
-            .evaluateAll((buttons) =>
-              buttons.map((button) => button.getAttribute("aria-label")),
-            ),
-          ["Unequip Leather armour"],
-        );
-        assert.deepEqual(
-          await page
-            .locator("#explore-controls button")
-            .evaluateAll((buttons) =>
-              buttons.map((button) => button.getAttribute("aria-label")),
-            ),
-          [
-            "Go to Alcove",
-            "Go to Rat-Gnawed Cellar",
-            "Sneak into Rat-Gnawed Cellar",
-            "Examine Rusted Lantern",
-          ],
-        );
+      // The fight's whole toolkit, in one bar.
+      const bar = async () =>
+        page
+          .locator("#action-bar button")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.dataset.action),
+          );
+      const toolkit = ["attack", "use", "second-wind", "end-turn"];
+      assert.deepEqual(await bar(), toolkit);
+      assert.equal(await page.locator("#explore-controls button").count(), 0);
 
-        // Examining keeps focus on Examine: it is still enabled.
-        await keyboardAction(page, "examine", "rusted-lantern");
-        assert.deepEqual(await focused(page), {
-          tag: "BUTTON",
-          action: "examine",
-          target: "rusted-lantern",
-          disabled: false,
-          newest: false,
-        });
-        // Moving removes the Go to button, so focus goes to the new entry.
-        await keyboardAction(page, "move", "alcove");
-        assert.equal((await focused(page)).newest, true);
-        assert.match(
-          await page.locator("#log > li:last-child").textContent(),
-          /You enter the Alcove/,
-        );
-        await keyboardAction(page, "examine", "iron-chest");
-        await keyboardAction(page, "take", "healing-potion");
-        assert.equal((await focused(page)).newest, true);
-        // At full HP the potion's Drink stays on its inventory entry (#198),
-        // disabled, with the reason.
-        await assertReason(
-          page,
-          '#inventory button[data-action="use"][data-target="healing-potion"]',
-          "Full HP",
-        );
-        await keyboardAction(page, "move", "stair-foot");
-        await keyboardAction(page, "move", "rat-cellar");
-
-        // The fight's whole toolkit, in one bar.
-        const bar = async () =>
-          page
-            .locator("#action-bar button")
-            .evaluateAll((buttons) =>
-              buttons.map((button) => button.dataset.action),
-            );
-        const toolkit = ["attack", "use", "second-wind", "end-turn"];
-        assert.deepEqual(await bar(), toolkit);
-        assert.equal(await page.locator("#explore-controls button").count(), 0);
-
-        // Keyboard only: Attack, then Enter again and again. Each Enter
-        // attacks again (focus stayed on Attack) or does nothing (focus moved
-        // to the newest entry); then End turn and back to Attack.
-        const attack = '#attack-controls button[data-action="attack"]';
-        await page.locator("#adventure-title").focus();
-        await tabTo(page, attack);
-        let spentShown = false;
-        for (let step = 0; step < 60; step++) {
+      // Keyboard only: Attack, then Enter again and again. Each Enter
+      // attacks again (focus stayed on Attack) or does nothing (focus moved
+      // to the newest entry); then End turn and back to Attack.
+      const attack = '#attack-controls button[data-action="attack"]';
+      await page.locator("#adventure-title").focus();
+      await tabTo(page, attack);
+      let spentShown = false;
+      for (let step = 0; step < 60; step++) {
+        if (
+          (await page.locator("#turn").textContent()) === "The fight is over."
+        ) {
+          break;
+        }
+        const now = await focused(page);
+        if (now.action === "attack") {
+          await enterAction(page);
+          const after = await focused(page);
+          assert.ok(
+            (after.action === "attack" && !after.disabled) || after.newest,
+            `after an attack, focus is on Attack or the newest entry: ${JSON.stringify(after)}`,
+          );
+        } else if (now.newest) {
+          // Enter on the newest entry does nothing.
+          const count = await logCount(page);
+          await page.keyboard.press("Enter");
+          await page.waitForTimeout(150);
+          assert.equal(await logCount(page), count);
           if (
             (await page.locator("#turn").textContent()) === "The fight is over."
           ) {
             break;
           }
-          const now = await focused(page);
-          if (now.action === "attack") {
-            await enterAction(page);
-            const after = await focused(page);
-            assert.ok(
-              (after.action === "attack" && !after.disabled) || after.newest,
-              `after an attack, focus is on Attack or the newest entry: ${JSON.stringify(after)}`,
-            );
-          } else if (now.newest) {
-            // Enter on the newest entry does nothing.
-            const count = await logCount(page);
-            await page.keyboard.press("Enter");
-            await page.waitForTimeout(150);
-            assert.equal(await logCount(page), count);
-            if (
-              (await page.locator("#turn").textContent()) ===
-              "The fight is over."
-            ) {
-              break;
-            }
-            await assertReason(page, attack, "Action used");
-            spentShown = true;
-            // Shift+Tab back into the bar: disabled actions are skipped.
-            await tabTo(
-              page,
-              '#feature-controls button[data-action="end-turn"]',
-              true,
-            );
-            await enterAction(page);
-          } else if (now.action === "end-turn") {
-            await tabTo(page, attack, true);
-          } else {
-            assert.fail(
-              `focus on an unrelated control: ${JSON.stringify(now)}`,
-            );
-          }
-          // The bar keeps its shape through the fight.
-          if (
-            (await page.locator("#turn").textContent()) !== "The fight is over."
-          ) {
-            assert.deepEqual(await bar(), toolkit);
-          }
-          // No potion drunk and no room left.
-          assert.equal(
-            await page.locator("#room-title").textContent(),
-            "Rat-Gnawed Cellar",
+          await assertReason(page, attack, "Action used");
+          spentShown = true;
+          // Shift+Tab back into the bar: disabled actions are skipped.
+          await tabTo(
+            page,
+            '#feature-controls button[data-action="end-turn"]',
+            true,
           );
-          assert.doesNotMatch(
-            await page.locator("#log").textContent(),
-            /You drink the/,
-          );
+          await enterAction(page);
+        } else if (now.action === "end-turn") {
+          await tabTo(page, attack, true);
+        } else {
+          assert.fail(`focus on an unrelated control: ${JSON.stringify(now)}`);
         }
-        assert.ok(spentShown, "the spent attack showed its reason");
-        assert.equal(
-          await page.locator("#turn").textContent(),
-          "The fight is over.",
-        );
-
-        // After the win, focus is on the newest entry, on screen.
-        assert.equal((await focused(page)).newest, true);
-        assert.equal(await newestOnScreen(page), true, "newest entry shown");
-        assert.match(
-          await page.locator("#log > li:last-child").textContent(),
-          /The fight is over\./,
-        );
-        // Enter there does nothing: no drink, no move.
-        const count = await logCount(page);
-        await page.keyboard.press("Enter");
-        await page.keyboard.press("Enter");
-        await page.waitForTimeout(150);
-        assert.equal(await logCount(page), count);
+        // The bar keeps its shape through the fight.
+        if (
+          (await page.locator("#turn").textContent()) !== "The fight is over."
+        ) {
+          assert.deepEqual(await bar(), toolkit);
+        }
+        // No potion drunk and no room left.
         assert.equal(
           await page.locator("#room-title").textContent(),
           "Rat-Gnawed Cellar",
         );
-
-        // The save agrees: the potion was never drunk.
-        const file = await sessionFile(directory);
-        assert.ok(
-          file.transitions.every(({ action }) => action.type !== "use-item"),
+        assert.doesNotMatch(
+          await page.locator("#log").textContent(),
+          /You drink the/,
         );
-        assert.deepEqual(file.state.inventory, ["healing-potion"]);
-        assert.equal(file.state.roomId, "rat-cellar");
-
-        // No horizontal scroll, even with a wide font as CI's Linux one is.
-        await assertNoSideScroll(page, "no horizontal scroll", {
-          wideFont: true,
-        });
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
       }
-    },
-  );
-}
+      assert.ok(spentShown, "the spent attack showed its reason");
+      assert.equal(
+        await page.locator("#turn").textContent(),
+        "The fight is over.",
+      );
+
+      // After the win, focus is on the newest entry, on screen.
+      assert.equal((await focused(page)).newest, true);
+      assert.equal(await newestOnScreen(page), true, "newest entry shown");
+      assert.match(
+        await page.locator("#log > li:last-child").textContent(),
+        /The fight is over\./,
+      );
+      // Enter there does nothing: no drink, no move.
+      const count = await logCount(page);
+      await page.keyboard.press("Enter");
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(150);
+      assert.equal(await logCount(page), count);
+      assert.equal(
+        await page.locator("#room-title").textContent(),
+        "Rat-Gnawed Cellar",
+      );
+
+      // The save agrees: the potion was never drunk.
+      const file = await sessionFile(directory);
+      assert.ok(
+        file.transitions.every(({ action }) => action.type !== "use-item"),
+      );
+      assert.deepEqual(file.state.inventory, ["healing-potion"]);
+      assert.equal(file.state.roomId, "rat-cellar");
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

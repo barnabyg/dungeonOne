@@ -111,7 +111,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {

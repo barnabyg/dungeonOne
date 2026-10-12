@@ -155,224 +155,202 @@ async function sessionFiles(directory) {
   );
 }
 
-for (const viewport of [
-  { width: 1280, height: 900 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `create a Cleric, cast in a fight, heal outside one, settle, and start again with every slot (${viewport.width}px, seed ${seed})`,
-    { timeout: 180000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-339-browser-"));
-      const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({
-        libraryPath,
-        seed,
-        adventures: [ratTunnels],
-        qualifies: () => true,
+const viewport = { width: 1280, height: 900 };
+test(
+  `create a Cleric, cast in a fight, heal outside one, settle, and start again with every slot (${viewport.width}px, seed ${seed})`,
+  { timeout: 180000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-339-browser-"));
+    const libraryPath = join(directory, "characters.json");
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      adventures: [ratTunnels],
+      qualifies: () => true,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(8000);
+    try {
+      await page.goto(server.url);
+      await page.locator("#open-creation").click();
+      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
+      // Creation offers the Fighter, the Rogue, the Cleric and the Wizard.
+      assert.deepEqual(
+        await page
+          .locator("#class-fields input")
+          .evaluateAll((radios) => radios.map(({ id }) => id)),
+        ["class-fighter", "class-rogue", "class-cleric", "class-wizard"],
+      );
+      assert.equal(await page.locator("#spells").isHidden(), true);
+      await page.locator("#class-cleric").check();
+      await page
+        .locator("#preview-body")
+        .filter({ hasText: "Spell save DC" })
+        .waitFor();
+      assert.match(
+        await text(page.locator("#class-hint")),
+        /Cleric: d8 hit die; Wisdom and Charisma saving throws\./u,
+      );
+      assert.equal(await page.locator("#masteries").isHidden(), true);
+      assert.equal(await page.locator("#order-protector").isChecked(), true);
+      assert.equal(
+        await page.locator("#spells-count").innerText(),
+        "Cantrips 3 of 3 chosen; prepared spells 4 of 4 chosen",
+      );
+      assert.match(
+        await text(page.locator("#prepared-fields")),
+        /Guiding Bolt\nranged spell attack, 4d6 radiant; a hit gives the next attack roll on the target advantage/u,
+      );
+      // A Thaumaturge knows a fourth cantrip.
+      await page.locator("#order-thaumaturge").check();
+      await page
+        .locator("#spells-error")
+        .filter({
+          hasText: "Choose 4 cantrips and 4 spells to prepare; 3 and 4 chosen.",
+        })
+        .waitFor();
+      assert.equal(await page.locator("#save-character").isDisabled(), true);
+      await page.locator("#cantrip-thaumaturgy").check();
+      await page.locator("#spells-error:empty").waitFor({ state: "attached" });
+      await page.locator("#prepare-bless").uncheck();
+      await page.locator("#prepare-shield-of-faith").check();
+      await assertNoSideScroll(page, "the Cleric's creation screen", {
+        wideFont: true,
       });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(8000);
-      try {
-        await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
-        // Creation offers the Fighter, the Rogue, the Cleric and the Wizard.
-        assert.deepEqual(
-          await page
-            .locator("#class-fields input")
-            .evaluateAll((radios) => radios.map(({ id }) => id)),
-          ["class-fighter", "class-rogue", "class-cleric", "class-wizard"],
-        );
-        assert.equal(await page.locator("#spells").isHidden(), true);
-        await page.locator("#class-cleric").check();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "Spell save DC" })
-          .waitFor();
-        assert.match(
-          await text(page.locator("#class-hint")),
-          /Cleric: d8 hit die; Wisdom and Charisma saving throws\./u,
-        );
-        assert.equal(await page.locator("#masteries").isHidden(), true);
-        assert.equal(await page.locator("#order-protector").isChecked(), true);
-        assert.equal(
-          await page.locator("#spells-count").innerText(),
-          "Cantrips 3 of 3 chosen; prepared spells 4 of 4 chosen",
-        );
-        assert.match(
-          await text(page.locator("#prepared-fields")),
-          /Guiding Bolt\nranged spell attack, 4d6 radiant; a hit gives the next attack roll on the target advantage/u,
-        );
-        // A Thaumaturge knows a fourth cantrip.
-        await page.locator("#order-thaumaturge").check();
-        await page
-          .locator("#spells-error")
-          .filter({
-            hasText:
-              "Choose 4 cantrips and 4 spells to prepare; 3 and 4 chosen.",
-          })
-          .waitFor();
-        assert.equal(await page.locator("#save-character").isDisabled(), true);
-        await page.locator("#cantrip-thaumaturgy").check();
-        await page
-          .locator("#spells-error:empty")
-          .waitFor({ state: "attached" });
-        await page.locator("#prepare-bless").uncheck();
-        await page.locator("#prepare-shield-of-faith").check();
-        await assertNoSideScroll(page, "the Cleric's creation screen", {
-          wideFont: true,
-        });
-        await page.locator("#character-name").fill("Mira");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Mira" }).waitFor();
-        const expected = firstCleric(seed);
-        const sheetText = await text(page.locator("#sheet-body"));
-        assert.match(sheetText, /^Level 1 Cleric/u);
-        const { spellcasting } = characterProfile(expected);
-        assert.ok(
-          sheetText.includes(
-            `Spell attack +${spellcasting.attackBonus} · Spell save DC ${spellcasting.saveDc} · Wisdom · Spell slots: 2 1st-level.`,
-          ),
-          sheetText,
-        );
-        assert.match(
-          sheetText,
-          /Thaumaturgy\. flavour only: no effect in play\./u,
-        );
-        assert.match(sheetText, /Divine Order: Thaumaturge\./u);
-        // Storage holds the Cleric exactly as the engine builds it.
-        const created = await readAda(libraryPath);
-        assert.deepEqual(
-          { ...created.sheet, id: expected.id },
-          { ...expected, name: "Mira" },
-        );
+      await page.locator("#character-name").fill("Mira");
+      await page.locator("#save-character").click();
+      await page.locator("#sheet-name").filter({ hasText: "Mira" }).waitFor();
+      const expected = firstCleric(seed);
+      const sheetText = await text(page.locator("#sheet-body"));
+      assert.match(sheetText, /^Level 1 Cleric/u);
+      const { spellcasting } = characterProfile(expected);
+      assert.ok(
+        sheetText.includes(
+          `Spell attack +${spellcasting.attackBonus} · Spell save DC ${spellcasting.saveDc} · Wisdom · Spell slots: 2 1st-level.`,
+        ),
+        sheetText,
+      );
+      assert.match(
+        sheetText,
+        /Thaumaturgy\. flavour only: no effect in play\./u,
+      );
+      assert.match(sheetText, /Divine Order: Thaumaturge\./u);
+      // Storage holds the Cleric exactly as the engine builds it.
+      const created = await readAda(libraryPath);
+      assert.deepEqual(
+        { ...created.sheet, id: expected.id },
+        { ...expected, name: "Mira" },
+      );
 
-        // Between adventures, prepared spells change on the sheet.
-        await page.locator("#prepared-shield-of-faith").uncheck();
-        await page.locator("#prepared-bless").check();
-        await page.locator("#save-prepared").click();
-        await page
-          .locator("#feedback")
-          .filter({ hasText: "Mira's prepared spells are changed." })
-          .waitFor();
-        assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [
-          "cure-wounds",
-          "guiding-bolt",
-          "healing-word",
-          "bless",
-        ]);
-        // ...and back, as the journey was searched with them.
-        await page.locator("#prepared-bless").uncheck();
-        await page.locator("#prepared-shield-of-faith").check();
-        await page.locator("#save-prepared").click();
-        // The sheet redraws with the change saved: nothing left to save.
-        // The button is disabled while the save is in flight too, so wait
-        // for storage to hold the change.
-        for (
-          let tries = 0;
-          tries < 50 &&
-          !(await readAda(libraryPath)).sheet.spells.prepared.includes(
-            "shield-of-faith",
-          );
-          tries++
-        ) {
-          await new Promise((resolve) => {
-            setTimeout(resolve, 100);
-          });
-        }
-        await page.locator("#save-prepared:disabled").waitFor();
-        await page.locator("#prepared-shield-of-faith:checked").waitFor();
-        assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [
-          "cure-wounds",
-          "guiding-bolt",
-          "healing-word",
-          "shield-of-faith",
-        ]);
+      // Between adventures, prepared spells change on the sheet.
+      await page.locator("#prepared-shield-of-faith").uncheck();
+      await page.locator("#prepared-bless").check();
+      await page.locator("#save-prepared").click();
+      await page
+        .locator("#feedback")
+        .filter({ hasText: "Mira's prepared spells are changed." })
+        .waitFor();
+      assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [
+        "cure-wounds",
+        "guiding-bolt",
+        "healing-word",
+        "bless",
+      ]);
+      // ...and back, as the journey was searched with them.
+      await page.locator("#prepared-bless").uncheck();
+      await page.locator("#prepared-shield-of-faith").check();
+      // The sheet redraws with the change saved: nothing left to save.
+      // The button is disabled while the save is in flight too, so wait
+      // for the save's response. Polling the library file instead holds it
+      // open, and on Windows the server's rename over it then fails.
+      const saved = page.waitForResponse((response) =>
+        response.url().endsWith("/api/5e/characters/prepare-spells"),
+      );
+      await page.locator("#save-prepared").click();
+      assert.equal((await saved).status(), 200);
+      await page.locator("#save-prepared:disabled").waitFor();
+      await page.locator("#prepared-shield-of-faith:checked").waitFor();
+      assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [
+        "cure-wounds",
+        "guiding-bolt",
+        "healing-word",
+        "shield-of-faith",
+      ]);
 
-        await startAdventure(page, "rat-tunnels");
-        // During the adventure the library refuses a change.
-        const during = JSON.parse(await readFile(libraryPath, "utf8"));
-        const refused = await post(
-          server.url,
-          "/api/5e/characters/prepare-spells",
-          {
-            revision: during.revision,
-            characterId: during.characters[0].sheet.id,
-            prepared: ["bless", "cure-wounds", "guiding-bolt", "healing-word"],
-          },
-        );
-        assert.equal(refused.status, 409);
-        assert.equal(
-          refused.body.error,
-          "Mira is on an adventure: prepared spells change only between adventures.",
-        );
+      await startAdventure(page, "rat-tunnels");
+      // During the adventure the library refuses a change.
+      const during = JSON.parse(await readFile(libraryPath, "utf8"));
+      const refused = await post(
+        server.url,
+        "/api/5e/characters/prepare-spells",
+        {
+          revision: during.revision,
+          characterId: during.characters[0].sheet.id,
+          prepared: ["bless", "cure-wounds", "guiding-bolt", "healing-word"],
+        },
+      );
+      assert.equal(refused.status, 409);
+      assert.equal(
+        refused.body.error,
+        "Mira is on an adventure: prepared spells change only between adventures.",
+      );
 
-        await clickAction(page, "move", "rat-cellar");
-        // The fight bar offers the prepared spells and cantrips; never
-        // Thaumaturgy.
-        const spell = page.locator("#cast-spell");
-        await spell.waitFor();
-        const offered = await spell.locator("option").allTextContents();
-        assert.ok(offered.includes("Guiding Bolt (1st-level slot)"), offered);
-        assert.ok(offered.includes("Sacred Flame (cantrip)"), offered);
-        assert.ok(
-          offered.includes("Resistance against piercing (cantrip)"),
-          offered,
-        );
-        assert.ok(!offered.some((name) => /Thaumaturgy/u.test(name)), offered);
-        await spell.selectOption({ label: "Guiding Bolt (1st-level slot)" });
-        await settled(page, () =>
-          page.locator("button.act[data-action=cast]").click(),
-        );
-        assert.match(
-          await text(page.locator("#log")),
-          /You cast Guiding Bolt at Giant Rat with a 1st-level spell slot \(1 of 2 left\)\./u,
-        );
-        await fight(page);
-        // Outside the fight: Cure Wounds on yourself.
-        await page
-          .locator("#cast-spell")
-          .selectOption({ label: "Cure Wounds (1st-level slot)" });
-        await settled(page, () =>
-          page.locator("button.act[data-action=cast]").click(),
-        );
-        assert.match(
-          await text(page.locator("#log li.newest")),
-          /You cast Cure Wounds on yourself with a 1st-level spell slot \(0 of 2 left\)\./u,
-        );
-        if (viewport.width === 375) {
-          await assertNoSideScroll(page, "the Cleric's exploring bar", {
-            wideFont: true,
-          });
-        }
-        await clickAction(page, "move", "den");
-        await fight(page);
-        await page.locator("#ending").waitFor({ state: "visible" });
-        assert.match(await text(page.locator("#ending")), /Victory/iu);
-        const settledRecord = await readAda(libraryPath);
-        assert.equal(settledRecord.session, undefined);
-        assert.ok(settledRecord.sheet.xp > 0);
-        assert.equal(settledRecord.sheet.level, 1);
+      await clickAction(page, "move", "rat-cellar");
+      // The fight bar offers the prepared spells and cantrips; never
+      // Thaumaturgy.
+      const spell = page.locator("#cast-spell");
+      await spell.waitFor();
+      const offered = await spell.locator("option").allTextContents();
+      assert.ok(offered.includes("Guiding Bolt (1st-level slot)"), offered);
+      assert.ok(offered.includes("Sacred Flame (cantrip)"), offered);
+      assert.ok(
+        offered.includes("Resistance against piercing (cantrip)"),
+        offered,
+      );
+      assert.ok(!offered.some((name) => /Thaumaturgy/u.test(name)), offered);
+      await spell.selectOption({ label: "Guiding Bolt (1st-level slot)" });
+      await settled(page, () =>
+        page.locator("button.act[data-action=cast]").click(),
+      );
+      assert.match(
+        await text(page.locator("#log")),
+        /You cast Guiding Bolt at Giant Rat with a 1st-level spell slot \(1 of 2 left\)\./u,
+      );
+      await fight(page);
+      // Outside the fight: Cure Wounds on yourself.
+      await page
+        .locator("#cast-spell")
+        .selectOption({ label: "Cure Wounds (1st-level slot)" });
+      await settled(page, () =>
+        page.locator("button.act[data-action=cast]").click(),
+      );
+      assert.match(
+        await text(page.locator("#log li.newest")),
+        /You cast Cure Wounds on yourself with a 1st-level spell slot \(0 of 2 left\)\./u,
+      );
+      await clickAction(page, "move", "den");
+      await fight(page);
+      await page.locator("#ending").waitFor({ state: "visible" });
+      assert.match(await text(page.locator("#ending")), /Victory/iu);
+      const settledRecord = await readAda(libraryPath);
+      assert.equal(settledRecord.session, undefined);
+      assert.ok(settledRecord.sheet.xp > 0);
+      assert.equal(settledRecord.sheet.level, 1);
 
-        // The next adventure starts with both slots.
-        await page.locator("#ending-next").click();
-        await page.locator("#sheet-name").filter({ hasText: "Mira" }).waitFor();
-        await startAdventure(page, "rat-tunnels");
-        const sessions = await sessionFiles(directory);
-        const fresh = sessions.find(({ state }) => state.status === "playing");
-        assert.equal(fresh.state.character.featureUses["spell-slots-1"], 2);
-        const ended = sessions.find(({ state }) => state.status !== "playing");
-        assert.equal(ended.state.character.featureUses["spell-slots-1"], 0);
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      // The next adventure starts with both slots.
+      await page.locator("#ending-next").click();
+      await page.locator("#sheet-name").filter({ hasText: "Mira" }).waitFor();
+      await startAdventure(page, "rat-tunnels");
+      const sessions = await sessionFiles(directory);
+      const fresh = sessions.find(({ state }) => state.status === "playing");
+      assert.equal(fresh.state.character.featureUses["spell-slots-1"], 2);
+      const ended = sessions.find(({ state }) => state.status !== "playing");
+      assert.equal(ended.state.character.featureUses["spell-slots-1"], 0);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

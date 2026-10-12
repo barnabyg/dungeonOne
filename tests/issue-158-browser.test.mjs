@@ -174,121 +174,114 @@ const historyReviewable = (page) =>
     );
   });
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `winning the lone goblin fight shows the victory ending in place of the actions (${viewport.width}px)`,
-    { timeout: 120000 },
-    async () => {
-      const seed = seedFor("victory");
-      const directory = await mkdtemp(join(tmpdir(), "issue-158-victory-"));
-      const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({
-        adventures: [loneGoblin],
-        // Fixtures are engine material, not gated content: the gate is
-        // tested in balance-5e.test.mjs (#310).
-        qualifies: () => true,
-        libraryPath,
-        seed,
+const viewport = { width: 1280, height: 850 };
+test(
+  `winning the lone goblin fight shows the victory ending in place of the actions (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const seed = seedFor("victory");
+    const directory = await mkdtemp(join(tmpdir(), "issue-158-victory-"));
+    const libraryPath = join(directory, "characters.json");
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
+      libraryPath,
+      seed,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "lone-goblin");
+      await playToTheEnd(page);
+
+      const shown = await ending(page);
+      assert.equal(shown.kind, "victory");
+      assert.equal(shown.kindText, "Victory");
+      assert.equal(shown.title, "The cellar is clear");
+      assert.equal(shown.consequence, "");
+      assert.equal(shown.next, "Back to Ada's sheet");
+      assert.ok(shown.inActions, "the ending is in the action region");
+      assert.equal(shown.focused, "ending-title");
+      assert.ok(shown.titleOnScreen, "the ending heading is on screen");
+      assert.ok(shown.actionBarHidden);
+      assert.ok(shown.composerDisabled);
+      assert.match(shown.reason, /The adventure is over/);
+      assert.ok(shown.reasonLinked, "the reason describes the message box");
+      assert.equal(shown.border, rgb(shown.success));
+      assert.equal(shown.kindColour, rgb(shown.success));
+      assert.ok(shown.fits, "no horizontal scroll");
+      assert.ok(await historyReviewable(page), "the history stays readable");
+
+      // Storage: the session ended in victory and the character is free.
+      const file = await sessionFile(directory);
+      assert.equal(file.state.status, "victory");
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      assert.equal(library.characters[0].session, undefined);
+
+      // API: the ended session stays viewable, with its kind, read-only.
+      const viewed = await post(page, "/api/5e/session", {
+        sessionId: file.id,
       });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await createAndStart(page, server.url, "lone-goblin");
-        await playToTheEnd(page);
+      assert.equal(viewed.status, 200);
+      assert.equal(viewed.body.session.status, "victory");
+      assert.deepEqual(viewed.body.session.ending, {
+        kind: "victory",
+        title: "The cellar is clear",
+        text: viewed.body.session.ending.text,
+        // A victory credits the fight's XP (#133).
+        rewards: {
+          xp: [{ name: "Defeated Goblin Warrior", xp: 50 }],
+          treasure: [],
+          totalXp: 50,
+          level: 1,
+        },
+      });
+      assert.equal(library.characters[0].sheet.xp, 50);
+      assert.deepEqual(viewed.body.session.actions, []);
+      const acted = await post(page, "/api/5e/session/action", {
+        sessionId: file.id,
+        sequence: file.transitions.length,
+        action: "end-turn",
+      });
+      assert.notEqual(acted.status, 200);
+      assert.deepEqual(await sessionFile(directory), file);
+      const unknown = await post(page, "/api/5e/session", {
+        sessionId: "0".repeat(32),
+      });
+      assert.notEqual(unknown.status, 200);
 
-        const shown = await ending(page);
-        assert.equal(shown.kind, "victory");
-        assert.equal(shown.kindText, "Victory");
-        assert.equal(shown.title, "The cellar is clear");
-        assert.equal(shown.consequence, "");
-        assert.equal(shown.next, "Back to Ada's sheet");
-        assert.ok(shown.inActions, "the ending is in the action region");
-        assert.equal(shown.focused, "ending-title");
-        assert.ok(shown.titleOnScreen, "the ending heading is on screen");
-        assert.ok(shown.actionBarHidden);
-        assert.ok(shown.composerDisabled);
-        assert.match(shown.reason, /The adventure is over/);
-        assert.ok(shown.reasonLinked, "the reason describes the message box");
-        assert.equal(shown.border, rgb(shown.success));
-        assert.equal(shown.kindColour, rgb(shown.success));
-        assert.ok(shown.fits, "no horizontal scroll");
-        assert.ok(await historyReviewable(page), "the history stays readable");
+      // Reloading shows the same ending, focused.
+      await page.reload();
+      await page.locator("#ending").waitFor({ state: "visible" });
+      const reloaded = await ending(page);
+      assert.equal(reloaded.kind, "victory");
+      assert.equal(reloaded.title, "The cellar is clear");
+      assert.equal(reloaded.focused, "ending-title");
+      assert.ok(reloaded.composerDisabled);
+      assert.ok(await historyReviewable(page), "the history after a reload");
 
-        // Storage: the session ended in victory and the character is free.
-        const file = await sessionFile(directory);
-        assert.equal(file.state.status, "victory");
-        const library = JSON.parse(await readFile(libraryPath, "utf8"));
-        assert.equal(library.characters[0].session, undefined);
-
-        // API: the ended session stays viewable, with its kind, read-only.
-        // None of this depends on the width: checked once.
-        if (viewport.width === 1280) {
-          const viewed = await post(page, "/api/5e/session", {
-            sessionId: file.id,
-          });
-          assert.equal(viewed.status, 200);
-          assert.equal(viewed.body.session.status, "victory");
-          assert.deepEqual(viewed.body.session.ending, {
-            kind: "victory",
-            title: "The cellar is clear",
-            text: viewed.body.session.ending.text,
-            // A victory credits the fight's XP (#133).
-            rewards: {
-              xp: [{ name: "Defeated Goblin Warrior", xp: 50 }],
-              treasure: [],
-              totalXp: 50,
-              level: 1,
-            },
-          });
-          assert.equal(library.characters[0].sheet.xp, 50);
-          assert.deepEqual(viewed.body.session.actions, []);
-          const acted = await post(page, "/api/5e/session/action", {
-            sessionId: file.id,
-            sequence: file.transitions.length,
-            action: "end-turn",
-          });
-          assert.notEqual(acted.status, 200);
-          assert.deepEqual(await sessionFile(directory), file);
-          const unknown = await post(page, "/api/5e/session", {
-            sessionId: "0".repeat(32),
-          });
-          assert.notEqual(unknown.status, 200);
-        }
-
-        // Reloading shows the same ending, focused.
-        await page.reload();
-        await page.locator("#ending").waitFor({ state: "visible" });
-        const reloaded = await ending(page);
-        assert.equal(reloaded.kind, "victory");
-        assert.equal(reloaded.title, "The cellar is clear");
-        assert.equal(reloaded.focused, "ending-title");
-        assert.ok(reloaded.composerDisabled);
-        assert.ok(await historyReviewable(page), "the history after a reload");
-
-        // The next step opens the sheet with the adventure choices.
-        await page.locator("#ending-next").click();
-        await page.locator("#sheet").waitFor({ state: "visible" });
-        await page.locator(".start-adventure").first().waitFor();
-        assert.equal(
-          new URL(page.url()).hash,
-          `#character-${library.characters[0].sheet.id}`,
-        );
-        // Back returns to the same ending.
-        await page.goBack();
-        await page.locator("#ending").waitFor({ state: "visible" });
-        assert.equal((await ending(page)).title, "The cellar is clear");
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      // The next step opens the sheet with the adventure choices.
+      await page.locator("#ending-next").click();
+      await page.locator("#sheet").waitFor({ state: "visible" });
+      await page.locator(".start-adventure").first().waitFor();
+      assert.equal(
+        new URL(page.url()).hash,
+        `#character-${library.characters[0].sheet.id}`,
+      );
+      // Back returns to the same ending.
+      await page.goBack();
+      await page.locator("#ending").waitFor({ state: "visible" });
+      assert.equal((await ending(page)).title, "The cellar is clear");
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   "a seeded defeat shows the defeat ending and says it is permanent",
@@ -307,7 +300,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {

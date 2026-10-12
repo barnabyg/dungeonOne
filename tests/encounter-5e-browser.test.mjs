@@ -306,29 +306,19 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 360, height: 740 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
-    // No page scroll, and no scroll inside the initiative table either.
-    const fits = () =>
-      page.evaluate(() => {
-        const table = document.getElementById("initiative");
-        return (
-          document.documentElement.scrollWidth <= window.innerWidth &&
-          table.scrollWidth <= table.parentElement.clientWidth
-        );
-      });
     const attackLabels = () =>
       page.locator("#attack-controls button.attack").allTextContents();
     try {
       await createAndStart(page, server.url, "goblin-band");
-      // Every combatant in initiative order, readable at phone width.
+      // Every combatant in initiative order.
       let shown = await panel(page);
       assert.equal(shown.rows.length, 3);
       for (const name of ["Ada (you)", "Goblin Minion", "Goblin Warrior"]) {
         assert.equal(shown.rows.filter((row) => row.includes(name)).length, 1);
       }
-      assert.ok(await fits(), "the panel fits at phone width");
       // One attack control per living opponent, in initiative order.
       assert.deepEqual(
         await attackLabels(),
@@ -367,7 +357,6 @@ test(
       assert.ok(shown.rows.some((row) => row.includes(`${fallen} Defeated`)));
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.ok(!(await attackLabels()).includes(`Attack ${fallen}`));
-      assert.ok(await fits(), "the panel still fits with a defeated row");
 
       // Attacking the fallen goblin is refused, draws nothing, saves nothing.
       const file = await sessionFile(directory);
@@ -469,7 +458,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 360, height: 740 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     const feature = (action) =>

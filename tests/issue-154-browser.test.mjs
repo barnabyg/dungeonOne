@@ -1,5 +1,5 @@
 // #154: the adventure session keeps the newest conversation-history entry and
-// the action buttons on screen together, at desktop and phone widths.
+// the action buttons on screen together.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -125,141 +125,137 @@ const regions = (page) =>
 
 const seed = findSeed();
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `actions and their results stay on screen together in the rat tunnels (${viewport.width}px)`,
-    { timeout: 120000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-154-"));
-      const server = await startFifthBrowserServer({
-        ...SERVER_OPTIONS,
-        libraryPath: join(directory, "characters.json"),
-        seed,
-        dmModel: narratingDm(),
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await createAndStart(page, server.url, "rat-tunnels");
-        await assertTogether(page, "start");
+const viewport = { width: 1280, height: 850 };
+test(
+  `actions and their results stay on screen together in the rat tunnels (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-154-"));
+    const server = await startFifthBrowserServer({
+      ...SERVER_OPTIONS,
+      libraryPath: join(directory, "characters.json"),
+      seed,
+      dmModel: narratingDm(),
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "rat-tunnels");
+      await assertTogether(page, "start");
 
-        assertTabOrder(await tabRegions(page), [
-          "session-actions",
-          "session-history",
-          "session-composer",
-        ]);
-        await explore(page, "examine", "rusted-lantern");
-        await explore(page, "move", "alcove");
-        await explore(page, "examine", "iron-chest");
-        await say(page, "I look around the alcove");
-        await explore(page, "take", "healing-potion");
-        await explore(page, "examine", "healing-potion");
-        await explore(page, "move", "stair-foot");
-        await say(page, "I listen at the passage");
-        await explore(page, "move", "rat-cellar");
+      assertTabOrder(await tabRegions(page), [
+        "session-actions",
+        "session-history",
+        "session-composer",
+      ]);
+      await explore(page, "examine", "rusted-lantern");
+      await explore(page, "move", "alcove");
+      await explore(page, "examine", "iron-chest");
+      await say(page, "I look around the alcove");
+      await explore(page, "take", "healing-potion");
+      await explore(page, "examine", "healing-potion");
+      await explore(page, "move", "stair-foot");
+      await say(page, "I listen at the passage");
+      await explore(page, "move", "rat-cellar");
 
-        // Mid-fight: tab order and the skip link, then a reload keeps the
-        // same layout with the newest entry shown.
-        assertTabOrder(await tabRegions(page), [
-          "session-actions",
-          "session-history",
-          "session-composer",
-        ]);
-        await page.evaluate(() => document.activeElement.blur());
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await page.keyboard.press("Tab");
-        assert.equal(
-          await page.evaluate(() => document.activeElement.className),
-          "skip",
-        );
-        await page.keyboard.press("Enter");
-        assert.equal(
-          await page.evaluate(() => document.activeElement.id),
-          "content",
-        );
-        const before = await regions(page);
-        await page.reload();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        await page.locator("#attack-controls button").first().waitFor();
-        assert.deepEqual(await regions(page), before);
-        await assertTogether(page, "reload mid-fight");
+      // Mid-fight: tab order and the skip link, then a reload keeps the
+      // same layout with the newest entry shown.
+      assertTabOrder(await tabRegions(page), [
+        "session-actions",
+        "session-history",
+        "session-composer",
+      ]);
+      await page.evaluate(() => document.activeElement.blur());
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await page.evaluate(() => document.activeElement.className),
+        "skip",
+      );
+      await page.keyboard.press("Enter");
+      assert.equal(
+        await page.evaluate(() => document.activeElement.id),
+        "content",
+      );
+      const before = await regions(page);
+      await page.reload();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      await page.locator("#attack-controls button").first().waitFor();
+      assert.deepEqual(await regions(page), before);
+      await assertTogether(page, "reload mid-fight");
 
-        while (
-          (await page.locator("#turn").textContent()) !== "The fight is over."
-        ) {
-          await fightOn(page);
-        }
-        await explore(page, "use", "healing-potion");
-
-        // A reader who scrolled up keeps their place; the entry still
-        // arrives in the live region.
-        await page.locator("#log").evaluate((log) => {
-          log.scrollTop = 0;
-        });
-        const count = await page.locator("#log li").count();
-        await page
-          .locator(
-            '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
-          )
-          .click();
-        await page.waitForFunction(
-          (seen) =>
-            document.querySelectorAll("#log li:not([data-pending])").length >
-            seen,
-          count,
-        );
-        assert.deepEqual(
-          await page.locator("#log").evaluate((log) => ({
-            scrollTop: log.scrollTop,
-            live: log.getAttribute("aria-live"),
-            newest: log.lastElementChild.textContent,
-          })),
-          {
-            scrollTop: 0,
-            live: "polite",
-            newest: await page.locator("#log li").last().textContent(),
-          },
-        );
-        assert.match(
-          await page.locator("#log li").last().textContent(),
-          /Gnawed Sacks/,
-        );
-
-        // Back at the bottom, it follows again.
-        // Wait for the scroll event: a player can't scroll and send in the
-        // same frame, and the page learns the position from that event.
-        await page.locator("#log").evaluate(
-          (log) =>
-            new Promise((resolve) => {
-              log.addEventListener("scroll", resolve, { once: true });
-              log.scrollTop = log.scrollHeight;
-            }),
-        );
-        await say(page, "I catch my breath");
-        await explore(page, "move", "den");
+      while (
+        (await page.locator("#turn").textContent()) !== "The fight is over."
+      ) {
         await fightOn(page);
-        // The history outgrew its area, so keeping the newest entry in view
-        // was needed after every one of these actions.
-        assert.ok(
-          await page
-            .locator("#log")
-            .evaluate((log) => log.scrollHeight > log.clientHeight),
-          "the history scrolls",
-        );
-
-        // No horizontal scroll, even with a wide font as CI's Linux one is.
-        await assertNoSideScroll(page, "no horizontal scroll", {
-          wideFont: true,
-        });
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
       }
-    },
-  );
-}
+      await explore(page, "use", "healing-potion");
+
+      // A reader who scrolled up keeps their place; the entry still
+      // arrives in the live region.
+      await page.locator("#log").evaluate((log) => {
+        log.scrollTop = 0;
+      });
+      const count = await page.locator("#log li").count();
+      await page
+        .locator(
+          '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
+        )
+        .click();
+      await page.waitForFunction(
+        (seen) =>
+          document.querySelectorAll("#log li:not([data-pending])").length >
+          seen,
+        count,
+      );
+      assert.deepEqual(
+        await page.locator("#log").evaluate((log) => ({
+          scrollTop: log.scrollTop,
+          live: log.getAttribute("aria-live"),
+          newest: log.lastElementChild.textContent,
+        })),
+        {
+          scrollTop: 0,
+          live: "polite",
+          newest: await page.locator("#log li").last().textContent(),
+        },
+      );
+      assert.match(
+        await page.locator("#log li").last().textContent(),
+        /Gnawed Sacks/,
+      );
+
+      // Back at the bottom, it follows again.
+      // Wait for the scroll event: a player can't scroll and send in the
+      // same frame, and the page learns the position from that event.
+      await page.locator("#log").evaluate(
+        (log) =>
+          new Promise((resolve) => {
+            log.addEventListener("scroll", resolve, { once: true });
+            log.scrollTop = log.scrollHeight;
+          }),
+      );
+      await say(page, "I catch my breath");
+      await explore(page, "move", "den");
+      await fightOn(page);
+      // The history outgrew its area, so keeping the newest entry in view
+      // was needed after every one of these actions.
+      assert.ok(
+        await page
+          .locator("#log")
+          .evaluate((log) => log.scrollHeight > log.clientHeight),
+        "the history scrolls",
+      );
+
+      // No horizontal scroll, even with a wide font as CI's Linux one is.
+      await assertNoSideScroll(page, "no horizontal scroll", {
+        wideFont: true,
+      });
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

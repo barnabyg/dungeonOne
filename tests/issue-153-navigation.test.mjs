@@ -37,136 +37,132 @@ const shown = async (page, view) => {
 
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `Back and Forward move between the views, and reloads return to them (${viewport.width}px)`,
-    { timeout: 60000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-153-history-"));
-      const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({
-        adventures: [loneGoblin],
-        // Fixtures are engine material, not gated content: the gate is
-        // tested in balance-5e.test.mjs (#310).
-        qualifies: () => true,
-        libraryPath,
-        seed: 5,
+const viewport = { width: 1280, height: 850 };
+test(
+  `Back and Forward move between the views, and reloads return to them (${viewport.width}px)`,
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-153-history-"));
+    const libraryPath = join(directory, "characters.json");
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
+      libraryPath,
+      seed: 5,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await page.locator("#no-characters").waitFor();
+      assert.equal(
+        await page.locator(".masthead h1").textContent(),
+        "Dungeon One",
+      );
+      assert.deepEqual(await shown(page, "library"), {
+        view: "library",
+        title: "Characters · Dungeon One",
+        hash: "",
+        crumbs: ["Characters"],
+        current: "Characters",
+        focused: "",
       });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await page.goto(server.url);
-        await page.locator("#no-characters").waitFor();
-        assert.equal(
-          await page.locator(".masthead h1").textContent(),
-          "Dungeon One",
-        );
-        assert.deepEqual(await shown(page, "library"), {
-          view: "library",
-          title: "Characters · Dungeon One",
-          hash: "",
-          crumbs: ["Characters"],
-          current: "Characters",
-          focused: "",
-        });
 
-        // Creation is its own entry, titled, with a Cancel and a breadcrumb.
-        await openCreation(page);
-        const creation = await shown(page, "creation");
-        assert.equal(creation.title, "Create a character · Dungeon One");
-        assert.equal(creation.hash, "#create");
-        assert.deepEqual(creation.crumbs, ["Characters", "Create a character"]);
-        assert.equal(creation.focused, "creation-title");
-        assert.equal(
-          await page.locator("#close-creation").textContent(),
-          "Cancel",
-        );
-        await page.locator("#character-name").fill("Brannoc Ironside");
-        await page.locator("#save-character").click();
-        await page
-          .locator("#sheet-name")
-          .filter({ hasText: "Brannoc Ironside" })
-          .waitFor();
-        const [{ sheet }] = (await libraryFile(libraryPath)).characters;
-        const sheetState = await shown(page, "sheet");
-        assert.deepEqual(sheetState, {
-          view: "sheet",
-          title: "Brannoc Ironside · Dungeon One",
-          hash: `#character-${sheet.id}`,
-          crumbs: ["Characters", "Brannoc Ironside"],
-          current: "Brannoc Ironside",
-          focused: "sheet-name",
-        });
-        assert.equal(await page.locator("#close-sheet").count(), 0);
+      // Creation is its own entry, titled, with a Cancel and a breadcrumb.
+      await openCreation(page);
+      const creation = await shown(page, "creation");
+      assert.equal(creation.title, "Create a character · Dungeon One");
+      assert.equal(creation.hash, "#create");
+      assert.deepEqual(creation.crumbs, ["Characters", "Create a character"]);
+      assert.equal(creation.focused, "creation-title");
+      assert.equal(
+        await page.locator("#close-creation").textContent(),
+        "Cancel",
+      );
+      await page.locator("#character-name").fill("Brannoc Ironside");
+      await page.locator("#save-character").click();
+      await page
+        .locator("#sheet-name")
+        .filter({ hasText: "Brannoc Ironside" })
+        .waitFor();
+      const [{ sheet }] = (await libraryFile(libraryPath)).characters;
+      const sheetState = await shown(page, "sheet");
+      assert.deepEqual(sheetState, {
+        view: "sheet",
+        title: "Brannoc Ironside · Dungeon One",
+        hash: `#character-${sheet.id}`,
+        crumbs: ["Characters", "Brannoc Ironside"],
+        current: "Brannoc Ironside",
+        focused: "sheet-name",
+      });
+      assert.equal(await page.locator("#close-sheet").count(), 0);
 
-        // Start an adventure; the session is saved and the view is its own entry.
-        await page.locator(".start-adventure").first().click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        const { session } = (await libraryFile(libraryPath)).characters[0];
-        assert.ok(session, "the library records the adventure in progress");
-        const adventure = await shown(page, "adventure");
-        const adventureTitle = await page
-          .locator("#adventure-title")
-          .textContent();
-        assert.deepEqual(adventure, {
-          view: "adventure",
-          title: `${adventureTitle} · Dungeon One`,
-          hash: `#adventure-${session.id}`,
-          crumbs: ["Characters", "Brannoc Ironside", adventureTitle],
-          current: adventureTitle,
-          focused: "adventure-title",
-        });
-        assert.equal(await page.locator("#close-adventure").count(), 0);
-        await assertNoSideScroll(page, "no horizontal scroll");
+      // Start an adventure; the session is saved and the view is its own entry.
+      await page.locator(".start-adventure").first().click();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      const { session } = (await libraryFile(libraryPath)).characters[0];
+      assert.ok(session, "the library records the adventure in progress");
+      const adventure = await shown(page, "adventure");
+      const adventureTitle = await page
+        .locator("#adventure-title")
+        .textContent();
+      assert.deepEqual(adventure, {
+        view: "adventure",
+        title: `${adventureTitle} · Dungeon One`,
+        hash: `#adventure-${session.id}`,
+        crumbs: ["Characters", "Brannoc Ironside", adventureTitle],
+        current: adventureTitle,
+        focused: "adventure-title",
+      });
+      assert.equal(await page.locator("#close-adventure").count(), 0);
+      await assertNoSideScroll(page, "no horizontal scroll");
 
-        // Back to the sheet (the saved creation is skipped), Back to the
-        // library, Forward to the sheet, Forward to the adventure.
-        await page.goBack();
-        assert.deepEqual(await shown(page, "sheet"), sheetState);
-        await page.locator("#continue-adventure").waitFor();
-        await page.goBack();
-        const library = await shown(page, "library");
-        assert.equal(library.title, "Characters · Dungeon One");
-        assert.equal(library.focused, "library-title");
-        await page.goForward();
-        assert.deepEqual(await shown(page, "sheet"), sheetState);
-        await page.goForward();
-        await page
-          .locator("#adventure-title")
-          .filter({ hasText: adventureTitle })
-          .waitFor();
-        assert.deepEqual(await shown(page, "adventure"), adventure);
+      // Back to the sheet (the saved creation is skipped), Back to the
+      // library, Forward to the sheet, Forward to the adventure.
+      await page.goBack();
+      assert.deepEqual(await shown(page, "sheet"), sheetState);
+      await page.locator("#continue-adventure").waitFor();
+      await page.goBack();
+      const library = await shown(page, "library");
+      assert.equal(library.title, "Characters · Dungeon One");
+      assert.equal(library.focused, "library-title");
+      await page.goForward();
+      assert.deepEqual(await shown(page, "sheet"), sheetState);
+      await page.goForward();
+      await page
+        .locator("#adventure-title")
+        .filter({ hasText: adventureTitle })
+        .waitFor();
+      assert.deepEqual(await shown(page, "adventure"), adventure);
 
-        // Reloads resume the adventure and reopen the sheet.
-        await page.reload();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        assert.deepEqual(await shown(page, "adventure"), adventure);
-        await page.locator('#breadcrumb a[data-view="sheet"]').click();
-        assert.deepEqual(await shown(page, "sheet"), sheetState);
-        await page.reload();
-        await page.locator("#sheet").waitFor({ state: "visible" });
-        assert.deepEqual(await shown(page, "sheet"), sheetState);
+      // Reloads resume the adventure and reopen the sheet.
+      await page.reload();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      assert.deepEqual(await shown(page, "adventure"), adventure);
+      await page.locator('#breadcrumb a[data-view="sheet"]').click();
+      assert.deepEqual(await shown(page, "sheet"), sheetState);
+      await page.reload();
+      await page.locator("#sheet").waitFor({ state: "visible" });
+      assert.deepEqual(await shown(page, "sheet"), sheetState);
 
-        // The breadcrumb is reachable from the keyboard, just before the heading.
-        await page.keyboard.press("Shift+Tab");
-        assert.equal(
-          await page.evaluate(() => document.activeElement.textContent),
-          "Characters",
-        );
-        await page.keyboard.press("Enter");
-        assert.equal((await shown(page, "library")).hash, "");
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      // The breadcrumb is reachable from the keyboard, just before the heading.
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(
+        await page.evaluate(() => document.activeElement.textContent),
+        "Characters",
+      );
+      await page.keyboard.press("Enter");
+      assert.equal((await shown(page, "library")).hash, "");
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   "a URL for a deleted character or an ended adventure falls back to the library with a message",

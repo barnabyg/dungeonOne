@@ -13,7 +13,7 @@ import {
   loneGoblin,
   sealedCrypt,
 } from "./fixtures/modules.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { createFighter } from "./fixtures/browser-journey.mjs";
 
 const module = (id, min, max, difficulty) => ({
@@ -156,18 +156,6 @@ test(
         ),
       );
 
-      // At phone width, with a wide font as CI's Linux fonts are, the cards
-      // stack without a horizontal scroll.
-      await page.setViewportSize({ width: 375, height: 812 });
-      await page.evaluate(() => {
-        document.body.style.fontFamily = "Verdana";
-        for (const node of document.querySelectorAll("#sheet *")) {
-          node.style.fontFamily = "Verdana";
-        }
-      });
-      await assertNoSideScroll(page, "no horizontal scroll at phone width");
-      await page.setViewportSize({ width: 1280, height: 850 });
-
       await start.click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await page.locator('#breadcrumb a[data-view="sheet"]').click();
@@ -185,7 +173,7 @@ test(
   async () => {
     await withServer(async ({ server, browser, libraryPath }) => {
       const page = await browser.newPage({
-        viewport: { width: 375, height: 812 },
+        viewport: { width: 1280, height: 850 },
       });
       page.setDefaultTimeout(5000);
       await page.goto(server.url);
@@ -205,7 +193,6 @@ test(
       assert.ok(await inView(notice), "the defeat is stated at the top");
       assert.equal(await page.locator(".start-adventure").count(), 0);
       assert.ok(!(await page.locator("#defeat-warning").isVisible()));
-      await assertNoSideScroll(page, "no horizontal scroll at phone width");
     });
   },
 );

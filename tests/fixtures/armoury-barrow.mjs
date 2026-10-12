@@ -38,10 +38,7 @@ room(armoury, "barrow-mouth").items.push(
 
 export const armouryBarrow = validateModule(armoury);
 
-/**
- * The barrow with only the longsword behind the lintel: four revealed items
- * at once would overflow the phone action bar (#198).
- */
+/** The barrow with only the longsword behind the lintel. */
 const swordOnly = upToThree();
 room(swordOnly, "barrow-mouth").items.push(LONGSWORD);
 export const longswordBarrow = validateModule(swordOnly);

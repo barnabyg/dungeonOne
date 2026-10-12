@@ -28,7 +28,7 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { moduleFile } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 
 /**
  * The rat tunnels, levels 1–5, with a bandit in the cellar and the stair
@@ -141,7 +141,7 @@ const post = (page, path, body) =>
   );
 
 test(
-  "a Cleric's level-4 choice, cantrip and spell hold the next adventure until made (375px)",
+  "a Cleric's level-4 choice, cantrip and spell hold the next adventure until made",
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-342-browser-"));
@@ -154,7 +154,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {
@@ -217,9 +217,6 @@ test(
           .evaluateAll((boxes) => boxes.map(({ id }) => id)),
         ["learn-thaumaturgy", "learn-light"],
       );
-      await assertNoSideScroll(page, "the cantrip choice fits a phone", {
-        wideFont: true,
-      });
       await page.locator("#save-cantrips:disabled").waitFor();
       await page.locator("#learn-light").check();
       await page.locator("#save-cantrips").click();

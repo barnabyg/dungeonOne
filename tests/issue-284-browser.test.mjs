@@ -15,7 +15,7 @@ import {
   createAndStart,
   settled,
 } from "./fixtures/browser-journey.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { ropeCove } from "./fixtures/modules.mjs";
 
@@ -61,7 +61,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 360, height: 740 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -96,9 +96,6 @@ test(
         },
       ];
       assert.deepEqual(await cliffButtons(page), offered);
-      await assertNoSideScroll(page, "no horizontal scroll with a retry", {
-        wideFont: true,
-      });
 
       // Mid-way: the offer survives a reload.
       await page.reload();

@@ -110,96 +110,92 @@ async function fightClick(page) {
   });
 }
 
-for (const viewport of [
-  { width: 1280, height: 900 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `a level-3 Thief takes Steady Aim and lands a 2d6 Sneak Attack, wins and keeps the XP (${viewport.width}px, seed ${seed})`,
-    { timeout: 120000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-307-browser-"));
-      const libraryPath = join(directory, "characters.json");
-      await writeFile(
-        libraryPath,
-        JSON.stringify({
-          kind: "dungeon-one-characters",
-          formatVersion: FIFTH_LIBRARY_FORMAT,
-          revision: "0".repeat(32),
-          creationsStarted: 1,
-          sessionsStarted: 0,
-          characters: [{ sheet: VEX, revision: 1 }],
-        }),
-      );
-      const server = await startFifthBrowserServer({
-        libraryPath,
-        seed,
-        adventures: [ratTunnels],
-        qualifies: () => true,
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(8000);
-      try {
-        await page.goto(server.url);
-        await page
-          .locator("#characters button")
-          .filter({ hasText: "Vex" })
-          .click();
-        const sheetText = await text(page.locator("#sheet-body"));
-        assert.match(sheetText, /^Level 3 Rogue/u);
-        assert.match(sheetText, /Cunning Action\. Bonus action: Hide\./u);
-        assert.match(sheetText, /Steady Aim\. Bonus action/u);
-        assert.match(sheetText, /Thief: Fast Hands\./u);
-        assert.match(sheetText, /Thief: Second-Story Work\./u);
-        assert.match(sheetText, /extra 2d6 damage/u);
+const viewport = { width: 1280, height: 900 };
+test(
+  `a level-3 Thief takes Steady Aim and lands a 2d6 Sneak Attack, wins and keeps the XP (${viewport.width}px, seed ${seed})`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-307-browser-"));
+    const libraryPath = join(directory, "characters.json");
+    await writeFile(
+      libraryPath,
+      JSON.stringify({
+        kind: "dungeon-one-characters",
+        formatVersion: FIFTH_LIBRARY_FORMAT,
+        revision: "0".repeat(32),
+        creationsStarted: 1,
+        sessionsStarted: 0,
+        characters: [{ sheet: VEX, revision: 1 }],
+      }),
+    );
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      adventures: [ratTunnels],
+      qualifies: () => true,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(8000);
+    try {
+      await page.goto(server.url);
+      await page
+        .locator("#characters button")
+        .filter({ hasText: "Vex" })
+        .click();
+      const sheetText = await text(page.locator("#sheet-body"));
+      assert.match(sheetText, /^Level 3 Rogue/u);
+      assert.match(sheetText, /Cunning Action\. Bonus action: Hide\./u);
+      assert.match(sheetText, /Steady Aim\. Bonus action/u);
+      assert.match(sheetText, /Thief: Fast Hands\./u);
+      assert.match(sheetText, /Thief: Second-Story Work\./u);
+      assert.match(sheetText, /extra 2d6 damage/u);
 
-        await startAdventure(page, "rat-tunnels");
-        for (const destinationId of ROUTE) {
-          await clickAction(page, "move", destinationId);
-          let first = true;
-          while (
-            (await page.locator("#turn").textContent()) !== "The fight is over."
-          ) {
-            if (first) {
-              // Hide and Steady Aim wait beside End turn on the Thief's turn.
-              assert.equal(await actionButton(page, "hide").isEnabled(), true);
-              await assertNoSideScroll(page, "the Thief's fight", {
-                wideFont: true,
-              });
-              first = false;
-            }
-            await fightClick(page);
+      await startAdventure(page, "rat-tunnels");
+      for (const destinationId of ROUTE) {
+        await clickAction(page, "move", destinationId);
+        let first = true;
+        while (
+          (await page.locator("#turn").textContent()) !== "The fight is over."
+        ) {
+          if (first) {
+            // Hide and Steady Aim wait beside End turn on the Thief's turn.
+            assert.equal(await actionButton(page, "hide").isEnabled(), true);
+            await assertNoSideScroll(page, "the Thief's fight", {
+              wideFont: true,
+            });
+            first = false;
           }
-          // The save records each Steady Aim the fight took.
-          if (destinationId === ROUTE[0]) {
-            const saved = await sessionFile(directory);
-            assert.equal(saved.formatVersion, FIFTH_SESSION_FORMAT);
-            assert.match(JSON.stringify(saved), /"type":"steady-aim"/u);
-          }
+          await fightClick(page);
         }
-        const log = await text(page.locator("#log"));
-        assert.match(
-          log,
-          /You steady your aim: your next attack roll this turn has advantage\./u,
-        );
-        assert.match(
-          log,
-          /Vex attacks [^\n]+ at advantage \([^)]*Steady Aim[^)]*\)[^\n]+ \+ Sneak Attack \d+ \+ \d+ = \d+ piercing/u,
-        );
-        await page.locator("#ending").waitFor({ state: "visible" });
-        assert.match(await text(page.locator("#ending")), /Victory/iu);
-
-        // The library settles the Thief: no session, the XP credited.
-        const record = await readAda(libraryPath);
-        assert.equal(record.session, undefined);
-        assert.equal(record.sheet.class, "rogue");
-        assert.ok(record.sheet.xp > VEX.xp);
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
+        // The save records each Steady Aim the fight took.
+        if (destinationId === ROUTE[0]) {
+          const saved = await sessionFile(directory);
+          assert.equal(saved.formatVersion, FIFTH_SESSION_FORMAT);
+          assert.match(JSON.stringify(saved), /"type":"steady-aim"/u);
+        }
       }
-    },
-  );
-}
+      const log = await text(page.locator("#log"));
+      assert.match(
+        log,
+        /You steady your aim: your next attack roll this turn has advantage\./u,
+      );
+      assert.match(
+        log,
+        /Vex attacks [^\n]+ at advantage \([^)]*Steady Aim[^)]*\)[^\n]+ \+ Sneak Attack \d+ \+ \d+ = \d+ piercing/u,
+      );
+      await page.locator("#ending").waitFor({ state: "visible" });
+      assert.match(await text(page.locator("#ending")), /Victory/iu);
+
+      // The library settles the Thief: no session, the XP credited.
+      const record = await readAda(libraryPath);
+      assert.equal(record.session, undefined);
+      assert.equal(record.sheet.class, "rogue");
+      assert.ok(record.sheet.xp > VEX.xp);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

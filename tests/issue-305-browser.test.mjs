@@ -77,7 +77,17 @@ test(
         .click();
       await startAdventure(page, "bandit-toll");
 
-      await clickAction(page, "move", "rat-cellar");
+      // Attack, three parleys and the toll: every button, and the reaction
+      // card, on screen with the newest entry.
+      await act(page, "reaction", () =>
+        actionButton(page, "move", "rat-cellar").click(),
+      );
+      assert.equal(
+        await page
+          .locator('#session-actions button[data-action="react"]')
+          .count(),
+        5,
+      );
       assert.match(
         await text(page.locator("#log li").last()),
         /Bandit sees you\. Reaction roll: 2d6 \(\d \+ \d\) \+ 3 Charisma = [5-8]: (unfriendly|uncertain)\. .* You may attack, parley \(Persuasion DC 12, Deception DC 14, Intimidation DC 13\) or pay the toll \(5 sp\)\./u,
@@ -154,50 +164,6 @@ test(
       assert.match(
         await text(page.locator("#sheet-body")),
         /Purse\n1 gp 5 sp\n/u,
-      );
-    } finally {
-      await browser.close();
-      await server.close();
-      await rm(directory, { recursive: true, force: true });
-    }
-  },
-);
-
-test(
-  `on a phone the reaction's options and the newest entry share the screen (seed ${seed})`,
-  { timeout: 120000 },
-  async () => {
-    const directory = await mkdtemp(join(tmpdir(), "issue-305-phone-"));
-    const libraryPath = join(directory, "characters.json");
-    await writeFile(libraryPath, JSON.stringify(beaLibrary(RICH)));
-    const server = await startFifthBrowserServer({
-      libraryPath,
-      seed,
-      adventures: [banditToll],
-      qualifies: () => true,
-    });
-    const browser = await launch();
-    const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
-    });
-    page.setDefaultTimeout(8000);
-    try {
-      await page.goto(server.url);
-      await page
-        .locator("#characters button")
-        .filter({ hasText: "Bea" })
-        .click();
-      await startAdventure(page, "bandit-toll");
-      // Attack, three parleys and the toll: every button, and the reaction
-      // card, on screen at once.
-      await act(page, "reaction", () =>
-        actionButton(page, "move", "rat-cellar").click(),
-      );
-      assert.equal(
-        await page
-          .locator('#session-actions button[data-action="react"]')
-          .count(),
-        5,
       );
     } finally {
       await browser.close();

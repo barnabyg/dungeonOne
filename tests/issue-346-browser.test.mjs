@@ -59,9 +59,6 @@ test(
       qualifies: () => true,
     });
     const browser = await launch();
-    // Two columns: a Wizard's Cast choice and two found scrolls leave the
-    // phone's dock no room for the examination's long entry (#198), as any
-    // room revealing two items at once would.
     const page = await browser.newPage({
       viewport: { width: 1024, height: 768 },
     });

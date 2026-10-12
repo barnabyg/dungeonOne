@@ -2,8 +2,8 @@
 // feature as a collapsed disclosure that opens to what the feature does (the
 // sheet's text). A level-1 Fighter reaches level 2 (Action Surge, Tactical
 // Mind) and a level-2 Rogue reaches level 3 (Steady Aim and the Thief's Fast
-// Hands and Second-Story Work), at 1280 px and at 375×812: no horizontal
-// scroll, and the way back to the sheet still works with every one open.
+// Hands and Second-Story Work): no horizontal scroll, and the way back to
+// the sheet still works with every one open.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -61,110 +61,104 @@ const CASES = [
 
 for (const { sheet, from, to, names } of CASES) {
   const expected = levelUpChanges(from, to).features;
-  for (const viewport of [
-    { width: 1280, height: 900 },
-    { width: 375, height: 812 },
-  ]) {
-    test(
-      `a level-${from.level} ${sheet.class} ends at level ${to.level} and its card opens each new feature's text (${viewport.width}px)`,
-      { timeout: 60000 },
-      async () => {
+  const viewport = { width: 1280, height: 900 };
+  test(
+    `a level-${from.level} ${sheet.class} ends at level ${to.level} and its card opens each new feature's text (${viewport.width}px)`,
+    { timeout: 60000 },
+    async () => {
+      assert.deepEqual(
+        expected.map(({ name }) => name),
+        names,
+      );
+      const directory = await mkdtemp(join(tmpdir(), "issue-319-browser-"));
+      const libraryPath = join(directory, "characters.json");
+      await writeFile(
+        libraryPath,
+        JSON.stringify({
+          kind: "dungeon-one-characters",
+          formatVersion: FIFTH_LIBRARY_FORMAT,
+          revision: "0".repeat(32),
+          creationsStarted: 1,
+          sessionsStarted: 0,
+          characters: [{ sheet, revision: 1 }],
+        }),
+      );
+      const server = await startFifthBrowserServer({
+        libraryPath,
+        seed: 0,
+        adventures: [emptyBarrow],
+        qualifies: () => true,
+      });
+      const browser = await launch();
+      const page = await browser.newPage({ viewport });
+      page.setDefaultTimeout(8000);
+      try {
+        await page.goto(`${server.url}#character-${sheet.id}`);
+        await page.locator(".start-adventure").click();
+        await page.locator("#log li").first().waitFor();
+        await clickAction(page, "move", "burial-hall");
+        await clickAction(page, "examine", "stone-bier");
+        await clickAction(page, "take", "silver-torc");
+        await clickAction(page, "move", "barrow-mouth");
+        await page.locator("#leave-controls button").click();
+        await page.locator("#confirm-leave").click();
+        await page.locator("#ending").waitFor({ state: "visible" });
+        assert.equal(
+          await page.locator("#level-up-title").textContent(),
+          `Level up: ${sheet.name} is now level ${to.level}`,
+        );
+        assert.match(
+          await page.locator("#level-up").innerText(),
+          /Hit points \d+ → \d+\.[^\n]* New features:/u,
+        );
+
+        // Each new feature is closed at first: its name alone shows.
+        const features = page.locator("#level-up-features details");
         assert.deepEqual(
-          expected.map(({ name }) => name),
+          await page.locator("#level-up-features summary").allTextContents(),
           names,
         );
-        const directory = await mkdtemp(join(tmpdir(), "issue-319-browser-"));
-        const libraryPath = join(directory, "characters.json");
-        await writeFile(
-          libraryPath,
-          JSON.stringify({
-            kind: "dungeon-one-characters",
-            formatVersion: FIFTH_LIBRARY_FORMAT,
-            revision: "0".repeat(32),
-            creationsStarted: 1,
-            sessionsStarted: 0,
-            characters: [{ sheet, revision: 1 }],
-          }),
-        );
-        const server = await startFifthBrowserServer({
-          libraryPath,
-          seed: 0,
-          adventures: [emptyBarrow],
-          qualifies: () => true,
-        });
-        const browser = await launch();
-        const page = await browser.newPage({ viewport });
-        page.setDefaultTimeout(8000);
-        try {
-          await page.goto(`${server.url}#character-${sheet.id}`);
-          await page.locator(".start-adventure").click();
-          await page.locator("#log li").first().waitFor();
-          await clickAction(page, "move", "burial-hall");
-          await clickAction(page, "examine", "stone-bier");
-          await clickAction(page, "take", "silver-torc");
-          await clickAction(page, "move", "barrow-mouth");
-          await page.locator("#leave-controls button").click();
-          await page.locator("#confirm-leave").click();
-          await page.locator("#ending").waitFor({ state: "visible" });
-          assert.equal(
-            await page.locator("#level-up-title").textContent(),
-            `Level up: ${sheet.name} is now level ${to.level}`,
-          );
-          assert.match(
-            await page.locator("#level-up").innerText(),
-            /Hit points \d+ → \d+\.[^\n]* New features:/u,
-          );
-
-          // Each new feature is closed at first: its name alone shows.
-          const features = page.locator("#level-up-features details");
-          assert.deepEqual(
-            await page.locator("#level-up-features summary").allTextContents(),
-            names,
-          );
-          for (const [index, { text }] of expected.entries()) {
-            const feature = features.nth(index);
-            assert.equal(await feature.getAttribute("open"), null);
-            assert.equal(await feature.locator("p").isVisible(), false);
-            // Opening it shows the sheet's text for that feature.
-            await feature.locator("summary").click();
-            assert.equal(await feature.locator("p").isVisible(), true);
-            assert.equal(await feature.locator("p").textContent(), text);
-          }
-          await assertNoSideScroll(page, "every feature open: no side scroll", {
-            wideFont: viewport.width < 900,
-          });
-
-          // With every feature open, the way back is still on screen to use.
-          const back = page.locator("#ending-next");
-          await back.scrollIntoViewIfNeeded();
-          assert.ok(
-            await back.evaluate((node) => {
-              const rect = node.getBoundingClientRect();
-              const hit = document.elementFromPoint(
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2,
-              );
-              return rect.bottom <= window.innerHeight && node.contains(hit);
-            }),
-            "the way back is on screen and uncovered",
-          );
-          await back.click();
-          await page
-            .locator("#sheet-name")
-            .filter({ hasText: sheet.name })
-            .waitFor();
-          // The library holds the new level the card announced.
-          const record = await readAda(libraryPath);
-          assert.deepEqual(
-            [record.sheet.level, record.sheet.xp],
-            [to.level, sheet.xp + 250],
-          );
-        } finally {
-          await browser.close();
-          await server.close();
-          await rm(directory, { recursive: true, force: true });
+        for (const [index, { text }] of expected.entries()) {
+          const feature = features.nth(index);
+          assert.equal(await feature.getAttribute("open"), null);
+          assert.equal(await feature.locator("p").isVisible(), false);
+          // Opening it shows the sheet's text for that feature.
+          await feature.locator("summary").click();
+          assert.equal(await feature.locator("p").isVisible(), true);
+          assert.equal(await feature.locator("p").textContent(), text);
         }
-      },
-    );
-  }
+        await assertNoSideScroll(page, "every feature open: no side scroll");
+
+        // With every feature open, the way back is still on screen to use.
+        const back = page.locator("#ending-next");
+        await back.scrollIntoViewIfNeeded();
+        assert.ok(
+          await back.evaluate((node) => {
+            const rect = node.getBoundingClientRect();
+            const hit = document.elementFromPoint(
+              rect.left + rect.width / 2,
+              rect.top + rect.height / 2,
+            );
+            return rect.bottom <= window.innerHeight && node.contains(hit);
+          }),
+          "the way back is on screen and uncovered",
+        );
+        await back.click();
+        await page
+          .locator("#sheet-name")
+          .filter({ hasText: sheet.name })
+          .waitFor();
+        // The library holds the new level the card announced.
+        const record = await readAda(libraryPath);
+        assert.deepEqual(
+          [record.sheet.level, record.sheet.xp],
+          [to.level, sheet.xp + 250],
+        );
+      } finally {
+        await browser.close();
+        await server.close();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
 }

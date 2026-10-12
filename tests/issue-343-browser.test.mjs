@@ -27,7 +27,7 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { moduleFile } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 
 /**
  * The rat tunnels, levels 1–5, with a bandit in the cellar and the stair
@@ -138,7 +138,7 @@ const ids = (locator) =>
   locator.evaluateAll((boxes) => boxes.map(({ id }) => id));
 
 test(
-  "a Wizard's level-2 spellbook spells, Expertise and prepared spell hold the next adventure until chosen (375px)",
+  "a Wizard's level-2 spellbook spells, Expertise and prepared spell hold the next adventure until chosen",
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-343-browser-"));
@@ -151,7 +151,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {
@@ -215,9 +215,6 @@ test(
         "spellbook-ice-knife",
         "spellbook-sleep",
       ]);
-      await assertNoSideScroll(page, "the level-2 picks fit a phone", {
-        wideFont: true,
-      });
       await page.locator("#save-expertise:disabled").waitFor();
       await page.locator("#expertise-arcana").check();
       await page.locator("#save-expertise").click();

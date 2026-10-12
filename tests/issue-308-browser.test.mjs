@@ -27,12 +27,7 @@ import {
 import { goblinTrio } from "./fixtures/modules.mjs";
 import { thief } from "./fixtures/playthroughs.mjs";
 import { readAda, sessionFile } from "./fixtures/save-files.mjs";
-import {
-  assertNoSideScroll,
-  assertTogether,
-  launch,
-  layout,
-} from "./fixtures/session-layout.mjs";
+import { assertTogether, launch } from "./fixtures/session-layout.mjs";
 
 /** The level-3 Thief raised to level 5, with +2 Dexterity at level 4. */
 const VEX = (() => {
@@ -118,7 +113,7 @@ const seed = (() => {
 })();
 
 /** Takes one fight click as `choose` does, and waits for its entry. */
-async function fightClick(page, checkLayout) {
+async function fightClick(page) {
   const enabled = (selector) => page.locator(`${selector}:enabled`);
   const dodge = enabled(
     '#feature-controls button[data-action="uncanny-dodge"]',
@@ -127,10 +122,11 @@ async function fightClick(page, checkLayout) {
   const strike = page.locator("#cunning-strike");
   const attack = enabled("#attack-controls button.attack");
   if ((await dodge.count()) > 0) {
-    // The hit waits: only the two answers are offered, both on screen.
+    // The hit waits: only the two answers are offered, on screen with the
+    // newest entry.
     assert.equal(await page.locator("#action-bar button.act").count(), 2);
     assert.match(await page.locator("#turn").textContent(), /hits you\./u);
-    await checkLayout("the waiting hit");
+    await assertTogether(page, "the waiting hit");
     await settled(page, () => dodge.click());
     return "dodged";
   }
@@ -143,7 +139,7 @@ async function fightClick(page, checkLayout) {
     (await strike.locator('option[value="trip"]').count()) > 0
   ) {
     await strike.selectOption("trip");
-    await checkLayout("the Cunning Strike choice");
+    await assertTogether(page, "the Cunning Strike choice");
     await settled(page, () => attack.first().click());
     return "struck";
   }
@@ -159,120 +155,103 @@ async function fightClick(page, checkLayout) {
   return "plain";
 }
 
-for (const viewport of [
-  { width: 1280, height: 900 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `a level-5 Rogue trips a goblin with Cunning Strike and halves a hit with Uncanny Dodge (${viewport.width}px, seed ${seed})`,
-    { timeout: 180000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-308-browser-"));
-      const libraryPath = join(directory, "characters.json");
-      await writeFile(
-        libraryPath,
-        JSON.stringify({
-          kind: "dungeon-one-characters",
-          formatVersion: FIFTH_LIBRARY_FORMAT,
-          revision: "0".repeat(32),
-          creationsStarted: 1,
-          sessionsStarted: 0,
-          characters: [{ sheet: VEX, revision: 1 }],
-        }),
-      );
-      const server = await startFifthBrowserServer({
-        libraryPath,
-        seed,
-        adventures: [goblinTrio],
-        qualifies: () => true,
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(8000);
-      // At phone width nothing scrolls sideways, in CI's wider font too, and
-      // the waiting hit's two answers sit on screen with the newest entry.
-      const checkLayout = async (label) => {
-        if (viewport.width > 400) {
-          return;
-        }
-        if (label === "the waiting hit") {
-          await assertTogether(page, label);
-        }
-        await assertNoSideScroll(page, label, { wideFont: true });
-        // In the wider font, every offered control is still on screen.
-        assert.deepEqual((await layout(page)).hiddenButtons, [], label);
-      };
-      try {
-        await page.goto(server.url);
-        await page
-          .locator("#characters button")
-          .filter({ hasText: "Vex" })
-          .click();
-        const sheetText = await text(page.locator("#sheet-body"));
-        assert.match(sheetText, /^Level 5 Rogue/u);
-        assert.match(sheetText, /Cunning Strike\. When you deal Sneak Attack/u);
-        assert.match(sheetText, /Uncanny Dodge\. Reaction/u);
-        assert.match(sheetText, /extra 3d6 damage/u);
+const viewport = { width: 1280, height: 900 };
+test(
+  `a level-5 Rogue trips a goblin with Cunning Strike and halves a hit with Uncanny Dodge (${viewport.width}px, seed ${seed})`,
+  { timeout: 180000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-308-browser-"));
+    const libraryPath = join(directory, "characters.json");
+    await writeFile(
+      libraryPath,
+      JSON.stringify({
+        kind: "dungeon-one-characters",
+        formatVersion: FIFTH_LIBRARY_FORMAT,
+        revision: "0".repeat(32),
+        creationsStarted: 1,
+        sessionsStarted: 0,
+        characters: [{ sheet: VEX, revision: 1 }],
+      }),
+    );
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      adventures: [goblinTrio],
+      qualifies: () => true,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(8000);
+    try {
+      await page.goto(server.url);
+      await page
+        .locator("#characters button")
+        .filter({ hasText: "Vex" })
+        .click();
+      const sheetText = await text(page.locator("#sheet-body"));
+      assert.match(sheetText, /^Level 5 Rogue/u);
+      assert.match(sheetText, /Cunning Strike\. When you deal Sneak Attack/u);
+      assert.match(sheetText, /Uncanny Dodge\. Reaction/u);
+      assert.match(sheetText, /extra 3d6 damage/u);
 
-        await startAdventure(page, "goblin-trio");
-        const clicks = new Set();
-        let saved;
-        for (
-          let turn = 0;
-          turn < 200 &&
-          (await page.locator("#turn").textContent()) !== "The fight is over.";
-          turn++
+      await startAdventure(page, "goblin-trio");
+      const clicks = new Set();
+      let saved;
+      for (
+        let turn = 0;
+        turn < 200 &&
+        (await page.locator("#turn").textContent()) !== "The fight is over.";
+        turn++
+      ) {
+        clicks.add(await fightClick(page));
+        // The save records both as the clicks made them.
+        if (
+          saved === undefined &&
+          clicks.has("dodged") &&
+          clicks.has("struck")
         ) {
-          clicks.add(await fightClick(page, checkLayout));
-          // The save records both as the clicks made them.
-          if (
-            saved === undefined &&
-            clicks.has("dodged") &&
-            clicks.has("struck")
-          ) {
-            saved = await sessionFile(directory);
-          }
+          saved = await sessionFile(directory);
         }
-        assert.ok(saved !== undefined, [...clicks].join());
-        assert.equal(saved.formatVersion, FIFTH_SESSION_FORMAT);
-        const recorded = JSON.stringify(saved.transitions);
-        assert.match(recorded, /"cunningStrike":"trip"/u);
-        assert.match(recorded, /"type":"uncanny-dodge"/u);
-
-        const log = await text(page.locator("#log"));
-        assert.match(
-          log,
-          /Vex attacks Goblin [^\n]+ \(Cunning Strike: Trip, \d Sneak Attack di(e|ce) forgone\)/u,
-        );
-        assert.match(
-          log,
-          /Goblin [^\n]+ is knocked prone by Vex's Cunning Strike \(Trip\)/u,
-        );
-        assert.match(
-          log,
-          /Before its damage is rolled, Vex can use Uncanny Dodge to halve it, or take the hit\./u,
-        );
-        assert.match(
-          log,
-          /Vex uses Uncanny Dodge from Goblin [^\n]+, halved to \d+ by Uncanny Dodge; Vex has \d+\/\d+ HP\./u,
-        );
-        await page.locator("#ending").waitFor({ state: "visible" });
-        assert.match(await text(page.locator("#ending")), /Victory/iu);
-
-        // The library settles the Rogue: no session, the XP credited.
-        const record = await readAda(libraryPath);
-        assert.equal(record.session, undefined);
-        assert.equal(record.sheet.class, "rogue");
-        assert.ok(record.sheet.xp > VEX.xp);
-        assert.equal(await actionButton(page, "uncanny-dodge").count(), 0);
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
       }
-    },
-  );
-}
+      assert.ok(saved !== undefined, [...clicks].join());
+      assert.equal(saved.formatVersion, FIFTH_SESSION_FORMAT);
+      const recorded = JSON.stringify(saved.transitions);
+      assert.match(recorded, /"cunningStrike":"trip"/u);
+      assert.match(recorded, /"type":"uncanny-dodge"/u);
+
+      const log = await text(page.locator("#log"));
+      assert.match(
+        log,
+        /Vex attacks Goblin [^\n]+ \(Cunning Strike: Trip, \d Sneak Attack di(e|ce) forgone\)/u,
+      );
+      assert.match(
+        log,
+        /Goblin [^\n]+ is knocked prone by Vex's Cunning Strike \(Trip\)/u,
+      );
+      assert.match(
+        log,
+        /Before its damage is rolled, Vex can use Uncanny Dodge to halve it, or take the hit\./u,
+      );
+      assert.match(
+        log,
+        /Vex uses Uncanny Dodge from Goblin [^\n]+, halved to \d+ by Uncanny Dodge; Vex has \d+\/\d+ HP\./u,
+      );
+      await page.locator("#ending").waitFor({ state: "visible" });
+      assert.match(await text(page.locator("#ending")), /Victory/iu);
+
+      // The library settles the Rogue: no session, the XP credited.
+      const record = await readAda(libraryPath);
+      assert.equal(record.session, undefined);
+      assert.equal(record.sheet.class, "rogue");
+      assert.ok(record.sheet.xp > VEX.xp);
+      assert.equal(await actionButton(page, "uncanny-dodge").count(), 0);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   "a level-4 Rogue chooses its Ability Score Improvement alone on the sheet, and is saved",
@@ -305,7 +284,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {

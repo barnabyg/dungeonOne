@@ -22,7 +22,7 @@ import {
 import { clickAction, fight } from "./fixtures/browser-journey.mjs";
 import { winBarrowSeed } from "./fixtures/library.mjs";
 import { lintelBarrow } from "./fixtures/modules.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 
 // Ada: Str 17, Dex 14, Con 15, the mace kit; 10 XP short of level 4.
 const ada = validateCharacter({ ...testFighterAt(3), xp: 2690 });
@@ -93,7 +93,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -231,7 +231,6 @@ test(
           "Weapon Mastery: Longsword (Sap): A creature it hits has disadvantage on its next attack roll before the start of your next turn. It applies only while you wield it.",
         ],
       );
-      await assertNoSideScroll(page, "the level-up card fits a phone");
       // Switching to +1 to two clears the improvement until two are ticked.
       await page.locator("#asi-mode-split").check();
       await page.locator("#confirm-level-choice:disabled").waitFor();

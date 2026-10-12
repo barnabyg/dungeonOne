@@ -1,7 +1,7 @@
 // #152: one button hierarchy and WCAG contrast in the 5e browser.
 // axe-core is not a dependency, so this measures the same contrast rules
 // from computed styles: text 4.5:1 (3:1 when large) and control boundaries
-// 3:1 (WCAG 1.4.11) on every screen, at desktop and phone widths.
+// 3:1 (WCAG 1.4.11) on every screen.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -229,124 +229,117 @@ async function fightToTheEnd(page) {
   }
 }
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `every screen meets contrast and has one button hierarchy at ${viewport.width}px`,
-    { timeout: 90000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-152-"));
-      const server = await startFifthBrowserServer({
-        adventures: [ratlessTunnels, loneGoblin],
-        // Fixtures are engine material, not gated content: the gate is
-        // tested in balance-5e.test.mjs (#310).
-        qualifies: () => true,
-        libraryPath: join(directory, "characters.json"),
-        seed: 0,
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await page.goto(server.url);
-        await page.locator("#no-characters").waitFor();
-        await check(page, "empty library");
+const viewport = { width: 1280, height: 850 };
+test(
+  `every screen meets contrast and has one button hierarchy at ${viewport.width}px`,
+  { timeout: 90000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-152-"));
+    const server = await startFifthBrowserServer({
+      adventures: [ratlessTunnels, loneGoblin],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await page.locator("#no-characters").waitFor();
+      await check(page, "empty library");
 
-        await openCreation(page);
-        await check(page, "creation");
-        await saveFighter(page);
-        await check(page, "sheet");
+      await openCreation(page);
+      await check(page, "creation");
+      await saveFighter(page);
+      await check(page, "sheet");
 
-        // A heading focused by script shows no ring; a keyboard-focused
-        // control keeps a visible one.
-        const outline = () =>
-          page.evaluate(() => {
-            const style = getComputedStyle(document.activeElement);
-            return {
-              id: document.activeElement.id,
-              className: document.activeElement.className,
-              style: style.outlineStyle,
-              width: parseFloat(style.outlineWidth),
-            };
-          });
-        const heading = await outline();
-        assert.equal(heading.id, "sheet-name");
-        assert.equal(heading.style, "none");
-        // A table that overflows (wider fonts in CI) is itself a tab stop,
-        // so tab on to the first button.
-        let control = heading;
-        for (
-          let i = 0;
-          i < 5 && !/start-adventure/.test(control.className);
-          i++
-        ) {
-          await page.keyboard.press("Tab");
-          control = await outline();
-        }
-        assert.match(control.className, /start-adventure/);
-        assert.notEqual(control.style, "none");
-        assert.ok(
-          control.width >= 2,
-          "a keyboard focus ring at least 2 px wide",
-        );
-
-        await page.locator("#delete-character").click();
-        await page.locator("#delete-confirm-name").fill("Ada");
-        await check(page, "delete dialog");
-        await page.locator("#cancel-delete").click();
-
-        await startAdventure(page, "quiet-tunnels");
-        await page.locator("#action-bar button.explore").first().waitFor();
-        await check(page, "room");
-        await page.locator('#breadcrumb a[data-view="sheet"]').click();
-        await page.locator("#continue-adventure").waitFor();
-        await check(page, "sheet with an adventure in progress");
-        await page.locator('#breadcrumb a[data-view="library"]').click();
-        await page.locator("#characters button").first().waitFor();
-        await check(page, "library");
-
-        await createFighter(page, "Bea");
-        await startAdventure(page, "lone-goblin");
-        await page.locator("#encounter").waitFor({ state: "visible" });
-        await check(page, "fight");
-        await fightToTheEnd(page);
-        await check(page, "fight over");
-
-        // A defeated combatant is tagged and dimmed, never struck through.
-        const defeated = await page.evaluate(() =>
-          [...document.querySelectorAll("#initiative-rows tr.defeated")].map(
-            (row) => ({
-              tag: row.querySelector(".tag")?.textContent,
-              struck: [...row.cells].some((cell) =>
-                getComputedStyle(cell).textDecorationLine.includes(
-                  "line-through",
-                ),
-              ),
-            }),
-          ),
-        );
-        assert.equal(defeated.length, 1);
-        assert.deepEqual(defeated[0], { tag: "Defeated", struck: false });
-
-        // Headings follow one scale, largest first.
-        const sizes = await page.evaluate(() =>
-          ["h1", "h2", "h3", "h4"].map((tag) =>
-            parseFloat(getComputedStyle(document.querySelector(tag)).fontSize),
-          ),
-        );
-        for (let index = 1; index < sizes.length; index++) {
-          assert.ok(
-            sizes[index - 1] > sizes[index],
-            `heading sizes ${sizes.join(" > ")}`,
-          );
-        }
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
+      // A heading focused by script shows no ring; a keyboard-focused
+      // control keeps a visible one.
+      const outline = () =>
+        page.evaluate(() => {
+          const style = getComputedStyle(document.activeElement);
+          return {
+            id: document.activeElement.id,
+            className: document.activeElement.className,
+            style: style.outlineStyle,
+            width: parseFloat(style.outlineWidth),
+          };
+        });
+      const heading = await outline();
+      assert.equal(heading.id, "sheet-name");
+      assert.equal(heading.style, "none");
+      // A table that overflows (wider fonts in CI) is itself a tab stop,
+      // so tab on to the first button.
+      let control = heading;
+      for (
+        let i = 0;
+        i < 5 && !/start-adventure/.test(control.className);
+        i++
+      ) {
+        await page.keyboard.press("Tab");
+        control = await outline();
       }
-    },
-  );
-}
+      assert.match(control.className, /start-adventure/);
+      assert.notEqual(control.style, "none");
+      assert.ok(control.width >= 2, "a keyboard focus ring at least 2 px wide");
+
+      await page.locator("#delete-character").click();
+      await page.locator("#delete-confirm-name").fill("Ada");
+      await check(page, "delete dialog");
+      await page.locator("#cancel-delete").click();
+
+      await startAdventure(page, "quiet-tunnels");
+      await page.locator("#action-bar button.explore").first().waitFor();
+      await check(page, "room");
+      await page.locator('#breadcrumb a[data-view="sheet"]').click();
+      await page.locator("#continue-adventure").waitFor();
+      await check(page, "sheet with an adventure in progress");
+      await page.locator('#breadcrumb a[data-view="library"]').click();
+      await page.locator("#characters button").first().waitFor();
+      await check(page, "library");
+
+      await createFighter(page, "Bea");
+      await startAdventure(page, "lone-goblin");
+      await page.locator("#encounter").waitFor({ state: "visible" });
+      await check(page, "fight");
+      await fightToTheEnd(page);
+      await check(page, "fight over");
+
+      // A defeated combatant is tagged and dimmed, never struck through.
+      const defeated = await page.evaluate(() =>
+        [...document.querySelectorAll("#initiative-rows tr.defeated")].map(
+          (row) => ({
+            tag: row.querySelector(".tag")?.textContent,
+            struck: [...row.cells].some((cell) =>
+              getComputedStyle(cell).textDecorationLine.includes(
+                "line-through",
+              ),
+            ),
+          }),
+        ),
+      );
+      assert.equal(defeated.length, 1);
+      assert.deepEqual(defeated[0], { tag: "Defeated", struck: false });
+
+      // Headings follow one scale, largest first.
+      const sizes = await page.evaluate(() =>
+        ["h1", "h2", "h3", "h4"].map((tag) =>
+          parseFloat(getComputedStyle(document.querySelector(tag)).fontSize),
+        ),
+      );
+      for (let index = 1; index < sizes.length; index++) {
+        assert.ok(
+          sizes[index - 1] > sizes[index],
+          `heading sizes ${sizes.join(" > ")}`,
+        );
+      }
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

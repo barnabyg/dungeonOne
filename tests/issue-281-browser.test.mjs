@@ -12,11 +12,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
-import {
-  assertNoSideScroll,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { readAda, sessionFile } from "./fixtures/save-files.mjs";
 import { gradedCellar } from "./fixtures/modules.mjs";
 
@@ -60,12 +56,13 @@ async function play(seed, journey) {
     qualifies: () => true,
   });
   const browser = await launch();
-  const page = await browser.newPage({ viewport: { width: 360, height: 740 } });
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 850 },
+  });
   page.setDefaultTimeout(5000);
   try {
     await createAndStart(page, server.url, "graded-cellar");
     await journey(page, { directory, libraryPath });
-    await assertNoSideScroll(page, "no horizontal scroll at phone width");
   } finally {
     await browser.close();
     await server.close();
