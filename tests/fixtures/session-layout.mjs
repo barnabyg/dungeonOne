@@ -62,19 +62,12 @@ const layout = (page) =>
     const newest = document
       .querySelector("#log li:last-child")
       .getBoundingClientRect();
-    const dock = document.getElementById("session-dock");
-    const dockRect = dock.getBoundingClientRect();
     // Shown buttons only: the ending's (#158) is hidden while playing.
     const buttons = [
       ...document.querySelectorAll("#session-actions button, #send-message"),
     ].filter((button) => button.getClientRects().length > 0);
     const focused = document.activeElement;
     const focusRect = focused.getBoundingClientRect();
-    const overlaps = (a, b) =>
-      a.left < b.right &&
-      b.left < a.right &&
-      a.top < b.bottom &&
-      b.top < a.bottom;
     return {
       geometry: JSON.stringify({
         log,
@@ -94,8 +87,7 @@ const layout = (page) =>
       focusShown:
         focused === document.body ||
         focused.tagName !== "BUTTON" ||
-        (inWindow(focusRect) &&
-          (dock.contains(focused) || !overlaps(focusRect, dockRect))),
+        inWindow(focusRect),
     };
   });
 

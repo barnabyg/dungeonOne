@@ -272,12 +272,12 @@ balance` shows each module's verdict.
 
 The screen has fixed regions: the status strip, the scene (the room and the
 fight), the action bar, and the conversation history ("What happened") with the
-box for typing to the Dungeon Master. On a wide window, status and scene sit on
-the left and the history on the right in its own scroll area, newest at the
-bottom, with the actions and the typing box beneath it, so an action and its
-result are on screen together. On a phone it is one column with the history,
-actions and typing box pinned to the bottom. The history follows new entries
-unless you have scrolled up to read older ones.
+box for typing to the Dungeon Master. Status and scene sit on the left and the
+history on the right in its own scroll area, newest at the bottom, with the
+actions and the typing box beneath it, so an action and its result are on screen
+together. The game is for desktop browsers: in a window smaller than 900 × 560
+px the page keeps that size and the window scrolls. The history follows new
+entries unless you have scrolled up to read older ones.
 
 The status strip shows your HP as numbers and a bar with its health in words
 (Healthy, Bloodied at half or fewer, Critical at a quarter or fewer, Defeated at
