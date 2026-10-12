@@ -123,6 +123,16 @@ test("every treasure and coin is found by examining, and the richest lies past t
   }
 });
 
+test("the delve's text names no longsword, since none is shipped (#388)", () => {
+  // #239 turned the barrel's longsword into a shortsword; the barrel's
+  // discovery must say so.
+  assert.doesNotMatch(JSON.stringify(delve).toLowerCase(), /longsword/);
+  assert.match(
+    room("storeroom").features.find(({ id }) => id === "old-barrel").discovery,
+    /an oiled shortsword/,
+  );
+});
+
 function scripted(responses) {
   return {
     async respond() {
