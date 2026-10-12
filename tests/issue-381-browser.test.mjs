@@ -1,4 +1,4 @@
-// #381, browser → API → storage: the page is desktop-only. In a window below
+// #381, browser → API: the page is desktop-only. In a window below
 // the 900 × 560 px floor the adventure keeps its two columns at the floor's
 // size and the window scrolls: every scene and dock button can be scrolled
 // into view, unclipped and uncovered, and still works.
@@ -18,7 +18,7 @@ import { beaLibrary } from "./fixtures/charismatic-fighter.mjs";
 import { goblinYard } from "./fixtures/modules.mjs";
 
 /** The page's size, and where the scene and the dock sit. */
-const layout = (page) =>
+const pageLayout = (page) =>
   page.evaluate(() => {
     const box = (id) => {
       const rect = document.getElementById(id).getBoundingClientRect();
@@ -86,7 +86,7 @@ test("below 900 x 560 px the adventure keeps its two columns and the window scro
     await page.locator("#characters button").filter({ hasText: "Bea" }).click();
     await startAdventure(page, "goblin-yard");
 
-    const before = await layout(page);
+    const before = await pageLayout(page);
     assert.ok(before.width >= 900, `page width ${before.width}`);
     assert.ok(before.height >= 560, `page height ${before.height}`);
     // Two columns: the dock beside the scene, not below it.

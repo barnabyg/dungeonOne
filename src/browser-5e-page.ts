@@ -34,10 +34,9 @@
 //   the list with its Unequip, Wield, Equip and Drop (#209). A short
 //   rest (#334) sits in the room panel's #rest-group, never the bar: the
 //   short rests and hit dice left, a choice of how many hit dice to spend
-//   (#rest-dice) and its Rest button, disabled
-//   with its reason when the engine would refuse it. Rest and its choice show
-//   only while a rest would restore something. A level-5 Wizard's rest also
-//   offers Memorize Spell (#344): the prepared spell to forget
+//   (#rest-dice) and its Rest button, disabled with its reason when the
+//   engine would refuse it. Rest and its choice show only while a rest would
+//   restore something. A level-5 Wizard's rest also offers Memorize Spell (#344): the prepared spell to forget
 //   (#rest-forget) and the spellbook's spell to prepare in its place
 //   (#rest-learn), or neither unless the swap is all the rest would bring.
 //   At a rest site (#335) the
