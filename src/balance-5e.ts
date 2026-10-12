@@ -12,6 +12,7 @@
 import {
   authoredChecks,
   effectsOf,
+  sureFlagSetters,
   LOOT_KINDS,
   statBlockDefenses,
   statBlockSaves,
@@ -22,6 +23,7 @@ import {
   type FifthAdventure,
   type FifthPassage,
   type StatBlock,
+  type SureFlagSetter,
 } from "./adventure-5e.js";
 import {
   abilityModifier,
@@ -87,6 +89,7 @@ import {
   damageTaken,
   legalTargets,
   type ConditionKind,
+  type EncounterState,
   type DamageType,
 } from "./encounter-5e.js";
 import {
@@ -825,6 +828,14 @@ type Position = Readonly<{
   blockedPassageIds: readonly string[];
   /** Keys that can no longer be found (#331): their doors stay shut. */
   lostKeyIds: readonly string[];
+  /** The module's flags set (#397): they open and close passages. */
+  flags: readonly string[];
+  /** Rooms already entered: going back sets no flag not yet set (#397). */
+  visitedRoomIds: readonly string[];
+  /** Features examined: examining one again sets no flag (#397). */
+  examinedFeatureIds: readonly string[];
+  /** Items taken (or used up): they set no flag again (#397). */
+  takenItemIds: readonly string[];
 }>;
 
 /** Rooms a route may pass through or end in; the start is always allowed. */
@@ -880,13 +891,36 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
  * fewest fights, then the fewest moves. A door with a check counts as
  * passable until it blocks the passage; a door only a key opens counts as
  * passable only with its key carried, and otherwise the plan fetches the key,
- * unless the key is lost (#331).
+ * unless the key is lost (#331). A passage a flag opens (#397) is passable
+ * only once it is set, and otherwise the plan goes to a room where something
+ * not yet done sets it for sure (`sureFlagSetters`, as the validator counts
+ * it), even one the character has been through; one a flag has closed never
+ * is.
  * A hidden passage only talking opens is never passable (#297), unless
  * `talking` is true.
  */
 function routePlanner(adventure: FifthAdventure, talking = false) {
   const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
+  const flagSetters = new Map(
+    adventure.rooms.map((room) => [
+      room.id,
+      sureFlagSetters(room, adventure.encounters),
+    ]),
+  );
+  /** Whether `setter` is still to be done from `position` (#397). */
+  const undone = (position: Position, { by, id }: SureFlagSetter) => {
+    switch (by) {
+      case "room":
+        return !position.visitedRoomIds.includes(id);
+      case "feature":
+        return !position.examinedFeatureIds.includes(id);
+      case "item":
+        return !position.takenItemIds.includes(id);
+      case "encounter":
+        return !position.clearedEncounterIds.includes(id);
+    }
+  };
   const keyRoom = new Map(
     adventure.rooms.flatMap(({ id, items }) =>
       items.flatMap((item) =>
@@ -906,7 +940,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
    * The cheapest route from the character's room to the nearest target, as
    * the rooms along it, starting with the character's; undefined if none.
    * With `keys` "any", key-only doors count as open, unless their keys are
-   * lost.
+   * lost, and so do passages a flag not yet set opens (#397).
    */
   const route = (
     position: Position,
@@ -951,6 +985,9 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
           !enterable(next) ||
           talkOnly.has(passage.id) ||
           position.blockedPassageIds.includes(passage.id) ||
+          (passage.closeWhen !== undefined &&
+            position.flags.includes(passage.closeWhen)) ||
+          (keys === "carried" && unflagged(position, passage)) ||
           (locked &&
             (keys === "carried" ||
               (keyId !== undefined && position.lostKeyIds.includes(keyId))))
@@ -967,9 +1004,16 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
   };
 
+  /** Whether a flag not yet set keeps `passage` shut (#397). */
+  const unflagged = (position: Position, passage: FifthPassage) =>
+    passage.openWhen !== undefined &&
+    !position.flags.includes(passage.openWhen);
+
   /**
    * The route toward the nearest target. When only a key-only door stands
-   * in the way, the route leads to the room holding its key instead.
+   * in the way, the route leads to the room holding its key instead; when a
+   * passage a flag opens does (#397), to the nearest other room where
+   * something not yet done sets it for sure.
    */
   const plan = (
     position: Position,
@@ -983,6 +1027,22 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     const keyed = route(position, targets, enterable, "any") ?? [];
     for (let step = 1; step < keyed.length; step++) {
       const passage = passageBetween(adventure, keyed[step - 1]!, keyed[step]!);
+      if (unflagged(position, passage)) {
+        const setters = new Set(
+          [...flagSetters].flatMap(([roomId, inRoom]) =>
+            roomId !== position.roomId &&
+            inRoom.some(
+              (setter) =>
+                setter.flag === passage.openWhen && undone(position, setter),
+            )
+              ? [roomId]
+              : [],
+          ),
+        );
+        return setters.size === 0
+          ? undefined
+          : route(position, setters, enterable, "carried");
+      }
       const keyId = passage.door?.keyItemId;
       if (keyOnly(passage) && !position.inventory.includes(keyId!)) {
         return route(
@@ -995,7 +1055,10 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
     return undefined;
   };
-  return { plan, roomById, fightIn };
+  /** The flags going into each room sets for sure (#397). */
+  const roomFlags = (roomId: string) =>
+    flagSetters.get(roomId)!.map(({ flag }) => flag);
+  return { plan, roomById, fightIn, roomFlags };
 }
 
 /** The rooms where winning the fight ends the adventure in victory. */
@@ -1049,7 +1112,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
 }> {
-  const { plan, roomById } = routePlanner(adventure);
+  const { plan, roomById, roomFlags } = routePlanner(adventure);
   const objective = objectiveOf(adventure);
   const legs =
     objective === "victory"
@@ -1063,6 +1126,14 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     clearedEncounterIds: [],
     blockedPassageIds: [],
     lostKeyIds: [],
+    flags: roomFlags(adventure.startRoomId),
+    visitedRoomIds: [adventure.startRoomId],
+    examinedFeatureIds: roomById
+      .get(adventure.startRoomId)!
+      .features.map(({ id }) => id),
+    takenItemIds: roomById
+      .get(adventure.startRoomId)!
+      .items.map(({ id }) => id),
   };
   const roomIds = [adventure.startRoomId];
   for (const targets of legs) {
@@ -1098,6 +1169,22 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
           ...position.clearedEncounterIds,
           ...path.flatMap((roomId) => roomById.get(roomId)!.encounterId ?? []),
         ],
+        // It examines and takes everything on the way, and so sets the flags
+        // those rooms set for sure (#397).
+        flags: [...position.flags, ...path.flatMap(roomFlags)],
+        visitedRoomIds: [...position.visitedRoomIds, ...path],
+        examinedFeatureIds: [
+          ...position.examinedFeatureIds,
+          ...path.flatMap((roomId) =>
+            roomById.get(roomId)!.features.map(({ id }) => id),
+          ),
+        ],
+        takenItemIds: [
+          ...position.takenItemIds,
+          ...path.flatMap((roomId) =>
+            roomById.get(roomId)!.items.map(({ id }) => id),
+          ),
+        ],
       };
       roomIds.push(...path.filter((roomId) => !roomIds.includes(roomId)));
     }
@@ -1119,12 +1206,19 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
  *   it can. Unseen, it slips past the fight unless its goal is in that room
  *   (the victory fight, loot, a key) or the way on is shut: then it springs
  *   an ambush. A fight it slipped past is met again if it comes back.
+ * - `retreat` (#396) plays as `cautious`, but in a fight, below its heal
+ *   threshold with no heal left to take, it flees toward the nearest exit
+ *   room: through a way out whose room has no fight and from which a way
+ *   to an exit room passes no fight, with Disengage first when it has it.
+ *   Once it has fled it heads out by the nearest such way and leaves. It
+ *   flees each fight once: met again, it fights on.
  */
 export const PLAY_STYLES = [
   "direct",
   "cautious",
   "avoid-optional",
   "stealth-first",
+  "retreat",
 ] as const;
 export type PlayStyle = (typeof PLAY_STYLES)[number];
 
@@ -1133,10 +1227,11 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
   cautious: 1 / 2,
   "avoid-optional": 1 / 4,
   "stealth-first": 1 / 2,
+  retreat: 1 / 2,
 };
 
 /** The styles that skip optional fights but look into rooms without one. */
-const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first"];
+const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first", "retreat"];
 
 /**
  * How a run answers a reaction roll's band (#304): `attack`, the default,
@@ -1185,6 +1280,10 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Hide and Steady Aim, by the Rogue policy (#307).
   hide: true,
   "steady-aim": true,
+  // Only retreat flees (#396), and disengages first when it can; the
+  // judged styles never do, so the gate stays a lower bound.
+  disengage: true,
+  flee: true,
   // Channel Divinity, by the Cleric policy (#341): Turn Undead against
   // undead, Preserve Life when Bloodied, Divine Spark's radiant damage.
   "divine-spark": true,
@@ -1237,12 +1336,21 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   leave: true,
 };
 
+/** The kinds of action only the retreat style plays (#396), when low. */
+const RETREAT_ACTIONS: readonly ActionKind[] = ["disengage", "flee"];
+
 /** The kinds of action the harness asks the runtime to project. */
 const CHOSEN_ACTIONS: ReadonlySet<ActionKind> = new Set(
   (Object.keys(PLAYED_ACTIONS) as ActionKind[]).filter(
-    (kind) => PLAYED_ACTIONS[kind],
+    (kind) => PLAYED_ACTIONS[kind] && !RETREAT_ACTIONS.includes(kind),
   ),
 );
+
+/** What the retreat style projects in a fight below its heal threshold. */
+const RETREATING_ACTIONS: ReadonlySet<ActionKind> = new Set([
+  ...CHOSEN_ACTIONS,
+  ...RETREAT_ACTIONS,
+]);
 
 /**
  * The effects of the levelled spells the casting policies (#348) cast in a
@@ -1424,7 +1532,8 @@ export type FightRecord = Readonly<{
   /** Conditions opponents' riders put on the character (#232), by kind. */
   conditions: Readonly<Partial<Record<ConditionKind, number>>>;
   rounds: number;
-  outcome: "victory" | "defeat";
+  /** A fight the retreat style fled (#396) is left unresolved. */
+  outcome: "victory" | "defeat" | "fled";
 }>;
 
 /** A fight's record while it is under way, before its rounds and outcome. */
@@ -1481,6 +1590,14 @@ export type RunRecord = Readonly<{
    * none, and a run on the other policy is this run.
    */
   reactionChoices: number;
+  /**
+   * How many fight turns the run began below its heal threshold with no
+   * heal to take (#396): where the retreat style might flee. None, and the
+   * retreat run on its seed is this run.
+   */
+  retreatChances: number;
+  /** How many fights the run fled (#396): only the retreat style flees. */
+  fled: number;
   /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
@@ -1613,6 +1730,10 @@ export function playAdventure(
   let trapDamage = 0;
   let spellsCast = 0;
   let reactionChoices = 0;
+  let retreatChances = 0;
+  /** The fights the run fled (#396), each fled once, and whether it is heading out. */
+  const fledFrom: string[] = [];
+  let retreating = false;
   let channelDivinity = 0;
   /** Whether a base-AC spell (Mage Armor, #340) was cast before a fight. */
   let warded = false;
@@ -1621,8 +1742,11 @@ export function playAdventure(
   const blocked: string[] = [];
   let actions = 0;
 
+  /** The round of the fight the character is fleeing (#396). */
+  let fledRound = 0;
   const apply = (action: FifthAction) => {
     actions += 1;
+    fledRound = state.encounter?.round ?? 0;
     if (actions > stepLimit) {
       throw new BalanceError(
         "step-limit",
@@ -1735,6 +1859,13 @@ export function playAdventure(
           });
           fight = undefined;
           break;
+        case "fled-fight":
+          // The retreat style got away (#396): the fight stays unresolved.
+          fights.push({ ...fight!, rounds: fledRound, outcome: "fled" });
+          fledFrom.push(event.encounterId);
+          fight = undefined;
+          retreating = true;
+          break;
         default:
           break;
       }
@@ -1789,6 +1920,57 @@ export function playAdventure(
       );
   };
 
+  /** Where the run stands now, for the route planner. */
+  const positionNow = (roomId = state.roomId): Position => ({
+    roomId,
+    inventory: state.inventory,
+    // An encounter ended peacefully (#304) has no fight left, like one won.
+    clearedEncounterIds: [
+      ...state.clearedEncounterIds,
+      ...state.peacefulEncounterIds,
+    ],
+    blockedPassageIds: blocked,
+    lostKeyIds: lostKeys().map(({ id }) => id),
+    flags: state.flags,
+    visitedRoomIds: roomIds,
+    examinedFeatureIds: state.examinedFeatureIds,
+    takenItemIds: [...state.inventory, ...state.usedItemIds],
+  });
+  /** The way to an exit room from `position` through no fight (#396). */
+  const safeWayOut = (position: Position) =>
+    fightIn(position, position.roomId)
+      ? undefined
+      : plan(position, exits, (id) => !fightIn(position, id));
+  /**
+   * The retreat style's flight (#396): Disengage when offered, else the
+   * flight to the way out with the shortest safe way on to an exit room.
+   * None from a fight it fled before, or with no safe way out.
+   */
+  const retreatChoice = (
+    views: readonly ActionView[],
+    encounter: EncounterState,
+  ): ActionView | undefined => {
+    const fightId =
+      state.wandering === true
+        ? adventure.wanderingEncounter!.encounterId
+        : roomById.get(state.roomId)!.encounterId!;
+    if (encounter.pendingReaction !== undefined || fledFrom.includes(fightId)) {
+      return undefined;
+    }
+    const ways = offered(views, "flee").flatMap((view) => {
+      const path = safeWayOut(positionNow(view.target!.id));
+      return path === undefined ? [] : [{ view, length: path.length }];
+    });
+    if (ways.length === 0) {
+      return undefined;
+    }
+    const disengage = offered(views, "disengage")[0];
+    return (
+      disengage ??
+      ways.reduce((best, way) => (way.length < best.length ? way : best)).view
+    );
+  };
+
   /** The fight action to take now. */
   const fightChoice = (views: readonly ActionView[]): ActionView => {
     const encounter = state.encounter!;
@@ -1833,6 +2015,16 @@ export function playAdventure(
     ][0];
     if (heal !== undefined && low(hpOf(PLAYER_ID))) {
       return heal;
+    }
+    // Low with no heal to take, the retreat style flees (#396): Disengage
+    // first when it has it, then the way out toward the nearest exit room.
+    if (low(hpOf(PLAYER_ID))) {
+      retreatChances += 1;
+      const flight =
+        style === "retreat" ? retreatChoice(views, encounter) : undefined;
+      if (flight !== undefined) {
+        return flight;
+      }
     }
     // The Cleric policy (#341): Turn Undead whenever an undead foe is left
     // to turn; turned foes are attacked only once every foe is turned, so
@@ -2267,7 +2459,7 @@ export function playAdventure(
         return careful;
       }
     }
-    const goal = objectiveRooms();
+    const goal = retreating ? exits : objectiveRooms();
     const lostKeyIds = lostKeys().map(({ id }) => id);
     for (;;) {
       const position: Position = {
@@ -2280,14 +2472,22 @@ export function playAdventure(
         ],
         blockedPassageIds: blocked,
         lostKeyIds,
+        flags: state.flags,
+        visitedRoomIds: roomIds,
+        examinedFeatureIds: state.examinedFeatureIds,
+        takenItemIds: [...state.inventory, ...state.usedItemIds],
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
         (!winning.has(id) || targets.has(id)) &&
         (style === "direct" ||
           required.has(id) ||
           (CAREFUL.includes(style) && !fightIn(position, id)));
-      const aside = detours(position);
+      // Having fled (#396), the retreat style heads out the safe way, or
+      // else as it would have.
+      const safe = retreating ? safeWayOut(position) : undefined;
+      const aside = retreating ? new Set<string>() : detours(position);
       const path =
+        safe ??
         plan(position, aside, enterable(aside)) ??
         plan(position, goal, enterable(goal)) ??
         plan(position, exits, enterable(exits));
@@ -2358,7 +2558,11 @@ export function playAdventure(
     const choice = fighting
       ? fightChoice(
           project(
-            hurt ? CHOSEN_ACTIONS : UNHURT_ACTIONS,
+            hurt
+              ? style === "retreat"
+                ? RETREATING_ACTIONS
+                : CHOSEN_ACTIONS
+              : UNHURT_ACTIONS,
             hurt ? CHOSEN_SPELLS : UNHURT_SPELLS[casting],
           ),
         )
@@ -2394,6 +2598,8 @@ export function playAdventure(
     surprised: state.lurks.filter(({ roll }) => roll.success).length,
     peaceful: state.peacefulEncounterIds.length,
     reactionChoices,
+    retreatChances,
+    fled: fledFrom.length,
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -2459,6 +2665,8 @@ export type BalanceCell = Readonly<{
   meanTreasure: number;
   /** Fights slipped past and left unfought, a run (#302). */
   meanBypassed: number;
+  /** Fights fled, a run (#396): only the retreat style flees. */
+  meanFled: number;
   /** Each opponent, and the chance one attack kills it from full HP. */
   oneHitKill: readonly Readonly<{
     encounterId: string;
@@ -2542,6 +2750,7 @@ function summarise(
     meanXp: mean(runs.map(({ xp }) => xp)),
     meanTreasure: mean(runs.map(({ treasure }) => treasure)),
     meanBypassed: mean(runs.map(({ bypassed }) => bypassed)),
+    meanFled: mean(runs.map(({ fled }) => fled)),
     oneHitKill: adventure.encounters.flatMap(({ id: encounterId, opponents }) =>
       opponents.map(({ id, name, statBlock }) => ({
         encounterId,
@@ -2671,7 +2880,9 @@ export function renderBalanceResult(
         `trap damage ${decimal(cell.meanTrapDamage)}` +
         (cell.style === "stealth-first"
           ? `; slipped past ${decimal(cell.meanBypassed)} fights`
-          : ""),
+          : cell.style === "retreat"
+            ? `; fled ${decimal(cell.meanFled)} fights`
+            : ""),
       ...cell.encounters.map(
         (fight) =>
           `    ${fight.id}: fought in ${fight.runs}, lost ${percent(fight.defeatRate)}, ` +
@@ -2724,6 +2935,8 @@ export const GATE_STYLE: PlayStyle = "cautious";
 export const XP_STYLE: PlayStyle = "direct";
 /** The style the gate reports beside the judged checks (#302). */
 export const STEALTH_STYLE: PlayStyle = "stealth-first";
+/** The style that flees, which the gate reports too (#396). */
+export const RETREAT_STYLE: PlayStyle = "retreat";
 
 /**
  * The SRD 5.2 XP needed for levels 1–7. Characters stop at level 5; levels 6
@@ -2783,6 +2996,20 @@ export type StealthFirstReport = Omit<SurvivalCheck, "ok" | "required"> &
   Readonly<{
     completionRate: number;
     meanBypassed: number;
+    meanXp: number;
+  }>;
+
+/**
+ * The weakest character's retreat runs (#396) with each kit at each
+ * recommended level, on seeded checks: reported beside the judged checks,
+ * never judged itself, as the judged styles never flee. `rate`, `kit` and
+ * `level` are the kit and level it survives least with; the completion
+ * rate, fights fled and XP are over every run.
+ */
+export type RetreatReport = Omit<SurvivalCheck, "ok" | "required"> &
+  Readonly<{
+    completionRate: number;
+    meanFled: number;
     meanXp: number;
   }>;
 
@@ -2956,6 +3183,8 @@ export type GateVerdict = Readonly<{
   spendEarly?: SpendEarlyReport;
   /** Reported, not judged (#302); absent when not asked for. */
   stealthFirst?: StealthFirstReport;
+  /** Reported, not judged (#396); absent when not asked for. */
+  retreat?: RetreatReport;
   /**
    * Reported, not judged (#304): each reaction policy, for a module with a
    * reaction-eligible encounter; absent otherwise, or when not asked for.
@@ -2985,6 +3214,7 @@ export type GateMeasures = Readonly<{
   rests: RestReport;
   spendEarly?: SpendEarlyReport;
   stealthFirst?: StealthFirstReport;
+  retreat?: RetreatReport;
   reactions?: readonly ReactionPolicyReport[];
 }>;
 
@@ -3025,6 +3255,11 @@ export type GateOptions = Pick<
      * default. They are never judged, so `passesGate` leaves them out.
      */
     reportStealth?: boolean;
+    /**
+     * Whether to play and report the retreat runs (#396); true by default.
+     * They are never judged, so `passesGate` leaves them out.
+     */
+    reportRetreat?: boolean;
     /**
      * Whether to play and report both reaction policies (#304) for a module
      * with a reaction-eligible encounter; true by default. Never judged.
@@ -3149,6 +3384,7 @@ export function gateAdventure(
     sampleSeed,
     stepLimit,
     reportStealth = true,
+    reportRetreat = true,
     reportReactions = true,
     classId = DEFAULT_CLASS,
   }: GateOptions = {},
@@ -3225,6 +3461,13 @@ export function gateAdventure(
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, policy)
               : undefined,
+            // A run never low with no heal left is the retreat run too
+            // (#396): the retreat style would never have fled.
+            retreat: !reportRetreat
+              ? undefined
+              : run.retreatChances === 0
+                ? run
+                : playAdventure(seeded, RETREAT_STYLE, seed, policy),
             // A run its reaction policy never decided is the peaceful
             // run too (#347).
             peaceful: !reacting
@@ -3242,7 +3485,8 @@ export function gateAdventure(
       }),
     );
     /** A branch's runs: none for a branch not played. */
-    type Branch = "seeded" | "failing" | "stealth" | "peaceful" | "spending";
+    type Branch =
+      "seeded" | "failing" | "stealth" | "retreat" | "peaceful" | "spending";
     const branchRuns = (
       runs: (typeof played)[number]["runs"],
       branch: Branch,
@@ -3309,6 +3553,19 @@ export function gateAdventure(
             stealthy.length,
           meanBypassed: mean(stealthy.map(({ bypassed }) => bypassed)),
           meanXp: mean(stealthy.map(({ xp }) => xp)),
+        }
+      : undefined;
+    const retreating = played.flatMap(({ runs }) =>
+      branchRuns(runs, "retreat"),
+    );
+    const retreat: RetreatReport | undefined = reportRetreat
+      ? {
+          ...survivalOf("seeded", "retreat", RETREAT_STYLE, false),
+          completionRate:
+            retreating.filter(({ outcome }) => outcome === objective).length /
+            retreating.length,
+          meanFled: mean(retreating.map(({ fled }) => fled)),
+          meanXp: mean(retreating.map(({ xp }) => xp)),
         }
       : undefined;
     const policyReport = (
@@ -3562,6 +3819,7 @@ export function gateAdventure(
           xp,
           rests,
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
+          ...(retreat === undefined ? {} : { retreat }),
           ...(reactions === undefined ? {} : { reactions }),
           ...(spendEarly === undefined ? {} : { spendEarly }),
         },
@@ -3670,6 +3928,7 @@ export function gateVerdictAt(
     ...(measures.stealthFirst === undefined
       ? {}
       : { stealthFirst: measures.stealthFirst }),
+    ...(measures.retreat === undefined ? {} : { retreat: measures.retreat }),
     ...(measures.reactions === undefined
       ? {}
       : { reactions: measures.reactions }),
@@ -3730,6 +3989,7 @@ export function passesGate(adventure: FifthAdventure): boolean {
   if (passed === undefined) {
     passed = gateModule(adventure, {
       reportStealth: false,
+      reportRetreat: false,
       reportReactions: false,
     }).qualified;
     gated.set(key, passed);
@@ -3830,6 +4090,11 @@ export function renderGateResult(
       ? []
       : [
           `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile ${who} playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
+        ]),
+    ...(verdict.retreat === undefined
+      ? []
+      : [
+          `  Retreat, reported (not judged): the level ${verdict.retreat.level}, ${verdict.retreat.percentile}th percentile ${who} playing ${verdict.retreat.style} survived ${percent(verdict.retreat.rate)} of ${verdict.retreat.runs} runs with its weakest kit, ${verdict.retreat.kit} (${kits(verdict.retreat)}); over every kit and level it completed ${percent(verdict.retreat.completionRate)}, fled ${decimal(verdict.retreat.meanFled)} fights and earned ${decimal(verdict.retreat.meanXp)} XP a run.`,
         ]),
     ...(verdict.spendEarly === undefined
       ? []

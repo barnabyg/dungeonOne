@@ -529,6 +529,8 @@ const CLICK_ACTIONS = [
   "action-surge",
   "hide",
   "steady-aim",
+  // Cunning Action's Disengage (#396).
+  "disengage",
   // Channel Divinity (#341).
   "turn-undead",
   "preserve-life",
@@ -557,6 +559,8 @@ const APPROACH_ACTIONS: readonly string[] = [
 const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   move: (destinationId) => ({ type: "move", destinationId }),
   sneak: (destinationId) => ({ type: "sneak", destinationId }),
+  // Fleeing the fight here through an exit (#396).
+  flee: (destinationId) => ({ type: "flee", destinationId }),
   ambush: (roomId) => ({ type: "ambush", roomId }),
   react: (option) => ({ type: "react", option }),
   examine: (targetId) => ({ type: "examine", targetId }),

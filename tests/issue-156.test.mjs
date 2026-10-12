@@ -199,6 +199,9 @@ test("a carried potion is in the fight's bar; with the bonus action spent it is 
       ["attack", "Giant Rat", true],
       ["use", "Potion of Healing", true],
       ["second-wind", undefined, true],
+      // Fleeing (#396) by each way out.
+      ["flee", "Foot of the Stair", true],
+      ["flee", "Smugglers' Den", true],
       ["end-turn", undefined, true],
     ],
   );

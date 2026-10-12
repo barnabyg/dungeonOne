@@ -215,6 +215,7 @@ test("entering a room with a fight begins it, and nothing but fighting is offere
   assert.deepEqual(Object.keys(tools(state)), [
     "look",
     "get_character_status",
+    "flee",
     "use_item",
     "attack",
     "second_wind",
@@ -346,6 +347,7 @@ test("drinking a potion in a fight takes the bonus action", () => {
   assert.deepEqual(Object.keys(tools(drunk.state)), [
     "look",
     "get_character_status",
+    "flee",
     "attack",
     "end_turn",
   ]);

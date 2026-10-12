@@ -337,7 +337,9 @@ action on a line of its own, "Turn Undead every undead foe";
 **Fighter features**; **Rogue features**), **Items** (potions, and the scrolls
 and wands you can use), **Weapons** ("Swap Mace for Dagger", "Hold Dagger in
 your other hand"), **Answer the hit** while a hit waits for a reaction (Uncanny Dodge, a reaction
-spell such as Shield, or Take the hit), and
+spell such as Shield, or Take the hit), **Flee** (a button for each way out
+you could take, named by its room, and the attacks a flight draws after them,
+such as "Draws 2 attacks"), and
 **End turn** on its own at the end. Your turn ends by itself once nothing is
 left to do (the fight's first turn says so), so End turn only ends it early:
 beside it, "Left unused: Second Wind, Hide" lists what you would give up,
@@ -392,7 +394,13 @@ alcove", "drink the potion".
 ### Fighting
 
 Entering a room with a fight begins it: every combatant rolls initiative, and
-you cannot leave, examine, take, search, talk or open a door until it is won.
+you cannot examine, take, search, talk or open a door until it is won. You can
+leave only by fleeing: on your turn, with your action, **Flee to** any way out
+you could otherwise take (never through a shut door or a closed way). Each foe
+able to act gets one attack on you first, and the button says whose; a Rogue's
+**Disengage** (a bonus action, from level 2) spares you them that turn. The
+fight stays where it was: the fallen stay fallen, and the foes left standing
+keep their wounds and wait for you to come back; they never follow.
 Each turn has an action, a bonus action and a reaction. In a fight the action
 bar holds your whole toolkit: an **Attack** button for each living opponent,
 **Extra attack** for each with two light weapons (after an attack, with the
@@ -527,16 +535,22 @@ the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 26.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 52.
+  `characters-adventures` directory beside the library, in format version 55.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 31. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 33. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
-  or crossed swords for a one-off stat block.
+  or crossed swords for a one-off stat block. A module may group its rooms
+  into regions, such as an upper and a lower level; the room panel then shows
+  the current room's region above its name. A module may declare flags
+  (#397), facts that only ever turn on, set by what the character does
+  (pulling a lever, taking an item, entering a room, a fight's outcome or a
+  check's band); a passage may open once a flag is set, or close once one
+  is, and the room panel says so ("The way is open now.").
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -612,7 +626,9 @@ These are for development, not play.
   (`adventures/eval/obstacle-yard.json`), `--suite reactions` the reaction
   cases (#304), on _The Wary Cellar_ (`adventures/eval/wary-cellar.json`), and
   `--suite parley` the parley and toll cases (#305), on _The Bandit's Toll_
-  (`adventures/eval/bandit-toll.json`), modules for the evaluation only.
+  (`adventures/eval/bandit-toll.json`), and `--suite flags` the flag cases
+  (#397), on _The Winch Tunnels_ (`adventures/eval/winch-tunnels.json`),
+  modules for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

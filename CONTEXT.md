@@ -93,7 +93,7 @@ An uncommon magic item anyone may use (#346): its charges cast Magic Missile, on
 The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
 
 **Turned**:
-An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it succeeds on the save it repeats at the end of each of its turns (#348), takes damage, is attacked, the turner is incapacitated or the fight ends. Sear Undead's damage (#342) is the one damage that doesn't end it. While every foe left is turned, the character may leave the room; the fight stays unresolved and its fallen stay fallen.
+An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it succeeds on the save it repeats at the end of each of its turns (#348), takes damage, is attacked, the turner is incapacitated or the fight ends. Sear Undead's damage (#342) is the one damage that doesn't end it. While every foe left is turned, the character may leave the room without fleeing; the fight stays unresolved and its fallen stay fallen.
 _Avoid_: Fleeing (a turned undead never leaves the fight)
 
 **Always prepared**:
@@ -257,7 +257,15 @@ _Avoid_: Exit (alone, which means a passage out of a room), Retreat
 
 **Escape**:
 An ending the player chooses by leaving from an exit room: with loot when the character carries treasure or coin found in that adventure, without it otherwise. Like a victory, it is surviving completion.
-_Avoid_: Retreat, Flee (which a fled monster does), Quit
+_Avoid_: Retreat, Flee (a fled monster's, or the character's fleeing a fight, which may lead to an exit room but ends nothing), Quit
+
+**Fleeing a fight**:
+The character leaving a fight under way through an exit it could otherwise use (#396), on its turn with its action. Each opponent still in the fight and able to act first makes one attack against it (the house rule for opportunity attacks without positions); 0 HP from one is a defeat. The fight stays unresolved in its room: the fallen stay fallen, the opponents still standing keep their wounds and are met again on coming back, and none follows.
+_Avoid_: Escape (the ending), Fled (a monster that failed morale), Retreat (the balance harness's style that flees), Running away
+
+**Disengage**:
+The Rogue's Cunning Action option (#396), a bonus action from level 2: fleeing a fight later that turn draws no attacks. It does nothing else.
+_Avoid_: Dash, Withdraw (Cunning Strike's, not offered)
 
 **Abandonment**:
 Giving up an adventure in progress from the character sheet. The character's possessions, ledger and XP stay as they were when the adventure started, and it can start another.
@@ -270,6 +278,18 @@ _Avoid_: Character sheet, Adventure session
 **Room**:
 A place in an adventure module, joined to others by two-way passages. There is no map: a character is in one room at a time, and entering a room whose fight has not been won begins it.
 _Avoid_: Location, Square, Tile
+
+**Region**:
+A named part of an adventure module, such as an upper or a lower level (#395). In a module with regions every room belongs to exactly one; the room panel and the AI DM's scene name the current room's. It is a list of rooms, not a place on a map.
+_Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
+
+**Move count**:
+How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
+_Avoid_: Turns, Steps, Time
+
+**Flag**:
+A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled) or a check's band. A passage may open once a flag is set, or close once one is, and a circumstance may name one. The AI DM cannot set one.
+_Avoid_: Switch, Variable, Trigger, Quest state
 
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
@@ -340,7 +360,7 @@ Another try at a failed check, offered only when its adventure module authors on
 _Avoid_: Reroll, Second chance
 
 **Circumstance**:
-An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery or has won a named encounter (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
+An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery, has won a named encounter or has a named flag set (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
 _Avoid_: Situational modifier, Condition (which is a fight's)
 
 **Tool**:
@@ -442,6 +462,10 @@ _Avoid_: Check mode, Dice mode
 **Stealth-first**:
 The balance harness's play style that sneaks into every fight it can and slips past those that aren't its goal (#302). The balance gate reports it beside its checks but never judges it.
 _Avoid_: Sneaky style, Rogue style
+
+**Retreat**:
+The balance harness's play style that flees (#396): it plays as cautious, but in a fight below its heal threshold with no heal left it flees toward the nearest exit room, with Disengage first if it has it, then heads out and leaves. The balance gate reports it beside its checks but never judges it: the judged styles never flee.
+_Avoid_: Fleeing style, Escape (the ending)
 
 **Reaction policy**:
 How the balance harness answers a reaction roll's band (#304): attack, the default and the gate's judged runs, attacks whenever offered; peaceful takes a peaceful option whenever offered: let pass, then a toll it can afford, then a parley with the character's best offered skill (#305). The gate reports both for a module with a reaction-eligible encounter.

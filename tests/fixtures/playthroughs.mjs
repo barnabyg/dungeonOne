@@ -166,6 +166,7 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
     case "action-surge":
     case "hide":
     case "steady-aim":
+    case "disengage":
     case "turn-undead":
     case "preserve-life":
     case "end-turn":
@@ -176,6 +177,8 @@ function madeAction({ action, target, targets, rest, spell, mode }) {
       return { type: "use-item", itemId: target.id };
     case "move":
     case "sneak":
+    // Fleeing a fight through an exit (#396).
+    case "flee":
       return { type: action, destinationId: target.id };
     case "examine":
       return { type: "examine", targetId: target.id };

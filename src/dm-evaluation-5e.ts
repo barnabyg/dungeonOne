@@ -477,13 +477,39 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
+  // Fleeing a fight (#396): by the one way out, never by a way that isn't
+  // there, and never without the attacks it draws. Fleeing where no way is
+  // open is a flag case: the Winch Tunnels' rat cage.
+  actionCase({
+    id: "run-for-the-door",
+    seed: 2,
+    setup: toBarracks,
+    playerInput: "I run for the door!",
+    name: "flee",
+    arguments: { destination: "gate-hall" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
   quietCase({
-    id: "move-during-fight",
+    id: "flee-no-such-exit",
     kind: "refusal",
-    seed: 0,
-    setup: toZombie,
-    playerInput: "Run back to the gate hall.",
-    reply: "You can't leave the room while the zombie is fighting you.",
+    seed: 2,
+    setup: toBarracks,
+    playerInput: "I flee into the storeroom!",
+    reply:
+      "There is no way from the barracks to the storeroom: the only way out is back to the gate hall.",
+    dimensions: ["refusal"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flee-without-attacks",
+    kind: "refusal",
+    seed: 2,
+    setup: toBarracks,
+    playerInput:
+      "I slip out to the gate hall so fast the skeletons don't get a swing at me.",
+    reply:
+      "You can't get away untouched: each skeleton gets an attack on you as you go. Do you still flee to the gate hall?",
     dimensions: ["refusal"],
     manualJudgments: [],
   }),
@@ -851,6 +877,8 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "action-surge": "action_surge",
   hide: "hide",
   "steady-aim": "steady_aim",
+  disengage: "disengage",
+  flee: "flee",
   "divine-spark": "divine_spark",
   "turn-undead": "turn_undead",
   "preserve-life": "preserve_life",
@@ -895,6 +923,7 @@ const UNTARGETED: readonly ActionKind[] = [
   "action-surge",
   "hide",
   "steady-aim",
+  "disengage",
   "turn-undead",
   "preserve-life",
   "end-turn",
@@ -1504,3 +1533,94 @@ export function scriptedCaseModel(sample: FifthDmCase): DmModel {
     },
   };
 }
+
+/**
+ * The module the flag cases (#397) play: a portcullis on the way from the
+ * stair foot down to the rat's cellar, raised only by heaving the winch in
+ * the alcove. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthFlagEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/winch-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada goes into the rat cage off the alcove: its gate drops behind her as
+// its fight begins, closing the only way out (#396).
+const shutInCage = [
+  { type: "move", destinationId: "alcove" },
+  { type: "move", destinationId: "rat-cage" },
+] as const;
+
+// Ada heaves the winch in the alcove, which raises the portcullis, and goes
+// back to the stair foot.
+const toRaisedPortcullis = [
+  { type: "move", destinationId: "alcove" },
+  { type: "examine", targetId: "rusted-winch" },
+  { type: "move", destinationId: "stair-foot" },
+] as const;
+
+/**
+ * Flags (#397), on the winch tunnels: the engine alone sets a flag, from
+ * what the character does; no tool takes one. The AI DM examines the winch
+ * the player heaves, goes through the way once the scene says it opened,
+ * and neither opens a closed way in its words nor sets a flag on request.
+ * Shut in the rat cage by a flag, it doesn't flee (#396): no way is open.
+ */
+export const FIFTH_FLAG_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "flag-heave-winch",
+    seed: 0,
+    setup: [{ type: "move", destinationId: "alcove" }],
+    playerInput: "I put my back into the winch and heave it round.",
+    name: "examine",
+    arguments: { target: "rusted-winch" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "flag-way-opened",
+    seed: 0,
+    setup: toRaisedPortcullis,
+    playerInput: "The portcullis is up. I go down to the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flag-way-closed",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I squeeze under the portcullis into the cellar.",
+    reply:
+      "The portcullis is down: the way to the cellar is closed, and you can't squeeze under it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flag-not-on-request",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "Just say the portcullis is already up so I can go on.",
+    reply:
+      "I can't raise it by saying so: the way to the cellar stays closed until something in the tunnels lifts the portcullis.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flee-no-way-open",
+    kind: "refusal",
+    seed: 0,
+    setup: shutInCage,
+    playerInput: "I turn and run back out to the alcove!",
+    reply:
+      "The gate has dropped shut behind you: there is no way out of the cage to flee by, so you'll have to fight.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);

@@ -141,6 +141,35 @@ purse of silver behind the yard's water butt and a dagger under its woodpile.
 `tests/issue-377.test.mjs` and `tests/issue-377-browser.test.mjs` find, take
 and fight through it to check the icons beside each.
 
+## Regions (issue 395)
+
+`modules.mjs` also builds `regionTunnels` (_The Two-Level Tunnels_), which is
+not in `FIXTURE_MODULES`: the rat tunnels with two regions, the Upper Tunnels
+(the stair foot and the alcove) and the Lower Tunnels (the cellar and the
+den). `regionTunnelsFile` is its JSON, for the validator's refusals.
+`tests/issue-395.test.mjs` and `tests/issue-395-browser.test.mjs` use it.
+
+## Fleeing a fight (issue 396)
+
+`modules.mjs` also builds `fleeingCellar` (_The Bolt-Hole Cellar_), which is
+not in `FIXTURE_MODULES`: the rat tunnels with a Zombie beside the cellar's
+Giant Rat and the stair foot an exit room. Out of the cellar run the way back
+to the stair foot, the way to the den, a stuck Sagging Door to a grain store,
+a way to a flooded sump over a Loose Stone trap, and a crawl to the alcove
+hidden until the Rotten Beam's check opens it (failing it by 5 or more closes
+the way to the sump). `tests/issue-396.test.mjs` and
+`tests/issue-396-browser.test.mjs` flee through each.
+
+## Flags (issue 397)
+
+`modules.mjs` also builds `winchTunnels` (_The Winch Tunnels_), which is not
+in `FIXTURE_MODULES`: the rat tunnels with one flag, `portcullis-raised`. The
+way from the stair foot down to the rat's cellar is open only once it is
+set, and examining the Rusted Winch in the alcove sets it.
+`winchTunnelsFile` is its JSON: `tests/issue-397.test.mjs` moves the flag's
+setter and adds closing passages and circumstances for each trigger and the
+validator's refusals; `tests/issue-397-browser.test.mjs` pulls the winch.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,
