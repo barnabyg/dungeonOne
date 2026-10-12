@@ -2026,7 +2026,10 @@ function renderActions() {
     // End turn says what it gives up (#392): what the engine would still
     // accept this turn, named as the bar names it. With nothing left the
     // turn ends by itself, so End turn only ever ends one early.
-    const unused = fighting && action === "end-turn" && words !== WAIT && session.turn ? session.turn.options.filter((kind) => UNUSED_NAMES[kind]).map((kind) => UNUSED_NAMES[kind]) : [];
+    // A few spells left to cast are named: "Cast a spell: Healing Word".
+    const spellsLeft = [...new Set(session.actions.filter((option) => option.action === "cast" && option.available).map(({ spell }) => spell.name))];
+    const unusedName = (kind) => (kind === "cast" && spellsLeft.length && spellsLeft.length <= 3 ? UNUSED_NAMES.cast + ": " + spellsLeft.join(", ") : UNUSED_NAMES[kind]);
+    const unused = fighting && action === "end-turn" && words !== WAIT && session.turn ? session.turn.options.filter((kind) => UNUSED_NAMES[kind]).map(unusedName) : [];
     if (unused.length) {
       const line = make("span", undefined, "row-line end-line");
       const note = make("span", "Left unused: " + unused.join(", "), "end-note");
@@ -2385,7 +2388,10 @@ function castPanel(casts, kind = "spell") {
   // Keep the player's choice while it is offered; else the first that can
   // be cast now, or the first.
   const usable = casts.find(({ available }) => available) || casts[0];
-  if (!spells.some(([key]) => key === state.choice)) state.choice = castKey(usable);
+  // A choice that can't be cast now gives way to one that can (#392): once
+  // the action is spent, a bonus-action spell such as Healing Word.
+  const castable = (key) => casts.some((option) => castKey(option) === key && option.available);
+  if (!spells.some(([key]) => key === state.choice) || (!castable(state.choice) && usable.available)) state.choice = castKey(usable);
   const options = casts.filter((option) => castKey(option) === state.choice);
   const wrap = make("span", undefined, "action cast-choice");
   // An area spell has one entry, with the foes to choose among.
@@ -2410,8 +2416,12 @@ function castPanel(casts, kind = "spell") {
     const typed = !spell.damageType ? "" : spell.damageTypeUse === "dealt" ? " of " + spell.damageType : " against " + spell.damageType;
     // Bestow Curse's curse (#342).
     const cursed = spell.curseName ? ": " + spell.curseName : "";
-    const choice = make("option", spell.name + typed + cursed + (spell.item ? fromItem(spell) : spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    // One that can't be cast now says why, and can't be chosen unless
+    // none can (#392).
+    const why = castable(key) ? "" : casts.find((option) => castKey(option) === key).reason;
+    const choice = make("option", spell.name + typed + cursed + (spell.item ? fromItem(spell) : spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)") + (why ? " — " + why : ""));
     choice.value = key;
+    choice.disabled = Boolean(why) && usable.available;
     choice.selected = key === state.choice;
     spellSelect.append(choice);
   }

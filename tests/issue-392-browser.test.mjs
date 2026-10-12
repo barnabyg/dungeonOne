@@ -18,6 +18,10 @@ import {
 } from "../dist/character-5e.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
+import { currentCombatant } from "../dist/encounter-5e.js";
+import { createSeededRandom } from "../dist/random.js";
+import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { sessionSeed } from "../dist/session-5e.js";
 import { settled, startAdventure } from "./fixtures/browser-journey.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { rogueAt5, veteran } from "./fixtures/playthroughs.mjs";
@@ -71,7 +75,7 @@ const MIRA = (() => {
  * Starts `adventure` with `sheet` alone in a fresh library and waits for
  * the character's turn: an enabled attack.
  */
-async function fightWith(sheet, adventure, run) {
+async function fightWith(sheet, adventure, run, seed = 0) {
   const directory = await mkdtemp(join(tmpdir(), "issue-392-browser-"));
   const libraryPath = join(directory, "characters.json");
   await writeFile(
@@ -87,7 +91,7 @@ async function fightWith(sheet, adventure, run) {
   );
   const server = await startFifthBrowserServer({
     libraryPath,
-    seed: 0,
+    seed,
     adventures: [adventure],
     qualifies: () => true,
   });
@@ -348,4 +352,88 @@ test(
       await strike.waitFor();
       assert.match(await readRow(page, "attack"), /^Cunning Strike None /u);
     }),
+);
+
+/**
+ * A browser seed where the zombie hurts Mira before her first turn, and
+ * after her Sacred Flame the turn goes on with Healing Word to cast.
+ */
+const hurtSeed = (() => {
+  for (let seed = 0; seed < 500; seed++) {
+    const runtime = createFifthRuntime(crypt, MIRA);
+    const random = createSeededRandom(sessionSeed(seed, 1));
+    let state = runtime.handleAction(
+      runtime.createSession(),
+      { type: "begin" },
+      random,
+    ).state;
+    const mira = state.encounter?.combatants.find(({ id }) => id === "pc");
+    if (
+      currentCombatant(state.encounter)?.id !== "pc" ||
+      mira.hp === mira.maxHp
+    ) {
+      continue;
+    }
+    state = runtime.handleAction(
+      state,
+      {
+        type: "cast",
+        actorId: "pc",
+        spellId: "sacred-flame",
+        targetIds: ["zombie"],
+      },
+      random,
+    ).state;
+    if (
+      state.encounter?.outcome === "ongoing" &&
+      currentCombatant(state.encounter)?.id === "pc"
+    ) {
+      return seed;
+    }
+  }
+  throw new Error("no seed below 500 hurts Mira before a turn that goes on");
+})();
+
+test(
+  `with the action spent, the Cast choice moves to the spell left to cast and End turn names it (seed ${hurtSeed})`,
+  { timeout: 120000 },
+  () =>
+    fightWith(
+      MIRA,
+      crypt,
+      async (page) => {
+        const spell = page.locator("#cast-spell");
+        assert.equal(
+          await spell.locator("option:checked").textContent(),
+          "Sacred Flame (cantrip)",
+        );
+        await settled(page, () =>
+          page.locator('#action-bar button[data-action="cast"]').click(),
+        );
+        // Sacred Flame took the action: Healing Word, a bonus action, is
+        // what is left, so the choice moves to it and the others say why
+        // they can't be cast now.
+        assert.match(
+          await spell.locator("option:checked").textContent(),
+          /^Healing Word /u,
+        );
+        assert.equal(
+          await page
+            .locator('#action-bar button[data-action="cast"]')
+            .isEnabled(),
+          true,
+        );
+        const sacred = spell.locator("option", { hasText: "Sacred Flame" });
+        assert.equal(await sacred.isDisabled(), true);
+        assert.equal(
+          await sacred.textContent(),
+          "Sacred Flame (cantrip) — Action used",
+        );
+        assert.equal(
+          await page.locator(".end-note").textContent(),
+          "Left unused: Cast a spell: Healing Word",
+        );
+      },
+      hurtSeed,
+    ),
 );

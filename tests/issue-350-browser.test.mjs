@@ -121,10 +121,14 @@ async function fightTurn(page, who) {
   }
   if (who !== "fighter" && (await page.locator("#cast-spell").count()) > 0) {
     const label = `${CANTRIPS[who]} (cantrip)`;
-    if (
-      (await page.locator("#cast-spell option", { hasText: label }).count()) > 0
-    ) {
-      await page.locator("#cast-spell").selectOption({ label });
+    // A spell that can't be cast now is disabled, with why (#392).
+    const cantrip = page.locator("#cast-spell option:not([disabled])", {
+      hasText: label,
+    });
+    if ((await cantrip.count()) > 0) {
+      await page
+        .locator("#cast-spell")
+        .selectOption(await cantrip.first().getAttribute("value"));
       if (await enabled(cast)) {
         return settled(page, () => cast.first().click());
       }

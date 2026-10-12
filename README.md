@@ -329,7 +329,9 @@ In a fight the bar sorts the turn's options into rows, each under its name, in
 a fixed order: **Attack** (each attack names its weapon, "Attack Zombie with
 Mace"; against several foes each foe's attacks sit beside its name, and a
 Rogue's **Cunning Strike** choice comes first), **Cast a spell** ("Sacred Flame
-(cantrip) on Zombie", then **Cast**), the class's features (**Channel
+(cantrip) on Zombie", then **Cast**; a spell you can't cast now is greyed out
+with why, "Sacred Flame (cantrip) — Action used", and the choice moves to one
+you can), the class's features (**Channel
 Divinity**, with the uses its actions share shown once beside the name and each
 action on a line of its own, "Turn Undead every undead foe";
 **Fighter features**; **Rogue features**), **Items** (potions, and the scrolls
@@ -338,7 +340,8 @@ your other hand"), **Answer the hit** while a hit waits for a reaction (Uncanny 
 spell such as Shield, or Take the hit), and
 **End turn** on its own at the end. Your turn ends by itself once nothing is
 left to do (the fight's first turn says so), so End turn only ends it early:
-beside it, "Left unused: Second Wind, Hide" lists what you would give up. Tab
+beside it, "Left unused: Second Wind, Hide" lists what you would give up,
+naming the spells when only a few are left ("Cast a spell: Healing Word"). Tab
 order follows the rows. A weapon change
 that can't work with what you hold, such as a second weapon beside one that
 isn't light, isn't offered.

@@ -113,15 +113,14 @@ test(
         "Sacred Flame (cantrip)",
         "Bless (1st-level slot)",
         "Shield of Faith (1st-level slot)",
-        "Cure Wounds (1st-level slot)",
+        "Cure Wounds (1st-level slot) — Full HP",
       ]);
-      // Cure Wounds at full HP: Cast is disabled with the engine's reason.
-      await spell.selectOption({ label: "Cure Wounds (1st-level slot)" });
+      // Cure Wounds at full HP can't be chosen while other spells can be
+      // cast: its choice says why (#392).
       assert.equal(
-        await page.locator("button.act[data-action=cast]").isDisabled(),
+        await spell.locator("option", { hasText: "Cure Wounds" }).isDisabled(),
         true,
       );
-      assert.equal(await page.locator("#cast-reason").textContent(), "Full HP");
       await spell.selectOption({ label: "Bless (1st-level slot)" });
       assert.deepEqual(
         await page.locator("#cast-target option").allTextContents(),
