@@ -48,7 +48,7 @@ export const narratingDm = () => ({
  * sit: each must be inside the window, and the entry inside the log's
  * scroll area, without the player scrolling.
  */
-export const layout = (page) =>
+const layout = (page) =>
   page.evaluate(() => {
     const height = window.innerHeight;
     const width = window.innerWidth;
@@ -153,7 +153,7 @@ export const say = (page, message) =>
  * Sets every element's font to Verdana, which is as wide as the Linux
  * fallback font CI renders with and wider than Windows' default.
  */
-export const widenFont = (page) =>
+const widenFont = (page) =>
   page.evaluate(() => {
     for (const node of document.querySelectorAll("*")) {
       node.style.fontFamily = "Verdana, sans-serif";

@@ -1,8 +1,8 @@
 // #137: the critical journey under the default launch command, browser →
-// API → storage. Create a Fighter, start The Abandoned
-// Delve, move between views with Back and Forward, continue from the library
-// row, fight the barracks' two Skeletons, reload and restart the launcher
-// mid-fight, then escape with loot and see the level-up.
+// API → storage. Create a Fighter, start The Abandoned Delve, move between
+// views with Back and Forward, continue from the library row, fight the
+// barracks' two Skeletons, reload and restart the launcher mid-fight, then
+// escape with loot and see the level-up.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";

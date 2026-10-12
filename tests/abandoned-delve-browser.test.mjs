@@ -1,7 +1,7 @@
 // #136: The Abandoned Delve plays in the browser through the action bar,
 // keeping the newest history entry and the actions on screen after each
-// action (#154), with no horizontal scroll. The
-// Leave question opening and closing keeps that too (#221).
+// action (#154), with no horizontal scroll. The Leave question opening and
+// closing keeps that too (#221).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";

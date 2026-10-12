@@ -122,7 +122,7 @@ test("the launcher's setup hint names the key and the restart", () => {
 
 const viewport = { width: 1280, height: 850 };
 
-test(`without a key the composer is disabled with a notice and the buttons work`, () =>
+test("without a key the composer is disabled with a notice and the buttons work", () =>
   withServer({ apiKey: "" }, async (server) => {
     const browser = await launch();
     const page = await browser.newPage({ viewport });
@@ -158,7 +158,7 @@ test(`without a key the composer is disabled with a notice and the buttons work`
     }
   }));
 
-test(`with the scripted DM the composer is enabled and a draft stays with its session`, () =>
+test("with the scripted DM the composer is enabled and a draft stays with its session", () =>
   withServer({ dmModel: narratingDm() }, async (server) => {
     const browser = await launch();
     const page = await browser.newPage({ viewport });

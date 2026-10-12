@@ -139,6 +139,7 @@ async function fightClick(page) {
     (await strike.locator('option[value="trip"]').count()) > 0
   ) {
     await strike.selectOption("trip");
+    await assertTogether(page, "the Cunning Strike choice");
     await settled(page, () => attack.first().click());
     return "struck";
   }

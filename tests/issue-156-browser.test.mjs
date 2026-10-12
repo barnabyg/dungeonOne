@@ -331,8 +331,6 @@ test(
       );
       assert.deepEqual(file.state.inventory, ["healing-potion"]);
       assert.equal(file.state.roomId, "rat-cellar");
-
-      // No horizontal scroll, even with a wide font as CI's Linux one is.
     } finally {
       await browser.close();
       await server.close();

@@ -2,7 +2,8 @@
 // feature as a collapsed disclosure that opens to what the feature does (the
 // sheet's text). A level-1 Fighter reaches level 2 (Action Surge, Tactical
 // Mind) and a level-2 Rogue reaches level 3 (Steady Aim and the Thief's Fast
-// Hands and Second-Story Work): no horizontal scroll, and the way back to the sheet still works with every one open.
+// Hands and Second-Story Work): no horizontal scroll, and the way back to
+// the sheet still works with every one open.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";

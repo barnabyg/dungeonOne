@@ -1,6 +1,5 @@
 // #198: a full loot run keeps actions and history on screen. In a crypt with
-// a way out,
-// Ada forces a door, talks, searches for a trap, takes both potions, the key,
+// a way out, Ada forces a door, talks, searches for a trap, takes both potions, the key,
 // the coins and every treasure, unlocks the strongroom, fights the warden and
 // walks out, and after every action the newest history entry and the actions
 // are on screen together (#154).
