@@ -23,6 +23,11 @@ import {
   withOwedChoices,
 } from "../dist/character-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
+import {
+  FIFTH_FLAG_DM_CASES,
+  loadFifthFlagEvaluationAdventure,
+  setUpCase,
+} from "../dist/dm-evaluation-5e.js";
 import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
 import {
   createFifthRuntime,
@@ -319,6 +324,31 @@ test("Disengage is refused where no way out is open to flee by", () => {
     runtime
       .getGameToolDefinitions(state)
       .some(({ name }) => name === "disengage"),
+    false,
+  );
+});
+
+test("the AI DM's no-way-open case is a fight whose every way out is shut", async () => {
+  const adventure = await loadFifthFlagEvaluationAdventure();
+  const sample = FIFTH_FLAG_DM_CASES.find(
+    ({ id }) => id === "flee-no-way-open",
+  );
+  assert.deepEqual(sample.expectation, { kind: "no-action" });
+  const { runtime, state } = setUpCase(sample, adventure);
+  assert.equal(state.roomId, "rat-cage");
+  assert.equal(state.encounter?.outcome, "ongoing");
+  assert.equal(currentCombatant(state.encounter).id, "pc");
+  // Its one way out exists, but the dropped gate has closed it.
+  assert.deepEqual(
+    runtime.projectRoom(state).exits.map(({ id }) => id),
+    ["alcove"],
+  );
+  assert.equal(
+    runtime.handleAction(state, FLEE("alcove")).rejection.code,
+    "route-closed",
+  );
+  assert.equal(
+    runtime.getGameToolDefinitions(state).some(({ name }) => name === "flee"),
     false,
   );
 });

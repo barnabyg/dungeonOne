@@ -597,7 +597,8 @@ test("the AI DM's scene says which ways a flag opened or keeps closed", () => {
 test("the flag evaluation cases pass with a scripted DM", async () => {
   const adventure = await loadFifthFlagEvaluationAdventure();
   assert.equal(adventure.formatVersion, FIFTH_ADVENTURE_FORMAT);
-  assert.deepEqual(adventure.flags, ["portcullis-raised"]);
+  // The rat cage's gate is for fleeing where no way is open (#396).
+  assert.deepEqual(adventure.flags, ["portcullis-raised", "cage-gate-dropped"]);
   for (const sample of FIFTH_FLAG_DM_CASES) {
     const session = setUpCase(sample, adventure);
     assert.ok(offeredToolsMatchActions(session), sample.id);

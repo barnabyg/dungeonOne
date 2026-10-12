@@ -54,6 +54,15 @@
       ]
     },
     {
+      "id": "rat-cage",
+      "name": "Rat Cage",
+      "description": "A low stone pen behind an arch. As you step in, an iron gate drops shut in the arch behind you.",
+      "sets": "cage-gate-dropped",
+      "encounterId": "cage-rat",
+      "features": [],
+      "items": []
+    },
+    {
       "id": "rat-cellar",
       "name": "Rat-Gnawed Cellar",
       "description": "Grain sacks slump against the walls, chewed open. Droppings cover the floor.",
@@ -88,6 +97,12 @@
       "id": "stair-to-alcove",
       "between": ["stair-foot", "alcove"],
       "description": "A low gap in the passage wall."
+    },
+    {
+      "id": "alcove-to-cage",
+      "between": ["alcove", "rat-cage"],
+      "description": "A low arch, an iron gate raised in its top.",
+      "closeWhen": "cage-gate-dropped"
     },
     {
       "id": "stair-to-cellar",
@@ -192,6 +207,51 @@
       ],
       "victoryEndingId": "cellar-cleared",
       "defeatEndingId": "fallen-in-the-cellar"
+    },
+    {
+      "id": "cage-rat",
+      "opponents": [
+        {
+          "id": "starved-rat",
+          "name": "Starved Rat",
+          "description": "A starved rat the size of a dog flies at you from the straw.",
+          "statBlock": {
+            "name": "Giant Rat",
+            "size": "Small",
+            "type": "Beast",
+            "armorClass": 13,
+            "hitPoints": {
+              "average": 7,
+              "formula": "2d6"
+            },
+            "abilities": {
+              "strength": 7,
+              "dexterity": 16,
+              "constitution": 11,
+              "intelligence": 2,
+              "wisdom": 10,
+              "charisma": 4
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "passivePerception": 10,
+            "morale": 8,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-cellar"
     }
   ],
   "endings": [
@@ -208,5 +268,5 @@
       "text": "You fall on the cold cellar floor. Your adventuring ends here."
     }
   ],
-  "flags": ["portcullis-raised"]
+  "flags": ["portcullis-raised", "cage-gate-dropped"]
 }

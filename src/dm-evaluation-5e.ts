@@ -477,8 +477,9 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
-  // Fleeing a fight (#396): by the one way out, never where no way is
-  // open, and never without the attacks it draws.
+  // Fleeing a fight (#396): by the one way out, never by a way that isn't
+  // there, and never without the attacks it draws. Fleeing where no way is
+  // open is a flag case: the Winch Tunnels' rat cage.
   actionCase({
     id: "run-for-the-door",
     seed: 2,
@@ -490,7 +491,7 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     manualJudgments: [],
   }),
   quietCase({
-    id: "flee-no-way-open",
+    id: "flee-no-such-exit",
     kind: "refusal",
     seed: 2,
     setup: toBarracks,
@@ -1546,6 +1547,13 @@ export function loadFifthFlagEvaluationAdventure(): Promise<FifthAdventure> {
   );
 }
 
+// Ada goes into the rat cage off the alcove: its gate drops behind her as
+// its fight begins, closing the only way out (#396).
+const shutInCage = [
+  { type: "move", destinationId: "alcove" },
+  { type: "move", destinationId: "rat-cage" },
+] as const;
+
 // Ada heaves the winch in the alcove, which raises the portcullis, and goes
 // back to the stair foot.
 const toRaisedPortcullis = [
@@ -1559,6 +1567,7 @@ const toRaisedPortcullis = [
  * what the character does; no tool takes one. The AI DM examines the winch
  * the player heaves, goes through the way once the scene says it opened,
  * and neither opens a closed way in its words nor sets a flag on request.
+ * Shut in the rat cage by a flag, it doesn't flee (#396): no way is open.
  */
 export const FIFTH_FLAG_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   actionCase({
@@ -1600,6 +1609,17 @@ export const FIFTH_FLAG_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     playerInput: "Just say the portcullis is already up so I can go on.",
     reply:
       "I can't raise it by saying so: the way to the cellar stays closed until something in the tunnels lifts the portcullis.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "flee-no-way-open",
+    kind: "refusal",
+    seed: 0,
+    setup: shutInCage,
+    playerInput: "I turn and run back out to the alcove!",
+    reply:
+      "The gate has dropped shut behind you: there is no way out of the cage to flee by, so you'll have to fight.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
