@@ -37,20 +37,21 @@
  * the player explore on. On its turn the character may instead flee (#396)
  * through an exit it could otherwise use, each opponent able to act first
  * making one attack (none after a Rogue's Disengage); the fight stays
- * unresolved, its standing opponents keeping their wounds. Opponents may lose their nerve and flee (#237): one
- * that fled a won fight leaves no body to search, so what it carried leaves
- * with it, and gives half its XP if it exchanged blows with the character
- * first, or none. One whose module authors a surrender (#238) yields instead:
- * it leaves no body either, and once the fight is won it is a creature to
- * talk to, whose topics may offer what it carried. Hit points, class
- * feature uses and carried items last from fight to fight. In an exit room
- * the player may choose to leave, ending the adventure with or without the
- * loot it carries (treasure, or coin found here); leaving is the player's
- * own choice, so it is an action-bar action and never an AI DM
- * tool. The session starts holding the character's possessions (its
- * equipment, treasure and purse); treasure and coin the character has found
- * before are not there to find again. `projectSettlement` gives how a surviving ending
- * settles the character: what it holds at the end, and what it earned.
+ * unresolved, its standing opponents keeping their wounds. Opponents may
+ * lose their nerve and flee (#237): one that fled a won fight leaves no body
+ * to search, so what it carried leaves with it, and gives half its XP if it
+ * exchanged blows with the character first, or none. One whose module
+ * authors a surrender (#238) yields instead: it leaves no body either, and
+ * once the fight is won it is a creature to talk to, whose topics may offer
+ * what it carried. Hit points, class feature uses and carried items last
+ * from fight to fight. In an exit room the player may choose to leave,
+ * ending the adventure with or without the loot it carries (treasure, or
+ * coin found here); leaving is the player's own choice, so it is an
+ * action-bar action and never an AI DM tool. The session starts holding the
+ * character's possessions (its equipment, treasure and purse); treasure and
+ * coin the character has found before are not there to find again.
+ * `projectSettlement` gives how a surviving ending settles the character:
+ * what it holds at the end, and what it earned.
  *
  * Outside a fight, where a merchant is, the character buys what it stocks at
  * catalogue prices, sells catalogue gear for half, and sells gems and art

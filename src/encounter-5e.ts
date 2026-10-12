@@ -3085,9 +3085,9 @@ function drainingTouch(
 }
 
 /**
- * What `actorId` may do now; empty unless it is its turn. Fleeing and Disengage (#396) are left out: the
- * caller offers a flight by each exit it could take, and the turn's end by
- * itself doesn't wait on them.
+ * What `actorId` may do now; empty unless it is its turn. Fleeing and
+ * Disengage (#396) are left out: the caller offers a flight by each exit it
+ * could take, and the turn's end by itself doesn't wait on them.
  */
 export function availableActions(
   state: EncounterState,
