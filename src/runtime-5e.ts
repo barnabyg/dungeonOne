@@ -103,6 +103,7 @@ import {
   type FifthEnding,
   type FifthItem,
   type FifthPassage,
+  type FifthRoom,
   type FifthTrap,
   type StatBlock,
 } from "./adventure-5e.js";
@@ -512,6 +513,8 @@ export type FifthState = Readonly<{
   shortRests: number;
   /** The long rests taken in this adventure (#335). */
   longRests: number;
+  /** The character's moves between rooms in this adventure (#395). */
+  moves: number;
   /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
@@ -4249,6 +4252,8 @@ export type RoomView = Readonly<{
   description: string;
   /** A safe place to rest, where a long rest may be taken (#335). */
   restSite?: true;
+  /** The name of the region the room belongs to (#395), if it has one. */
+  region?: string;
   /**
    * Each exit, with its door (if any) and its trap once found or sprung. A
    * trap the character has not found stays hidden, and so does a hidden
@@ -5082,6 +5087,11 @@ export function createFifthRuntime(
   const roomById = (roomId: string) =>
     adventure.rooms.find(({ id }) => id === roomId)!;
   const room = (state: FifthState) => roomById(state.roomId);
+  /** `{ region }`, the name of `of`'s region (#395), or nothing. */
+  const regionOf = (of: FifthRoom): Readonly<{ region?: string }> => {
+    const region = adventure.regions?.find(({ id }) => id === of.region);
+    return region === undefined ? {} : { region: region.name };
+  };
   /** The encounter placed in the character's room, if any. */
   const placedEncounterOf = (state: FifthState) =>
     adventure.encounters.find(({ id }) => id === room(state).encounterId);
@@ -8338,7 +8348,11 @@ export function createFifthRuntime(
         // encounter's (#335) stays behind with it.
         const { encounter: left, ...kept } = cleared(sprung.state, "wandering");
         void left;
-        const arrived: FifthState = { ...kept, roomId: destination.id };
+        const arrived: FifthState = {
+          ...kept,
+          roomId: destination.id,
+          moves: kept.moves + 1,
+        };
         const fight = encounterOf(arrived);
         const metHere =
           fight === undefined || settled(state, fight.id)
@@ -10092,6 +10106,7 @@ export function createFifthRuntime(
         id: current.id,
         name: current.name,
         description: current.description,
+        ...regionOf(current),
         features: describedFeatures(state).map(
           ({ id, name, description, discovery }) => ({
             id,
@@ -10331,6 +10346,7 @@ export function createFifthRuntime(
       name: current.name,
       description: current.description,
       ...(current.restSite === true ? { restSite: true as const } : {}),
+      ...regionOf(current),
       exits: ways(state).map(
         ({
           passage: { id: passageId, hidden, door, trap, description },
@@ -11555,6 +11571,7 @@ export function createFifthRuntime(
       dropped: [],
       shortRests: 0,
       longRests: 0,
+      moves: 0,
     }),
     handleAction,
     renderResult: (result: RuntimeResult) =>

@@ -46,6 +46,8 @@ export type DmScene = Readonly<{
     id: string;
     name: string;
     description: string;
+    /** The name of the part of the adventure the room is in, for a runtime with regions. */
+    region?: string;
     features: readonly Readonly<{
       id: string;
       name: string;

@@ -141,6 +141,14 @@ purse of silver behind the yard's water butt and a dagger under its woodpile.
 `tests/issue-377.test.mjs` and `tests/issue-377-browser.test.mjs` find, take
 and fight through it to check the icons beside each.
 
+## Regions (issue 395)
+
+`modules.mjs` also builds `regionTunnels` (_The Two-Level Tunnels_), which is
+not in `FIXTURE_MODULES`: the rat tunnels with two regions, the Upper Tunnels
+(the stair foot and the alcove) and the Lower Tunnels (the cellar and the
+den). `regionTunnelsFile` is its JSON, for the validator's refusals.
+`tests/issue-395.test.mjs` and `tests/issue-395-browser.test.mjs` use it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

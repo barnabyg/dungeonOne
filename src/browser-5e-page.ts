@@ -168,7 +168,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="session-layout">
 <section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="session-scene">
-<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
+<section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><h3 id="room-title"></h3>
 <p id="room-description"></p>
 <div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
 <div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
@@ -1630,6 +1630,8 @@ function gearEntries(gear) {
 }
 
 function renderRoom(room) {
+  element("room-region").textContent = room.region ?? "";
+  element("room-region").hidden = room.region === undefined;
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
   for (const list of ROOM_LISTS) {

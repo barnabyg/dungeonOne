@@ -271,6 +271,14 @@ _Avoid_: Character sheet, Adventure session
 A place in an adventure module, joined to others by two-way passages. There is no map: a character is in one room at a time, and entering a room whose fight has not been won begins it.
 _Avoid_: Location, Square, Tile
 
+**Region**:
+A named part of an adventure module, such as an upper or a lower level (#395). In a module with regions every room belongs to exactly one; the room panel and the AI DM's scene name the current room's. It is a list of rooms, not a place on a map.
+_Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
+
+**Move count**:
+How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
+_Avoid_: Turns, Steps, Time
+
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)

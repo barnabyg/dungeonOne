@@ -532,6 +532,27 @@ export const goblinYardFile = (() => {
 })();
 export const goblinYard = validateModule(structuredClone(goblinYardFile));
 
+/**
+ * Regions (#395): the rat tunnels as _The Two-Level Tunnels_, whose stair
+ * foot and alcove are the Upper Tunnels and whose cellar and den are the
+ * Lower Tunnels.
+ */
+export const regionTunnelsFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "region-tunnels";
+  module.title = "The Two-Level Tunnels";
+  module.regions = [
+    { id: "upper", name: "Upper Tunnels" },
+    { id: "lower", name: "Lower Tunnels" },
+  ];
+  room(module, "stair-foot").region = "upper";
+  room(module, "alcove").region = "upper";
+  room(module, "rat-cellar").region = "lower";
+  room(module, "den").region = "lower";
+  return module;
+})();
+export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

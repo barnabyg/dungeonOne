@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 28) and its validator.
+ * The 5e adventure module format (format version 32) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -65,6 +65,10 @@
  * have circumstances that give it advantage or disadvantage. A tool is a
  * mundane item, such as a rope, that does nothing by itself: a check's
  * circumstance or retry cost names it.
+ *
+ * A module may group its rooms into regions (#395), such as an upper and a
+ * lower level: then every room names its region, and every region has a
+ * room. Regions are a list, not a map.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -175,10 +179,12 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 31;
+export const FIFTH_ADVENTURE_FORMAT = 32;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
+/** The most regions one module may declare (#395). */
+const MAX_REGIONS = 10;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export type FifthOpponent = Readonly<{
@@ -617,10 +623,19 @@ export type FifthRoom = Readonly<{
   exit?: true;
   /** The character may take its one long rest here (#335). */
   restSite?: true;
+  /** The id of the region it belongs to (#395), in a module with regions. */
+  region?: string;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
   creatures: readonly FifthCreature[];
 }>;
+
+/**
+ * A part of a module, such as an upper or a lower level (#395): a list of
+ * rooms, not a place on a map. In a module with regions every room belongs
+ * to one, and every region has a room.
+ */
+export type FifthRegion = Readonly<{ id: string; name: string }>;
 
 /**
  * A shut door in a passage. A stuck door is forced open; a locked one opens
@@ -701,6 +716,8 @@ export type FifthAdventure = Readonly<{
   recommendedLevels: Readonly<{ min: number; max: number }>;
   difficulty: Difficulty;
   startRoomId: string;
+  /** Its regions (#395), each with a room; without them, rooms have none. */
+  regions?: readonly FifthRegion[];
   rooms: readonly FifthRoom[];
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
@@ -1539,7 +1556,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["wanderingEncounter"],
+    ["regions", "wanderingEncounter"],
     "the module",
   );
   const moduleId = id(module.id, "id");
@@ -1841,14 +1858,31 @@ function validateModule(
     },
   );
   const encounterIds = unique(encounters, "encounter");
+  const regions =
+    module.regions === undefined
+      ? undefined
+      : list(module.regions, "regions", MAX_REGIONS).map((entry, index) => {
+          const where = `region ${index + 1}`;
+          const region = exactKeys(entry, ["id", "name"], where);
+          return {
+            id: id(region.id, `${where} id`),
+            name: text(region.name, `${where} name`, 60),
+          };
+        });
+  const regionIds = unique(regions ?? [], "region");
   const rooms = list(module.rooms, "rooms", 50).map((entry, index) => {
     const where = `room ${index + 1}`;
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId", "creatures", "exit", "restSite"],
+      ["encounterId", "creatures", "exit", "restSite", "region"],
       where,
     );
+    if (room.region !== undefined && !regionIds.has(room.region as string)) {
+      fail(
+        `${where} (${String(room.id)}) names unknown region ${String(room.region)}.`,
+      );
+    }
     if (room.exit !== undefined && room.exit !== true) {
       fail(`${where} exit must be true, or left out.`);
     }
@@ -2065,12 +2099,27 @@ function validateModule(
         : { encounterId: room.encounterId as string }),
       ...(room.exit === true ? { exit: true as const } : {}),
       ...(room.restSite === true ? { restSite: true as const } : {}),
+      ...(room.region === undefined ? {} : { region: room.region as string }),
       features,
       items,
       creatures,
     };
   });
   const roomIds = unique(rooms, "room");
+  // Regions (#395): every room has one, or none does, and each has a room.
+  if (rooms.some(({ region }) => region !== undefined)) {
+    const index = rooms.findIndex(({ region }) => region === undefined);
+    if (index !== -1) {
+      fail(
+        `room ${index + 1} (${rooms[index]!.id}) has no region, but other rooms have one: give every room a region, or none.`,
+      );
+    }
+  }
+  for (const { id: regionId } of regions ?? []) {
+    if (!rooms.some(({ region }) => region === regionId)) {
+      fail(`region ${regionId} has no room: give it one, or leave it out.`);
+    }
+  }
   // D10 and D11 (#345): one magic item, from level 3, none needing
   // attunement; a wand (#346) is one.
   const [magicProblem] = magicItemProblems(
@@ -2869,6 +2918,7 @@ function validateModule(
     recommendedLevels: { min, max },
     difficulty: module.difficulty as Difficulty,
     startRoomId: module.startRoomId as string,
+    ...(regions === undefined ? {} : { regions }),
     rooms,
     passages,
     encounters,
