@@ -84,6 +84,7 @@ import {
   type RetryCost,
   authoredChecks,
   effectsOf,
+  flagsSetBy,
   extremeTotals,
   FOUND_ONCE_KINDS,
   ITEM_KINDS,
@@ -8307,9 +8308,7 @@ export function createFifthRuntime(
       ...after.checks
         .filter((made, index) => made !== before.checks[index])
         .flatMap(({ id, band }) =>
-          effectsOf(siteChecks.get(id)?.bands?.[band]).flatMap((effect) =>
-            effect.type === "set" ? [effect.flag] : [],
-          ),
+          flagsSetBy(siteChecks.get(id)?.bands?.[band]),
         ),
     ];
     const fresh = [...new Set(set)].filter(

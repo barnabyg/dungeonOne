@@ -546,6 +546,82 @@ export function encounterSureFlags(
     : [won];
 }
 
+/** The flags a check's band sets (#397): its `set` effects. */
+export const flagsSetBy = (outcome: CheckBand | undefined): readonly string[] =>
+  effectsOf(outcome).flatMap((entry) =>
+    entry.type === "set" ? [entry.flag] : [],
+  );
+
+/** A flag going into a room sets for sure (#397), and what sets it. */
+export type SureFlagSetter = Readonly<{
+  flag: string;
+  /**
+   * Entering the room, examining one of its features, taking one of its
+   * items or ending its fight, by the room's, feature's, item's or
+   * encounter's id.
+   */
+  by: "room" | "feature" | "item" | "encounter";
+  id: string;
+}>;
+
+/**
+ * What sets each flag going into `room` sets for sure (#397): entering it;
+ * examining a feature, by its own `sets` (whatever its check's band) or a
+ * flag every band of its check sets; taking an item in plain sight or hidden
+ * in a feature of the room with no check (not one a band may never reveal,
+ * nor one an opponent carries, whose body may never be searched); and
+ * ending its fight (`encounterSureFlags`). The validator and the balance
+ * harness both count on these, and on nothing else in the room.
+ */
+export function sureFlagSetters(
+  room: FifthRoom,
+  encounters: readonly FifthEncounter[],
+): readonly SureFlagSetter[] {
+  const everyBand = (check: AuthoredCheck | undefined): readonly string[] =>
+    check === undefined
+      ? []
+      : BANDS.map((band) =>
+          flagsSetBy(check.bands?.[authoredBand(check, band)]),
+        ).reduce((all, flags) => all.filter((flag) => flags.includes(flag)));
+  const fight = encounters.find(({ id }) => id === room.encounterId);
+  const unchecked = new Set(
+    room.features.flatMap(({ id, check }) => (check === undefined ? [id] : [])),
+  );
+  return [
+    ...(room.sets === undefined
+      ? []
+      : [{ flag: room.sets, by: "room" as const, id: room.id }]),
+    ...room.features.flatMap(({ id, sets, check }) =>
+      [
+        ...new Set([
+          ...(sets === undefined ? [] : [sets]),
+          ...everyBand(check),
+        ]),
+      ].map((flag) => ({ flag, by: "feature" as const, id })),
+    ),
+    ...room.items.flatMap(({ id, sets, hiddenIn }) =>
+      sets === undefined || (hiddenIn !== undefined && !unchecked.has(hiddenIn))
+        ? []
+        : [{ flag: sets, by: "item" as const, id }],
+    ),
+    ...(fight === undefined
+      ? []
+      : encounterSureFlags(fight).map((flag) => ({
+          flag,
+          by: "encounter" as const,
+          id: fight.id,
+        }))),
+  ];
+}
+
+/** The flags going into `room` sets for sure (#397): `sureFlagSetters`'. */
+export const roomSureFlags = (
+  room: FifthRoom,
+  encounters: readonly FifthEncounter[],
+): readonly string[] => [
+  ...new Set(sureFlagSetters(room, encounters).map(({ flag }) => flag)),
+];
+
 /**
  * What each kind of item does: the SRD 5.2 healing potions heal, a key
  * opens the locked doors that name it, treasure is kept on surviving, coin
@@ -2901,37 +2977,9 @@ function validateModule(
           )
         : []),
     ]);
-  /** The flags a band sets (#397). */
-  const setsOn = (site: AuthoredSite, band: Band): readonly string[] =>
-    effectsOf(site.check.bands?.[band]).flatMap((entry) =>
-      entry.type === "set" ? [entry.flag] : [],
-    );
-  /**
-   * The flags reaching each room sets for sure (#397): entering it,
-   * examining its features, taking its items (but those a checked
-   * feature's band may never reveal) and ending its fight, when every
-   * final outcome it can reach sets the flag (`encounterSureFlags`).
-   */
+  /** The flags reaching each room sets for sure (#397). */
   const roomFlags = new Map(
-    rooms.map((room) => {
-      const fight = encounters.find(
-        ({ id: encounterId }) => encounterId === room.encounterId,
-      );
-      return [
-        room.id,
-        [
-          room.sets,
-          ...room.features.map(({ sets }) => sets),
-          ...room.items
-            .filter(
-              ({ hiddenIn }) =>
-                featureById.get(hiddenIn ?? "")?.check === undefined,
-            )
-            .map(({ sets }) => sets),
-          ...encounterSureFlags(fight),
-        ].filter((flag): flag is string => flag !== undefined),
-      ] as const;
-    }),
+    rooms.map((room) => [room.id, roomSureFlags(room, encounters)] as const),
   );
   /** The rooms reached for sure, and the flags set for sure (#397). */
   type Reach = Readonly<{ rooms: Set<string>; flags: Set<string> }>;
@@ -3002,7 +3050,7 @@ function validateModule(
           closure(
             sure.rooms,
             opensOn(site, band),
-            new Set([...sure.flags, ...setsOn(site, band)]),
+            new Set([...sure.flags, ...flagsSetBy(site.check.bands?.[band])]),
           ),
         );
         const forward: Reach = {

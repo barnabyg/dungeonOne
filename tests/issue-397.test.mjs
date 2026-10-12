@@ -713,3 +713,48 @@ test("the harness wins the fight whose flag its route needs", () => {
     }
   }
 });
+
+test("the harness goes back to set a flag in a room it slipped through", () => {
+  // The Rat Run with its way out moved to a hatch past the den, unbarred by
+  // examining the gnawed sacks in the rat's cellar. The stealth-first run
+  // slips past the rat to look into the den first, leaving the sacks
+  // unexamined: it must go back to the cellar for the flag.
+  const file = structuredClone(ratRunFile);
+  file.flags = ["hatch-unbarred"];
+  room(file, "rat-cellar").features[0].sets = "hatch-unbarred";
+  delete room(file, "den").exit;
+  file.rooms.push({
+    id: "hatch",
+    name: "Hatch",
+    description: "A trapdoor opens onto the hillside.",
+    features: [],
+    items: [],
+    exit: true,
+  });
+  file.passages.push({
+    id: "den-to-hatch",
+    between: ["den", "hatch"],
+    description: "A ladder up to a barred hatch.",
+    openWhen: "hatch-unbarred",
+  });
+  const runtime = createFifthRuntime(validateModule(file), TEST_FIGHTER);
+  const runs = [0, 1, 2, 3, 4, 5].map((seed) =>
+    playAdventure(runtime, "stealth-first", seed),
+  );
+  // Some run slipped past the rat and still got out by the hatch.
+  assert.ok(
+    runs.some(
+      ({ bypassed, outcome, encounters }) =>
+        bypassed > 0 &&
+        outcome === "escape-without-loot" &&
+        encounters.some(({ id }) => id === "cellar-rat"),
+    ),
+  );
+  for (const { roomIds, outcome } of runs) {
+    assert.ok(
+      outcome === "defeat" ||
+        (outcome === "escape-without-loot" && roomIds.includes("hatch")),
+      `${outcome}: ${roomIds.join(" > ")}`,
+    );
+  }
+});
