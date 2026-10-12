@@ -1,6 +1,6 @@
 // #157: a trimmed room panel and initiative table. Empty room lists are left
 // out, and a room with nothing in it says so in one line. In a fight the
-// room's details collapse behind a keyboard-operable disclosure. The
+// room's details stay shown, with the Fight section above them (#386). The
 // initiative table shows totals, marks the current turn by highlighting its
 // row and tagging the name, keeps the rolls and roll-offs in a disclosure,
 // and collapses once the fight is over. The exploring side (short verbs,
@@ -15,12 +15,14 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { loneGoblin } from "./fixtures/modules.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
+import { loneGoblin, moduleFile } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import {
   assertNoSideScroll,
   firstFighter,
   launch,
+  narratingDm,
 } from "./fixtures/session-layout.mjs";
 
 /** A seed where the lone goblin fight opens with an initiative roll-off. */
@@ -73,9 +75,85 @@ async function tabTo(page, selector) {
 
 const rollOff = rollOffSeed();
 
+/** The lone goblin's cellar with a feature and an exit to a second room. */
+const furnishedCellar = (() => {
+  const module = moduleFile("lone-goblin");
+  module.id = "furnished-cellar";
+  module.title = "The Furnished Cellar";
+  module.rooms[0].features = [
+    {
+      id: "ale-rack",
+      name: "Ale Rack",
+      description: "A rack of split casks leans against the wall.",
+    },
+  ];
+  module.rooms.push({
+    id: "stair",
+    name: "Cellar Stair",
+    description: "Steep steps climb to the taproom.",
+    features: [],
+    items: [],
+  });
+  module.passages = [
+    {
+      id: "cellar-to-stair",
+      between: ["cellar", "stair"],
+      description: "Steep stone steps.",
+    },
+  ];
+  return validateModule(module);
+})();
+
+/** The adventure screen's regions, in their order in a fight (#386). */
+const REGIONS = [
+  "#session-status",
+  "#encounter",
+  "#room",
+  "#session-actions",
+  "#session-history",
+  "#session-composer",
+];
+
+/** `selectors` sorted by where each element sits in the document. */
+const documentOrder = (page, selectors) =>
+  page.evaluate(
+    (list) =>
+      list
+        .map((selector) => [selector, document.querySelector(selector)])
+        .sort(([, a], [, b]) =>
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+            ? -1
+            : 1,
+        )
+        .map(([selector]) => selector),
+    selectors,
+  );
+
+/** The regions keyboard focus passes through from the adventure title. */
+async function tabRegions(page) {
+  await page.locator("#adventure-title").focus();
+  const seen = [];
+  for (let step = 0; step < 60; step++) {
+    await page.keyboard.press("Tab");
+    const region = await page.evaluate(
+      (regions) =>
+        regions.find((selector) => document.activeElement.closest(selector)) ??
+        null,
+      REGIONS,
+    );
+    if (region === null) {
+      break;
+    }
+    if (seen.at(-1) !== region) {
+      seen.push(region);
+    }
+  }
+  return seen;
+}
+
 const viewport = { width: 1280, height: 850 };
 test(
-  `a fight with the room collapsed and expanded, and the table after it (${viewport.width}px)`,
+  `a fight with the room shown below it, and the table after it (${viewport.width}px)`,
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
@@ -93,11 +171,10 @@ test(
     try {
       await createAndStart(page, server.url, "lone-goblin");
 
-      // In the fight, the room's details are collapsed, and no "None."
-      // rows render anywhere.
-      const toggle = page.getByRole("button", { name: "Room details" });
-      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-      assert.equal(await page.locator("#room-details").isVisible(), false);
+      // In the fight, the room's details show with no disclosure (#386),
+      // and no "None." rows render anywhere.
+      assert.equal(await page.locator("#room-toggle").count(), 0);
+      assert.equal(await page.locator("#room-description").isVisible(), true);
       assert.doesNotMatch(
         await page.locator("#session-scene").textContent(),
         /None\./,
@@ -106,12 +183,8 @@ test(
       const fightTop = (await page.locator("#encounter").boundingBox()).y;
       assert.ok(fightTop + 100 < viewport.height, String(fightTop));
 
-      // Keyboard: Enter expands the room; a cellar with nothing in it
-      // shows one short line and no empty lists. Space collapses it again.
-      await tabTo(page, "#room-toggle");
-      await page.keyboard.press("Enter");
-      assert.equal(await toggle.getAttribute("aria-expanded"), "true");
-      assert.equal(await page.locator("#room-details").isVisible(), true);
+      // A cellar with nothing in it shows one short line and no empty
+      // lists.
       assert.equal(
         await page.locator("#room-empty").textContent(),
         "There is nothing else here.",
@@ -122,13 +195,13 @@ test(
         await page.locator("#room h4:visible").allTextContents(),
         ["You carry"],
       );
-      // Re-rendering after an action keeps the player's choice.
+      // Re-rendering after an action keeps the room shown, below the fight.
       await clickNext(page);
-      assert.equal(await page.locator("#room-details").isVisible(), true);
-      await tabTo(page, "#room-toggle");
-      await page.keyboard.press(" ");
-      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-      assert.equal(await page.locator("#room-details").isVisible(), false);
+      assert.equal(await page.locator("#room-description").isVisible(), true);
+      assert.deepEqual(await documentOrder(page, ["#room", "#encounter"]), [
+        "#encounter",
+        "#room",
+      ]);
 
       // A compact table: no Turn column or caption; each initiative is the
       // total, and the current turn's row is highlighted and tagged.
@@ -171,10 +244,13 @@ test(
         await clickNext(page);
       }
 
-      // After the fight: the room is open again with no toggle, and the
+      // After the fight: the room is back above the Fight section, and the
       // table is collapsed behind its own disclosure.
-      assert.equal(await toggle.count(), 0);
-      assert.equal(await page.locator("#room-details").isVisible(), true);
+      assert.equal(await page.locator("#room-description").isVisible(), true);
+      assert.deepEqual(await documentOrder(page, ["#encounter", "#room"]), [
+        "#room",
+        "#encounter",
+      ]);
       const table = page.getByRole("button", { name: "Initiative order" });
       assert.equal(await table.getAttribute("aria-expanded"), "false");
       assert.equal(await page.locator("#initiative").isVisible(), false);
@@ -191,6 +267,63 @@ test(
       await assertNoSideScroll(page, "no horizontal scroll", {
         wideFont: true,
       });
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  `in a fight the Fight section comes before the room's exits and features (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-386-"));
+    const server = await startFifthBrowserServer({
+      adventures: [furnishedCellar],
+      qualifies: () => true,
+      // A DM, so the composer takes part in the tab order.
+      dmModel: narratingDm(),
+      libraryPath: join(directory, "characters.json"),
+      seed: rollOff,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "furnished-cellar");
+      assert.equal(await fightOver(page), false, "the fight is on");
+
+      // No disclosure: the initiative table sits above the exits and the
+      // features, and all three are on screen without a click.
+      assert.equal(await page.locator("#room-toggle").count(), 0);
+      const table = await page.locator("#initiative").boundingBox();
+      assert.ok(table, "the initiative table is shown");
+      for (const selector of ["#exits-group", "#features-group"]) {
+        const group = await page.locator(selector).boundingBox();
+        assert.ok(group, selector + " is shown");
+        assert.ok(table.y + table.height <= group.y, selector);
+        assert.ok(group.y + group.height <= viewport.height, selector);
+      }
+      assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
+      assert.match(await page.locator("#features").textContent(), /Ale Rack/);
+
+      // DOM and tab order: status, Fight, room, actions, history, composer.
+      assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
+      const tabbed = await tabRegions(page);
+      assert.deepEqual(
+        tabbed,
+        REGIONS.filter((region) => tabbed.includes(region)),
+      );
+      for (const region of [
+        "#encounter",
+        "#session-actions",
+        "#session-history",
+        "#session-composer",
+      ]) {
+        assert.ok(tabbed.includes(region), tabbed.join(", "));
+      }
     } finally {
       await browser.close();
       await server.close();

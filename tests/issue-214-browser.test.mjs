@@ -95,9 +95,8 @@ test(
         );
       };
 
-      // Out of a fight there is no room disclosure, and empty lists are
-      // left out: the stair has exits and a feature, but no items (#157).
-      assert.equal(await page.locator("#room-toggle").isVisible(), false);
+      // Empty lists are left out: the stair has exits and a feature, but
+      // no items (#157).
       assert.equal(await page.locator("#room-items-group").isVisible(), false);
       // What Ada carries is always listed: her own gear (#209).
       assert.equal(await page.locator("#inventory-group").isVisible(), true);
