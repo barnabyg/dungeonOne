@@ -307,8 +307,8 @@ adventure marks as a safe place to rest, **Long rest** shows the one long rest
 an adventure allows: press **Long rest** to regain every hit point, hit die and
 feature use. A module may have a wandering encounter: before each rest a d100
 is rolled against its chance, and if it comes the rest restores nothing and its
-fight begins (it comes at most once). In a fight these details fold away behind a **Room
-details** button, and the encounter panel lists each combatant in initiative
+fight begins (it comes at most once). In a fight these details stay shown below
+the encounter panel, which comes first and lists each combatant in initiative
 order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
 

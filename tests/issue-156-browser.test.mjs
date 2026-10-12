@@ -178,7 +178,7 @@ test(
       // only the character's own gear is acted on there (#198, #209).
       assert.deepEqual(
         await page
-          .locator("#room button:not(#room-toggle)")
+          .locator("#room button")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.getAttribute("aria-label")),
           ),

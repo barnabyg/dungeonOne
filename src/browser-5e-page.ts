@@ -10,7 +10,8 @@
 //   turn resource and class feature use, and outside a fight's turns for
 //   each hit die (#333). It shows only what the session view projects.
 // - #session-scene: the room and the fight. The room lists only
-//   what is there (#157); in a fight its details collapse behind #room-toggle.
+//   what is there (#157) and always shows its details; in a fight the Fight
+//   section (#encounter) moves above it, in the DOM and so in tab order (#386).
 //   The fight's initiative table shows totals, marks the current turn, tags
 //   fleeing and fled opponents (#237) and surrendering and surrendered ones
 //   (#238), and
@@ -161,8 +162,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
-<button id="room-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-details" hidden>Room details</button>
-<div id="room-details"><p id="room-description"></p>
+<p id="room-description"></p>
 <div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
 <div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
 <div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
@@ -170,7 +170,6 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
 <div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p><p id="carrying"></p></div>
 <div id="rest-group" hidden><h4 id="rest-title">Short rest</h4><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls rest-panel"></div><div id="long-rest" hidden><h4 id="long-rest-title">Long rest</h4><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls rest-panel"></div></div></div>
-</div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
 <button id="initiative-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="initiative-panel" hidden>Initiative order</button>
@@ -1032,7 +1031,12 @@ function renderAdventure() {
   element("adventure-title").textContent = adventure.title;
   element("adventure-objective").textContent = adventure.objective;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
-  renderRoom(session.room, fighting);
+  renderRoom(session.room);
+  // In a fight the Fight section comes before the room (#386); otherwise after.
+  const scene = element("session-scene");
+  if (fighting !== (scene.firstElementChild === element("encounter"))) {
+    scene.insertBefore(element(fighting ? "encounter" : "room"), scene.firstElementChild);
+  }
   element("encounter").hidden = !encounter;
   if (encounter) renderInitiative(encounter, fighting);
   renderGear(session.room.gear);
@@ -1580,12 +1584,11 @@ const ROOM_LISTS = [
 
 const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
 
-// Disclosures (#157): in a fight the room's details collapse behind
-// #room-toggle, and once the fight is over the initiative table collapses
-// behind #initiative-toggle. Each starts collapsed whenever it appears; the
+// Disclosures (#157): once the fight is over the initiative table collapses
+// behind #initiative-toggle. It starts collapsed whenever it appears; the
 // player's choice holds until then. #initiative-breakdown, a native details
 // element, holds each combatant's roll and roll-offs.
-const disclosures = { room: false, initiative: false };
+const disclosures = { initiative: false };
 
 function disclose(name, shown) {
   const toggle = element(name + "-toggle");
@@ -1615,7 +1618,7 @@ function gearEntries(gear) {
   ];
 }
 
-function renderRoom(room, fighting) {
+function renderRoom(room) {
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
   for (const list of ROOM_LISTS) {
@@ -1665,7 +1668,6 @@ function renderRoom(room, fighting) {
   if (room.purse) element("inventory-group").hidden = false;
   element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
-  disclose("room", fighting);
 }
 
 // The character's AC and attacks from its gear as it stands (#209), in the
@@ -1767,7 +1769,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
 // While its request runs (#185) a button shows its busy label ("Attacking…")
 // and is named in full ("Attacking Goblin Warrior…"). Each button is sized for
 // the wider of its labels, so a fight button's busy label must be no wider
-// than its idle one: the fight row has no width to spare at 375 px.
+// than its idle one, so the bar never reflows when an action starts.
 const ACTIONS = {
   attack: { label: "Attack ", busy: "Attacking ", busyLabel: "Attacking…" },
   "light-attack": { label: "Extra attack ", busy: "Extra attack on ", busyLabel: "Attacking…" },
