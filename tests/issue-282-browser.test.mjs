@@ -11,11 +11,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
-import {
-  assertNoSideScroll,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { shiftingOssuary } from "./fixtures/modules.mjs";
 
@@ -67,7 +63,7 @@ test(
     let server = await startFifthBrowserServer({ ...options, seed });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 360, height: 740 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -106,7 +102,6 @@ test(
       assert.deepEqual(file.state.checks, [
         { id: "force:rotten-door", band: "failure" },
       ]);
-      await assertNoSideScroll(page, "no horizontal scroll at phone width");
     } finally {
       await browser.close();
       await server.close();

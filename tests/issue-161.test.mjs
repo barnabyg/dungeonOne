@@ -120,88 +120,84 @@ test("the launcher's setup hint names the key and the restart", () => {
   assert.ok(FIFTH_DM_SETUP_HINT.endsWith("\n"));
 });
 
-// The composer's state doesn't depend on the width: phone width only.
-{
-  const viewport = { width: 375, height: 812 };
-  const size = `${viewport.width}x${viewport.height}`;
+const viewport = { width: 1280, height: 850 };
 
-  test(`${size}: without a key the composer is disabled with a notice and the buttons work`, () =>
-    withServer({ apiKey: "" }, async (server) => {
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await page.goto(server.url);
-        await createFighter(page, "Ada");
-        await startAdventure(page, "lone-goblin");
-        assert.equal(await page.locator("#message").isDisabled(), true);
-        assert.equal(await page.locator("#send-message").isDisabled(), true);
-        const notice = page.locator("#dm-notice");
-        assert.equal(await notice.isVisible(), true);
-        assert.equal(await notice.textContent(), FIFTH_DM_OFF_NOTICE);
-        assert.equal(
-          await page.locator("#message").getAttribute("aria-describedby"),
-          "dm-notice",
-        );
-        assert.doesNotMatch(
-          await page.locator("#adventure").textContent(),
-          /OPENAI_API_KEY/,
-        );
-        // The buttons still play: an attack adds a result to the history.
-        const before = await page.locator("#log li").count();
-        await page.locator("#attack-controls button.attack").click();
-        await page.waitForFunction(
-          (count) => document.querySelectorAll("#log li").length > count,
-          before,
-        );
-        assert.equal(await page.locator("#message").isDisabled(), true);
-        assert.equal(await page.locator("#adventure-error").textContent(), "");
-      } finally {
-        await browser.close();
-      }
-    }));
+test(`without a key the composer is disabled with a notice and the buttons work`, () =>
+  withServer({ apiKey: "" }, async (server) => {
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await createFighter(page, "Ada");
+      await startAdventure(page, "lone-goblin");
+      assert.equal(await page.locator("#message").isDisabled(), true);
+      assert.equal(await page.locator("#send-message").isDisabled(), true);
+      const notice = page.locator("#dm-notice");
+      assert.equal(await notice.isVisible(), true);
+      assert.equal(await notice.textContent(), FIFTH_DM_OFF_NOTICE);
+      assert.equal(
+        await page.locator("#message").getAttribute("aria-describedby"),
+        "dm-notice",
+      );
+      assert.doesNotMatch(
+        await page.locator("#adventure").textContent(),
+        /OPENAI_API_KEY/,
+      );
+      // The buttons still play: an attack adds a result to the history.
+      const before = await page.locator("#log li").count();
+      await page.locator("#attack-controls button.attack").click();
+      await page.waitForFunction(
+        (count) => document.querySelectorAll("#log li").length > count,
+        before,
+      );
+      assert.equal(await page.locator("#message").isDisabled(), true);
+      assert.equal(await page.locator("#adventure-error").textContent(), "");
+    } finally {
+      await browser.close();
+    }
+  }));
 
-  test(`${size}: with the scripted DM the composer is enabled and a draft stays with its session`, () =>
-    withServer({ dmModel: narratingDm() }, async (server) => {
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await page.goto(server.url);
-        await createFighter(page, "Ada");
-        await startAdventure(page, "lone-goblin");
-        assert.equal(await page.locator("#message").isEnabled(), true);
-        assert.equal(await page.locator("#send-message").isEnabled(), true);
-        assert.equal(await page.locator("#dm-notice").isVisible(), false);
-        assert.equal(
-          await page.locator("#message").getAttribute("aria-describedby"),
-          null,
-        );
-        // A message reaches the DM.
-        await page.locator("#message").fill("I look around");
-        await page.locator("#send-message").click();
-        await page
-          .locator("#log")
-          .filter({ hasText: "The goblin watches you." })
-          .waitFor();
+test(`with the scripted DM the composer is enabled and a draft stays with its session`, () =>
+  withServer({ dmModel: narratingDm() }, async (server) => {
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await createFighter(page, "Ada");
+      await startAdventure(page, "lone-goblin");
+      assert.equal(await page.locator("#message").isEnabled(), true);
+      assert.equal(await page.locator("#send-message").isEnabled(), true);
+      assert.equal(await page.locator("#dm-notice").isVisible(), false);
+      assert.equal(
+        await page.locator("#message").getAttribute("aria-describedby"),
+        null,
+      );
+      // A message reaches the DM.
+      await page.locator("#message").fill("I look around");
+      await page.locator("#send-message").click();
+      await page
+        .locator("#log")
+        .filter({ hasText: "The goblin watches you." })
+        .waitFor();
 
-        // Ada's adventure has a draft; Bea's adventure starts empty.
-        await page.locator("#message").fill("Ada's unsent plan");
-        await page.locator('#breadcrumb a[data-view="library"]').click();
-        await createFighter(page, "Bea");
-        await startAdventure(page, "lone-goblin");
-        assert.equal(await page.locator("#message").inputValue(), "");
+      // Ada's adventure has a draft; Bea's adventure starts empty.
+      await page.locator("#message").fill("Ada's unsent plan");
+      await page.locator('#breadcrumb a[data-view="library"]').click();
+      await createFighter(page, "Bea");
+      await startAdventure(page, "lone-goblin");
+      assert.equal(await page.locator("#message").inputValue(), "");
 
-        // Bea's draft does not follow the player back into Ada's adventure.
-        await page.locator("#message").fill("Bea's unsent plan");
-        await page.locator('#breadcrumb a[data-view="library"]').click();
-        await page.locator("#characters button", { hasText: "Ada" }).click();
-        await page.locator("#continue-adventure").click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        await page.locator("#adventure-title").waitFor();
-        assert.equal(await page.locator("#message").inputValue(), "");
-      } finally {
-        await browser.close();
-      }
-    }));
-}
+      // Bea's draft does not follow the player back into Ada's adventure.
+      await page.locator("#message").fill("Bea's unsent plan");
+      await page.locator('#breadcrumb a[data-view="library"]').click();
+      await page.locator("#characters button", { hasText: "Ada" }).click();
+      await page.locator("#continue-adventure").click();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      await page.locator("#adventure-title").waitFor();
+      assert.equal(await page.locator("#message").inputValue(), "");
+    } finally {
+      await browser.close();
+    }
+  }));

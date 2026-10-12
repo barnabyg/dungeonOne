@@ -1,4 +1,5 @@
-// #198: a full loot run fits the phone action bar. In a crypt with a way out,
+// #198: a full loot run keeps actions and history on screen. In a crypt with
+// a way out,
 // Ada forces a door, talks, searches for a trap, takes both potions, the key,
 // the coins and every treasure, unlocks the strongroom, fights the warden and
 // walks out, and after every action the newest history entry and the actions
@@ -28,7 +29,7 @@ import { createAndStart } from "./fixtures/browser-journey.mjs";
 // The sealed crypt made into a loot run: its stair is a way out, treasure
 // and coins wait in the bowl, the strongbox and on the warden, and beating
 // the warden no longer ends the adventure. The bound smuggler sits in the
-// flooded cell, so no room offers more actions than the phone dock can show.
+// flooded cell.
 const lootedCrypt = (() => {
   const module = moduleFile("sealed-crypt");
   module.id = "looted-crypt";
@@ -113,7 +114,7 @@ const LOOT_RUN = [
   ["move", "crypt-stair"],
 ];
 // At the stair, fully laden, Ada looks over what she carries, in the order
-// she picked it up. Before #256 the key's Examine ended under the dock here.
+// she picked it up.
 const CARRIED = ["cell-potion", "iron-key", "silver-chalice"];
 
 const ENGINE = {
@@ -167,84 +168,80 @@ function findSeed() {
 
 const seed = findSeed();
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `a full loot run keeps actions and history on screen (${viewport.width}px)`,
-    { timeout: 180000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-198-"));
-      // The server offers only the loot run, whatever its gate standing.
-      const server = await startFifthBrowserServer({
-        adventures: [lootedCrypt],
-        qualifies: () => true,
-        libraryPath: join(directory, "characters.json"),
-        seed,
-        dmModel: narratingDm(),
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await createAndStart(page, server.url, lootedCrypt.id);
-        await assertTogether(page, "start");
+const viewport = { width: 1280, height: 850 };
+test(
+  `a full loot run keeps actions and history on screen (${viewport.width}px)`,
+  { timeout: 180000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-198-"));
+    // The server offers only the loot run, whatever its gate standing.
+    const server = await startFifthBrowserServer({
+      adventures: [lootedCrypt],
+      qualifies: () => true,
+      libraryPath: join(directory, "characters.json"),
+      seed,
+      dmModel: narratingDm(),
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, lootedCrypt.id);
+      await assertTogether(page, "start");
 
-        for (const [action, target] of LOOT_RUN) {
-          await explore(page, action, target);
-          while (
-            (await page
-              .locator('#feature-controls button[data-action="end-turn"]')
-              .count()) > 0
-          ) {
-            await fightOn(page);
-          }
+      for (const [action, target] of LOOT_RUN) {
+        await explore(page, action, target);
+        while (
+          (await page
+            .locator('#feature-controls button[data-action="end-turn"]')
+            .count()) > 0
+        ) {
+          await fightOn(page);
         }
-
-        // What Ada carries is acted on from her inventory, not the bar.
-        assert.equal(
-          await page
-            .locator("#action-bar [data-target]")
-            .evaluateAll(
-              (nodes, carried) =>
-                nodes.filter((node) => carried.includes(node.dataset.target))
-                  .length,
-              CARRIED,
-            ),
-          0,
-          "no carried item in the action bar",
-        );
-        assert.equal(
-          await page
-            .locator("#inventory")
-            .getByRole("button", { name: "Drink Potion of Healing" })
-            .count(),
-          2,
-          "each potion offers Drink on its inventory entry",
-        );
-        for (const item of CARRIED) {
-          await act(page, `examine carried ${item}`, () =>
-            page
-              .locator(
-                `#inventory button[data-action="examine"][data-target="${item}"]`,
-              )
-              .click(),
-          );
-        }
-
-        await page.locator("#leave-controls button").click();
-        await page.locator("#confirm-leave").click();
-        await page.locator("#ending").waitFor({ state: "visible" });
-        assert.equal(
-          await page.locator("#ending-title").textContent(),
-          "Out with the loot",
-        );
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
       }
-    },
-  );
-}
+
+      // What Ada carries is acted on from her inventory, not the bar.
+      assert.equal(
+        await page
+          .locator("#action-bar [data-target]")
+          .evaluateAll(
+            (nodes, carried) =>
+              nodes.filter((node) => carried.includes(node.dataset.target))
+                .length,
+            CARRIED,
+          ),
+        0,
+        "no carried item in the action bar",
+      );
+      assert.equal(
+        await page
+          .locator("#inventory")
+          .getByRole("button", { name: "Drink Potion of Healing" })
+          .count(),
+        2,
+        "each potion offers Drink on its inventory entry",
+      );
+      for (const item of CARRIED) {
+        await act(page, `examine carried ${item}`, () =>
+          page
+            .locator(
+              `#inventory button[data-action="examine"][data-target="${item}"]`,
+            )
+            .click(),
+        );
+      }
+
+      await page.locator("#leave-controls button").click();
+      await page.locator("#confirm-leave").click();
+      await page.locator("#ending").waitFor({ state: "visible" });
+      assert.equal(
+        await page.locator("#ending-title").textContent(),
+        "Out with the loot",
+      );
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

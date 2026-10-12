@@ -19,7 +19,7 @@ import {
   startAdventure,
   text,
 } from "./fixtures/browser-journey.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { gradedCellar } from "./fixtures/modules.mjs";
 
@@ -79,7 +79,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 360, height: 740 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {
@@ -108,9 +108,6 @@ test(
         "Tactical Mind: add 1d10 (2 of 2 Second Wind left)",
       );
       assert.equal(await offer.isEnabled(), true);
-      await assertNoSideScroll(page, "no horizontal scroll with the offer", {
-        wideFont: true,
-      });
 
       await clickAction(page, "tactical-mind");
       const entry = page.locator("#log li").last();

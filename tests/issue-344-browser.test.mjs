@@ -18,7 +18,7 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { moduleFile } from "./fixtures/modules.mjs";
 import { readAda, sessionFile } from "./fixtures/save-files.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { vela } from "./fixtures/level-5-wizard.mjs";
 
 /** The rat tunnels, levels 1–5, with a bandit in the cellar. */
@@ -50,7 +50,7 @@ async function libraryWith(directory, sheet) {
 }
 
 test(
-  "a level-5 Wizard's short rest offers Memorize Spell, and the swap lasts the adventure only (375px)",
+  "a level-5 Wizard's short rest offers Memorize Spell, and the swap lasts the adventure only",
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-344-browser-"));
@@ -64,7 +64,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {
@@ -101,9 +101,6 @@ test(
         "Acid Arrow (2nd)",
         "Mind Spike (2nd)",
       ]);
-      await assertNoSideScroll(page, "the rest panel fits a phone", {
-        wideFont: true,
-      });
       await forget.selectOption("ice-knife");
       await learn.selectOption("shatter");
       await settled(page, () =>

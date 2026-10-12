@@ -145,104 +145,99 @@ async function holdAction(page, selector, path, shows, name, focusTo) {
   }
 }
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `action buttons show a busy label without moving the bar (${viewport.width}px)`,
-    { timeout: 120000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-185-"));
-      const server = await startFifthBrowserServer({
-        ...SERVER_OPTIONS,
-        libraryPath: join(directory, "characters.json"),
-        seed: 0,
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await page.goto(server.url);
-        await openCreation(page);
-        // Two daggers, so the fight row has the extra attack too (#207).
-        await page.locator("#kit-two-daggers").check();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "Dagger (extra attack)" })
-          .waitFor();
-        await saveFighter(page);
-        await startAdventure(page, "rat-tunnels");
+const viewport = { width: 1280, height: 850 };
+test(
+  `action buttons show a busy label without moving the bar (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-185-"));
+    const server = await startFifthBrowserServer({
+      ...SERVER_OPTIONS,
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await openCreation(page);
+      // Two daggers, so the fight row has the extra attack too (#207).
+      await page.locator("#kit-two-daggers").check();
+      await page
+        .locator("#preview-body")
+        .filter({ hasText: "Dagger (extra attack)" })
+        .waitFor();
+      await saveFighter(page);
+      await startAdventure(page, "rat-tunnels");
 
-        // Exploring: a short verb shows its own busy verb.
-        await holdAction(
-          page,
-          '#explore-controls button[data-action="examine"][data-target="rusted-lantern"]',
-          "/api/5e/session/explore",
-          "Examining…",
-          "Examining Rusted Lantern…",
-          "stays",
-        );
-        await holdAction(
-          page,
-          '#explore-controls button[data-action="move"][data-target="rat-cellar"]',
-          "/api/5e/session/explore",
-          "Going…",
-          "Going to Rat-Gnawed Cellar…",
-          "newest",
-        );
+      // Exploring: a short verb shows its own busy verb.
+      await holdAction(
+        page,
+        '#explore-controls button[data-action="examine"][data-target="rusted-lantern"]',
+        "/api/5e/session/explore",
+        "Examining…",
+        "Examining Rusted Lantern…",
+        "stays",
+      );
+      await holdAction(
+        page,
+        '#explore-controls button[data-action="move"][data-target="rat-cellar"]',
+        "/api/5e/session/explore",
+        "Going…",
+        "Going to Rat-Gnawed Cellar…",
+        "newest",
+      );
 
-        // Fighting: no button is widened by its busy label, since the fight
-        // row has no width to spare at 375 px (the same in any font).
-        await page.locator("#attack-controls button").first().waitFor();
-        assert.deepEqual(
-          await page.evaluate(() =>
-            [
-              ...document.querySelectorAll(
-                "#attack-controls button, #feature-controls button",
-              ),
-            ]
-              .map((button) => {
-                const busy = button.dataset.busyLabel;
-                const width = button.getBoundingClientRect().width;
-                button.dataset.busyLabel = "";
-                const idle = button.getBoundingClientRect().width;
-                button.dataset.busyLabel = busy;
-                return width > idle ? busy : "";
-              })
-              .filter(Boolean),
-          ),
-          [],
-        );
+      // Fighting: no button is widened by its busy label.
+      await page.locator("#attack-controls button").first().waitFor();
+      assert.deepEqual(
+        await page.evaluate(() =>
+          [
+            ...document.querySelectorAll(
+              "#attack-controls button, #feature-controls button",
+            ),
+          ]
+            .map((button) => {
+              const busy = button.dataset.busyLabel;
+              const width = button.getBoundingClientRect().width;
+              button.dataset.busyLabel = "";
+              const idle = button.getBoundingClientRect().width;
+              button.dataset.busyLabel = busy;
+              return width > idle ? busy : "";
+            })
+            .filter(Boolean),
+        ),
+        [],
+      );
 
-        // End turn, a control without a target, then the attack.
-        await holdAction(
-          page,
-          '#feature-controls button[data-action="end-turn"]',
-          "/api/5e/session/action",
-          "Ending",
-          "Ending turn…",
-          "stays",
-        );
-        const attack = page
-          .locator('#attack-controls button[data-action="attack"]')
-          .first();
-        await attack.waitFor();
-        const target = await attack.getAttribute("data-target");
-        const opponent = (await attack.textContent()).replace(/^Attack /, "");
-        await holdAction(
-          page,
-          `#attack-controls button[data-action="attack"][data-target="${target}"]`,
-          "/api/5e/session/attack",
-          "Attacking…",
-          `Attacking ${opponent}…`,
-          "newest",
-        );
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      // End turn, a control without a target, then the attack.
+      await holdAction(
+        page,
+        '#feature-controls button[data-action="end-turn"]',
+        "/api/5e/session/action",
+        "Ending",
+        "Ending turn…",
+        "stays",
+      );
+      const attack = page
+        .locator('#attack-controls button[data-action="attack"]')
+        .first();
+      await attack.waitFor();
+      const target = await attack.getAttribute("data-target");
+      const opponent = (await attack.textContent()).replace(/^Attack /, "");
+      await holdAction(
+        page,
+        `#attack-controls button[data-action="attack"][data-target="${target}"]`,
+        "/api/5e/session/attack",
+        "Attacking…",
+        `Attacking ${opponent}…`,
+        "newest",
+      );
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

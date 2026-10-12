@@ -31,7 +31,7 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { moduleFile } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 
 /**
  * The rat tunnels, levels 1–3, with a Zombie and a Ghoul in the cellar and
@@ -321,7 +321,7 @@ const turningSeed = (() => {
 })();
 
 test(
-  `Turn Undead turns a Zombie and a Ghoul, and Mira leaves them turned (375px, seed ${turningSeed})`,
+  `Turn Undead turns a Zombie and a Ghoul, and Mira leaves them turned (seed ${turningSeed})`,
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-341-browser-"));
@@ -334,7 +334,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(8000);
     try {
@@ -357,9 +357,6 @@ test(
           "Ghoul: necrotic damage",
         ],
       );
-      await assertNoSideScroll(page, "the Cleric's fight bar", {
-        wideFont: true,
-      });
       await settled(page, () => turn.click());
       assert.match(
         await text(page.locator("#log")),

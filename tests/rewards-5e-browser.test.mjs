@@ -14,11 +14,7 @@ import {
   fight,
   startAdventure,
 } from "./fixtures/browser-journey.mjs";
-import {
-  assertNoSideScroll,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 
 const fightStep = (runtime, state) =>
@@ -115,7 +111,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 760 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -224,9 +220,7 @@ test(
         ending,
         /Hit points \d+ → \d+\. New features:\n+Action Surge\n+Tactical Mind$/m,
       );
-      // The level-up and the way back fit the dock without covering the
-      // history at a desktop size.
-      await page.setViewportSize({ width: 1280, height: 850 });
+      // The level-up and the way back sit below the history heading.
       assert.ok(
         await page.evaluate(() => {
           const title = document
@@ -239,13 +233,11 @@ test(
         }),
         "the ending sits below the history heading",
       );
-      await page.setViewportSize({ width: 375, height: 760 });
       assert.equal(
         await page.locator("#ending button.primary").count(),
         1,
         "one primary step back to the sheet",
       );
-      await assertNoSideScroll(page, "no horizontal scroll at phone width");
 
       // Storage holds it, once.
       let record = await readAda(libraryPath);

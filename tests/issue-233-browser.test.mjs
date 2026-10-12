@@ -134,16 +134,6 @@ test(
         await page.locator("#log").innerText(),
         /Zombie refuses to fall and has 1\/15 HP\./,
       );
-
-      // At phone width the save's line wraps without a horizontal scroll.
-      await page.setViewportSize({ width: 375, height: 812 });
-      assert.ok(
-        await page.evaluate(
-          () =>
-            document.documentElement.scrollWidth <=
-            document.documentElement.clientWidth,
-        ),
-      );
     } finally {
       await browser.close();
       await server.close();

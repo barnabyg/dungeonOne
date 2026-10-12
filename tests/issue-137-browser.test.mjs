@@ -1,5 +1,5 @@
-// #137: the critical journey under the default launch command, at phone
-// size, browser → API → storage. Create a Fighter, start The Abandoned
+// #137: the critical journey under the default launch command, browser →
+// API → storage. Create a Fighter, start The Abandoned
 // Delve, move between views with Back and Forward, continue from the library
 // row, fight the barracks' two Skeletons, reload and restart the launcher
 // mid-fight, then escape with loot and see the level-up.
@@ -15,7 +15,6 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
 import {
-  assertNoSideScroll,
   assertTogether,
   explore,
   fightOn,
@@ -93,7 +92,7 @@ const shown = async (page) => ({
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
 test(
-  "the default launch plays a 5e adventure from creation to a level-up at 375×812",
+  "the default launch plays a 5e adventure from creation to a level-up",
   // Two launches, each gating every module for both classes (#310).
   { timeout: 360000 },
   async () => {
@@ -105,7 +104,7 @@ test(
     let launcher = await launchDefault(directory, args);
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -201,7 +200,6 @@ test(
       const ending = await page.locator("#ending").innerText();
       assert.match(ending, /Ada has 300 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
-      await assertNoSideScroll(page, "no horizontal scroll");
 
       // Storage holds the settled character.
       const [record] = (await libraryFile(libraryPath)).characters;

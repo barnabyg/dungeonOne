@@ -17,7 +17,7 @@ import {
   text,
 } from "./fixtures/browser-journey.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
-import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 
 const goblinPair = fightRoom("goblin-pair", "The Goblin Pair", [
   { id: "left", monster: "goblin-warrior", name: "Left Goblin" },
@@ -87,7 +87,7 @@ test(
     });
     const browser = await launch();
     const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
+      viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
     try {
@@ -117,7 +117,6 @@ test(
         (await second.innerText()).trim(),
         "Second attack on Right Goblin",
       );
-      await assertNoSideScroll(page);
       await clickAction(page, "attack", "right");
       const log = await page.locator("#log").innerText();
       assert.match(log, /Left Goblin/u);

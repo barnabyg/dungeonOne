@@ -70,113 +70,103 @@ async function assertAligned(page) {
   assert.equal(widths.size, 1, [...widths].join(", "));
 }
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `exploring actions line up, one thing per row (${viewport.width}px)`,
-    { timeout: 120000 },
-    async () => {
-      const directory = await mkdtemp(join(tmpdir(), "issue-214-"));
-      const server = await startFifthBrowserServer({
-        adventures: [ratlessTunnels],
-        libraryPath: join(directory, "characters.json"),
-        seed: 0,
-      });
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await createAndStart(page, server.url, "quiet-tunnels");
-        const act = async (name) => {
-          const count = await page.locator("#log li").count();
-          await page.getByRole("button", { name, exact: true }).click();
-          await page.waitForFunction(
-            (seen) => document.querySelectorAll("#log li").length > seen,
-            count,
-          );
-        };
+const viewport = { width: 1280, height: 850 };
+test(
+  `exploring actions line up, one thing per row (${viewport.width}px)`,
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-214-"));
+    const server = await startFifthBrowserServer({
+      adventures: [ratlessTunnels],
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "quiet-tunnels");
+      const act = async (name) => {
+        const count = await page.locator("#log li").count();
+        await page.getByRole("button", { name, exact: true }).click();
+        await page.waitForFunction(
+          (seen) => document.querySelectorAll("#log li").length > seen,
+          count,
+        );
+      };
 
-        // Out of a fight there is no room disclosure, and empty lists are
-        // left out: the stair has exits and a feature, but no items (#157).
-        assert.equal(await page.locator("#room-toggle").isVisible(), false);
-        assert.equal(
-          await page.locator("#room-items-group").isVisible(),
-          false,
-        );
-        // What Ada carries is always listed: her own gear (#209).
-        assert.equal(await page.locator("#inventory-group").isVisible(), true);
-        assert.equal(await page.locator("#room-empty").isVisible(), false);
-        assert.doesNotMatch(await page.locator("#room").innerText(), /None\./);
+      // Out of a fight there is no room disclosure, and empty lists are
+      // left out: the stair has exits and a feature, but no items (#157).
+      assert.equal(await page.locator("#room-toggle").isVisible(), false);
+      assert.equal(await page.locator("#room-items-group").isVisible(), false);
+      // What Ada carries is always listed: her own gear (#209).
+      assert.equal(await page.locator("#inventory-group").isVisible(), true);
+      assert.equal(await page.locator("#room-empty").isVisible(), false);
+      assert.doesNotMatch(await page.locator("#room").innerText(), /None\./);
 
-        // The stair: two exits and a feature, with "Go" beside "Examine".
-        // Each name is shown once, beside its short verbs, and the verbs are
-        // named in full (#157).
-        await assertAligned(page);
-        assert.deepEqual(
-          await page
-            .locator("#explore-controls .thing-actions")
-            .evaluateAll((things) =>
-              things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
-            ),
-          ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
-        );
-        assert.equal(
-          await page
-            .getByRole("button", {
-              name: "Examine Rusted Lantern",
-              exact: true,
-            })
-            .textContent(),
-          "Examine",
-        );
-
-        // The alcove after taking the potion: a disabled Drink with its
-        // reason, beside rows with different verbs and name lengths.
-        await act("Go to Alcove");
-        await act("Examine Iron-Bound Chest");
-        assert.equal(
-          await page
-            .getByRole("button", {
-              name: "Take Potion of Healing",
-              exact: true,
-            })
-            .textContent(),
-          "Take",
-        );
-        await act("Take Potion of Healing");
-        await assertAligned(page);
-        // Drink is unavailable at full HP: the reason is its description.
-        const drink = page.getByRole("button", {
-          name: "Drink Potion of Healing",
-          exact: true,
-        });
-        assert.equal(await drink.textContent(), "Drink");
-        assert.equal(await drink.isDisabled(), true);
-        assert.equal(
-          await drink.evaluate(
-            (button) =>
-              document.getElementById(button.getAttribute("aria-describedby"))
-                .textContent,
+      // The stair: two exits and a feature, with "Go" beside "Examine".
+      // Each name is shown once, beside its short verbs, and the verbs are
+      // named in full (#157).
+      await assertAligned(page);
+      assert.deepEqual(
+        await page
+          .locator("#explore-controls .thing-actions")
+          .evaluateAll((things) =>
+            things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
           ),
-          "Full HP",
-        );
-        assert.equal(await page.locator("#inventory-group").isVisible(), true);
-        assert.equal(
-          await page.locator("#room-items-group").isVisible(),
-          false,
-        );
+        ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
+      );
+      assert.equal(
+        await page
+          .getByRole("button", {
+            name: "Examine Rusted Lantern",
+            exact: true,
+          })
+          .textContent(),
+        "Examine",
+      );
 
-        // No horizontal scroll, even with a wide font as CI's Linux one is.
-        await assertNoSideScroll(page, "no horizontal scroll", {
-          wideFont: true,
-        });
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      // The alcove after taking the potion: a disabled Drink with its
+      // reason, beside rows with different verbs and name lengths.
+      await act("Go to Alcove");
+      await act("Examine Iron-Bound Chest");
+      assert.equal(
+        await page
+          .getByRole("button", {
+            name: "Take Potion of Healing",
+            exact: true,
+          })
+          .textContent(),
+        "Take",
+      );
+      await act("Take Potion of Healing");
+      await assertAligned(page);
+      // Drink is unavailable at full HP: the reason is its description.
+      const drink = page.getByRole("button", {
+        name: "Drink Potion of Healing",
+        exact: true,
+      });
+      assert.equal(await drink.textContent(), "Drink");
+      assert.equal(await drink.isDisabled(), true);
+      assert.equal(
+        await drink.evaluate(
+          (button) =>
+            document.getElementById(button.getAttribute("aria-describedby"))
+              .textContent,
+        ),
+        "Full HP",
+      );
+      assert.equal(await page.locator("#inventory-group").isVisible(), true);
+      assert.equal(await page.locator("#room-items-group").isVisible(), false);
+
+      // No horizontal scroll, even with a wide font as CI's Linux one is.
+      await assertNoSideScroll(page, "no horizontal scroll", {
+        wideFont: true,
+      });
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

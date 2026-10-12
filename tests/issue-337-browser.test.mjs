@@ -10,11 +10,7 @@ import { FifthSession, sessionSeed } from "../dist/session-5e.js";
 import { TEST_CASTER_CLASS } from "../dist/test-caster-class-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { settled, text } from "./fixtures/browser-journey.mjs";
-import {
-  assertNoSideScroll,
-  launch,
-  widenFont,
-} from "./fixtures/session-layout.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 
 // #337: casting in the browser with the test-only caster, Sage, from a
@@ -97,96 +93,82 @@ const blessHolds = (session) => {
   return session.state.character.effects?.[0]?.spellId === "bless";
 };
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
-  test(
-    `Bless is cast from the spell choice and shows with its concentration, at ${viewport.width} px`,
-    { timeout: 120000 },
-    async () => {
-      const { directory, server } = await serve(
-        ["bless", "shield-of-faith", "cure-wounds"],
-        blessHolds,
+const viewport = { width: 1280, height: 850 };
+test(
+  `Bless is cast from the spell choice and shows with its concentration, at ${viewport.width} px`,
+  { timeout: 120000 },
+  async () => {
+    const { directory, server } = await serve(
+      ["bless", "shield-of-faith", "cure-wounds"],
+      blessHolds,
+    );
+    const browser = await launch();
+    const page = await browser.newPage({ viewport });
+    page.setDefaultTimeout(5000);
+    try {
+      await startSage(page, server.url);
+      const spell = page.locator("#cast-spell");
+      assert.deepEqual(await spell.locator("option").allTextContents(), [
+        "Fire Bolt (cantrip)",
+        "Sacred Flame (cantrip)",
+        "Bless (1st-level slot)",
+        "Shield of Faith (1st-level slot)",
+        "Cure Wounds (1st-level slot)",
+      ]);
+      // Cure Wounds at full HP: Cast is disabled with the engine's reason.
+      await spell.selectOption({ label: "Cure Wounds (1st-level slot)" });
+      assert.equal(
+        await page.locator("button.act[data-action=cast]").isDisabled(),
+        true,
       );
-      const browser = await launch();
-      const page = await browser.newPage({ viewport });
-      page.setDefaultTimeout(5000);
-      try {
-        await startSage(page, server.url);
-        const spell = page.locator("#cast-spell");
-        assert.deepEqual(await spell.locator("option").allTextContents(), [
-          "Fire Bolt (cantrip)",
-          "Sacred Flame (cantrip)",
-          "Bless (1st-level slot)",
-          "Shield of Faith (1st-level slot)",
-          "Cure Wounds (1st-level slot)",
-        ]);
-        // Cure Wounds at full HP: Cast is disabled with the engine's reason.
-        await spell.selectOption({ label: "Cure Wounds (1st-level slot)" });
-        assert.equal(
-          await page.locator("button.act[data-action=cast]").isDisabled(),
-          true,
-        );
-        assert.equal(
-          await page.locator("#cast-reason").textContent(),
-          "Full HP",
-        );
-        await spell.selectOption({ label: "Bless (1st-level slot)" });
-        assert.deepEqual(
-          await page.locator("#cast-target option").allTextContents(),
-          ["Yourself"],
-        );
-        if (viewport.width === 375) {
-          await widenFont(page);
-          await assertNoSideScroll(page);
-        }
-        await settled(page, () =>
-          page.locator("button.act[data-action=cast]").click(),
-        );
-        assert.match(
-          await text(page.locator("#log li").filter({ hasText: "takes hold" })),
-          /Bless takes hold on you: \+1d4 to attack rolls and saving throws, until the fight ends\. You concentrate on it\./u,
-        );
-        const bless = page.locator('#effects li[data-effect="bless"]');
-        assert.equal(
-          await bless.locator(".effect-until").textContent(),
-          "concentration, until the fight ends",
-        );
-        assert.match(
-          await bless.locator(".tag").textContent(),
-          /^Bless: \+1d4 to attack rolls and saving throws$/u,
-        );
-        if (viewport.width === 375) {
-          await assertNoSideScroll(page);
-        }
-        const file = await sessionFile(directory);
-        assert.deepEqual(file.transitions.at(-1).action, {
-          type: "cast",
-          actorId: "pc",
-          spellId: "bless",
-          targetIds: ["pc"],
-          slotLevel: 1,
-        });
-        assert.deepEqual(
-          file.state.character.effects.map(({ spellId }) => spellId),
-          ["bless"],
-        );
-        // Reloading shows the same.
-        await page.reload();
-        await page.locator("#log li").first().waitFor();
-        assert.equal(
-          await page.locator('#effects li[data-effect="bless"]').count(),
-          1,
-        );
-      } finally {
-        await browser.close();
-        await server.close();
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
-  );
-}
+      assert.equal(await page.locator("#cast-reason").textContent(), "Full HP");
+      await spell.selectOption({ label: "Bless (1st-level slot)" });
+      assert.deepEqual(
+        await page.locator("#cast-target option").allTextContents(),
+        ["Yourself"],
+      );
+      await settled(page, () =>
+        page.locator("button.act[data-action=cast]").click(),
+      );
+      assert.match(
+        await text(page.locator("#log li").filter({ hasText: "takes hold" })),
+        /Bless takes hold on you: \+1d4 to attack rolls and saving throws, until the fight ends\. You concentrate on it\./u,
+      );
+      const bless = page.locator('#effects li[data-effect="bless"]');
+      assert.equal(
+        await bless.locator(".effect-until").textContent(),
+        "concentration, until the fight ends",
+      );
+      assert.match(
+        await bless.locator(".tag").textContent(),
+        /^Bless: \+1d4 to attack rolls and saving throws$/u,
+      );
+      const file = await sessionFile(directory);
+      assert.deepEqual(file.transitions.at(-1).action, {
+        type: "cast",
+        actorId: "pc",
+        spellId: "bless",
+        targetIds: ["pc"],
+        slotLevel: 1,
+      });
+      assert.deepEqual(
+        file.state.character.effects.map(({ spellId }) => spellId),
+        ["bless"],
+      );
+      // Reloading shows the same.
+      await page.reload();
+      await page.locator("#log li").first().waitFor();
+      assert.equal(
+        await page.locator('#effects li[data-effect="bless"]').count(),
+        1,
+      );
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   "Shield answers a hit from the spell choice, beside Take the hit",

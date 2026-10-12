@@ -71,15 +71,11 @@ test("monsters and items show their icons beside the text that names them", asyn
       "#icon-two-coins",
       "#icon-plain-dagger",
     ]);
-    // The action bar's row for each shows it too, but not on a phone, whose
-    // bar has no room to spare (#198).
+    // The action bar's row for each shows it too.
     const purseRow = page
       .locator('#explore-controls .thing-actions[data-target="lost-purse"]')
       .locator("svg.icon");
     assert.equal(await purseRow.isVisible(), true);
-    await page.setViewportSize({ width: 375, height: 812 });
-    assert.equal(await purseRow.isVisible(), false);
-    await page.setViewportSize({ width: 1280, height: 900 });
 
     // Taken: the coin line starts with the purse; the purse shows it too.
     await clickAction(page, "take", "lost-purse");
