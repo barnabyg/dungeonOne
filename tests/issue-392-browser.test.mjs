@@ -125,6 +125,16 @@ const rows = (page) =>
       })),
   );
 
+/** What End turn says it gives up, and what a screen reader hears for it. */
+const endTurnNote = (page) =>
+  page.locator('button[data-action="end-turn"]').evaluate((button) => ({
+    shown: document.querySelector(".end-note")?.textContent ?? "",
+    described: (button.getAttribute("aria-describedby") ?? "")
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent)
+      .join(" "),
+  }));
+
 /** The visible button texts in row `key`. */
 const buttons = async (page, key) =>
   (
@@ -238,6 +248,18 @@ test(
         0,
       );
       assert.deepEqual(await buttons(page, "end"), ["End turn"]);
+      // End turn says what it gives up, and the fight's first turn says
+      // the turn ends by itself.
+      const note =
+        "Left unused: Attack, Cast a spell, Divine Spark, Turn Undead";
+      assert.deepEqual(await endTurnNote(page), {
+        shown: note,
+        described: note,
+      });
+      assert.match(
+        await page.locator("#log").innerText(),
+        /It is your turn\. Your turn ends by itself once nothing is left to do\./u,
+      );
       assert.deepEqual(await tabRows(page), order);
       // Swapping says what happened, and the attack then names the dagger.
       await settled(page, () =>
@@ -280,6 +302,18 @@ test(
       assert.match(
         (await buttons(page, "attack"))[0],
         /^Attack Goblin Warrior with /u,
+      );
+      // After the attack only Action Surge is left: End turn says so.
+      assert.equal(
+        (await endTurnNote(page)).shown,
+        "Left unused: Attack, Action Surge",
+      );
+      await settled(page, () =>
+        page.locator('#action-bar button[data-action="attack"]').click(),
+      );
+      assert.equal(
+        (await endTurnNote(page)).shown,
+        "Left unused: Action Surge",
       );
     }),
 );

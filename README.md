@@ -336,7 +336,10 @@ action on a line of its own, "Turn Undead every undead foe";
 and wands you can use), **Weapons** ("Swap Mace for Dagger", "Hold Dagger in
 your other hand"), **Answer the hit** while a hit waits for a reaction (Uncanny Dodge, a reaction
 spell such as Shield, or Take the hit), and
-**End turn** on its own at the end. Tab order follows the rows. A weapon change
+**End turn** on its own at the end. Your turn ends by itself once nothing is
+left to do (the fight's first turn says so), so End turn only ends it early:
+beside it, "Left unused: Second Wind, Hide" lists what you would give up. Tab
+order follows the rows. A weapon change
 that can't work with what you hold, such as a second weapon beside one that
 isn't light, isn't offered.
 
