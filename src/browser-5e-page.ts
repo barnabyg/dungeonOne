@@ -1125,13 +1125,16 @@ function rewardNodes(rewards, name) {
     // A level with no new feature names none.
     const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + sneak + (up.features.length ? " New features:" : ""));
     card.append(heading, gains);
-    // #319: each name opens to the sheet's text, so the dock stays short until asked.
+    // #319: each name is a disclosure of the sheet's text, open from the start
+    // (#387) so it reads without a click; the player can still fold it. The
+    // spell lists below stay folded.
     if (up.features.length) {
       const features = make("ul");
       features.id = "level-up-features";
       features.setAttribute("aria-label", "New features");
       features.append(...up.features.map((feature) => {
         const disclosure = make("details");
+        disclosure.open = true;
         disclosure.append(make("summary", feature.name), make("p", feature.text));
         const item = make("li");
         item.append(disclosure);

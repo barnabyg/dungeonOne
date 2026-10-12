@@ -497,9 +497,10 @@ with loot, Escaped empty-handed or Defeat, its title and text, what it earned
 (with the coin found and the purse kept, which differ once coin is spent) and
 any level-up (300 XP for level 2, 900 for level 3, 2,700 for level 4, 6,500
 for level 5) with
-the new hit points and features (each feature's name opens to what it does,
-the same text as the sheet), and **Back to _name_'s sheet**. The typing box is disabled with the
-reason, the history stays readable, and reloading shows the same ending.
+the new hit points and features (each feature shows what it does, the same
+text as the sheet, open from the start; the player can fold it), and **Back
+to _name_'s sheet**. The typing box is disabled with the reason,
+the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 

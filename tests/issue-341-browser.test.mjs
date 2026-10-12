@@ -176,9 +176,9 @@ test(
       assert.deepEqual(await listed(page, "#level-up-features"), [
         "Channel Divinity",
       ]);
-      await page.locator("#level-up-features summary").first().click();
+      // The feature is open from the start (#387).
       assert.match(
-        await text(page.locator("#level-up-features")),
+        await page.locator("#level-up-features").innerText(),
         /Divine Spark: roll 1d8 \+ 3 \(Wisdom\)/u,
       );
       assert.equal(
@@ -240,6 +240,20 @@ test(
         "Life Domain: Disciple of Life",
         "Life Domain: Preserve Life",
       ]);
+      // #387: each feature's text shows without a click; the spell lists
+      // stay folded until asked.
+      for (const feature of await page
+        .locator("#level-up-features details")
+        .all()) {
+        assert.equal(await feature.getAttribute("open"), "");
+        assert.equal(await feature.locator("p").isVisible(), true);
+      }
+      for (const selector of ["#level-up-always", "#level-up-spells"]) {
+        for (const spell of await page.locator(`${selector} details`).all()) {
+          assert.equal(await spell.getAttribute("open"), null);
+          assert.equal(await spell.locator("p").isVisible(), false);
+        }
+      }
       assert.equal(
         await page.locator("#level-up-slots").innerText(),
         "Spell slots: 3 1st-level → 4 1st-level, 2 2nd-level. Prepared spells: 5 → 6.",

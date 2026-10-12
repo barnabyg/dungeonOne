@@ -1,9 +1,10 @@
 // #319, browser → API → storage: an ending's level-up card names each new
-// feature as a collapsed disclosure that opens to what the feature does (the
-// sheet's text). A level-1 Fighter reaches level 2 (Action Surge, Tactical
-// Mind) and a level-2 Rogue reaches level 3 (Steady Aim and the Thief's Fast
-// Hands and Second-Story Work): no horizontal scroll, and the way back to
-// the sheet still works with every one open.
+// feature as a disclosure, open from the start (#387), showing what the
+// feature does (the sheet's text); the player can still fold each one. A
+// level-1 Fighter reaches level 2 (Action Surge, Tactical Mind) and a level-2
+// Rogue reaches level 3 (Steady Aim and the Thief's Fast Hands and
+// Second-Story Work): no horizontal scroll, and the way back to the sheet
+// still works with every one open.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -63,7 +64,7 @@ for (const { sheet, from, to, names } of CASES) {
   const expected = levelUpChanges(from, to).features;
   const viewport = { width: 1280, height: 900 };
   test(
-    `a level-${from.level} ${sheet.class} ends at level ${to.level} and its card opens each new feature's text (${viewport.width}px)`,
+    `a level-${from.level} ${sheet.class} ends at level ${to.level} and its card shows each new feature's text (${viewport.width}px)`,
     { timeout: 60000 },
     async () => {
       assert.deepEqual(
@@ -112,7 +113,8 @@ for (const { sheet, from, to, names } of CASES) {
           /Hit points \d+ → \d+\.[^\n]* New features:/u,
         );
 
-        // Each new feature is closed at first: its name alone shows.
+        // Each new feature is open from the start (#387): the sheet's text
+        // shows without a click.
         const features = page.locator("#level-up-features details");
         assert.deepEqual(
           await page.locator("#level-up-features summary").allTextContents(),
@@ -120,14 +122,17 @@ for (const { sheet, from, to, names } of CASES) {
         );
         for (const [index, { text }] of expected.entries()) {
           const feature = features.nth(index);
-          assert.equal(await feature.getAttribute("open"), null);
-          assert.equal(await feature.locator("p").isVisible(), false);
-          // Opening it shows the sheet's text for that feature.
-          await feature.locator("summary").click();
+          assert.equal(await feature.getAttribute("open"), "");
           assert.equal(await feature.locator("p").isVisible(), true);
           assert.equal(await feature.locator("p").textContent(), text);
         }
         await assertNoSideScroll(page, "every feature open: no side scroll");
+        // Each is still a disclosure the player can fold and open again.
+        const first = features.first();
+        await first.locator("summary").click();
+        assert.equal(await first.locator("p").isVisible(), false);
+        await first.locator("summary").click();
+        assert.equal(await first.locator("p").isVisible(), true);
 
         // With every feature open, the way back is still on screen to use.
         const back = page.locator("#ending-next");
