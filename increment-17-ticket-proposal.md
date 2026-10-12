@@ -1,6 +1,6 @@
 # Increment 17 ticket proposal
 
-Status: **draft for owner review**, 12 October 2026. Nothing is published yet. Sources: the [published module survey](docs/published-module-survey.md) and the [D&D 5e expansion plan](dnd-expansion-implementation-plan.md). Baseline: `main` at `5d0bb47`.
+Status: approved by the project owner and published as GitHub issues #395–#414 on 12 October 2026, reworked from the fourteen tickets below into twenty narrower slices (see the publication index). Every issue has the `ready-for-agent` label and native blocking links. The published issues are the source of truth for each ticket's scope and acceptance criteria; this document is the publication record. Sources: the [published module survey](docs/published-module-survey.md) and the [D&D 5e expansion plan](dnd-expansion-implementation-plan.md). Baseline: `main` at `5d0bb47`.
 
 **Playable result:** a single character explores a two-level dungeon of about 20 rooms, closer in depth to the published modules the survey read. The character can run from a fight, set off alarms that change the dungeon, solve a puzzle with something it found, use the room against a monster, meet wandering monsters as it explores, and keep track of where it has been and what it has learned.
 
@@ -8,7 +8,7 @@ Status: **draft for owner review**, 12 October 2026. Nothing is published yet. S
 
 The owner expects the game to stay single-player (12 October 2026). The plan's increment 17, Companions, is replaced by this one, and its open decision 7 is closed as "no companions". Increment 18, the shared campaign world, is unchanged.
 
-The plan's section 10 and increment table are updated when this proposal is approved, not before.
+The plan's section 10 and increment table are updated by the release ticket (#414).
 
 ## 2. The target module
 
@@ -279,6 +279,8 @@ The career simulation plays a long module like any other.
 
 ## 6. Owner decisions
 
+The owner approved these recommendations with the ticket breakdown on 12 October 2026; they are repeated in each issue. D8's avoidable rooms were tightened on publication: an avoidable room must lie off every declared route.
+
 | #   | Decision                      | Recommendation                                                                                                                                                                                                                                                                       |
 | --- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | D1  | The cost of fleeing           | Each standing opponent able to act makes one attack before the character leaves, as SRD 5.2's opportunity attacks would. A Rogue's Cunning Action gains Disengage, which avoids them. Alternative: a Dexterity save against the foes' best attack bonus, failure meaning one attack. |
@@ -305,3 +307,28 @@ T1 ─┬─ T3 ─┬─ T4 ─┐
 T2 ───────────────┘             │
 (T13 drafting starts after T3) ─┘
 ```
+
+## Publication index
+
+| Issue                                                     | Title                                             | Blocked by                                                             |
+| --------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| [#395](https://github.com/barnabyg/dungeonOne/issues/395) | Group rooms into regions and count moves          | None                                                                   |
+| [#396](https://github.com/barnabyg/dungeonOne/issues/396) | Flee a fight                                      | None                                                                   |
+| [#397](https://github.com/barnabyg/dungeonOne/issues/397) | Flags that open and close passages                | None                                                                   |
+| [#398](https://github.com/barnabyg/dungeonOne/issues/398) | Encounters that appear, vanish or move with flags | #397                                                                   |
+| [#399](https://github.com/barnabyg/dungeonOne/issues/399) | Features and topics that change with flags        | #397                                                                   |
+| [#400](https://github.com/barnabyg/dungeonOne/issues/400) | Use an item on a feature                          | #397                                                                   |
+| [#401](https://github.com/barnabyg/dungeonOne/issues/401) | Alarms                                            | #398                                                                   |
+| [#402](https://github.com/barnabyg/dungeonOne/issues/402) | Use the room in a fight                           | None                                                                   |
+| [#403](https://github.com/barnabyg/dungeonOne/issues/403) | Wandering encounter tables by region              | #395                                                                   |
+| [#404](https://github.com/barnabyg/dungeonOne/issues/404) | Declare a long module                             | #395                                                                   |
+| [#405](https://github.com/barnabyg/dungeonOne/issues/405) | Known rooms panel                                 | #395                                                                   |
+| [#406](https://github.com/barnabyg/dungeonOne/issues/406) | The AI DM remembers known rooms                   | #405                                                                   |
+| [#407](https://github.com/barnabyg/dungeonOne/issues/407) | The gate judges declared routes                   | #397                                                                   |
+| [#408](https://github.com/barnabyg/dungeonOne/issues/408) | The gate sweeps each region                       | #395, #407                                                             |
+| [#409](https://github.com/barnabyg/dungeonOne/issues/409) | Generated release runs                            | None                                                                   |
+| [#410](https://github.com/barnabyg/dungeonOne/issues/410) | Keep the gate within budget for a long module     | #408                                                                   |
+| [#411](https://github.com/barnabyg/dungeonOne/issues/411) | Design the release module (owner pause)           | None                                                                   |
+| [#412](https://github.com/barnabyg/dungeonOne/issues/412) | Write the release module                          | #396, #399, #400, #401, #402, #403, #404, #405, #408, #409, #410, #411 |
+| [#413](https://github.com/barnabyg/dungeonOne/issues/413) | The AI DM in the release module                   | #406, #412                                                             |
+| [#414](https://github.com/barnabyg/dungeonOne/issues/414) | Release increment 17 and write the handoff        | #412, #413                                                             |
