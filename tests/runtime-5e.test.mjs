@@ -107,7 +107,7 @@ test("begin rolls initiative for every combatant and records the dice", () => {
   );
   assert.match(
     runtime.renderResult(result),
-    /12 \+ 4 = 16 against AC 13\. Hit\. Damage 2 \+ 2 = 4 slashing; Ada has 8\/12 HP\.\nIt is your turn\.$/,
+    /12 \+ 4 = 16 against AC 13\. Hit\. Damage 2 \+ 2 = 4 slashing; Ada has 8\/12 HP\.\nIt is your turn\. Your turn ends by itself once nothing is left to do\.$/,
   );
 });
 
