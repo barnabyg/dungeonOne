@@ -34,7 +34,10 @@
  * against its damage. In a fight the
  * player attacks until one side is defeated: defeat ends the adventure, and
  * victory either ends it (when the encounter names a victory ending) or lets
- * the player explore on. Opponents may lose their nerve and flee (#237): one
+ * the player explore on. On its turn the character may instead flee (#396)
+ * through an exit it could otherwise use, each opponent able to act first
+ * making one attack (none after a Rogue's Disengage); the fight stays
+ * unresolved, its standing opponents keeping their wounds. Opponents may lose their nerve and flee (#237): one
  * that fled a won fight leaves no body to search, so what it carried leaves
  * with it, and gives half its XP if it exchanged blows with the character
  * first, or none. One whose module authors a surrender (#238) yields instead:
@@ -56,9 +59,9 @@
  * so (the browser asks the player first).
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
- * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
+ * `move`, `flee`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest`, `cast`, `divine_spark`, `turn_undead`, `preserve_life`, `spiritual_weapon` and `vampiric_touch`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `disengage`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest`, `cast`, `divine_spark`, `turn_undead`, `preserve_life`, `spiritual_weapon` and `vampiric_touch`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -147,7 +150,6 @@ import {
   moraleStatus,
   type MoraleStatus,
   incapacitatedBy,
-  isDefeated,
   legalTargets,
   startEncounter,
   castOutsideFight,
@@ -155,6 +157,7 @@ import {
   TURN_UNDEAD,
   DIVINE_SPARK_MODES,
   everyFoeTurned,
+  fleeAttackers,
   type DivineSparkMode,
   itemCastLevels,
   slotLevels,
@@ -306,7 +309,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v35";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v36";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -411,7 +414,8 @@ export type FifthState = Readonly<{
   /** Encounters won, including one whose victory ended the adventure. */
   clearedEncounterIds: readonly string[];
   /**
-   * The opponents that fled a won fight (#237): they leave no body, and give
+   * The opponents that fled a fight (#237), won or, once the character left
+   * it unresolved (#396), not: they leave no body, and once it is won give
    * half their XP if they exchanged blows with the character first, or none.
    */
   fledOpponents: readonly LeftFight[];
@@ -473,13 +477,24 @@ export type FifthState = Readonly<{
    */
   bypassedEncounterIds: readonly string[];
   /**
-   * Opponents defeated in a fight the character left with every foe still
-   * standing turned (#341, D13): the fight stays unresolved, and is met
-   * again without them on coming back.
+   * Opponents out of a fight the character left unresolved, with every foe
+   * still standing turned (#341, D13) or by fleeing it (#396): those that
+   * fell, fled or surrendered. The fight is met again without them on
+   * coming back.
    */
   fallenOpponents?: readonly Readonly<{
     encounterId: string;
     opponentId: string;
+  }>[];
+  /**
+   * The hit points of each wounded opponent still standing in a fight the
+   * character left unresolved (#396, and #341's turned foes): met again on
+   * coming back with them. The last leaving's record stands.
+   */
+  woundedOpponents?: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+    hp: number;
   }>[];
   /**
    * Each reaction roll (#304), by encounter: made when its fight would first
@@ -577,6 +592,12 @@ export type FifthAction =
   /** Vampiric Touch's attack again (#344), with the action. */
   | Readonly<{ type: "drain-attack"; actorId: string; targetId: string }>
   | Readonly<{ type: "move"; destinationId: string }>
+  /**
+   * Fleeing the fight here (#396) through the exit to `destinationId`, with
+   * the action: each opponent able to act first makes one attack, unless
+   * the character disengaged this turn.
+   */
+  | Readonly<{ type: "flee"; destinationId: string }>
   /**
    * Sneaking into a neighbouring room where a fight waits (#301): a Stealth
    * check against the opponents' best passive Perception decides surprise.
@@ -706,6 +727,7 @@ export type FeatureActionType =
   | "action-surge"
   | "hide"
   | "steady-aim"
+  | "disengage"
   | "turn-undead"
   | "preserve-life"
   | "end-turn"
@@ -717,6 +739,7 @@ const FEATURE_TOOLS = {
   action_surge: "action-surge",
   hide: "hide",
   steady_aim: "steady-aim",
+  disengage: "disengage",
   turn_undead: "turn-undead",
   preserve_life: "preserve-life",
   end_turn: "end-turn",
@@ -729,6 +752,7 @@ const FEATURE_TOOLS = {
     | "action_surge"
     | "hide"
     | "steady_aim"
+    | "disengage"
     | "turn_undead"
     | "preserve_life"
     | "end_turn"
@@ -821,6 +845,14 @@ const TARGET_TOOLS = {
     parameter: "destination",
     action: (destinationId: string): FifthAction => ({
       type: "move",
+      destinationId,
+    }),
+  },
+  // Fleeing a fight (#396) through an exit.
+  flee: {
+    parameter: "destination",
+    action: (destinationId: string): FifthAction => ({
+      type: "flee",
       destinationId,
     }),
   },
@@ -986,6 +1018,18 @@ export type FifthEvent =
       type: "turned-away";
       encounterId: string;
       room: string;
+      opponents: readonly string[];
+    }>
+  /**
+   * The character fled the fight here (#396) through the exit to `to`, a
+   * room's name: the fight stays unresolved, its standing opponents met
+   * again on coming back.
+   */
+  | Readonly<{
+      type: "fled-fight";
+      encounterId: string;
+      room: string;
+      to: string;
       opponents: readonly string[];
     }>
   | Readonly<{
@@ -1539,13 +1583,15 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the spell's own casting time (an action, or a bonus action for a bonus-action spell) and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the spell's own casting time (an action, or a bonus action for a bonus-action spell) and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; otherwise a character leaves a fight only by fleeing. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
 A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+
+On its turn, with its action, the character may flee the fight through an exit it could otherwise go through: flee is offered then, listing only those exits, and says which opponents will attack as it goes. Call flee with the exit the player's words pick out when they run, flee, retreat or make a break for it ("I run for the door"); if they name no exit and more than one is listed, ask which, without calling a tool. Before the character goes, each opponent able to act makes one attack against it: the engine rolls them, and the character may fall before it gets away. Nothing spares those attacks but Disengage: a character with Cunning Action may first disengage with its bonus action (call disengage when the player asks to disengage, slip away or get clear), and then fleeing this turn draws none. A player cannot flee unharmed by asking; never promise it. If flee is not offered, or doesn't list the way the player names (a shut door, a closed way or a way not yet found), say they can't flee that way now, without calling a tool. The fight stays where it was: its fallen stay fallen, its standing foes keep their wounds and wait there, and they never follow.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -1559,6 +1605,8 @@ const featureDescriptions = (
   hide: "Hide, with the character's bonus action (Cunning Action): the engine rolls Stealth against the opponents' best passive Perception; on a success the character's next attack roll has advantage.",
   steady_aim:
     "Use Steady Aim, the character's bonus action: advantage on its next attack roll this turn.",
+  disengage:
+    "Disengage, with the character's bonus action (Cunning Action): fleeing this turn draws no attacks. Only when the player asks to disengage, slip away or get clear before fleeing.",
   turn_undead:
     "Use Turn Undead, a use of Channel Divinity and the character's action: the engine rolls each undead opponent's Wisdom save; one that fails is turned, Frightened and Incapacitated, until it succeeds on the save it repeats at the end of each of its turns, takes damage or is attacked, or the fight ends.",
   preserve_life:
@@ -1800,7 +1848,10 @@ export function playerCombatant(
     ...(profile.sneakAttack === undefined
       ? {}
       : { sneakAttack: profile.sneakAttack }),
-    ...(profile.cunningAction === true ? { hide: stealthOf(sheet) } : {}),
+    // Cunning Action (#307): Hide, and Disengage (#396).
+    ...(profile.cunningAction === true
+      ? { hide: stealthOf(sheet), disengage: true as const }
+      : {}),
     ...(profile.steadyAim === true ? { steadyAim: true as const } : {}),
     ...(profile.fastHands === true ? { fastHands: true as const } : {}),
     ...(profile.cunningStrike === undefined
@@ -1941,6 +1992,8 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "action-surge": "use Action Surge",
   hide: "hide",
   "steady-aim": "use Steady Aim",
+  disengage: "disengage",
+  flee: "flee",
   "drink-potion": "drink a potion",
   cast: "cast a spell",
   "divine-spark": "use Divine Spark",
@@ -2944,6 +2997,17 @@ export function renderFifthEvent(
     }
     case "steady-aim":
       return "You steady your aim: your next attack roll this turn has advantage.";
+    case "disengage":
+      return "You disengage: fleeing this turn draws no attacks.";
+    case "flee":
+      return event.disengaged === true
+        ? "You flee, disengaged: no foe gets an attack on you as you go."
+        : event.attackerIds.length === 0
+          ? "You flee: no foe is able to strike at you as you go."
+          : `You turn to flee: ${listed(
+              event.attackerIds.map(name),
+              "and",
+            )} ${event.attackerIds.length === 1 ? "gets an attack" : "each get an attack"} on you as you go.`;
     case "potion": {
       const rolled =
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
@@ -3064,6 +3128,11 @@ export function renderFifthEvent(
         event.opponents.map((name) => `the ${name}`),
         "and",
       )} still turned. The fight is unresolved: ${event.opponents.length === 1 ? "it waits" : "they wait"} there if you come back, and the fallen stay fallen.`;
+    case "fled-fight":
+      return `You get away from the ${event.room} into the ${event.to}, leaving ${listed(
+        event.opponents.map((who) => `the ${who}`),
+        "and",
+      )} behind. The fight is unresolved: ${event.opponents.length === 1 ? "it waits" : "they wait"} there if you come back, wounds and all, and the fallen stay fallen.`;
     case "bypassed":
       return `You slip out of the ${event.room} unseen, past ${listed(event.opponents, "and")}. The fight there is left unfought.`;
     case "cleared":
@@ -3197,24 +3266,46 @@ export function renderFifthEvent(
   }
 }
 
+/**
+ * The fight each `fled-fight` event (#396) left behind, as it stood when the
+ * character got away, so the events before it can be told.
+ */
+const LEFT_FIGHTS = new WeakMap<FifthEvent, EncounterState>();
+
 export function renderFifthResult(result: FifthResult): string {
   return resultLines(result)
     .map(({ text }) => text)
     .join("\n");
 }
 
-type ResultLineSource = Readonly<{ text: string; event?: FifthEvent }>;
+/**
+ * A line of a result's text, with the event it describes (if any) and the
+ * state that event is told against.
+ */
+type ResultLineSource = Readonly<{
+  text: string;
+  event?: FifthEvent;
+  state: FifthState;
+}>;
 
 /** Each line of a result's text, with the event it describes (if any). */
 function resultLines(result: FifthResult): ResultLineSource[] {
   if (result.rejection !== undefined) {
-    return [{ text: result.rejection.reason }];
+    return [{ text: result.rejection.reason, state: result.state }];
   }
   const lines: ResultLineSource[] = [];
-  for (const event of result.events) {
-    const text = renderFifthEvent(result.state, event);
+  // The fight fled (#396) is gone from the state: what happened in it
+  // before the character got away reads its combatants from it.
+  const fled = result.events.findIndex(({ type }) => type === "fled-fight");
+  const left = fled === -1 ? undefined : LEFT_FIGHTS.get(result.events[fled]!);
+  for (const [index, event] of result.events.entries()) {
+    const told =
+      left !== undefined && index < fled
+        ? { ...result.state, encounter: left }
+        : result.state;
+    const text = renderFifthEvent(told, event);
     if (text !== undefined) {
-      lines.push({ text, event });
+      lines.push({ text, event, state: told });
     }
   }
   const turn =
@@ -3225,6 +3316,7 @@ function resultLines(result: FifthResult): ResultLineSource[] {
     // A fresh turn starts with a turn event; otherwise the turn goes on.
     const options = availableActions(result.state.encounter!, PLAYER_ID);
     lines.push({
+      state: result.state,
       text:
         result.events.at(-1)?.type === "turn"
           ? // The fight's first turn says how a turn ends (#392).
@@ -3545,7 +3637,9 @@ export function describeFifthResult(
   playerName: string,
   icons?: IconLookup,
 ): ResultLine[] {
-  const { state } = result;
+  // Each event is told against its line's state (#396: what happened in
+  // a fight fled reads the fight left behind).
+  let state = result.state;
   const name = (id: string) =>
     id === PLAYER_ID
       ? playerName
@@ -4207,7 +4301,8 @@ export function describeFifthResult(
         return [];
     }
   };
-  const lines = resultLines(result).map(({ text, event }) => {
+  const lines = resultLines(result).map(({ text, event, state: told }) => {
+    state = told;
     const marks =
       icons === undefined ? [] : lineIcons(state, event, text, icons);
     return {
@@ -4344,6 +4439,10 @@ export type ActionKind =
   | "action-surge"
   | "hide"
   | "steady-aim"
+  /** Cunning Action's Disengage (#396). */
+  | "disengage"
+  /** Fleeing a fight through an exit (#396). */
+  | "flee"
   /** Channel Divinity (#341) and Spiritual Weapon's attack. */
   | "divine-spark"
   | "turn-undead"
@@ -4388,6 +4487,8 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "action-surge": true,
   hide: true,
   "steady-aim": true,
+  disengage: true,
+  flee: true,
   "divine-spark": true,
   "turn-undead": true,
   "preserve-life": true,
@@ -4458,6 +4559,11 @@ export type ActionView = Readonly<{
   cunningStrike?: Readonly<{ id: CunningStrikeId; name: string }>;
   /** What Divine Spark does (#341): heal, or radiant or necrotic damage. */
   mode?: DivineSparkMode;
+  /**
+   * Fleeing through an exit (#396): the opponents that would each make one
+   * attack as the character goes, none once it has disengaged.
+   */
+  attackers?: readonly Readonly<{ id: string; name: string }>[];
   /**
    * A spell cast (#336): the spell, its level (0 for a cantrip) and the slot
    * level it would spend, for a levelled spell; `target` is whom it is
@@ -4550,6 +4656,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-hide": "Can't hide",
   "already-hidden": "Already hidden",
   "no-steady-aim": "No Steady Aim",
+  "no-disengage": "Can't disengage",
+  "already-disengaged": "Already disengaged",
   "no-attack-left": "No attack left",
   "no-cunning-strike": "No Cunning Strike",
   "no-sneak-attack": "No Sneak Attack",
@@ -5702,31 +5810,71 @@ export function createFifthRuntime(
       ({ id }) => !fallen(state, fight!.id, id),
     );
   };
-  const opponents = (state: FifthState): readonly Combatant[] =>
-    standing(state).map(({ id, name, statBlock, surrender }) =>
-      statBlockCombatant(id, name, statBlock, surrender !== undefined),
-    );
+  const opponents = (state: FifthState): readonly Combatant[] => {
+    const fight = encounterOf(state);
+    return standing(state).map(({ id, name, statBlock, surrender }) => {
+      const fresh = statBlockCombatant(
+        id,
+        name,
+        statBlock,
+        surrender !== undefined,
+      );
+      // Wounded in a fight the character left (#396), it keeps its wounds.
+      const hp = (state.woundedOpponents ?? []).find(
+        (record) =>
+          record.encounterId === fight!.id && record.opponentId === id,
+      )?.hp;
+      return hp === undefined ? fresh : { ...fresh, hp };
+    });
+  };
   /**
-   * Leaving the fight's room with every foe left turned (#341, D13): the
-   * fight stays unresolved, remembering who fell; the character keeps what
-   * its combatant has left, and its effects lasting the fight end.
+   * Leaving the fight's room in the middle of the fight, with every foe
+   * left turned (#341, D13) or by fleeing (#396): the fight stays
+   * unresolved. It remembers who is out of it (fallen, fled or
+   * surrendered; one that fled or surrendered is credited as such if the
+   * fight is won later) and the wounds of those still standing; the
+   * character keeps what its combatant has left, and its effects lasting
+   * the fight end. `left` makes the event that says how it went, from the
+   * fight, its room's name and the standing opponents' names.
    */
-  const turnAway = (
+  const leaveFight = (
     state: FifthState,
+    left: (
+      encounterId: string,
+      roomName: string,
+      standingNames: readonly string[],
+    ) => FifthEvent,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
     const encounter = state.encounter!;
     const fight = encounterOf(state)!;
     const pc = combatant(encounter, PLAYER_ID);
-    const foes = encounter.combatants.filter(
-      ({ side }) => side === "opponents",
+    const still = legalTargets(encounter, PLAYER_ID);
+    const out = encounter.combatants.filter(
+      (foe) => foe.side === "opponents" && !still.includes(foe),
     );
     const effects = pc.effects ?? [];
     const lasting = effects.filter(({ ends }) => outlastsFight(ends));
     const { effects: _before, ...character } = state.character;
     void _before;
+    const record = (opponentIds: readonly string[]): readonly LeftFight[] =>
+      opponentIds.map((opponentId) => ({
+        encounterId: fight.id,
+        opponentId,
+        engaged: encounter.engaged.includes(opponentId),
+      }));
+    const wounded = [
+      ...(state.woundedOpponents ?? []).filter(
+        ({ encounterId }) => encounterId !== fight.id,
+      ),
+      ...still
+        .filter(({ hp, maxHp }) => hp < maxHp)
+        .map(({ id, hp }) => ({ encounterId: fight.id, opponentId: id, hp })),
+    ];
+    const { woundedOpponents: _old, ...rest } = state;
+    void _old;
     return {
       state: {
-        ...state,
+        ...rest,
         character:
           lasting.length === 0 ? character : { ...character, effects: lasting },
         possessions: {
@@ -5735,21 +5883,24 @@ export function createFifthRuntime(
         },
         fallenOpponents: [
           ...(state.fallenOpponents ?? []),
-          ...foes
-            .filter(isDefeated)
-            .map(({ id }) => ({ encounterId: fight.id, opponentId: id })),
+          ...out.map(({ id }) => ({ encounterId: fight.id, opponentId: id })),
         ],
+        fledOpponents: [...state.fledOpponents, ...record(encounter.fled)],
+        surrenderedOpponents: [
+          ...state.surrenderedOpponents,
+          ...record(encounter.surrendered),
+        ],
+        ...(wounded.length === 0 ? {} : { woundedOpponents: wounded }),
       },
       events: [
         ...effects
           .filter((effect) => !lasting.includes(effect))
           .map((effect) => effectEnded(PLAYER_ID, effect, "fight-over")),
-        {
-          type: "turned-away",
-          encounterId: fight.id,
-          room: room(state).name,
-          opponents: legalTargets(encounter, PLAYER_ID).map(({ name }) => name),
-        },
+        left(
+          fight.id,
+          room(state).name,
+          still.map(({ name }) => name),
+        ),
       ],
     };
   };
@@ -7548,6 +7699,7 @@ export function createFifthRuntime(
       case "action-surge":
       case "hide":
       case "steady-aim":
+      case "disengage":
       case "turn-undead":
       case "preserve-life":
       case "end-turn":
@@ -7579,7 +7731,8 @@ export function createFifthRuntime(
           : { type: action.type, actorId, targetId };
       }
       case "move":
-      case "sneak": {
+      case "sneak":
+      case "flee": {
         const destinationId = field("destinationId");
         return destinationId === undefined
           ? undefined
@@ -7884,6 +8037,135 @@ export function createFifthRuntime(
     };
   };
 
+  /**
+   * Goes through `passage` into `destination`, from `state` with the room
+   * left behind as it should be: an armed trap on the way springs, the move
+   * counts (#395), and the room's fight is met (sneaked up on when
+   * `sneakInto` is its encounter). `before` are the events of leaving.
+   */
+  const goThrough = (
+    state: FifthState,
+    before: readonly FifthEvent[],
+    passage: FifthPassage,
+    destination: FifthRoom,
+    sneakInto: FifthEncounter | undefined,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const trap = passage.trap;
+    const sprung: Readonly<{
+      state: FifthState;
+      events: readonly FifthEvent[];
+    }> =
+      trap === undefined || !armed(state, trap.id)
+        ? { state, events: [] }
+        : spring(state, trap, need(random, "Springing a trap"));
+    if (sprung.state.status !== "playing") {
+      return { state: sprung.state, events: [...before, ...sprung.events] };
+    }
+    // The fight stays behind: an ended adventure cannot move. A wandering
+    // encounter's (#335) stays behind with it.
+    const { encounter: left, ...kept } = cleared(sprung.state, "wandering");
+    void left;
+    const arrived: FifthState = {
+      ...kept,
+      roomId: destination.id,
+      moves: kept.moves + 1,
+    };
+    const fight = encounterOf(arrived);
+    const metHere =
+      fight === undefined || settled(arrived, fight.id)
+        ? []
+        : fight.opponents.filter(({ id }) => !fallen(arrived, fight.id, id));
+    const sneaked =
+      sneakInto === undefined
+        ? undefined
+        : sneakUp(arrived, sneakInto, destination.name, random);
+    // Lurking opponents (#303) roll their Stealth after the character's.
+    // Hidden from it, they are met at once: whoever was unseen is
+    // surprised, the character always and its foes if it sneaked in.
+    const lurked = lurkIn(sneaked?.state ?? arrived, random);
+    const sneakedIn = sneaked?.event.roll.success === true;
+    const next: FifthState = lurked.hidden
+      ? cleared(lurked.state, "unseenBy")
+      : lurked.state;
+    const events: readonly FifthEvent[] = [
+      ...before,
+      ...sprung.events,
+      ...(sneaked === undefined
+        ? []
+        : [
+            lurked.hidden
+              ? { ...sneaked.event, lurkersHidden: true as const }
+              : sneaked.event,
+          ]),
+      {
+        type: "entered",
+        roomId: destination.id,
+        name: destination.name,
+        description: destination.description,
+        opponents: metHere.map(({ description }) => description),
+        opponentIds: metHere.map(({ id }) => id),
+      },
+      ...(lurked.event === undefined ? [] : [lurked.event]),
+    ];
+    // Unnoticed (#302), the character waits: the fight has not begun.
+    return sneakedIn && !lurked.hidden
+      ? { state: next, events }
+      : meet(next, random, events, {
+          opponents: sneakedIn,
+          character: lurked.hidden,
+        });
+  };
+
+  /**
+   * Takes the character out of the fight it is fleeing (#396) once every
+   * opponent's attack on it is made and it still stands: the fight stays
+   * unresolved, and the character goes through the exit it fled by.
+   * Anything else is returned as it is.
+   */
+  const getAway = (
+    result: FifthResult,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const encounter = result.state.encounter;
+    const escape = encounter?.escape;
+    if (
+      result.rejection !== undefined ||
+      result.state.status !== "playing" ||
+      encounter === undefined ||
+      escape === undefined ||
+      encounter.outcome !== "ongoing" ||
+      encounter.pendingReaction !== undefined ||
+      escape.attackers.length > 0
+    ) {
+      return result;
+    }
+    const destination = roomById(escape.to);
+    const way = ways(result.state).find(({ to }) => to === escape.to)!;
+    const away = leaveFight(
+      result.state,
+      (encounterId, roomName, standingNames) => {
+        const event: FifthEvent = {
+          type: "fled-fight",
+          encounterId,
+          room: roomName,
+          to: destination.name,
+          opponents: standingNames,
+        };
+        LEFT_FIGHTS.set(event, encounter);
+        return event;
+      },
+    );
+    return goThrough(
+      away.state,
+      [...result.events, ...away.events],
+      way.passage,
+      destination,
+      undefined,
+      random,
+    );
+  };
+
   /** Hands a fight action to the encounter engine. */
   const fightAction = (
     state: FifthState,
@@ -7925,7 +8207,9 @@ export function createFifthRuntime(
     requested: FifthAction,
     random?: Pick<RandomSource, "roll">,
   ): FifthResult => {
-    const result = perform(state, requested, random);
+    // A flight (#396), or a hit's answer that ends one, goes on through
+    // the exit once the character has got away.
+    const result = getAway(perform(state, requested, random), random);
     // Tactical Mind is offered only right after the failed check (#315):
     // any other accepted action takes the offer away. A check that fails
     // makes a fresh one.
@@ -8255,6 +8539,7 @@ export function createFifthRuntime(
       case "action-surge":
       case "hide":
       case "steady-aim":
+      case "disengage":
       case "divine-spark":
       case "turn-undead":
       case "preserve-life":
@@ -8318,87 +8603,66 @@ export function createFifthRuntime(
         }
         // Leaving a fight's room unseen bypasses it (#302); leaving it with
         // every foe turned leaves it unresolved (#341).
-        const away = turnedAll ? turnAway(state) : undefined;
+        const away = turnedAll
+          ? leaveFight(state, (encounterId, roomName, standingNames) => ({
+              type: "turned-away",
+              encounterId,
+              room: roomName,
+              opponents: standingNames,
+            }))
+          : undefined;
         const slipped =
           away === undefined
             ? slipOut(state)
             : { state: away.state, event: undefined };
-        const trap = way.passage.trap;
-        const sprung: Readonly<{
-          state: FifthState;
-          events: readonly FifthEvent[];
-        }> =
-          trap === undefined || !armed(state, trap.id)
-            ? { state: slipped?.state ?? state, events: [] }
-            : spring(
-                slipped?.state ?? state,
-                trap,
-                need(random, "Springing a trap"),
-              );
         const before =
           away !== undefined
             ? away.events
             : slipped === undefined
               ? []
               : [slipped.event!];
-        if (sprung.state.status !== "playing") {
-          return { state: sprung.state, events: [...before, ...sprung.events] };
+        return goThrough(
+          slipped?.state ?? state,
+          before,
+          way.passage,
+          destination,
+          action.type === "sneak" ? ahead : undefined,
+          random,
+        );
+      }
+      case "flee": {
+        if (!fighting(state)) {
+          return reject(
+            "no-fight",
+            "There is no fight here to flee: you can simply go.",
+          );
         }
-        // The fight stays behind: an ended adventure cannot move. A wandering
-        // encounter's (#335) stays behind with it.
-        const { encounter: left, ...kept } = cleared(sprung.state, "wandering");
-        void left;
-        const arrived: FifthState = {
-          ...kept,
-          roomId: destination.id,
-          moves: kept.moves + 1,
-        };
-        const fight = encounterOf(arrived);
-        const metHere =
-          fight === undefined || settled(state, fight.id)
-            ? []
-            : fight.opponents.filter(
-                ({ id }) => !fallen(arrived, fight.id, id),
-              );
-        const sneaked =
-          action.type === "sneak"
-            ? sneakUp(arrived, ahead!, destination.name, random)
-            : undefined;
-        // Lurking opponents (#303) roll their Stealth after the character's.
-        // Hidden from it, they are met at once: whoever was unseen is
-        // surprised, the character always and its foes if it sneaked in.
-        const lurked = lurkIn(sneaked?.state ?? arrived, random);
-        const sneakedIn = sneaked?.event.roll.success === true;
-        const next: FifthState = lurked.hidden
-          ? cleared(lurked.state, "unseenBy")
-          : lurked.state;
-        const events: readonly FifthEvent[] = [
-          ...before,
-          ...sprung.events,
-          ...(sneaked === undefined
-            ? []
-            : [
-                lurked.hidden
-                  ? { ...sneaked.event, lurkersHidden: true as const }
-                  : sneaked.event,
-              ]),
-          {
-            type: "entered",
-            roomId: destination.id,
-            name: destination.name,
-            description: destination.description,
-            opponents: metHere.map(({ description }) => description),
-            opponentIds: metHere.map(({ id }) => id),
-          },
-          ...(lurked.event === undefined ? [] : [lurked.event]),
-        ];
-        // Unnoticed (#302), the character waits: the fight has not begun.
-        return sneakedIn && !lurked.hidden
-          ? { state: next, events }
-          : meet(next, random, events, {
-              opponents: sneakedIn,
-              character: lurked.hidden,
-            });
+        const way = ways(state).find(({ to }) => to === action.destinationId);
+        if (way === undefined) {
+          return reject("no-exit", "There is no way from here to there.");
+        }
+        if (isClosed(state, way.passage)) {
+          return reject(
+            "route-closed",
+            `The way to the ${roomById(way.to).name} is closed: you can't flee that way.`,
+          );
+        }
+        const door = way.passage.door;
+        if (door !== undefined && !isOpen(state, door)) {
+          return reject(
+            "door-shut",
+            `The ${door.name} is shut: you can't flee that way.`,
+          );
+        }
+        // The engine checks the turn and the action, then rolls each
+        // opponent's attack; `handleAction` takes the character through
+        // once it has got away.
+        return fightAction(
+          state,
+          { type: "flee", actorId: PLAYER_ID, to: way.to },
+          random,
+          reject,
+        );
       }
       case "force":
       case "pick":
@@ -9372,6 +9636,12 @@ export function createFifthRuntime(
       if (action.type === "divine-spark") {
         entry.mode = action.mode;
       }
+      // The opponents a flight would draw an attack from (#396).
+      if (action.type === "flee" && state.encounter !== undefined) {
+        entry.attackers = fleeAttackers(state.encounter, PLAYER_ID).map(
+          ({ id, name }) => ({ id, name }),
+        );
+      }
       // Cunning Strike's effect with an attack (#308).
       if (
         (action.type === "attack" || action.type === "light-attack") &&
@@ -9784,6 +10054,7 @@ export function createFifthRuntime(
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
         ...(pc.hide === undefined ? [] : [feature("hide")]),
         ...(pc.steadyAim === undefined ? [] : [feature("steady-aim")]),
+        ...(pc.disengage === undefined ? [] : [feature("disengage")]),
         // Channel Divinity (#341): Turn Undead, Preserve Life with the Life
         // Domain, and Divine Spark's damage at each foe (its healing needs
         // an ally, and the character has none).
@@ -9847,6 +10118,10 @@ export function createFifthRuntime(
               view("move", { type: "move", destinationId: exit.id }, exit),
             )
           : []),
+        // Fleeing (#396) through each exit, with the attacks it draws.
+        ...exits(state).map((exit) =>
+          view("flee", { type: "flee", destinationId: exit.id }, exit),
+        ),
         feature("end-turn"),
       ];
     }
@@ -10604,6 +10879,16 @@ export function createFifthRuntime(
     // The action bar's projection, so the AI DM is offered exactly the
     // actions the player sees enabled.
     const choices = (kind: ActionKind) => accepted(state, kind);
+    /** Who would attack the character as it flees now (#396). */
+    const fleeTargets = (at: FifthState) => {
+      const attackers =
+        at.encounter === undefined
+          ? []
+          : fleeAttackers(at.encounter, PLAYER_ID).map(({ name }) => name);
+      return attackers.length === 0
+        ? "No opponent will attack as it goes."
+        : `Before it goes, the engine rolls one attack against it from each of ${listed(attackers, "and")}.`;
+    };
     const actions = projectActions(state);
     /** The enabled approaches of each target of `kind`, where it has some. */
     const approachChoices = (kind: ActionKind) =>
@@ -10689,6 +10974,12 @@ export function createFifthRuntime(
             : "Slip past the opponents here, unseen, through an exit to a neighbouring room, leaving their fight unfought; it is met again on coming back. A fight in the next room begins at once. Exits:",
         choices("move"),
         "The id of the room to go to.",
+      ),
+      ...targetTool(
+        "flee",
+        `Only when the player asks to run, flee, retreat or make a break for an exit in the middle of the fight: the character flees through the exit with its action, leaving the fight unresolved; its standing opponents keep their wounds and are met again on coming back, and they don't follow. ${fleeTargets(state)} Exits it can flee through:`,
+        choices("flee"),
+        "The id of the room to flee into.",
       ),
       ...targetTool(
         "sneak",

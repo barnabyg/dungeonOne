@@ -336,7 +336,12 @@ test(
           ["end", ""],
         ],
       );
-      assert.deepEqual(await buttons(page, "rogue"), ["Hide", "Steady Aim"]);
+      // Cunning Action's Disengage (#396) joins them.
+      assert.deepEqual(await buttons(page, "rogue"), [
+        "Hide",
+        "Steady Aim",
+        "Disengage",
+      ]);
       assert.deepEqual(
         (await tabRows(page)).filter((row) => row !== "weapons"),
         ["attack", "rogue", "end"],

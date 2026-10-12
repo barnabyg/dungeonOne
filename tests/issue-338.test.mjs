@@ -66,9 +66,9 @@ const scriptedDm = (name, args, text = "Done.") => ({
 const attempt = (turn) => turn.toolAttempts[0];
 
 test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 53);
-  assert.equal(FIFTH_TRACE_FORMAT, 47);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v35");
+  assert.equal(FIFTH_SESSION_FORMAT, 54);
+  assert.equal(FIFTH_TRACE_FORMAT, 48);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v36");
 });
 
 test("the bar offers an area spell once per slot level, with its foes and its most", () => {

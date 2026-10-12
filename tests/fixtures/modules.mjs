@@ -553,6 +553,106 @@ export const regionTunnelsFile = (() => {
 })();
 export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 
+/**
+ * Fleeing a fight (#396): the rat tunnels as _The Bolt-Hole Cellar_. The
+ * cellar's fight is a Giant Rat and a Zombie; the stair foot is an exit
+ * room. Out of the cellar run the passage back to the stair foot, the way
+ * to the den, a stuck Sagging Door to a grain store, a way to a flooded sump over a Loose Stone trap
+ * (Dexterity DC 12, 1d6 bludgeoning), and a crawl to the alcove that is
+ * hidden until the Rotten Beam's check (Athletics DC 10) opens it; failing
+ * that check by 5 or more brings the beam down across the way to the sump.
+ */
+export const fleeingCellarFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "fleeing-cellar";
+  module.title = "The Bolt-Hole Cellar";
+  room(module, "stair-foot").exit = true;
+  module.endings.push({
+    id: "slipped-away",
+    kind: "escape-without-loot",
+    title: "Back up the stair",
+    text: "You climb out into the daylight with nothing to show for it.",
+  });
+  module.encounters
+    .find(({ id }) => id === "cellar-rat")
+    .opponents.push({
+      id: "zombie",
+      monster: "zombie",
+      description: "A shambling zombie lurches out of the dark.",
+    });
+  module.rooms.push({
+    id: "sump",
+    name: "Flooded Sump",
+    description: "Black water stands knee-deep under a low vault.",
+    features: [],
+    items: [],
+  });
+  room(module, "rat-cellar").features.push({
+    id: "rotten-beam",
+    name: "Rotten Beam",
+    description: "A beam props up the ceiling over the way to the sump.",
+    check: {
+      skill: "athletics",
+      dc: 10,
+      bands: {
+        "failure-by-5": {
+          text: "The beam gives, and the ceiling comes down across the way to the sump.",
+          effects: [{ type: "close", passage: "cellar-to-sump" }],
+        },
+        success: {
+          text: "Behind the beam a crawl leads off toward the alcove.",
+          effects: [{ type: "open", passage: "cellar-to-alcove" }],
+        },
+      },
+    },
+  });
+  module.rooms.push({
+    id: "store",
+    name: "Grain Store",
+    description: "Empty bins line a narrow room.",
+    features: [],
+    items: [],
+  });
+  module.passages.push(
+    {
+      id: "cellar-to-store",
+      between: ["rat-cellar", "store"],
+      description: "A sagging wooden door, swollen shut.",
+      door: {
+        id: "sagging-door",
+        name: "Sagging Door",
+        description: "The wood has swollen tight in its frame.",
+        state: "stuck",
+        force: { skill: "athletics", dc: 12 },
+      },
+    },
+    {
+      id: "cellar-to-sump",
+      between: ["rat-cellar", "sump"],
+      description: "A slick stone ramp down to the water.",
+      trap: {
+        id: "loose-stone",
+        name: "Loose Stone",
+        description: "One stone on the ramp rocks underfoot.",
+        find: { dc: 12 },
+        disarm: { ability: "dexterity", dc: 12 },
+        trigger: "The stone tips and you go down hard on the ramp.",
+        save: { ability: "dexterity", dc: 12 },
+        damage: { dice: 1, sides: 6, modifier: 0, type: "bludgeoning" },
+        defeatEndingId: "fallen-in-the-cellar",
+      },
+    },
+    {
+      id: "cellar-to-alcove",
+      between: ["rat-cellar", "alcove"],
+      description: "A crawl behind the beam.",
+      hidden: true,
+    },
+  );
+  return module;
+})();
+export const fleeingCellar = validateModule(structuredClone(fleeingCellarFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

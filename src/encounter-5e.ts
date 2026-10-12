@@ -64,6 +64,15 @@
  * - Steady Aim (#307): a bonus action, while the combatant still has an
  *   attack to make this turn, giving advantage on its next attack roll this
  *   turn. Without positions it has never moved, so it is always allowed.
+ * - Fleeing (#396): on its turn, with its action, a combatant may flee the
+ *   fight. First each opponent still in the fight and able to act (not
+ *   incapacitated, so not turned) makes one attack against it, in
+ *   initiative order (`fleeAttackers`): with Multiattack, one of its
+ *   attacks. A hit may wait for a reaction as any opponent's does. Once
+ *   every attack is made and the combatant still stands, `escape` records
+ *   that it got away: the caller takes it out of the fight. A combatant
+ *   with Cunning Action's Disengage (a bonus action) that has disengaged
+ *   this turn draws no attacks.
  * - Fast Hands (#307): once the turn's object interaction is spent, a
  *   combatant with it can draw, stow or swap a weapon again with its bonus
  *   action.
@@ -529,6 +538,11 @@ export type Combatant = DamageDefenses &
     }>;
     /** Steady Aim (#307): a bonus action for advantage on its next attack. */
     steadyAim?: true;
+    /**
+     * Cunning Action's Disengage (#396): a bonus action after which fleeing
+     * draws no attacks this turn.
+     */
+    disengage?: true;
     /** Fast Hands (#307): a second object interaction takes the bonus action. */
     fastHands?: true;
     /**
@@ -820,6 +834,17 @@ export type EncounterState = Readonly<{
    * hit. Nothing else happens until it is answered.
    */
   pendingReaction?: PendingReaction;
+  /**
+   * A party combatant fleeing the fight (#396): the opponents still to make
+   * their one attack on it as it goes, in order, and where it goes, which
+   * the engine only passes on. Once none is left and it still stands, it
+   * has got away: the fight goes no further until the caller takes it out.
+   */
+  escape?: Readonly<{
+    combatantId: string;
+    to: string;
+    attackers: readonly string[];
+  }>;
 }>;
 
 /**
@@ -900,6 +925,8 @@ export type TurnEconomy = Readonly<{
    * first attack this turn outside an Attack action under way takes it.
    */
   hasteAttack?: boolean;
+  /** Disengage taken this turn (#396): fleeing draws no attacks. */
+  disengaged?: boolean;
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -952,6 +979,9 @@ export type EncounterActionType =
   | "spectral-attack"
   | "drain-attack"
   | "end-turn"
+  /** Cunning Action's Disengage (#396), and fleeing the fight. */
+  | "disengage"
+  | "flee"
   | ReactionAnswer;
 
 /** What Divine Spark does (#341): heal, or deal radiant or necrotic damage. */
@@ -981,10 +1011,16 @@ export type EncounterAction =
         | "steady-aim"
         | "turn-undead"
         | "preserve-life"
+        | "disengage"
         | "end-turn"
         | ReactionAnswer;
       actorId: string;
     }>
+  /**
+   * Fleeing the fight (#396) toward `to`, which the engine passes on in
+   * `escape` and never reads.
+   */
+  | Readonly<{ type: "flee"; actorId: string; to: string }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
   /** Divine Spark (#341) at its target. */
   | Readonly<{
@@ -1648,6 +1684,18 @@ export type EncounterEvent =
   | Readonly<{ type: "action-surge"; combatantId: string; usesLeft: number }>
   | HideEvent
   | Readonly<{ type: "steady-aim"; combatantId: string }>
+  /** Cunning Action's Disengage (#396). */
+  | Readonly<{ type: "disengage"; combatantId: string }>
+  /**
+   * A combatant begins to flee the fight (#396): the opponents that will
+   * each make one attack on it as it goes, none if it disengaged.
+   */
+  | Readonly<{
+      type: "flee";
+      combatantId: string;
+      attackerIds: readonly string[];
+      disengaged?: true;
+    }>
   | ReactionOfferedEvent
   | PotionEvent
   | CastEvent
@@ -1711,6 +1759,8 @@ export type EncounterRefusalCode =
   | "no-hide"
   | "already-hidden"
   | "no-steady-aim"
+  | "no-disengage"
+  | "already-disengaged"
   | "no-attack-left"
   | "no-cunning-strike"
   | "no-sneak-attack"
@@ -2069,6 +2119,89 @@ function hideRefusal(
     );
   }
   return state.economy.bonusAction ? undefined : BONUS_ACTION_USED;
+}
+
+function disengageRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.disengage === undefined) {
+    return refused("no-disengage", "You can't Disengage as a bonus action.");
+  }
+  if (state.economy.disengaged === true) {
+    return refused(
+      "already-disengaged",
+      "You have already disengaged this turn: fleeing now draws no attacks.",
+    );
+  }
+  if (!state.economy.bonusAction) {
+    return BONUS_ACTION_USED;
+  }
+  // Disengaging only helps a flight, which takes the action.
+  return state.economy.actions > 0
+    ? undefined
+    : refused(
+        "action-used",
+        "You have already used your action, so you can't flee this turn: disengaging would do nothing.",
+      );
+}
+
+function fleeRefusal(state: EncounterState): EncounterRejection | undefined {
+  return state.economy.actions > 0
+    ? undefined
+    : refused(
+        "action-used",
+        "Fleeing takes your action, and you have already used it this turn.",
+      );
+}
+
+/**
+ * The opponents that would each make one attack on `actorId` as it flees
+ * now (#396), in initiative order: those still in the fight and able to
+ * act. None once it has disengaged this turn.
+ */
+export function fleeAttackers(
+  state: EncounterState,
+  actorId: string,
+): readonly Combatant[] {
+  return state.economy.disengaged === true
+    ? []
+    : legalTargets(state, actorId).filter((foe) => ableToAct(state, foe));
+}
+
+/**
+ * The attacks on a fleeing combatant (#396), one by each opponent left in
+ * `escape`, until none is left, a hit waits for a reaction or the fight is
+ * over.
+ */
+function fleeAttacks(
+  state: EncounterState,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  while (
+    next.outcome === "ongoing" &&
+    next.pendingReaction === undefined &&
+    next.escape !== undefined &&
+    next.escape.attackers.length > 0
+  ) {
+    const [attackerId, ...rest] = next.escape.attackers;
+    next = { ...next, escape: { ...next.escape, attackers: rest } };
+    const attacker = combatant(next, attackerId!);
+    // One that fell or was taken out meanwhile makes no attack.
+    if (!ableToAct(next, attacker)) {
+      continue;
+    }
+    const resolved = opponentAttack(next, attacker, random, {
+      made: 0,
+      bonusAction: false,
+      rampage: false,
+    });
+    events.push(...resolved.events);
+    next = resolved.state;
+  }
+  return next;
 }
 
 /** Whether `actor` still has an attack it can make this turn. */
@@ -2951,7 +3084,11 @@ function drainingTouch(
   };
 }
 
-/** What `actorId` may do now; empty unless it is its turn. */
+/**
+ * What `actorId` may do now; empty unless it is its turn. Fleeing and Disengage (#396) are left out: the
+ * caller offers a flight by each exit it could take, and the turn's end by
+ * itself doesn't wait on them.
+ */
 export function availableActions(
   state: EncounterState,
   actorId: string,
@@ -4522,6 +4659,10 @@ function answerReaction(
     { resumed: { dodged } },
   );
   events.push(...landed.events);
+  // A hit on a fleeing combatant (#396): the other attacks on it follow.
+  if (landed.state.escape !== undefined) {
+    return { state: fleeAttacks(landed.state, random, events), events };
+  }
   let next = opponentTurn(landed.state, attacker, random, events, {
     progress: pending.progress,
     dropped: landed.events.some(({ type }) => type === "defeated"),
@@ -7045,6 +7186,51 @@ export function act(
         economy: { ...state.economy, bonusAction: false, steadyAim: true },
       };
       break;
+    }
+    case "disengage": {
+      const refusal = disengageRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      events.push({ type: "disengage", combatantId: actor.id });
+      next = {
+        ...state,
+        economy: { ...state.economy, bonusAction: false, disengaged: true },
+      };
+      break;
+    }
+    case "flee": {
+      const refusal = fleeRefusal(state);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      const attackers = fleeAttackers(state, actor.id);
+      events.push({
+        type: "flee",
+        combatantId: actor.id,
+        attackerIds: attackers.map(({ id }) => id),
+        ...(state.economy.disengaged === true
+          ? { disengaged: true as const }
+          : {}),
+      });
+      // The turn goes no further: the caller takes the combatant out once
+      // the attacks are made, unless one ends the fight.
+      return {
+        state: fleeAttacks(
+          {
+            ...state,
+            economy: { ...state.economy, actions: state.economy.actions - 1 },
+            escape: {
+              combatantId: actor.id,
+              to: action.to,
+              attackers: attackers.map(({ id }) => id),
+            },
+          },
+          random,
+          events,
+        ),
+        events,
+      };
     }
     case "drink-potion": {
       const refusal = potionRefusal(state, actor, action.itemId);

@@ -94,6 +94,8 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   "action-surge": "Action Surge",
   hide: "Hide",
   "steady-aim": "Steady Aim",
+  disengage: "Disengage",
+  flee: "Flee to ",
   "divine-spark": "Divine Spark ",
   "turn-undead": "Turn Undead",
   "preserve-life": "Preserve Life",

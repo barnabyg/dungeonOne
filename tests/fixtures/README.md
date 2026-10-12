@@ -149,6 +149,17 @@ not in `FIXTURE_MODULES`: the rat tunnels with two regions, the Upper Tunnels
 den). `regionTunnelsFile` is its JSON, for the validator's refusals.
 `tests/issue-395.test.mjs` and `tests/issue-395-browser.test.mjs` use it.
 
+## Fleeing a fight (issue 396)
+
+`modules.mjs` also builds `fleeingCellar` (_The Bolt-Hole Cellar_), which is
+not in `FIXTURE_MODULES`: the rat tunnels with a Zombie beside the cellar's
+Giant Rat and the stair foot an exit room. Out of the cellar run the way back
+to the stair foot, the way to the den, a stuck Sagging Door to a grain store,
+a way to a flooded sump over a Loose Stone trap, and a crawl to the alcove
+hidden until the Rotten Beam's check opens it (failing it by 5 or more closes
+the way to the sump). `tests/issue-396.test.mjs` and
+`tests/issue-396-browser.test.mjs` flee through each.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,
