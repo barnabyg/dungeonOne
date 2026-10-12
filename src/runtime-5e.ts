@@ -3224,7 +3224,10 @@ function resultLines(result: FifthResult): ResultLineSource[] {
     lines.push({
       text:
         result.events.at(-1)?.type === "turn"
-          ? "It is your turn."
+          ? // The fight's first turn says how a turn ends (#392).
+            result.state.encounter!.round === 1
+            ? "It is your turn. Your turn ends by itself once nothing is left to do."
+            : "It is your turn."
           : `It is still your turn: you can ${listed(options.map((option) => OPTION_TEXT[option]))}.`,
     });
   }

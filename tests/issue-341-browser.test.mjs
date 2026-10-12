@@ -379,9 +379,13 @@ test(
       await clickAction(page, "move", "rat-cellar");
       const turn = actionButton(page, "turn-undead");
       await turn.waitFor();
+      // Channel Divinity's uses show once, on its row (#392).
+      assert.equal((await turn.innerText()).trim(), "Turn Undead");
       assert.equal(
-        (await turn.innerText()).trim(),
-        "Turn Undead (2 of 2 left)",
+        await page
+          .locator('.action-row[data-row="channel-divinity"] .row-uses')
+          .innerText(),
+        "2 of 2 left",
       );
       // Divine Spark is chosen with its target and mode.
       assert.deepEqual(

@@ -234,9 +234,17 @@ test(
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.action),
           );
-      const toolkit = ["attack", "use", "second-wind", "end-turn"];
+      // In the fight's row order (#392): Attack, Fighter features, Items.
+      const toolkit = ["attack", "second-wind", "use", "end-turn"];
       assert.deepEqual(await bar(), toolkit);
       assert.equal(await page.locator("#explore-controls button").count(), 0);
+      // The potion's Drink sits in the Items row (#392).
+      assert.equal(
+        await page
+          .locator('.action-row[data-row="items"] button[data-action="use"]')
+          .count(),
+        1,
+      );
 
       // Keyboard only: Attack, then Enter again and again. Each Enter
       // attacks again (focus stayed on Attack) or does nothing (focus moved

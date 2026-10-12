@@ -309,8 +309,16 @@ test(
       viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
+    // Each attack's full name: by several foes a button shows only its
+    // words and weapon (#392).
     const attackLabels = () =>
-      page.locator("#attack-controls button.attack").allTextContents();
+      page
+        .locator("#attack-controls button.attack")
+        .evaluateAll((buttons) =>
+          buttons.map(
+            (button) => button.getAttribute("aria-label") ?? button.textContent,
+          ),
+        );
     try {
       await createAndStart(page, server.url, "goblin-band");
       // Every combatant in initiative order.
@@ -324,7 +332,10 @@ test(
         await attackLabels(),
         shown.rows
           .filter((row) => !row.includes("Ada (you)"))
-          .map((row) => `Attack ${/Goblin (Minion|Warrior)/.exec(row)[0]}`),
+          .map(
+            (row) =>
+              `Attack ${/Goblin (Minion|Warrior)/.exec(row)[0]} with Mace`,
+          ),
       );
 
       // An ambiguous message gets the DM's reply and changes nothing.
@@ -356,7 +367,7 @@ test(
       shown = await panel(page);
       assert.ok(shown.rows.some((row) => row.includes(`${fallen} Defeated`)));
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
-      assert.ok(!(await attackLabels()).includes(`Attack ${fallen}`));
+      assert.ok(!(await attackLabels()).includes(`Attack ${fallen} with Mace`));
 
       // Attacking the fallen goblin is refused, draws nothing, saves nothing.
       const file = await sessionFile(directory);

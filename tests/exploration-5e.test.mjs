@@ -208,7 +208,7 @@ test("entering a room with a fight begins it, and nothing but fighting is offere
   const entered = bitten(withPotion());
   assert.match(
     runtime.renderResult(entered),
-    /^You enter the Rat-Gnawed Cellar\. .* A rat the size of a dog rears up from the sacks, teeth bared\.\nInitiative: Giant Rat 18 \+ 3 = 21; Ada 2 \+ 1 = 3\.\nGiant Rat attacks Ada with Bite: 15 \+ 5 = 20 against AC 13. Hit\. Damage 4 \+ 3 = 7 piercing; Ada has 5\/12 HP\.\nIt is your turn\.$/s,
+    /^You enter the Rat-Gnawed Cellar\. .* A rat the size of a dog rears up from the sacks, teeth bared\.\nInitiative: Giant Rat 18 \+ 3 = 21; Ada 2 \+ 1 = 3\.\nGiant Rat attacks Ada with Bite: 15 \+ 5 = 20 against AC 13. Hit\. Damage 4 \+ 3 = 7 piercing; Ada has 5\/12 HP\.\nIt is your turn\. Your turn ends by itself once nothing is left to do\.$/s,
   );
   const state = entered.state;
   assert.equal(state.character.hp, 5);

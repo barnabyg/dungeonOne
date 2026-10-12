@@ -113,9 +113,15 @@ test(
         /second attack to make/u,
       );
       const second = actionButton(page, "attack", "right");
+      // By two goblins the button shows its words and weapon by the
+      // goblin's name, and is named in full (#392).
       assert.equal(
         (await second.innerText()).trim(),
-        "Second attack on Right Goblin",
+        "Second attack with Mace",
+      );
+      assert.equal(
+        await second.getAttribute("aria-label"),
+        "Second attack on Right Goblin with Mace",
       );
       await clickAction(page, "attack", "right");
       const log = await page.locator("#log").innerText();

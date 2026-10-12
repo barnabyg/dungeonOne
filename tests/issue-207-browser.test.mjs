@@ -177,7 +177,7 @@ test(
           assert.equal(await extra.isDisabled(), true);
           assert.match(
             await page.locator("#attack-controls").innerText(),
-            /Extra attack Goblin Warrior\s+Attack first/,
+            /Extra attack on Goblin Warrior with Dagger\s+Attack first/,
           );
         }
         await attack.click();
