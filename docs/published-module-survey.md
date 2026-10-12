@@ -78,12 +78,64 @@ Counts are approximate: many rooms are more than one kind. Wandering monsters ar
 - Wildly uneven danger. Serpent Kings' first level has a hammer that kills outright, and Road of Tombs puts a titan you can't fight beside zero-level children. Our balance gate rejects that, and should.
 - Science-fantasy setting material (guns, orbital gods) and grotesque content (Road of Tombs' cannibal cult).
 
-## Proposals
+## Authoring proposals
 
-Ranked by value for cost. Each would be its own issue.
+These need no engine work. Each would be its own issue.
 
-1. **Denser rooms, not more of them.** Aim for 2–4 things to search or examine per room (hidden loot, a clue, a hazard), plus a sensory line, before adding rooms or fights.
-2. **Repeated trap and secret patterns within a module.** Introduce one safely, then vary it. The data model already has features and checks.
-3. **Alert state for defenders.** Make one module's rooms change after an alarm (reinforced, trapped, emptied). This builds on the existing reaction and morale rules.
-4. **More than one route and a secret loop in new modules.** This costs gate time, because the gate has to judge more than one route.
-5. **A longer, multi-level module.** A Serpent Kings-sized piece (around 30 rooms on 2–3 levels) would test whether rests, wandering monsters and the treasure budget hold up over a long delve.
+1. **Denser rooms, not more of them.** Aim for 2–4 things to search or examine per room (hidden loot, a clue, a hazard), plus a sensory line, before adding rooms or fights. The format already allows 12 features per room and 2,000-character descriptions.
+2. **Repeated trap and secret patterns within a module.** Introduce one safely, then vary it, using the existing features, checks, hidden passages and passage traps.
+3. **More than one route and a secret loop in new modules.** The format allows loops and several exit rooms already. Expect a cost in gate time, and note that the gate judges only one route (see below).
+
+## What the engine would need
+
+Measured against the format, runtime, gate, browser and AI DM as of format 31 (save format 52). Paths are to `src/`. A module of the samples' scale and quality is not mainly blocked by size. It is blocked by what a room can do, what the world remembers between rooms, and what the gate can prove.
+
+### Two basic mismatches
+
+- **One character, not a party.** All four samples assume 4–6 characters: their danger, splitting up, characters helping each other, and treasure per character. Dungeon One has one character until companions arrive (planned for increment 17). A published-scale module either waits for companions or is designed for one hero from the start.
+- **The character can't leave a fight.** Entering a room starts its fight, and fleeing is deferred (see Moving in [character-rules.md](character-rules.md)). The samples' central lesson is that you don't have to fight: sneak past the basilisk, outrun the guardian, lure the pudding into a trap. Without fleeing, those rooms are only fights. This is the largest gap in quality, and it has nothing to do with size.
+
+### State and behaviour
+
+These are new systems and the expensive part.
+
+- **World flags and conditional content.** World state is a fixed set of fact lists (`FifthState`, `runtime-5e.ts`), and circumstances only change advantage, disadvantage and retries. Alert states, a lever that opens a door elsewhere, a room that changes after an event, and talk topics unlocked by progress all need flags that switch passages, encounters and topics on and off.
+- **Using an item on a feature.** `use_item` covers potions only, and there is no puzzle mechanism. Replacing a missing key-statue or burning a regenerating monster needs one.
+- **Monsters that move.** Every encounter is pinned to one room, and fled monsters are gone for good. Factions, reinforcements, retreating defenders and a shared defender pool need encounters that can change rooms.
+- **Wandering monsters.** A module has at most one wandering encounter, rolled only when resting. Published modules check by time or noise, from a table.
+- **Traps in rooms.** Traps exist only on passages.
+
+### Scale
+
+Mostly limits and rules decisions.
+
+- **The encounter cap.** It is 20 per module (`adventure-5e.ts`). Serpent Kings has about 20 fights plus wanderers. The 50-room cap is at the target size.
+- **Budgets.** Treasure, XP, difficulty and rests are all per module and assume one sitting at one level band. A 40-room delve gets the same 750 gp as a 2-room one. Either budget by section and allow levelling mid-module, or ship a large dungeon as chained parts settled in between; the career simulation already models that.
+- **Rests per day,** not per adventure, once a delve spans several sittings.
+- **One start room.** Several entrances can be faked with an approach room joined to each of them.
+
+### The gate
+
+- **Coverage, not CPU.** The gate plays one deterministic, fight-avoiding route to the objective (`balance-5e.ts`). In a large branching module, most fights would be optional and never judged for deadliness, and other routes are never compared. It needs to judge per route or per region.
+- **Proof gets harder.** Every new state feature must also satisfy the validator's reachability rules and be playable by the harness. Flags multiply the states to prove. This is where the real cost of the state work lies.
+- **CPU.** A 40-room module would add an estimated 60–150 s, against a 180 s cap of which CI already uses about 155 s. It needs a budget per module or fewer seeds.
+- **Release runs** are hand-scripted step lists capped at 400 turns (`release-run-5e.ts`). A large module needs a generated route.
+- **Talk.** The gate never talks, so content reachable only by talking fails as unreachable. Faction play leans on talk.
+
+### Browser, AI DM and saves
+
+- **Orientation.** There is no map, list of visited rooms or record of discoveries, so a 40-room dungeon would lose players. A list of known rooms and found clues is the minimum.
+- **The AI DM sees only the current room** and the last 4 exchanges (`dm-turn.ts`, `session-5e.ts`). It can't recall a conversation or a clue from elsewhere, so it needs a progress summary in its scene.
+- **Saves.** Any edit to a module orphans saves made with it, because loading checks the module digest, and every response sends the whole history. Both are tolerable for a short module and painful for a delve played over several sittings.
+
+### Suggested order
+
+Aim first at the quality of Serpent Kings' first level, not its 52 rooms: about 15–20 dense rooms with two routes and a loop.
+
+1. Fleeing a fight.
+2. World flags with conditional passages, encounters and topics, and using an item on a feature. These give alert states, levers and key puzzles.
+3. A list of known rooms and found clues, in the browser and in the AI DM's scene.
+4. Gate judgement per route.
+5. Scale: the encounter cap, budgets by section, rests per day, wandering monsters by time.
+
+Whether published-scale modules wait for companions should be decided before anything large is designed.
