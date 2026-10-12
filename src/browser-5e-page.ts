@@ -1299,6 +1299,9 @@ function renderStatus() {
     items.push(resource("second-wind", "Second Wind", features.secondWind.uses, features.secondWind.max, usesLeft("Second Wind", features.secondWind)));
     if (features.actionSurge) items.push(resource("action-surge", "Action Surge", features.actionSurge.uses, features.actionSurge.max, usesLeft("Action Surge", features.actionSurge)));
   }
+  // Channel Divinity (#385), in and out of fights, as Second Wind's.
+  const channel = session.channelDivinity;
+  if (channel) items.push(resource("channel-divinity", "Channel Divinity", channel.uses, channel.max, usesLeft("Channel Divinity", channel)));
   // The hit-dice pool (#333), outside a fight's turns: they can't be spent
   // in a fight, and the strip there holds the turn's resources.
   if (!turn) {

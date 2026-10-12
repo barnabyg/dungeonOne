@@ -125,6 +125,22 @@ async function leaveTunnels(page) {
   await page.locator("#ending").waitFor({ state: "visible" });
 }
 
+/** The status strip's Channel Divinity pips (#385): its words and pips. */
+const channelPips = (page) =>
+  page.evaluate(() => {
+    const item = document.querySelector(
+      '#resources li[data-resource="channel-divinity"]',
+    );
+    return item === null
+      ? null
+      : {
+          words: item.querySelector(".visually-hidden").textContent,
+          pips:
+            "●".repeat(item.querySelectorAll(".pip.full").length) +
+            "○".repeat(item.querySelectorAll(".pip:not(.full)").length),
+        };
+  });
+
 const listed = async (page, selector) =>
   (await page.locator(`${selector} summary`).allTextContents()).map((name) =>
     name.trim(),
@@ -340,6 +356,12 @@ test(
     try {
       await openMira(page, server.url);
       await startAdventure(page, "turning-tunnels");
+      // The status strip shows Channel Divinity's pips out of a fight (#385).
+      const full = {
+        words: "Channel Divinity: 2 of 2 uses left",
+        pips: "●●",
+      };
+      assert.deepEqual(await channelPips(page), full);
       await clickAction(page, "move", "rat-cellar");
       const turn = actionButton(page, "turn-undead");
       await turn.waitFor();
@@ -357,7 +379,13 @@ test(
           "Ghoul: necrotic damage",
         ],
       );
+      assert.deepEqual(await channelPips(page), full);
       await settled(page, () => turn.click());
+      const spent = {
+        words: "Channel Divinity: 1 of 2 uses left",
+        pips: "●○",
+      };
+      assert.deepEqual(await channelPips(page), spent);
       assert.match(
         await text(page.locator("#log")),
         /Turn Undead reaches Zombie and Ghoul\. 1 use of Channel Divinity left\./u,
@@ -372,6 +400,7 @@ test(
         await text(page.locator("#log")),
         /You leave the Rat-Gnawed Cellar with the Zombie and the Ghoul still turned\./u,
       );
+      assert.deepEqual(await channelPips(page), spent);
       const folder = join(directory, "characters-adventures");
       const [name] = (await readdir(folder)).filter((file) =>
         file.endsWith(".json"),
