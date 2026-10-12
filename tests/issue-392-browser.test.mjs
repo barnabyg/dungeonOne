@@ -336,12 +336,25 @@ test(
           ["end", ""],
         ],
       );
-      // Cunning Action's Disengage (#396) joins them.
+      // Cunning Action's Disengage (#396) joins them, refused here: the
+      // yard has no way out to flee by.
       assert.deepEqual(await buttons(page, "rogue"), [
         "Hide",
         "Steady Aim",
         "Disengage",
       ]);
+      const disengage = page.locator(
+        '#action-bar button[data-action="disengage"]',
+      );
+      assert.equal(await disengage.isDisabled(), true);
+      assert.equal(
+        await disengage.evaluate(
+          (button) =>
+            document.getElementById(button.getAttribute("aria-describedby"))
+              ?.textContent,
+        ),
+        "No way out",
+      );
       assert.deepEqual(
         (await tabRows(page)).filter((row) => row !== "weapons"),
         ["attack", "rogue", "end"],

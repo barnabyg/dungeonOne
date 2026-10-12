@@ -40,7 +40,7 @@ import {
   writeFifthTrace,
 } from "../dist/trace-5e.js";
 import { dice, uncheckedDice } from "./fixtures/engine-dice.mjs";
-import { fleeingCellar } from "./fixtures/modules.mjs";
+import { fightRoom, fleeingCellar } from "./fixtures/modules.mjs";
 
 const FLEE = (destinationId) => ({ type: "flee", destinationId });
 const MOVE = (destinationId) => ({ type: "move", destinationId });
@@ -282,6 +282,45 @@ test("a Rogue's Disengage spares it every attack as it flees", () => {
       "no-disengage",
     );
   }
+});
+
+test("Disengage is refused where no way out is open to flee by", () => {
+  // The yard has no exits at all, so there is nowhere to flee.
+  const yard = fightRoom("yard", "The Yard", [
+    { id: "goblin", monster: "goblin-warrior", description: "A goblin." },
+  ]);
+  const runtime = createFifthRuntime(yard, testRogueAt(2));
+  // Initiative: the Rogue 20, the goblin 1.
+  const { state } = accepted(
+    runtime,
+    runtime.createSession(),
+    { type: "begin" },
+    20,
+    1,
+  );
+  assert.equal(currentCombatant(state.encounter).id, "pc");
+  assert.deepEqual(offered(runtime, state, "flee"), []);
+  assert.deepEqual(offered(runtime, state, "disengage"), []);
+  const shown = runtime
+    .projectActions(state)
+    .find(({ action }) => action === "disengage");
+  assert.equal(shown.reason, "No way out");
+  const refusal = runtime.handleAction(state, {
+    type: "disengage",
+    actorId: "pc",
+  }).rejection;
+  assert.equal(refusal.code, "no-way-out");
+  assert.equal(
+    refusal.reason,
+    "No way out of here is open, so you can't flee: disengaging would do nothing.",
+  );
+  // The AI DM is offered no disengage tool.
+  assert.equal(
+    runtime
+      .getGameToolDefinitions(state)
+      .some(({ name }) => name === "disengage"),
+    false,
+  );
 });
 
 test("fleeing through a shut door, a closed way or a way not found is refused, and so is fleeing no fight", () => {

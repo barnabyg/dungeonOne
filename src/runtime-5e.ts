@@ -1508,6 +1508,7 @@ export type FifthRefusalCode =
   | "no-fight"
   | "fighting"
   | "no-exit"
+  | "no-way-out"
   | "nothing-to-examine"
   | "already-carried"
   | "no-item"
@@ -4682,6 +4683,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-fight": "No fight here",
   fighting: "In a fight",
   "no-exit": "No way there",
+  "no-way-out": "No way out",
   "nothing-to-examine": "Nothing to examine",
   "already-carried": "Already carried",
   "no-item": "Not here",
@@ -5537,6 +5539,16 @@ export function createFifthRuntime(
     );
   const isOpen = (state: FifthState, door: FifthDoor) =>
     state.openedDoorIds.includes(door.id);
+  /**
+   * Whether some way out of the room is open to flee by (#396): one not
+   * closed, whose door, if it has one, is open.
+   */
+  const wayOutOpen = (state: FifthState) =>
+    ways(state).some(
+      ({ passage }) =>
+        !isClosed(state, passage) &&
+        (passage.door === undefined || isOpen(state, passage.door)),
+    );
   /**
    * The remembered outcome of the check at `site`, once it is made: its
    * last try's, when a retry (#284) tried it again.
@@ -8669,7 +8681,6 @@ export function createFifthRuntime(
       case "action-surge":
       case "hide":
       case "steady-aim":
-      case "disengage":
       case "divine-spark":
       case "turn-undead":
       case "preserve-life":
@@ -8679,6 +8690,18 @@ export function createFifthRuntime(
       case "uncanny-dodge":
       case "take-hit":
         return fightAction(state, action, random, reject);
+      case "disengage": {
+        // The engine checks the feature, the turn and the bonus action; the
+        // runtime alone knows the ways out: with none open to flee by,
+        // disengaging would do nothing (#396). It draws no dice.
+        const result = fightAction(state, action, random, reject);
+        return result.rejection === undefined && !wayOutOpen(state)
+          ? reject(
+              "no-way-out",
+              "No way out of here is open, so you can't flee: disengaging would do nothing.",
+            )
+          : result;
+      }
       case "move":
       case "sneak": {
         // With every foe left turned (#341, D13) the character may go.
