@@ -123,6 +123,24 @@ test("every treasure and coin is found by examining, and the richest lies past t
   }
 });
 
+// #388: #239 turned the barrel's longsword into a shortsword, but the
+// barrel's discovery still named a longsword.
+test("each feature's discovery names the gear hidden in it", () => {
+  for (const { features = [], items } of delve.rooms) {
+    for (const { id, discovery } of features) {
+      for (const { gear } of items.filter(
+        (item) => item.kind === "gear" && item.hiddenIn === id,
+      )) {
+        assert.match(discovery, new RegExp(gear.replaceAll("-", " ")), id);
+      }
+    }
+  }
+  const barrel = room("storeroom").features.find(
+    ({ id }) => id === "old-barrel",
+  );
+  assert.doesNotMatch(barrel.discovery, /longsword/);
+});
+
 function scripted(responses) {
   return {
     async respond() {
