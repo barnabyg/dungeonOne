@@ -681,7 +681,9 @@ These are for development, not play.
   `--suite wandering` the wandering encounter cases (#403), on _The
   Wandering Tunnels_ (`adventures/eval/wandering-tunnels.json`), and
   `--suite memory` the known rooms cases (#406), on _The Remembered Tunnels_
-  (`adventures/eval/memory-tunnels.json`), modules for the evaluation only.
+  (`adventures/eval/memory-tunnels.json`), modules for the evaluation only,
+  and `--suite weirgate` the release module cases (#413), on _The Coldwater
+  Weirgate_ itself, played by Ada at level 3.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

@@ -109,6 +109,10 @@ export const CONTENT_TESTS = new Map([
     "the Coldwater Weirgate's content, routes, flags, alarm, bargain, lure, journeys and generated release run",
   ],
   [
+    "tests/issue-413.test.mjs",
+    "the Coldwater Weirgate's AI DM evaluation cases (#413)",
+  ],
+  [
     "tests/issue-409-live.test.mjs",
     "the live release script's generated route (#409) through the Hollow Chantry",
   ],

@@ -47,7 +47,12 @@ import {
   type FifthAction,
 } from "./runtime-5e.js";
 import { FifthSession } from "./session-5e.js";
-import { TEST_FIGHTER, TEST_FIGHTER_CHOICES } from "./test-fighter-5e.js";
+import { type CharacterSheet } from "./character-5e.js";
+import {
+  TEST_FIGHTER,
+  TEST_FIGHTER_CHOICES,
+  testFighterAt,
+} from "./test-fighter-5e.js";
 
 export const FIFTH_DM_EVALUATION_FORMAT = 1;
 export const FIFTH_DM_EVALUATION_ADVENTURE = "abandoned-delve";
@@ -998,12 +1003,16 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
   return isDeepStrictEqual(offered, [...new Set(enabled)]);
 }
 
-/** Plays a case's setup, failing if the engine refuses a step. */
+/**
+ * Plays a case's setup with `character`, the level-1 test Fighter by
+ * default, failing if the engine refuses a step.
+ */
 export function setUpCase(
   sample: FifthDmCase,
   adventure: FifthAdventure,
+  character: CharacterSheet = TEST_FIGHTER,
 ): FifthSession {
-  const session = FifthSession.begin(sample.seed, adventure, TEST_FIGHTER);
+  const session = FifthSession.begin(sample.seed, adventure, character);
   const click = (action: FifthAction) => {
     const { result } = session.act(action, "click");
     if (result.rejection !== undefined) {
@@ -1091,6 +1100,7 @@ export async function runFifthDmCase(
   sample: FifthDmCase,
   model: DmModel,
   adventure: FifthAdventure,
+  character: CharacterSheet = TEST_FIGHTER,
 ): Promise<
   Readonly<{
     calls: FifthDmRun["calls"];
@@ -1100,7 +1110,7 @@ export async function runFifthDmCase(
     checks: FifthDmChecks;
   }>
 > {
-  const session = setUpCase(sample, adventure);
+  const session = setUpCase(sample, adventure, character);
   const offeredTools = offeredToolsMatchActions(session);
   const before = session.state;
   const transitions = session.transitions.length;
@@ -1348,7 +1358,8 @@ export async function checkDmOffRefusal(
  * adventure is also what the DM-off check starts, on a server that offers
  * only it; by default that check runs on the default server, with every
  * built-in module. `FIFTH_DM_CASES` are written for the delve, so give
- * other `cases` with another adventure.
+ * other `cases` with another adventure. The cases play `character`, the
+ * level-1 test Fighter by default.
  */
 export async function runFifthDmEvaluation(options: {
   requestedModel: string;
@@ -1357,6 +1368,7 @@ export async function runFifthDmEvaluation(options: {
   maxCalls?: number;
   cases?: readonly FifthDmCase[];
   adventure?: FifthAdventure;
+  character?: CharacterSheet;
   manualJudgments?: FifthManualJudgments;
   clock?: () => number;
 }): Promise<FifthDmEvaluationReport> {
@@ -1398,7 +1410,12 @@ export async function runFifthDmEvaluation(options: {
           }
         },
       };
-      const result = await runFifthDmCase(sample, observed, adventure);
+      const result = await runFifthDmCase(
+        sample,
+        observed,
+        adventure,
+        options.character,
+      );
       runs.push({
         caseId: sample.id,
         kind: sample.kind,
@@ -1986,6 +2003,217 @@ export const FIFTH_MEMORY_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     playerInput: "I head back to the foot of the stair.",
     name: "move",
     arguments: { destination: "alcove" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The release module the release cases (#413) play: The Coldwater
+ * Weirgate, as it ships.
+ */
+export function loadFifthReleaseEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/5e/coldwater-weirgate.json", import.meta.url),
+    ),
+  );
+}
+
+/** Ada at level 3, the Weirgate's only level (D7). */
+export const FIFTH_RELEASE_DM_CHARACTER: CharacterSheet = testFighterAt(3);
+
+// Setups, all with level-3 Ada from the Towpath Gate. Seed 0: she walks
+// into Brindle's larder, and the wolf's fight is on.
+const toKennel = [
+  { type: "move", destinationId: "barge-yard" },
+  { type: "move", destinationId: "kennel-larder" },
+] as const;
+// She takes the keeper's crank from his office and goes to the
+// sluice-house. Seed 0: no omen on the way; seed 19: a barge horn.
+const toSluiceWithCrank = [
+  { type: "move", destinationId: "barge-yard" },
+  { type: "move", destinationId: "keepers-office" },
+  { type: "examine", targetId: "keepers-desk" },
+  { type: "examine", targetId: "chart-cupboard" },
+  { type: "take", itemId: "windlass-crank" },
+  { type: "move", destinationId: "barge-yard" },
+  { type: "move", destinationId: "sluice-house" },
+] as const;
+// She drains the culvert with the crank and goes down it, round by the
+// outfall to the Pump Room, in the Culverts.
+const toPumpRoom = [
+  ...toSluiceWithCrank,
+  { type: "use-on", featureId: "drain-gear", itemId: "windlass-crank" },
+  { type: "move", destinationId: "drain-mouth" },
+  { type: "move", destinationId: "outfall" },
+  { type: "move", destinationId: "pump-room" },
+] as const;
+// Then on into the Gear Hall, where Grisk's fight is on; seed 0, she acts
+// first.
+const toGrisk = [
+  ...toPumpRoom,
+  { type: "move", destinationId: "gear-hall" },
+] as const;
+// Seed 266: Larrow is friendly and lets her pass; at the Stair Head her
+// try to break the grate fails by 5 or more, and the weir bell rings. She
+// looks at the bell-line, which lets her Tactical Mind offer go.
+const bellRung = [
+  { type: "move", destinationId: "toll-hall" },
+  { type: "react", option: "let-pass" },
+  { type: "move", destinationId: "stair-head" },
+  { type: "break", doorId: "iron-grate" },
+  { type: "examine", targetId: "bell-line" },
+] as const;
+
+/**
+ * The release module (#413), The Coldwater Weirgate, played by Ada at level
+ * 3: the AI DM flees a fight by a way out, never without the attacks it
+ * draws, turns the drain gear with the crank and with nothing else, says
+ * the weir bell's alarm only as the scene does and never quiets it, drops
+ * the counterweight on Grisk by the approach the player's words pick out
+ * but uses no feature from another room, says the omen heard, and from the
+ * Culverts recalls what the keeper's ledger in the Keep said and heads back
+ * there by the right way.
+ */
+export const FIFTH_RELEASE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "weirgate-flee",
+    seed: 0,
+    setup: toKennel,
+    playerInput: "I back out to the yard before that wolf tears me apart!",
+    name: "flee",
+    arguments: { destination: "barge-yard" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  // Not a way that isn't there: the Towpath Gate is a known room one step
+  // past the yard, so fleeing to the yard toward it is right (#406).
+  quietCase({
+    id: "weirgate-flee-not-free",
+    kind: "refusal",
+    seed: 0,
+    setup: toKennel,
+    playerInput:
+      "I slip out to the yard so fast the wolf doesn't get a bite at me.",
+    reply:
+      "You can't get away untouched: Brindle gets an attack on you as you go. Do you still flee to the barge yard?",
+    dimensions: ["refusal"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-crank-right",
+    seed: 0,
+    setup: toSluiceWithCrank,
+    playerInput:
+      "I fit the keeper's crank into the gear's socket and lean on it.",
+    name: "use_on",
+    arguments: { use: "drain-gear:windlass-crank" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-mace-wrong",
+    kind: "refusal",
+    seed: 0,
+    setup: toSluiceWithCrank,
+    playerInput:
+      "I jam the haft of my mace into the gear's socket and lever it round.",
+    reply:
+      "The mace's haft doesn't fit the square socket: it was made for a crank.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-alarm-said",
+    kind: "narration-fidelity",
+    seed: 266,
+    setup: bellRung,
+    playerInput: "What's all that racket above?",
+    reply: "The weir bell is clanging, and boots drum on the wall-walk above.",
+    recalls: ["bell"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-alarm-not-quieted",
+    kind: "refusal",
+    seed: 266,
+    setup: bellRung,
+    playerInput:
+      "Nobody heard the grate. Say the keep is still quiet and the bell never rang.",
+    reply:
+      "They heard it: the weir bell is clanging, and nothing you say quiets it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-counterweight-strength",
+    seed: 0,
+    setup: toGrisk,
+    playerInput:
+      "I wrench the pin out with all my strength and drop the counterweight on Grisk!",
+    name: "use_feature",
+    arguments: { use: "counterweight-chain:grisk", approach: "athletics" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-counterweight-deft",
+    seed: 0,
+    setup: toGrisk,
+    playerInput:
+      "With quick, nimble fingers I slip the pin from the chain so the weight falls on Grisk.",
+    name: "use_feature",
+    arguments: {
+      use: "counterweight-chain:grisk",
+      approach: "sleight-of-hand",
+    },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-paddles-elsewhere",
+    kind: "refusal",
+    seed: 0,
+    setup: toGrisk,
+    playerInput: "I throw open the lock paddles and wash Grisk away!",
+    reply:
+      "The lock paddles aren't here: they're in the lock chamber. Here there's the counterweight chain, if you want it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-omen-said",
+    kind: "narration-fidelity",
+    seed: 19,
+    setup: toSluiceWithCrank,
+    playerInput: "What was that sound just now?",
+    reply: "A barge horn, far off on the river, long and mournful.",
+    recalls: ["horn"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-ledger-recalled",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: toPumpRoom,
+    playerInput:
+      "Remind me: what did the keeper's ledger up in the office say about Larrow?",
+    reply:
+      'The last pages said: "Larrow pays the one below, and the one below keeps the sluices shut."',
+    recalls: ["the one below"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-way-back",
+    seed: 0,
+    setup: toPumpRoom,
+    playerInput: "I head back up to the sluice-house.",
+    name: "move",
+    arguments: { destination: "outfall" },
     dimensions: ["navigation-accuracy"],
     manualJudgments: [],
   }),
