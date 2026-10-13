@@ -39,10 +39,18 @@ test("a sheet's profile follows every field it reads, even when the others are s
   }
 });
 
-test("a projection of chosen kinds is the full projection's entries of those kinds, and dry-runs only them (#321)", () => {
-  const kinds = new Set(["attack", "move", "examine", "take", "end-turn"]);
+test("a projection of chosen kinds is the full projection's entries of those kinds, and dry-runs only them (#321, #410)", () => {
+  // The second set asks for the kinds whose listing work is skipped when
+  // they aren't asked for (#410).
+  const kindSets = [
+    new Set(["attack", "move", "examine", "take", "end-turn"]),
+    new Set(["sneak", "rest", "long-rest", "force", "talk", "buy", "equip"]),
+  ];
   let checked = 0;
-  for (const { runtime, state } of playthroughStates()) {
+  for (const [index, { runtime, state }] of [
+    ...playthroughStates(),
+  ].entries()) {
+    const kinds = kindSets[index % kindSets.length];
     // A fresh copy, so neither projection reuses the other's cache.
     const full = runtime.projectActions({ ...state });
     const chosen = runtime.projectActions({ ...state }, kinds);

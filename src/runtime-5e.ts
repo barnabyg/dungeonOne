@@ -5974,20 +5974,35 @@ export function createFifthRuntime(
     );
   const carried = (state: FifthState): readonly FifthItem[] =>
     state.inventory.map((id) => items.get(id)!);
+  /**
+   * Each room's passages, in the module's order, each with the room it
+   * leads to: looked up, not searched for, at every step (#410).
+   */
+  const passagesOut = new Map<
+    string,
+    Readonly<{ passage: FifthPassage; to: string }>[]
+  >();
+  for (const passage of adventure.passages) {
+    const [from, to] = passage.between;
+    const add = (here: string, other: string) =>
+      passagesOut.set(here, [
+        ...(passagesOut.get(here) ?? []),
+        { passage, to: other },
+      ]);
+    add(from, to);
+    if (to !== from) {
+      add(to, from);
+    }
+  }
   /** The passages out of the room, each with the room it leads to. */
   const ways = (
     state: FifthState,
   ): readonly Readonly<{ passage: FifthPassage; to: string }>[] =>
-    adventure.passages.flatMap((passage) => {
-      const [from, to] = passage.between;
-      const other =
-        from === state.roomId ? to : to === state.roomId ? from : undefined;
-      // A hidden passage is a way only once a check's band opens it (#282).
-      return other === undefined ||
-        (passage.hidden === true && !revealedIn(state).opened.has(passage.id))
-        ? []
-        : [{ passage, to: other }];
-    });
+    (passagesOut.get(state.roomId) ?? []).filter(
+      ({ passage }) =>
+        // A hidden passage is a way only once a check's band opens it (#282).
+        passage.hidden !== true || revealedIn(state).opened.has(passage.id),
+    );
   /**
    * Whether the passage is closed: a check's band closed it (#282), or a
    * flag (#397), set to close it or not yet set to open it.
@@ -10947,6 +10962,12 @@ export function createFifthRuntime(
       const encounterId = encounterIn(state, roomId)?.id;
       return encounterId !== undefined && !settled(state, encounterId);
     };
+    /**
+     * Whether any of `asking` is a kind asked for. What only an unasked
+     * kind's entries need is never worked out (#410).
+     */
+    const asked = (...asking: readonly ActionKind[]) =>
+      kinds === undefined || asking.some((kind) => kinds.has(kind));
     const view = (
       kind: ActionKind,
       action: FifthAction,
@@ -11211,6 +11232,9 @@ export function createFifthRuntime(
      * numbers of hit dice it may spend; the action spends the most.
      */
     const rest = (): readonly ActionView[] => {
+      if (!asked("rest")) {
+        return [];
+      }
       // Memorize Spell (#344) may be the rest's only gain.
       const memorize = memorizeOptions(state);
       const counts = restCounts(state, memorize !== undefined);
@@ -11261,7 +11285,10 @@ export function createFifthRuntime(
       site: CheckSite,
     ): readonly ActionView[] => {
       // A check only thieves' tools can make isn't offered without them (#309).
-      if (check !== undefined && takeable(state, check).length === 0) {
+      if (
+        !asked(kind) ||
+        (check !== undefined && takeable(state, check).length === 0)
+      ) {
         return [];
       }
       const each = (
@@ -11321,6 +11348,9 @@ export function createFifthRuntime(
      * engine accepts the others too, but the bar stays short.
      */
     const gearViews = (fight = false): readonly ActionView[] => {
+      if (!asked("unequip", "swap", "equip", "drop")) {
+        return [];
+      }
       const item = (id: ItemId) => ({ id, name: itemName(id) });
       const gear = (kind: GearAction, id: ItemId) =>
         view(kind, { type: kind, itemId: id }, item(id));
@@ -11352,7 +11382,10 @@ export function createFifthRuntime(
      */
     const tradeViews = (): readonly ActionView[] => {
       const trader = merchantHere(state);
-      if (trader === undefined) {
+      if (
+        trader === undefined ||
+        !asked("buy", "sell", "sell-equipped", "sell-treasure")
+      ) {
         return [];
       }
       const item = (id: CatalogueId) => ({ id, name: itemName(id) });
@@ -11603,7 +11636,7 @@ export function createFifthRuntime(
       ...exits(state).flatMap((exit) => [
         view("move", { type: "move", destinationId: exit.id }, exit),
         // Sneaking in (#301) is offered only where a fight waits.
-        ...(fightAhead(exit.id)
+        ...(asked("sneak") && fightAhead(exit.id)
           ? [view("sneak", { type: "sneak", destinationId: exit.id }, exit)]
           : []),
       ]),
@@ -11694,7 +11727,9 @@ export function createFifthRuntime(
       ...casts(self(state), [], false),
       ...rest(),
       // A long rest (#335) at a rest site, while it would restore something.
-      ...(here.restSite === true && longRestRestores(state)
+      ...(here.restSite === true &&
+      asked("long-rest") &&
+      longRestRestores(state)
         ? [view("long-rest", { type: "long-rest" })]
         : []),
       // The final choice comes last, and only where there is a way out.
