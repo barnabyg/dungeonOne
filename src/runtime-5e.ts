@@ -11734,7 +11734,11 @@ export function createFifthRuntime(
       ),
       ...gearViews(),
       ...tradeViews(),
-      ...casts(self(state), [], false),
+      // The character as a combatant is worked out only to list a cast
+      // asked for (#410).
+      ...(asked("cast") && spells?.size !== 0
+        ? casts(self(state), [], false)
+        : []),
       ...rest(),
       // A long rest (#335) at a rest site, while it would restore something.
       ...(here.restSite === true &&

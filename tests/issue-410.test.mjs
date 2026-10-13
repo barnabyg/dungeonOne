@@ -1,10 +1,18 @@
 // #410: keeping the gate within its time budget for a long module. A
 // projection may be narrowed to the entries aimed at some targets, so the
-// harness dry-runs only the move to the next room on its way. The gate's
-// results are unchanged: tests/shipped-modules.test.mjs pins every shipped
-// module's figures and the gate-time canary's.
+// harness dry-runs only the move to the next room on its way, and exploring
+// projects each kind only when its choice comes. The harness plays every
+// run of the gate-time canary, along each route and sweep, as it would with
+// the full projection; tests/shipped-modules.test.mjs pins every shipped
+// module's figures and the canary's.
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+  characterAtLevel,
+  percentileCharacters,
+  playAdventure,
+  regionSweeps,
+} from "../dist/balance-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { longWorkings } from "./fixtures/modules.mjs";
@@ -95,4 +103,43 @@ test("a projection of chosen targets dry-runs no entry aimed elsewhere (#410)", 
     state = runtime.handleAction(state, engineAction(next), random).state;
   }
   assert.ok(narrowed > 5, `${narrowed} rooms with more than one exit`);
+});
+
+/**
+ * A runtime that projects every action whatever the harness asks for, as
+ * a runtime without the projection filters would.
+ */
+const unfiltered = (runtime) => ({
+  ...runtime,
+  projectActions: (state) => runtime.projectActions(state),
+});
+
+test("every run of the gate-time canary is the same with the full projection, along each route and sweep (#410)", () => {
+  const ways = [
+    {},
+    ...longWorkings.routes.map((route) => ({ route })),
+    ...regionSweeps(longWorkings).map((sweep) => ({ sweep })),
+  ];
+  for (const classId of ["fighter", "wizard"]) {
+    const [weakest] = percentileCharacters({ percentiles: [5], classId });
+    const sheet = characterAtLevel(
+      weakest.dice,
+      3,
+      undefined,
+      false,
+      undefined,
+      classId,
+    );
+    const runtime = createFifthRuntime(longWorkings, sheet);
+    for (const way of ways) {
+      for (const style of ["cautious", "stealth-first", "retreat"]) {
+        const run = playAdventure(runtime, style, 0, way);
+        assert.deepEqual(
+          run,
+          playAdventure(unfiltered(runtime), style, 0, way),
+          `${classId} ${style} ${JSON.stringify(way).slice(0, 40)}`,
+        );
+      }
+    }
+  }
 });

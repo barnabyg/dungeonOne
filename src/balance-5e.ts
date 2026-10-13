@@ -1862,21 +1862,18 @@ const UNHURT_SPELLS: Readonly<Record<CastingPolicy, ReadonlySet<SpellId>>> = {
 
 /**
  * The kinds of action exploring looks at first (#347): answering a
- * reaction, Mage Armor, and finding something. Only when it takes none of
- * them does the harness project the rest.
+ * reaction, Mage Armor, and finding something: examining what is here and
+ * not yet examined (`EXAMINING`, #410), taking, using an item on a
+ * feature. Only when it takes none of them does the harness project the
+ * rest.
  */
 const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
   "react",
   "cast",
-  "examine",
   "take",
   "use-on",
 ]);
-
-/** The first kinds, once everything in the room is examined. */
-const FIRST_WITHOUT_EXAMINING: ReadonlySet<ActionKind> = new Set(
-  [...FIRST_ACTIONS].filter((kind) => kind !== "examine"),
-);
+const EXAMINING: ReadonlySet<ActionKind> = new Set(["examine"]);
 
 /** The spells exploring looks at first: Mage Armor, before the first fight. */
 const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
@@ -2874,13 +2871,9 @@ export function playAdventure(
         .find(({ id }) => id === here)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
-    // Once everything here is examined, no examination is projected.
-    const unexamined = [...searchable].some(
-      (id) => !state.examinedFeatureIds.includes(id),
-    );
     const first = project(
-      unexamined ? FIRST_ACTIONS : FIRST_WITHOUT_EXAMINING,
-      !warded && fights.length === 0 ? WARD_SPELLS : new Set(),
+      FIRST_ACTIONS,
+      !warded && fights.length === 0 ? WARD_SPELLS : NO_SPELLS,
     );
     // Facing a reaction (#304), the policy's kind of option if offered. A
     // toll is offered (enabled) only when the purse holds it.
@@ -2924,12 +2917,17 @@ export function playAdventure(
         return ward;
       }
     }
+    // Only what is here and not yet examined is projected (#410): once
+    // everything is, nothing.
+    const unexamined = new Set(
+      [...searchable].filter((id) => !state.examinedFeatureIds.includes(id)),
+    );
     const find =
-      offered(first, "examine").find(
-        ({ target }) =>
-          searchable.has(target!.id) &&
-          !state.examinedFeatureIds.includes(target!.id),
-      ) ??
+      (unexamined.size === 0
+        ? undefined
+        : offered(project(EXAMINING, NO_SPELLS, unexamined), "examine").find(
+            ({ target }) => unexamined.has(target!.id),
+          )) ??
       offered(first, "take")[0] ??
       // An item a feature here accepts is used on it before leaving (#400).
       offered(first, "use-on")[0];
