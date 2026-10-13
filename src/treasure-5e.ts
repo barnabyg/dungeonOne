@@ -83,13 +83,19 @@ export function magicItemProblems(
   ]);
 }
 
-/** The budget for a module whose maximum recommended level is `level`, in copper. */
-export function treasureBudget(level: number): number {
+/** How many times its level's budget a long module (#404, D6) may hold. */
+export const LONG_MODULE_BUDGET_FACTOR = 2;
+
+/**
+ * The budget for a module whose maximum recommended level is `level`, in
+ * copper: `LONG_MODULE_BUDGET_FACTOR` times as much for a long one (#404).
+ */
+export function treasureBudget(level: number, long = false): number {
   const budget = TREASURE_BUDGETS[level];
   if (budget === undefined) {
     throw new Error(`No treasure budget for level ${level}.`);
   }
-  return budget;
+  return long ? budget * LONG_MODULE_BUDGET_FACTOR : budget;
 }
 
 /** Whether a module whose maximum recommended level is `level` may hide an item of `tier`. */

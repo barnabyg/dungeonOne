@@ -352,14 +352,15 @@ export type CharacterResources = Readonly<{
 }>;
 
 /**
- * How many short rests the character may take in one adventure (#334): a
- * house rule, as SRD 5.2 has no limit but the clock this game leaves out.
+ * How many short rests the character may take in one adventure (#334), or
+ * in each region of a long module (#404): a house rule, as SRD 5.2 has no
+ * limit but the clock this game leaves out.
  */
 export const SHORT_RESTS_PER_ADVENTURE = 2;
 
 /**
  * How many long rests the character may take in one adventure (#335, D1),
- * each only at a module's rest site.
+ * or in each region of a long module (#404), each only at a rest site.
  */
 export const LONG_RESTS_PER_ADVENTURE = 1;
 
@@ -383,18 +384,32 @@ export type MemorizeSpell = Readonly<{
   level: number;
 }>;
 
-/** How many rests of each kind the character may take in one adventure. */
+/** How many rests of each kind the character may take in one adventure, or in each region of a long module. */
 const RESTS_PER_ADVENTURE: Readonly<Record<RestKind, number>> = {
   short: SHORT_RESTS_PER_ADVENTURE,
   long: LONG_RESTS_PER_ADVENTURE,
 };
 
-/** The rests of one kind left in the adventure, and the most. */
-export type RestsView = Readonly<{ left: number; max: number }>;
+/**
+ * The rests of one kind left in the adventure, and the most; in a long
+ * module (#404), `per: "region"`: those left in the character's region.
+ */
+export type RestsView = Readonly<{ left: number; max: number; per?: "region" }>;
 
-/** "Short rests: 1 of 2 left" (#334) or "Long rests: 1 of 1 left" (#335). */
-export function restsText(kind: RestKind, { left, max }: RestsView): string {
-  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left`;
+/**
+ * "Short rests: 1 of 2 left" (#334) or "Long rests: 1 of 1 left" (#335),
+ * with "in this region" in a long module (#404).
+ */
+export function restsText(
+  kind: RestKind,
+  { left, max, per }: RestsView,
+): string {
+  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left${per === "region" ? ` ${restsScope({ left, max, per })}` : ""}`;
+}
+
+/** "in this adventure", or "in this region" in a long module (#404). */
+export function restsScope({ per }: RestsView): string {
+  return `in this ${per ?? "adventure"}`;
 }
 
 /** "Hit dice: 2 of 3 d10 left". */
@@ -555,8 +570,26 @@ export type FifthState = Readonly<{
   shortRests: number;
   /** The long rests taken in this adventure (#335). */
   longRests: number;
+  /**
+   * The rests taken in each region of a long module (#404), by region id:
+   * there the limits are per region. Left out while there is none, and in
+   * any other module.
+   */
+  regionRests?: Readonly<
+    Record<string, Readonly<{ short: number; long: number }>>
+  >;
   /** The character's moves between rooms in this adventure (#395). */
   moves: number;
+  /**
+   * The rooms the character has been in (#405), the start room first, each
+   * once, in the order first entered.
+   */
+  visitedRoomIds: readonly string[];
+  /**
+   * The fights the character has fled (#396, #405), in order. Left out
+   * while there is none.
+   */
+  fledEncounterIds?: readonly string[];
   /**
    * The module's flags set so far (#397), in the order they were set. A
    * flag only ever turns on.
@@ -3414,7 +3447,7 @@ export function renderFifthEvent(
         spent === 0
           ? "no hit dice"
           : `${spent} ${spent === 1 ? "hit die" : "hit dice"}`;
-      return `You take a short rest and spend ${dice} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Short rests: ${shortRests.left} of ${shortRests.max} left in this adventure.`;
+      return `You take a short rest and spend ${dice} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Short rests: ${shortRests.left} of ${shortRests.max} left ${restsScope(shortRests)}.`;
     }
     case "hit-die": {
       const rolled = event.value + event.modifier;
@@ -3423,7 +3456,7 @@ export function renderFifthEvent(
     case "long-rest": {
       const { healing, hpAfter, maxHp, regainedHitDice, hitDice, longRests } =
         event;
-      return `You take a long rest: you regain ${healing} HP (${hpAfter}/${maxHp} HP) and ${regainedHitDice} ${regainedHitDice === 1 ? "hit die" : "hit dice"} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Long rests: ${longRests.left} of ${longRests.max} left in this adventure.`;
+      return `You take a long rest: you regain ${healing} HP (${hpAfter}/${maxHp} HP) and ${regainedHitDice} ${regainedHitDice === 1 ? "hit die" : "hit dice"} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Long rests: ${longRests.left} of ${longRests.max} left ${restsScope(longRests)}.`;
     }
     case "wand-recharged": {
       const rolled =
@@ -4589,6 +4622,54 @@ export function healthOf(hp: number, maxHp: number): Health {
   return hp * 2 <= maxHp ? "bloodied" : "healthy";
 }
 
+/** How a known room's fight stands (#405). */
+export type KnownFightStatus =
+  "under-way" | "won" | "peaceful" | "bypassed" | "fled" | "waiting";
+
+/**
+ * A room the character knows (#405): one it has visited, with its record,
+ * or one only seen through an exit, with its name alone.
+ */
+export type KnownRoomView = Readonly<{
+  id: string;
+  name: string;
+  /** The character is here. */
+  current?: true;
+  visited: boolean;
+  /**
+   * What the character learned here, once visited: the discoveries made,
+   * the creatures talked to and what they said, the doors on its exits and
+   * the traps found on them, and how its fight stands, if it has one the
+   * character has met.
+   */
+  record?: Readonly<{
+    discoveries: readonly Readonly<{ name: string; discovery: string }>[];
+    creatures: readonly Readonly<{
+      name: string;
+      said: readonly Readonly<{ topic: string; said: string }>[];
+    }>[];
+    doors: readonly Readonly<{ name: string; to: string; open: boolean }>[];
+    traps: readonly Readonly<{
+      name: string;
+      to: string;
+      state: "armed" | "disarmed" | "sprung";
+    }>[];
+    fight?: Readonly<{
+      status: KnownFightStatus;
+      opponents: readonly string[];
+    }>;
+  }>;
+}>;
+
+/**
+ * The known rooms of one region (#405), in the module's order: its name,
+ * or none in a module without regions.
+ */
+export type KnownRegionView = Readonly<{
+  region?: string;
+  rooms: readonly KnownRoomView[];
+}>;
+
 /**
  * The player-safe room for the browser: its exits, features (with the
  * discoveries the character has made), visible items, what the character
@@ -5102,12 +5183,18 @@ export type FifthRuntime = Omit<
      */
     projectEffects(state: FifthState): readonly EffectView[];
     /**
-     * The rests of `kind` left in the adventure, and the most: short
-     * (#334) or long (#335).
+     * The rests of `kind` left in the adventure, or in the character's
+     * region of a long module (#404), and the most: short (#334) or long
+     * (#335).
      */
     projectRests(state: FifthState, kind: RestKind): RestsView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
+    /**
+     * The rooms the character knows (#405), by region: those visited, each
+     * with its record, and those seen through their exits.
+     */
+    projectKnownRooms(state: FifthState): readonly KnownRegionView[];
     /** Its module's monster and item icons, for result lines (#377). */
     icons: IconLookup;
     /**
@@ -7260,6 +7347,33 @@ export function createFifthRuntime(
   };
 
   /**
+   * The counts after a rest of `kind`: the adventure's and, in a long
+   * module (#404), the character's region's.
+   */
+  const restTaken = (
+    state: FifthState,
+    kind: RestKind,
+  ): Pick<FifthState, "shortRests" | "longRests" | "regionRests"> => {
+    const counts =
+      kind === "short"
+        ? { shortRests: state.shortRests + 1, longRests: state.longRests }
+        : { shortRests: state.shortRests, longRests: state.longRests + 1 };
+    if (adventure.long !== true) {
+      return counts;
+    }
+    // A long module has regions in every room (the validator's rule).
+    const regionId = room(state).region!;
+    const taken = state.regionRests?.[regionId] ?? { short: 0, long: 0 };
+    return {
+      ...counts,
+      regionRests: {
+        ...state.regionRests,
+        [regionId]: { ...taken, [kind]: taken[kind] + 1 },
+      },
+    };
+  };
+
+  /**
    * A short rest (#334), once the engine has accepted it: up to `count` hit
    * dice are spent one at a time, each healing its roll plus the
    * Constitution modifier (at least 0), until HP is full; then each feature
@@ -7309,7 +7423,7 @@ export function createFifthRuntime(
     const next = recover(
       {
         ...state,
-        shortRests: state.shortRests + 1,
+        ...restTaken(state, "short"),
         character: {
           ...state.character,
           hp,
@@ -7467,7 +7581,7 @@ export function createFifthRuntime(
     const next = recover(
       {
         ...state,
-        longRests: state.longRests + 1,
+        ...restTaken(state, "long"),
         character: { ...state.character, hp: baseMaxHp, hitDice: total },
         possessions: { ...state.possessions, magicItems: wands.held },
       },
@@ -8742,6 +8856,9 @@ export function createFifthRuntime(
       ...kept,
       roomId: destination.id,
       moves: kept.moves + 1,
+      ...(kept.visitedRoomIds.includes(destination.id)
+        ? {}
+        : { visitedRoomIds: [...kept.visitedRoomIds, destination.id] }),
     };
     const fight = encounterOf(arrived);
     const metHere =
@@ -8828,8 +8945,13 @@ export function createFifthRuntime(
         return event;
       },
     );
+    // The known rooms (#405) say the fight was fled.
+    const fled = away.state.fledEncounterIds ?? [];
+    const fightId = encounterOf(result.state)!.id;
     return goThrough(
-      away.state,
+      fled.includes(fightId)
+        ? away.state
+        : { ...away.state, fledEncounterIds: [...fled, fightId] },
       [...result.events, ...away.events],
       way.passage,
       destination,
@@ -9336,10 +9458,12 @@ export function createFifthRuntime(
         if (blocked !== undefined) {
           return reject(...blocked);
         }
-        if (state.shortRests >= SHORT_RESTS_PER_ADVENTURE) {
+        if (projectRests(state, "short").left === 0) {
           return reject(
             "no-rests-left",
-            "You have taken the two short rests an adventure allows.",
+            adventure.long === true
+              ? "You have taken the two short rests each region allows: rest again in another region."
+              : "You have taken the two short rests an adventure allows.",
           );
         }
         // Memorize Spell's swap (#344) is checked before any die.
@@ -9384,10 +9508,12 @@ export function createFifthRuntime(
         if (blocked !== undefined) {
           return reject(...blocked);
         }
-        if (state.longRests >= LONG_RESTS_PER_ADVENTURE) {
+        if (projectRests(state, "long").left === 0) {
           return reject(
             "no-long-rests-left",
-            "You have taken the one long rest an adventure allows.",
+            adventure.long === true
+              ? "You have taken the one long rest each region allows: rest again in another region."
+              : "You have taken the one long rest an adventure allows.",
           );
         }
         if (!longRestRestores(state)) {
@@ -11835,12 +11961,21 @@ export function createFifthRuntime(
     return { available: state.character.hitDice, total: count, sides };
   };
 
-  const projectRests = (state: FifthState, kind: RestKind): RestsView => ({
-    left:
-      RESTS_PER_ADVENTURE[kind] -
-      (kind === "short" ? state.shortRests : state.longRests),
-    max: RESTS_PER_ADVENTURE[kind],
-  });
+  /**
+   * The rests of `kind` left: in the adventure, or in the character's
+   * region of a long module (#404).
+   */
+  const projectRests = (state: FifthState, kind: RestKind): RestsView => {
+    const max = RESTS_PER_ADVENTURE[kind];
+    if (adventure.long !== true) {
+      return {
+        left: max - (kind === "short" ? state.shortRests : state.longRests),
+        max,
+      };
+    }
+    const taken = state.regionRests?.[room(state).region!]?.[kind] ?? 0;
+    return { left: max - taken, max, per: "region" };
+  };
   /** Whether the module has a rest site (#335), where a long rest may be taken. */
   const hasRestSite = adventure.rooms.some(({ restSite }) => restSite === true);
 
@@ -11919,16 +12054,148 @@ export function createFifthRuntime(
     };
   };
 
+  /** Whether the trap `trapId` is armed, disarmed or has sprung. */
+  const trapStateOf = (state: FifthState, trapId: string) =>
+    state.sprungTrapIds.includes(trapId)
+      ? ("sprung" as const)
+      : state.disarmedTrapIds.includes(trapId)
+        ? ("disarmed" as const)
+        : ("armed" as const);
+  /** Whether the character has found the trap `trapId`, or it has sprung on it. */
+  const trapKnown = (state: FifthState, trapId: string) =>
+    state.foundTrapIds.includes(trapId) || state.sprungTrapIds.includes(trapId);
+
+  /** `state` as room `roomId` is with the character away from it (#405). */
+  const awayIn = (state: FifthState, roomId: string): FifthState => {
+    const { encounter: _here, ...rest } = cleared(
+      cleared(
+        cleared(cleared(cleared(state, "wandering"), "omen"), "unseenBy"),
+        "reactingTo",
+      ),
+      "tacticalMind",
+    );
+    void _here;
+    return { ...rest, roomId };
+  };
+
+  /**
+   * What the character learned in room `of` (#405), seen from `state`:
+   * its discoveries, the creatures talked to and what they said, its doors,
+   * the traps found and how its fight stands.
+   */
+  const knownRecord = (
+    state: FifthState,
+    of: FifthRoom,
+  ): NonNullable<KnownRoomView["record"]> => {
+    const here = of.id === state.roomId;
+    const there = here ? state : awayIn(state, of.id);
+    const fight = placedEncounterOf(there);
+    // A fight flags placed here is known only once met (#398).
+    const met =
+      fight !== undefined &&
+      (!isConditional(fight) ||
+        (state.metEncounters ?? []).some(
+          ({ encounterId }) => encounterId === fight.id,
+        ));
+    const status = (id: string): KnownFightStatus =>
+      state.clearedEncounterIds.includes(id)
+        ? "won"
+        : state.peacefulEncounterIds.includes(id)
+          ? "peaceful"
+          : here && fighting(state) && state.wandering === undefined
+            ? "under-way"
+            : state.bypassedEncounterIds.includes(id)
+              ? "bypassed"
+              : (state.fledEncounterIds ?? []).includes(id)
+                ? "fled"
+                : "waiting";
+    const exitsThere = ways(there).filter(
+      ({ passage }) => !isClosed(there, passage),
+    );
+    return {
+      discoveries: describedFeatures(there).flatMap(({ name, discovery }) =>
+        discovery === undefined ? [] : [{ name, discovery }],
+      ),
+      creatures: creaturesHere(there, true).flatMap(({ name, topics }) => {
+        const answers = topics.flatMap((topic) => {
+          const words = said(there, topic);
+          return words === undefined
+            ? []
+            : [{ topic: topic.name, said: words }];
+        });
+        return answers.length === 0 ? [] : [{ name, said: answers }];
+      }),
+      doors: exitsThere.flatMap(({ passage: { door }, to }) =>
+        door === undefined
+          ? []
+          : [
+              {
+                name: door.name,
+                to: roomById(to).name,
+                open: isOpen(there, door),
+              },
+            ],
+      ),
+      traps: exitsThere.flatMap(({ passage: { trap }, to }) =>
+        trap === undefined || !trapKnown(there, trap.id)
+          ? []
+          : [
+              {
+                name: trap.name,
+                to: roomById(to).name,
+                state: trapStateOf(there, trap.id),
+              },
+            ],
+      ),
+      ...(met
+        ? {
+            fight: {
+              status: status(fight.id),
+              opponents: fight.opponents.map(({ name }) => name),
+            },
+          }
+        : {}),
+    };
+  };
+
+  /**
+   * The known rooms (#405): every room visited, with its record, and every
+   * room seen through a visited room's exits, grouped by region in the
+   * module's order, the character's own marked. A module without regions
+   * has one group.
+   */
+  const projectKnownRooms = (state: FifthState): readonly KnownRegionView[] => {
+    const visited = new Set(state.visitedRoomIds);
+    const seen = new Set(
+      state.visitedRoomIds.flatMap((roomId) =>
+        ways({ ...state, roomId }).map(({ to }) => to),
+      ),
+    );
+    const known = adventure.rooms.filter(
+      ({ id }) => visited.has(id) || seen.has(id),
+    );
+    const entry = (of: FifthRoom): KnownRoomView => ({
+      id: of.id,
+      name: of.name,
+      ...(of.id === state.roomId ? { current: true as const } : {}),
+      visited: visited.has(of.id),
+      ...(visited.has(of.id) ? { record: knownRecord(state, of) } : {}),
+    });
+    return adventure.regions === undefined
+      ? [{ rooms: known.map(entry) }]
+      : adventure.regions.flatMap(({ id, name }) => {
+          const rooms = known.filter(({ region }) => region === id);
+          return rooms.length === 0
+            ? []
+            : [{ region: name, rooms: rooms.map(entry) }];
+        });
+  };
+
   function projectRoom(state: FifthState): RoomView {
     const current = room(state);
     const ids = (entries: readonly Readonly<{ id: string }>[]) =>
       entries.map(({ id }) => id);
-    const trapState = (trapId: string) =>
-      state.sprungTrapIds.includes(trapId)
-        ? ("sprung" as const)
-        : state.disarmedTrapIds.includes(trapId)
-          ? ("disarmed" as const)
-          : ("armed" as const);
+    const trapState = (trapId: string) => trapStateOf(state, trapId);
     return {
       id: current.id,
       name: current.name,
@@ -11962,11 +12229,7 @@ export function createFifthRuntime(
                 },
               }),
           // A trap shows once found, or once it has sprung on the character.
-          ...(trap === undefined ||
-          !(
-            state.foundTrapIds.includes(trap.id) ||
-            state.sprungTrapIds.includes(trap.id)
-          )
+          ...(trap === undefined || !trapKnown(state, trap.id)
             ? {}
             : { trap: { ...named(trap), state: trapState(trap.id) } }),
         }),
@@ -12777,7 +13040,7 @@ export function createFifthRuntime(
           {
             type: "function",
             name: "long_rest",
-            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take the adventure's one long rest (${restsText("long", projectRests(state, "long")).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
+            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take ${adventure.long === true ? "this region's" : "the adventure's"} one long rest (${restsText("long", projectRests(state, "long")).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
             strict: true,
             parameters: {
               type: "object",
@@ -12800,7 +13063,8 @@ export function createFifthRuntime(
     if (offer?.rest === undefined) {
       return [];
     }
-    const { left, max } = projectRests(state, "short");
+    const rests = projectRests(state, "short");
+    const { left, max } = rests;
     // Memorize Spell (#344), for a level-5 Wizard.
     const { memorize } = offer.rest;
     const spellIds = (spells: readonly MemorizeSpell[]) => [
@@ -12811,7 +13075,7 @@ export function createFifthRuntime(
       {
         type: "function",
         name: "rest",
-        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left in this adventure). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.${memorize === undefined ? "" : " With the rest, Memorize Spell may swap one prepared spell (forget_spell) for another in the spellbook (learn_spell) until the adventure ends: only when the player asks for it, both from those listed; otherwise null for both."}`,
+        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left ${restsScope(rests)}). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.${memorize === undefined ? "" : " With the rest, Memorize Spell may swap one prepared spell (forget_spell) for another in the spellbook (learn_spell) until the adventure ends: only when the player asks for it, both from those listed; otherwise null for both."}`,
         strict: true,
         parameters: {
           type: "object",
@@ -13237,6 +13501,7 @@ export function createFifthRuntime(
       shortRests: 0,
       longRests: 0,
       moves: 0,
+      visitedRoomIds: [adventure.startRoomId],
       // First entering a room may set a flag (#397): the start room's is
       // set as the adventure begins.
       flags: startFlags,
@@ -13277,6 +13542,7 @@ export function createFifthRuntime(
     projectHitDice,
     projectEffects: (state: FifthState) => effectViews(self(state)),
     projectRests,
+    projectKnownRooms,
     projectRoom,
     icons,
     projectActions,

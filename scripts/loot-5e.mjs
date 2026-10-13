@@ -71,7 +71,7 @@ export async function main(args, output = process.stdout) {
         ({ opponentId, treasureType, items }) =>
           `  ${opponentId} (${treasureType}): ${items.join(", ")}`,
       ),
-      `Findable treasure: ${formatCoins(findableValue(adventure))} of the ${formatCoins(treasureBudget(max))} budget for level ${max}.`,
+      `Findable treasure: ${formatCoins(findableValue(adventure))} of the ${formatCoins(treasureBudget(max, adventure.long === true))} budget for ${adventure.long === true ? "a long module at " : ""}level ${max}.`,
       "",
     ].join("\n"),
   );

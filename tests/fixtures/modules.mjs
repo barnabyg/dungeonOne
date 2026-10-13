@@ -554,6 +554,36 @@ export const regionTunnelsFile = (() => {
 export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 
 /**
+ * A long module (#404): the two-level tunnels as _The Long Tunnels_, level
+ * 3, hard, declared `long`. The upper alcove is a rest site, and so is a
+ * Cistern in the Lower Tunnels off the cellar, so each region has one.
+ */
+export const longTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "long-tunnels";
+  module.title = "The Long Tunnels";
+  module.long = true;
+  module.recommendedLevels = { min: 3, max: 3 };
+  room(module, "alcove").restSite = true;
+  module.rooms.push({
+    id: "cistern",
+    name: "Cistern",
+    description: "A dry cistern with a ledge above the old waterline.",
+    region: "lower",
+    restSite: true,
+    features: [],
+    items: [],
+  });
+  module.passages.push({
+    id: "cellar-to-cistern",
+    between: ["rat-cellar", "cistern"],
+    description: "A ladder down into the dark.",
+  });
+  return module;
+})();
+export const longTunnels = validateModule(structuredClone(longTunnelsFile));
+
+/**
  * Fleeing a fight (#396): the rat tunnels as _The Bolt-Hole Cellar_. The
  * cellar's fight is a Giant Rat and a Zombie; the stair foot is an exit
  * room. Out of the cellar run the passage back to the stair foot, the way

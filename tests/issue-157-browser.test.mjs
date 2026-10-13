@@ -109,6 +109,8 @@ const REGIONS = [
   "#session-status",
   "#encounter",
   "#room",
+  // The known rooms (#405) follow the room.
+  "#known-rooms",
   "#session-actions",
   "#session-history",
   "#session-composer",
@@ -309,7 +311,8 @@ test(
       assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
       assert.match(await page.locator("#features").textContent(), /Ale Rack/);
 
-      // DOM and tab order: status, Fight, room, actions, history, composer.
+      // DOM and tab order: status, Fight, room, known rooms, actions,
+      // history, composer.
       assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
       const tabbed = await tabRegions(page);
       assert.deepEqual(

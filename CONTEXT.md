@@ -29,11 +29,11 @@ The character's pool of its class's hit die, one per level, tracked by the adven
 _Avoid_: Hit points, HD (in player-facing text)
 
 **Short rest**:
-A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure: the character spends hit dice one at a time to heal and regains its features' short-rest uses.
+A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure (two in each region of a long module, #404): the character spends hit dice one at a time to heal and regains its features' short-rest uses.
 _Avoid_: Breather, Camp
 
 **Long rest**:
-A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure: it restores every hit point, hit die and feature use.
+A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure (one in each region of a long module, #404): it restores every hit point, hit die and feature use.
 _Avoid_: Sleep, Camp
 
 **Spell**:
@@ -287,9 +287,17 @@ _Avoid_: Location, Square, Tile
 A named part of an adventure module, such as an upper or a lower level (#395). In a module with regions every room belongs to exactly one; the room panel and the AI DM's scene name the current room's. It is a list of rooms, not a place on a map.
 _Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
 
+**Long module**:
+An adventure module with two or more regions that declares itself long (#404): its rests are counted per region, every region has a rest site, and it has twice the treasure budget and an XP limit one level higher.
+_Avoid_: Big module, Campaign
+
 **Move count**:
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time
+
+**Known rooms**:
+The rooms the character has visited in an adventure, or seen through a visited room's exits (#405), grouped by region with the current one marked. Each visited room keeps its record: the discoveries made there, the creatures talked to and what they said, its doors, the traps found and how its fight stands. The engine projects them; choosing one in the browser shows its record and never moves the character.
+_Avoid_: Journal, Map, Log, Clue
 
 **Flag**:
 A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.

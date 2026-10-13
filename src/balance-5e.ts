@@ -3243,11 +3243,12 @@ export const RETREAT_STYLE: PlayStyle = "retreat";
 export const ROOM_STYLE: PlayStyle = "use-room";
 
 /**
- * The SRD 5.2 XP needed for levels 1–7. Characters stop at level 5; levels 6
- * and 7 are here only so the XP check can tell how far XP would carry one
- * (a level-5 module's limit is level 6, passed at 23,000 XP).
+ * The SRD 5.2 XP needed for levels 1–8. Characters stop at level 5; levels
+ * 6 to 8 are here only so the XP check can tell how far XP would carry one
+ * (a level-5 module's limit is level 6, passed at 23,000 XP, and a long
+ * one's level 7, passed at 34,000).
  */
-const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000, 23000] as const;
+const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000, 23000, 34000] as const;
 
 function srdLevelForXp(xp: number): number {
   return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;
@@ -4276,13 +4277,15 @@ export function gateAdventure(
     const endLevel = srdLevelForXp(
       startXp + Math.max(available, alwaysSucceed.mostXp),
     );
+    // A long module's XP may carry a character one level further (#404, D6).
+    const levelLimit = max + (adventure.long === true ? 2 : 1);
     const xp: XpCheck = {
-      ok: endLevel <= max + 1,
+      ok: endLevel <= levelLimit,
       available,
       alwaysSucceed,
       startXp,
       endLevel,
-      levelLimit: max + 1,
+      levelLimit,
     };
 
     return {
