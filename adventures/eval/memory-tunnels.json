@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 41,
+  "formatVersion": 42,
   "id": "memory-tunnels",
   "title": "The Remembered Tunnels",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",

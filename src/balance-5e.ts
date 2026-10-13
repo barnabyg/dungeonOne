@@ -23,6 +23,7 @@ import {
   statBlockSaves,
   unsimulatedTraits,
   type AuthoredCheck,
+  DIFFICULTIES,
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
@@ -808,6 +809,10 @@ export type BalanceFailureCode =
   | "unreachable-objective"
   /** A declared route (#407) no style can follow. */
   | "unfollowable-route"
+  /** A region sweep (#408) that can't reach one of its rooms. */
+  | "unsweepable-region"
+  /** A route (#408) whose required path passes an avoidable room. */
+  | "avoidable-on-route"
   | "unsupported-action"
   | "step-limit"
   | "stranded"
@@ -1243,6 +1248,41 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   return { plan, roomById, fightIn, encounterAt, roomFlags, flagShut };
 }
 
+/**
+ * A region's sweep (#408): every room of one region of a long module but
+ * those marked `avoidable` and the victory room, which the objective
+ * reaches last, for the cautious style to visit, nearest first, and fight
+ * what waits in each.
+ */
+export type RegionSweep = Readonly<{
+  region: string;
+  name: string;
+  rooms: readonly string[];
+}>;
+
+/**
+ * A long module's region sweeps (#408), one per region in the module's
+ * order, each with its rooms in the module's order; none for any other
+ * module.
+ */
+export function regionSweeps(
+  adventure: FifthAdventure,
+): readonly RegionSweep[] {
+  if (adventure.long !== true) {
+    return [];
+  }
+  const winning = victoryRooms(adventure);
+  return (adventure.regions ?? []).map(({ id, name }) => ({
+    region: id,
+    name,
+    rooms: adventure.rooms.flatMap((room) =>
+      room.region === id && room.avoidable !== true && !winning.has(room.id)
+        ? [room.id]
+        : [],
+    ),
+  }));
+}
+
 /** The rooms where winning the fight ends the adventure in victory. */
 function victoryRooms(adventure: FifthAdventure): ReadonlySet<string> {
   const winning = new Set(
@@ -1293,11 +1333,14 @@ function objectiveOf(adventure: FifthAdventure): Objective {
  * Given a declared `route` (#407), the path first passes the route's rooms
  * in order, each by the fewest fights from the last, then goes on to the
  * objective. A route no style can follow throws an `unfollowable-route`
- * failure naming it and the room no way reaches.
+ * failure naming it and the room no way reaches. Given a region `sweep`
+ * (#408), the path first visits each of its rooms, the nearest not yet
+ * visited next, by the fewest fights; one it can't reach throws an
+ * `unsweepable-region` failure.
  */
 export function requiredPath(
   adventure: FifthAdventure,
-  route?: FifthRoute,
+  along?: FifthRoute | RegionSweep,
 ): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
@@ -1305,14 +1348,28 @@ export function requiredPath(
   const { plan, roomById, encounterAt, roomFlags, flagShut } =
     routePlanner(adventure);
   const objective = objectiveOf(adventure);
-  const legs = [
-    ...(route?.rooms ?? []).map((roomId) => new Set([roomId])),
-    ...(objective === "victory"
+  const sweep = along !== undefined && "region" in along ? along : undefined;
+  const route = along !== undefined && !("region" in along) ? along : undefined;
+  const roomIds = [adventure.startRoomId];
+  /**
+   * The rooms to reach next, leg by leg: a route's in turn, or a sweep's
+   * not yet visited, then the objective's.
+   */
+  function* legs(): Generator<ReadonlySet<string>> {
+    for (;;) {
+      const left = sweep?.rooms.filter((roomId) => !roomIds.includes(roomId));
+      if (left === undefined || left.length === 0) {
+        break;
+      }
+      yield new Set(left);
+    }
+    yield* (route?.rooms ?? []).map((roomId) => new Set([roomId]));
+    yield* objective === "victory"
       ? [victoryRooms(adventure)]
       : objective === "escape-with-loot"
         ? [lootRooms(adventure), exitRooms(adventure)]
-        : [exitRooms(adventure)]),
-  ];
+        : [exitRooms(adventure)];
+  }
   const start: Position = {
     roomId: adventure.startRoomId,
     inventory: [],
@@ -1337,7 +1394,6 @@ export function requiredPath(
       .get(adventure.startRoomId)!
       .items.map(({ id }) => id),
   };
-  const roomIds = [adventure.startRoomId];
   // The items a use needs are carried, as keys are (#400).
   const openings = useOpenings(adventure);
   const useItems = new Set(openings.map(({ itemId }) => itemId));
@@ -1361,7 +1417,7 @@ export function requiredPath(
       .get(adventure.startRoomId)!
       .items.flatMap(({ id }) => (useItems.has(id) ? [id] : [])),
   });
-  for (const targets of legs) {
+  for (const targets of legs()) {
     while (!targets.has(position.roomId)) {
       const path = plan(position, targets, () => true);
       if (path === undefined) {
@@ -1376,20 +1432,29 @@ export function requiredPath(
           byTalking === undefined
             ? undefined
             : `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}`;
+        const waypoint = targets.size === 1 ? [...targets][0]! : undefined;
+        // The flag that keeps the way shut, only where it is shown.
+        const shut =
+          talked === undefined && along !== undefined
+            ? flagShut(position, targets)
+            : undefined;
+        const why =
+          talked ??
+          (shut === undefined
+            ? ""
+            : `: passage ${shut.id} opens only once flag ${shut.openWhen!} is set, and nothing the character does sets it for sure`);
+        if (sweep !== undefined && sweep.rooms.some((id) => targets.has(id))) {
+          throw new BalanceError(
+            "unsweepable-region",
+            `${adventure.id}: the sweep of region ${sweep.region} (${sweep.name}) can't reach ${targets.size === 1 ? "room" : "rooms"} ${[...targets].join(", ")}${why}. Mark the room avoidable if the character need never go there.`,
+          );
+        }
         if (route === undefined) {
           throw new BalanceError(
             "unreachable-objective",
             `${adventure.id}: no route reaches its ${objective} objective${talked ?? ""}.`,
           );
         }
-        const shut =
-          talked === undefined ? flagShut(position, targets) : undefined;
-        const why =
-          talked ??
-          (shut === undefined
-            ? ""
-            : `: passage ${shut.id} opens only once flag ${shut.openWhen!} is set, and nothing the character does sets it for sure`);
-        const waypoint = targets.size === 1 ? [...targets][0]! : undefined;
         throw new BalanceError(
           "unfollowable-route",
           `${adventure.id}: route ${route.id} (${route.name}) can't be followed: ` +
@@ -1949,8 +2014,10 @@ function checksMade(
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
  * starting as a browser session does, with `begin`, answering reaction rolls
  * (#304) by `reactions`, `attack` by default, and on a declared `route`
- * (#407), passing its rooms in order before the objective, or else on the
- * fewest-fights route. Throws a `BalanceError`
+ * (#407), passing its rooms in order before the objective, or on a region
+ * `sweep` (#408), visiting each of its rooms, the nearest not yet visited
+ * next, before the objective, or else on the fewest-fights route. Throws a
+ * `BalanceError`
  * when an opponent has a trait the engine does not apply (the run would not
  * be the fight a player meets), the runtime offers an action no style can
  * play, the run takes more than `stepLimit` actions, or it is stranded:
@@ -1965,6 +2032,7 @@ export function playAdventure(
     reactions = "attack",
     casting = "conserve",
     route,
+    sweep,
   }: Readonly<{
     stepLimit?: number;
     reactions?: ReactionPolicy;
@@ -1972,6 +2040,8 @@ export function playAdventure(
     casting?: CastingPolicy;
     /** The declared route to follow (#407): the fewest-fights one if none. */
     route?: FifthRoute;
+    /** The region sweep to make (#408), in place of a route. */
+    sweep?: RegionSweep;
   }> = {},
 ): RunRecord {
   const { adventure } = runtime;
@@ -1987,10 +2057,20 @@ export function playAdventure(
     }
   }
   const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
-  const required = new Set(requiredPath(adventure, route).roomIds);
+  const required = new Set(requiredPath(adventure, sweep ?? route).roomIds);
   /** The route's rooms (#407), each passed in turn before the objective. */
   const waypoints = route?.rooms ?? [];
   let passed = 0;
+  /** The rooms a route or a sweep (#408) goes to next, if any. */
+  const nextWaypoints = (): ReadonlySet<string> | undefined => {
+    if (sweep !== undefined) {
+      const left = sweep.rooms.filter((roomId) => !roomIds.includes(roomId));
+      return left.length === 0 ? undefined : new Set(left);
+    }
+    return passed < waypoints.length
+      ? new Set([waypoints[passed]!])
+      : undefined;
+  };
   const objective = objectiveOf(adventure);
   const winning = victoryRooms(adventure);
   const exits = exitRooms(adventure);
@@ -2804,12 +2884,9 @@ export function playAdventure(
         return careful;
       }
     }
-    // A route's next room (#407) comes before the objective.
-    const goal = retreating
-      ? exits
-      : passed < waypoints.length
-        ? new Set([waypoints[passed]!])
-        : objectiveRooms();
+    // A route's next room (#407), or a sweep's (#408), comes before the
+    // objective.
+    const goal = retreating ? exits : (nextWaypoints() ?? objectiveRooms());
     const lostKeyIds = lostKeys().map(({ id }) => id);
     for (;;) {
       const position: Position = {
@@ -3557,6 +3634,30 @@ export type RouteCheck = Readonly<{
   alwaysFail: SurvivalCheck;
 }>;
 
+/**
+ * A region sweep's survival checks (#408): the weakest character's cautious
+ * runs visiting every room of the region but the avoidable ones, judged at
+ * `difficulty`, one lower than the module's.
+ */
+export type SweepCheck = Readonly<{
+  region: string;
+  name: string;
+  difficulty: Difficulty;
+  survival: SurvivalCheck;
+  alwaysFail: SurvivalCheck;
+}>;
+
+/**
+ * The difficulty a region sweep (#408) is judged at: one lower than the
+ * module's, a Medium module's sweep at Hard. Hard has none lower, so a Hard
+ * module's sweeps are judged at Hard.
+ */
+export function sweepDifficulty(difficulty: Difficulty): Difficulty {
+  return DIFFICULTIES[
+    Math.min(DIFFICULTIES.indexOf(difficulty) + 1, DIFFICULTIES.length - 1)
+  ]!;
+}
+
 export type GateVerdict = Readonly<{
   adventureId: string;
   /** The class the verdict judges (#310). */
@@ -3572,6 +3673,11 @@ export type GateVerdict = Readonly<{
    * module's order. A module qualifies only if every route survives.
    */
   routes?: readonly RouteCheck[];
+  /**
+   * For a long module (#408): each region's sweep checks, in the module's
+   * order. A module qualifies only if every sweep survives.
+   */
+  sweeps?: readonly SweepCheck[];
   oneHitKill: OneHitKillCheck;
   /** For a class with control at the module's maximum level (#348). */
   control?: ControlCheck;
@@ -3612,6 +3718,12 @@ export type GateMeasures = Readonly<{
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
   routes?: readonly Readonly<{
     id: string;
+    name: string;
+    survival: Omit<SurvivalCheck, "ok" | "required">;
+    alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
+  }>[];
+  sweeps?: readonly Readonly<{
+    region: string;
     name: string;
     survival: Omit<SurvivalCheck, "ok" | "required">;
     alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
@@ -3876,12 +3988,38 @@ export function gateAdventure(
     // Each declared route (#407), and whether it is off the
     // fewest-fights route, whose runs it shares if not. A route no style
     // can follow fails the module here.
+    // Each region sweep of a long module (#408) is played as a route is; one
+    // that can't reach a room fails the module here.
     const fewest = JSON.stringify(requiredPath(adventure).roomIds);
-    const routes = (adventure.routes ?? []).map((route) => ({
-      route,
-      offFewest:
-        JSON.stringify(requiredPath(adventure, route).roomIds) !== fewest,
-    }));
+    const offFewest = (along: FifthRoute | RegionSweep) =>
+      JSON.stringify(requiredPath(adventure, along).roomIds) !== fewest;
+    const routes = adventure.routes ?? [];
+    // D8 (#408): an avoidable room lies off every route's required path,
+    // the rooms between those it names too, or off the fewest-fights
+    // route's when it declares none.
+    const avoidable = new Set(
+      adventure.rooms.flatMap(({ id, avoidable: off }) =>
+        off === true ? [id] : [],
+      ),
+    );
+    if (avoidable.size > 0) {
+      for (const route of routes.length === 0 ? [undefined] : routes) {
+        const passed = requiredPath(adventure, route).roomIds.find((roomId) =>
+          avoidable.has(roomId),
+        );
+        if (passed !== undefined) {
+          throw new BalanceError(
+            "avoidable-on-route",
+            `${adventure.id}: room ${passed} is avoidable, but ${route === undefined ? "the fewest-fights route" : `route ${route.id} (${route.name})`} passes it: an avoidable room must lie off every declared route.`,
+          );
+        }
+      }
+    }
+    const sweeps = regionSweeps(adventure);
+    const ways = [
+      ...routes.map((route) => ({ along: { route }, off: offFewest(route) })),
+      ...sweeps.map((sweep) => ({ along: { sweep }, off: offFewest(sweep) })),
+    ];
     // In a module without fight actions the use-room style plays as the
     // judged one (#402), so its runs are the judged runs.
     const roomy = hasFightActions(adventure);
@@ -3965,15 +4103,15 @@ export function gateAdventure(
             spending: tried["spend-early"][index],
           };
         });
-        // Each declared route of its own (#407), on seeded checks and with
-        // every check failing.
-        const routeRuns = routes.map(({ route, offFewest }) =>
-          !offFewest
+        // Each declared route of its own (#407), then each region sweep
+        // (#408), on seeded checks and with every check failing.
+        const routeRuns = ways.map(({ along, off }) =>
+          !off
             ? runs
             : seeds.map((seed) => {
                 const run = playAdventure(seeded, GATE_STYLE, seed, {
                   ...policy,
-                  route,
+                  ...along,
                 });
                 return {
                   seeded: run,
@@ -3982,7 +4120,7 @@ export function gateAdventure(
                       ? run
                       : playAdventure(failing, GATE_STYLE, seed, {
                           ...policy,
-                          route,
+                          ...along,
                         }),
                 };
               }),
@@ -4059,17 +4197,27 @@ export function gateAdventure(
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
     // Each declared route's checks (#407).
-    const routeChecks = routes.map(({ route: { id, name } }, routeIndex) => ({
-      id,
-      name,
-      survival: survivalOf("seeded", "seeded", GATE_STYLE, true, routeIndex),
+    /** A route's or a sweep's two checks, by its index in `ways`. */
+    const wayChecks = (wayIndex: number) => ({
+      survival: survivalOf("seeded", "seeded", GATE_STYLE, true, wayIndex),
       alwaysFail: survivalOf(
         "always-fail",
         "failing",
         GATE_STYLE,
         true,
-        routeIndex,
+        wayIndex,
       ),
+    });
+    const routeChecks = routes.map(({ id, name }, routeIndex) => ({
+      id,
+      name,
+      ...wayChecks(routeIndex),
+    }));
+    // Each region sweep's (#408).
+    const sweepChecks = sweeps.map(({ region, name }, sweepIndex) => ({
+      region,
+      name,
+      ...wayChecks(routes.length + sweepIndex),
     }));
     const judgedRuns = played.flatMap(({ runs }) => branchRuns(runs, "seeded"));
     const rests: RestReport = {
@@ -4445,6 +4593,7 @@ export function gateAdventure(
           survival,
           alwaysFail,
           ...(routeChecks.length === 0 ? {} : { routes: routeChecks }),
+          ...(sweepChecks.length === 0 ? {} : { sweeps: sweepChecks }),
           oneHitKill,
           ...(control === undefined ? {} : { control }),
           xp,
@@ -4481,11 +4630,14 @@ export function gateVerdictAt(
   difficulty: Difficulty,
 ): GateVerdict {
   const thresholds = DIFFICULTY_THRESHOLDS[difficulty];
-  const judged = (measured: GateMeasures["survival"]): SurvivalCheck => {
+  const judged = (
+    measured: GateMeasures["survival"],
+    { survival: share } = thresholds,
+  ): SurvivalCheck => {
     const { checks, level, percentile, style, runs, rate, kit, kits } =
       measured;
     return {
-      ok: measured.reported === true || rate >= thresholds.survival,
+      ok: measured.reported === true || rate >= share,
       checks,
       level,
       percentile,
@@ -4495,7 +4647,7 @@ export function gateVerdictAt(
       kit,
       kits,
       ...(measured.reported === true ? { reported: true as const } : {}),
-      required: thresholds.survival,
+      required: share,
     };
   };
   const survival = judged(measures.survival);
@@ -4506,6 +4658,17 @@ export function gateVerdictAt(
       name,
       survival: judged(alive),
       alwaysFail: judged(failing),
+    }),
+  );
+  // Each region sweep (#408), one difficulty lower.
+  const swept = sweepDifficulty(difficulty);
+  const sweeps = measures.sweeps?.map(
+    ({ region, name, survival: alive, alwaysFail: failing }) => ({
+      region,
+      name,
+      difficulty: swept,
+      survival: judged(alive, DIFFICULTY_THRESHOLDS[swept]),
+      alwaysFail: judged(failing, DIFFICULTY_THRESHOLDS[swept]),
     }),
   );
   const { enemies } = measures.oneHitKill;
@@ -4558,8 +4721,8 @@ export function gateVerdictAt(
     qualified:
       survival.ok &&
       alwaysFail.ok &&
-      (routes ?? []).every(
-        (route) => route.survival.ok && route.alwaysFail.ok,
+      [...(routes ?? []), ...(sweeps ?? [])].every(
+        (way) => way.survival.ok && way.alwaysFail.ok,
       ) &&
       oneHitKill.ok &&
       (control?.ok ?? true) &&
@@ -4567,6 +4730,7 @@ export function gateVerdictAt(
     survival,
     alwaysFail,
     ...(routes === undefined ? {} : { routes }),
+    ...(sweeps === undefined ? {} : { sweeps }),
     oneHitKill,
     ...(control === undefined ? {} : { control }),
     xp: measures.xp,
@@ -4669,8 +4833,12 @@ export function renderGateResult(
   const { survival, alwaysFail, oneHitKill, control, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
-  const deadly = (check: SurvivalCheck, title: string) =>
-    `  ${title}, ${check.reported === true ? `reported (not judged below level ${CASTER_JUDGED_LEVEL})` : mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+  const deadly = (
+    check: SurvivalCheck,
+    title: string,
+    difficulty: Difficulty = verdict.difficulty,
+  ) =>
+    `  ${title}, ${check.reported === true ? `reported (not judged below level ${CASTER_JUDGED_LEVEL})` : mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
   const stealth = verdict.stealthFirst;
   // A caster's (#348): the policy that survived more, and a level reported.
@@ -4691,6 +4859,19 @@ export function renderGateResult(
       deadly(
         route.alwaysFail,
         `Route ${route.id} (${route.name}), too deadly when every check fails`,
+      ),
+    ]),
+    // Each region sweep's (#408), at its own difficulty.
+    ...(verdict.sweeps ?? []).flatMap((sweep) => [
+      deadly(
+        sweep.survival,
+        `Sweep of region ${sweep.region} (${sweep.name}), too deadly`,
+        sweep.difficulty,
+      ),
+      deadly(
+        sweep.alwaysFail,
+        `Sweep of region ${sweep.region} (${sweep.name}), too deadly when every check fails`,
+        sweep.difficulty,
       ),
     ]),
     `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +

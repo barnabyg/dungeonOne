@@ -556,7 +556,8 @@ export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 /**
  * A long module (#404): the two-level tunnels as _The Long Tunnels_, level
  * 3, hard, declared `long`. The upper alcove is a rest site, and so is a
- * Cistern in the Lower Tunnels off the cellar, so each region has one.
+ * Cistern in the Lower Tunnels off the cellar, so each region has one. The
+ * stair foot is an exit, so every region has one to reach (D9, #408).
  */
 export const longTunnelsFile = (() => {
   const module = structuredClone(regionTunnelsFile);
@@ -564,6 +565,13 @@ export const longTunnelsFile = (() => {
   module.title = "The Long Tunnels";
   module.long = true;
   module.recommendedLevels = { min: 3, max: 3 };
+  room(module, "stair-foot").exit = true;
+  module.endings.push({
+    id: "climbed-out",
+    kind: "escape-without-loot",
+    title: "Back up the stair",
+    text: "You climb out into the daylight with nothing to show for it.",
+  });
   room(module, "alcove").restSite = true;
   module.rooms.push({
     id: "cistern",
@@ -582,6 +590,169 @@ export const longTunnelsFile = (() => {
   return module;
 })();
 export const longTunnels = validateModule(structuredClone(longTunnelsFile));
+
+/**
+ * Region sweeps (#408): the long tunnels as _The Lair Tunnels_, with a Lair
+ * off the upper alcove where a Lair Guardian waits whose bite always kills.
+ * The Lair is optional: the fewest-fights route never goes there, but the
+ * Upper Tunnels' sweep does, unless `avoidable` marks it so. `routes`, when
+ * given, are declared as they are.
+ */
+export const lairTunnelsFile = ({ avoidable = false, routes } = {}) => {
+  const module = structuredClone(longTunnelsFile);
+  module.id = "lair-tunnels";
+  module.title = "The Lair Tunnels";
+  if (routes !== undefined) {
+    module.routes = routes;
+  }
+  const rat = module.encounters.find(({ id }) => id === "cellar-rat")
+    .opponents[0];
+  module.encounters.push({
+    id: "lair-guardian",
+    opponents: [
+      {
+        ...structuredClone(rat),
+        id: "guardian",
+        name: "Lair Guardian",
+        statBlock: {
+          ...structuredClone(rat.statBlock),
+          hitPoints: { average: 60, formula: "11d8+11" },
+          attacks: [
+            {
+              name: "Bite",
+              bonus: 20,
+              damage: { dice: 4, sides: 12, modifier: 20, type: "piercing" },
+            },
+          ],
+        },
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+  });
+  module.rooms.push({
+    id: "lair",
+    name: "Lair",
+    description: "Gnawed bones carpet a low den.",
+    region: "upper",
+    encounterId: "lair-guardian",
+    ...(avoidable ? { avoidable: true } : {}),
+    features: [],
+    items: [],
+  });
+  module.passages.push({
+    id: "alcove-to-lair",
+    between: ["alcove", "lair"],
+    description: "A crawl that stinks of old meat.",
+  });
+  return module;
+};
+export const lairTunnels = validateModule(lairTunnelsFile());
+
+/**
+ * A generated release run (#409): the long tunnels as _The Winding
+ * Tunnels_, eight rooms. A Collapsed Store off the stair foot hides a pouch
+ * of coins, a Well Shaft off the alcove a tarnished locket, and a Drain
+ * Tunnel off the cistern an old grate to look at.
+ */
+export const windingTunnelsFile = (() => {
+  const module = structuredClone(longTunnelsFile);
+  module.id = "winding-tunnels";
+  module.title = "The Winding Tunnels";
+  // The stair foot is an exit (#408): coin may be carried out by it.
+  module.endings.push({
+    id: "climbed-out-rich",
+    kind: "escape-with-loot",
+    title: "Up the stair with your finds",
+    text: "You climb out into the daylight with what you found below.",
+  });
+  module.rooms.push(
+    {
+      id: "collapsed-store",
+      name: "Collapsed Store",
+      description: "Half the roof lies on the floor among split crates.",
+      region: "upper",
+      features: [
+        {
+          id: "split-crates",
+          name: "Split Crates",
+          description: "Crates crushed under the fallen roof.",
+          discovery: "Wedged between two crates is a greasy leather pouch.",
+        },
+      ],
+      items: [
+        {
+          id: "store-pouch",
+          name: "Pouch of Old Coins",
+          description: "A greasy leather pouch of tarnished coins.",
+          kind: "coin",
+          coins: { gp: 4, sp: 5 },
+          hiddenIn: "split-crates",
+        },
+      ],
+    },
+    {
+      id: "well-shaft",
+      name: "Well Shaft",
+      description: "A round shaft drops away beside a crumbling well-head.",
+      region: "upper",
+      features: [
+        {
+          id: "well-head",
+          name: "Crumbling Well-Head",
+          description: "Loose stones ring the mouth of the shaft.",
+          discovery: "A locket on a broken chain hangs from a loose stone.",
+        },
+      ],
+      items: [
+        {
+          id: "well-locket",
+          name: "Tarnished Locket",
+          description: "A silver locket, black with tarnish.",
+          kind: "treasure",
+          treasure: "art-25gp",
+          hiddenIn: "well-head",
+        },
+      ],
+    },
+    {
+      id: "drain-tunnel",
+      name: "Drain Tunnel",
+      description:
+        "A low brick tunnel that once carried water from the cistern.",
+      region: "lower",
+      features: [
+        {
+          id: "rusted-grate",
+          name: "Rusted Grate",
+          description: "A grate rusted solid across the far end.",
+          discovery: "Beyond the grate the tunnel is choked with silt.",
+        },
+      ],
+      items: [],
+    },
+  );
+  module.passages.push(
+    {
+      id: "stair-to-store",
+      between: ["stair-foot", "collapsed-store"],
+      description: "A doorway half blocked by rubble.",
+    },
+    {
+      id: "alcove-to-well",
+      between: ["alcove", "well-shaft"],
+      description: "A narrow cleft in the alcove's back wall.",
+    },
+    {
+      id: "cistern-to-drain",
+      between: ["cistern", "drain-tunnel"],
+      description: "A brick arch at the cistern's floor.",
+    },
+  );
+  return module;
+})();
+export const windingTunnels = validateModule(
+  structuredClone(windingTunnelsFile),
+);
 
 /**
  * Fleeing a fight (#396): the rat tunnels as _The Bolt-Hole Cellar_. The

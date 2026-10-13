@@ -6,6 +6,9 @@
 // #291 with --adventure thornwood-lodge, played by a saved level-4 Ada with
 // 4,100 XP, or The Counting-House on Mallow Quay for #311 with --adventure
 // mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
+// or, with --generated, any built-in module on a route generated from the
+// harness's cautious run on the seed (#409), played by the run's saved
+// character or else a saved level-3 Ada,
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -16,7 +19,7 @@
 // prompts are never recorded.
 // Usage: node scripts/qualify-release-live.mjs --live|--dry-run
 //          [--adventure <id>] [--output <report.json>] [--max-calls <count>]
-//          [--seed <seed>]
+//          [--seed <seed>] [--generated]
 // --live needs OPENAI_API_KEY. --dry-run substitutes a provider that always
 // overclaims, to check the harness itself without credentials or calls.
 // A live run keeps its run folder (the character library and saves) under
@@ -26,6 +29,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   OUTCOME_CLAIM,
@@ -40,6 +44,7 @@ import {
 import {
   COUNTING_HOUSE_ROUTE,
   DELVE_FULL_ROUTE,
+  generateReleaseRun,
   LODGE_ROUTE,
   MINE_FULL_ROUTE,
   playReleaseRun,
@@ -52,7 +57,7 @@ import {
 import { rogueLibrary } from "../dist/test-rogue-5e.js";
 
 const USAGE =
-  "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>]";
+  "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>] [--generated]";
 
 // Each release run's issue, route and default seed, on which its character
 // clears the route and walks out when each step is taken as planned. A run with a
@@ -91,6 +96,7 @@ const VALUED = {
   "--seed": "seed",
 };
 let mode;
+let generated = false;
 const args = process.argv.slice(2);
 for (let index = 0; index < args.length; index += 1) {
   const argument = args[index];
@@ -99,6 +105,8 @@ for (let index = 0; index < args.length; index += 1) {
       usage();
     }
     mode = argument;
+  } else if (argument === "--generated") {
+    generated = true;
   } else if (Object.hasOwn(VALUED, argument)) {
     const value = args[++index];
     if (value === undefined || value.startsWith("--")) {
@@ -109,10 +117,27 @@ for (let index = 0; index < args.length; index += 1) {
     usage();
   }
 }
-if (mode === undefined || !Object.hasOwn(RUNS, options.adventure)) {
+const adventure = (await loadBuiltInFifthAdventures()).find(
+  ({ id }) => id === options.adventure,
+);
+if (
+  mode === undefined ||
+  (generated
+    ? adventure === undefined
+    : !Object.hasOwn(RUNS, options.adventure))
+) {
   usage();
 }
-const run = RUNS[options.adventure];
+// A generated route (#409) is the harness's run with a saved character's
+// sheet: the run's own, or else a level-3 Ada.
+const run = generated
+  ? {
+      seed: "0",
+      ...RUNS[options.adventure],
+      issue: 409,
+      character: RUNS[options.adventure]?.character ?? levelThreeLibrary,
+    }
+  : RUNS[options.adventure];
 const dryRun = mode === "--dry-run";
 options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
 options.seed ??= run.seed;
@@ -151,6 +176,7 @@ const report = {
   issue: run.issue,
   mode: dryRun ? "dry-run" : "live",
   adventureId: options.adventure,
+  generated,
   // A dry run's folder is gone once it finishes.
   ...(dryRun ? {} : { runDirectory: relative(process.cwd(), directory) }),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
@@ -209,7 +235,11 @@ try {
         ? startAdventureOverHttp
         : startSavedAdventureOverHttp
     )(server.url, options.adventure),
-    route: run.route,
+    ...(generated
+      ? generateReleaseRun(adventure, run.character().characters[0].sheet, {
+          seed,
+        })
+      : { route: run.route }),
     onTurn(turn) {
       report.turns.push({
         ...turn,

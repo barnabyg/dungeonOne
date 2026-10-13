@@ -65,7 +65,7 @@ function changed(change) {
 // The validator.
 
 test("a module with two regions and a rest site in each may declare itself long", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 41);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
   assert.equal(longTunnels.long, true);
@@ -128,6 +128,13 @@ test("a long module's treasure budget is twice its maximum level's, and its exce
         kind: "coin",
         coins: { gp },
         hiddenIn: "silt",
+      });
+      // The stair foot is an exit (#408), so coin needs a way out with it.
+      module.endings.push({
+        id: "climbed-out-rich",
+        kind: "escape-with-loot",
+        title: "Up the stair with the purse",
+        text: "You climb out into the daylight, the sodden purse in hand.",
       });
     });
   // With the alcove's 50 gp potion, 600 gp is over a level-3 module's

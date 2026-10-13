@@ -551,7 +551,7 @@ the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 41. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 42. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -582,7 +582,10 @@ the history stays readable, and reloading shows the same ending.
   parts count the rests left in this region. A module may declare its routes
   from the entrance to the objective, each by the rooms it must pass, and the
   balance gate then judges every route, naming any too deadly for its
-  difficulty.
+  difficulty. The gate also sweeps each region of a long module, every room
+  but those marked `avoidable`, one difficulty lower than the module's, and
+  every room of a long module must have a way to an exit that nothing can
+  close.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -680,7 +683,20 @@ These are for development, not play.
   step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
-  seed and `--dry-run` checks the harness offline.
+  seed and `--dry-run` checks the harness offline. With `--generated`
+  (#409) it plays any built-in module (`--adventure <id>`) on a route
+  generated from the balance harness's cautious run on the seed (0 unless
+  the module has a hand-written run), from the module's saved character or
+  else a saved level-3 Ada, capped at 40 turns a room, and writes
+  `.verify-artifacts/issue-409-live.json`.
+- **Hand-written or generated release runs.** A shipped module's release run
+  follows a hand-written route when it checks particular moments (a trade, a
+  parley, a surrender, a retry) with phrasing chosen to test the AI DM;
+  those routes stay as they are. A module too long to write a route for by
+  hand, or whose content is still changing, uses `generateReleaseRun`
+  instead: the steps the harness took outside fights on a fixed seed and
+  class, each with plain generated words, which proves the module can be
+  played through the AI DM but not that particular moments happen.
 - **Where the live checks write.** Both scripts write their report to
   `--output`, by default `.verify-artifacts/issue-<n>-live.json` (`<n>` is
   138 for the delve qualification, otherwise the module's issue), and keep the
