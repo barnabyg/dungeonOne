@@ -13,6 +13,11 @@ import {
   authoredChecks,
   effectsOf,
   sureFlagSetters,
+  encounterInRoom,
+  encounterPlacements,
+  encounterSureFlags,
+  isConditional,
+  placementsByRoom,
   LOOT_KINDS,
   statBlockDefenses,
   statBlockSaves,
@@ -22,6 +27,7 @@ import {
   type EndingKind,
   type FifthAdventure,
   type FifthPassage,
+  type MetEncounter,
   type StatBlock,
   type SureFlagSetter,
 } from "./adventure-5e.js";
@@ -836,7 +842,59 @@ type Position = Readonly<{
   examinedFeatureIds: readonly string[];
   /** Items taken (or used up): they set no flag again (#397). */
   takenItemIds: readonly string[];
+  /** Where each encounter flags place was met (#398): it stays there. */
+  met: readonly MetEncounter[];
+  /** Hidden passages an item used on a feature has opened (#400). */
+  usedOpen: readonly string[];
 }>;
+
+/** Each use of an item on a feature (#400) that opens a passage. */
+type UseOpening = Readonly<{
+  featureId: string;
+  /** The feature's room, where the use is made. */
+  roomId: string;
+  itemId: string;
+  passageId: string;
+}>;
+
+const USE_OPENINGS = new WeakMap<FifthAdventure, readonly UseOpening[]>();
+
+function useOpenings(adventure: FifthAdventure): readonly UseOpening[] {
+  let found = USE_OPENINGS.get(adventure);
+  if (found === undefined) {
+    found = findUseOpenings(adventure);
+    USE_OPENINGS.set(adventure, found);
+  }
+  return found;
+}
+
+function findUseOpenings(adventure: FifthAdventure): readonly UseOpening[] {
+  return adventure.rooms.flatMap(({ id: roomId, features }) =>
+    features.flatMap(({ id: featureId, uses }) =>
+      (uses ?? []).flatMap(({ item, effects }) =>
+        effects.flatMap((effect) =>
+          effect.type === "open"
+            ? [{ featureId, roomId, itemId: item, passageId: effect.passage }]
+            : [],
+        ),
+      ),
+    ),
+  );
+}
+
+/** The passages the uses made so far opened (#400). */
+function openedByUses(
+  adventure: FifthAdventure,
+  made: readonly Readonly<{ featureId: string; itemId: string }>[],
+): readonly string[] {
+  return made.length === 0
+    ? []
+    : useOpenings(adventure).flatMap(({ featureId, itemId, passageId }) =>
+        made.some((use) => use.featureId === featureId && use.itemId === itemId)
+          ? [passageId]
+          : [],
+      );
+}
 
 /** Rooms a route may pass through or end in; the start is always allowed. */
 type Enterable = (roomId: string) => boolean;
@@ -875,10 +933,15 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
       ),
     ),
   );
+  // Using an item on a feature (#400) opens one too.
+  const usedOpen = new Set(
+    useOpenings(adventure).map(({ passageId }) => passageId),
+  );
   return new Set(
     adventure.passages.flatMap(({ id, hidden }) =>
       hidden === true &&
-      !openers.some(({ kind, passage }) => passage === id && kind !== "talk")
+      !openers.some(({ kind, passage }) => passage === id && kind !== "talk") &&
+      !usedOpen.has(id)
         ? [id]
         : [],
     ),
@@ -897,10 +960,34 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
  * it), even one the character has been through; one a flag has closed never
  * is.
  * A hidden passage only talking opens is never passable (#297), unless
- * `talking` is true.
+ * `talking` is true. One only an item used on a feature opens (#400) is
+ * passable once a use has opened it, and otherwise the plan fetches the
+ * item and then goes to the feature, where the character uses it.
  */
 function routePlanner(adventure: FifthAdventure, talking = false) {
   const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
+  // The hidden passages only a use opens (#400): no band of a check does.
+  const bandOpened = new Set(
+    authoredChecks(adventure).flatMap(({ check }) =>
+      Object.values(check.bands ?? {}).flatMap((band) =>
+        effectsOf(band).flatMap((effect) =>
+          effect.type === "open" ? [effect.passage] : [],
+        ),
+      ),
+    ),
+  );
+  const openings = useOpenings(adventure).filter(
+    ({ passageId }) => !bandOpened.has(passageId),
+  );
+  const useOnly = new Set(openings.map(({ passageId }) => passageId));
+  const itemRoom = new Map(
+    adventure.rooms.flatMap(({ id, items }) =>
+      items.map((item) => [item.id, id] as const),
+    ),
+  );
+  /** Whether a use not yet made keeps `passage` shut (#400). */
+  const unused = (position: Position, passage: FifthPassage) =>
+    useOnly.has(passage.id) && !position.usedOpen.includes(passage.id);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
   const flagSetters = new Map(
     adventure.rooms.map((room) => [
@@ -928,11 +1015,64 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       ),
     ),
   );
+  const placements = encounterPlacements(adventure);
+  const roomPlacements = placementsByRoom(placements);
+  const conditional = adventure.encounters.some(isConditional);
+  /** The encounter in room `roomId` from `position` (#398). */
+  const encounterAt = (position: Position, roomId: string) =>
+    conditional
+      ? encounterInRoom(
+          roomPlacements.get(roomId) ?? [],
+          roomId,
+          position.flags,
+          position.met,
+        )
+      : roomById.get(roomId)!.encounterId;
   const fightIn = (position: Position, roomId: string) => {
-    const encounterId = roomById.get(roomId)!.encounterId;
+    const encounterId = encounterAt(position, roomId);
     return (
       encounterId !== undefined &&
       !position.clearedEncounterIds.includes(encounterId)
+    );
+  };
+  /**
+   * The flags each fight flags place (#398) sets for sure, by the room it is
+   * in from `position`: the planner counts on it where it is now.
+   */
+  const placedSetters = (position: Position) =>
+    adventure.encounters.flatMap((fight) => {
+      if (!isConditional(fight)) {
+        return [];
+      }
+      const roomId = placements.find(
+        (placement) =>
+          placement.encounterId === fight.id &&
+          encounterAt(position, placement.roomId) === fight.id,
+      )?.roomId;
+      return roomId === undefined
+        ? []
+        : encounterSureFlags(fight).map(
+            (flag) =>
+              [
+                roomId,
+                { flag, by: "encounter" as const, id: fight.id },
+              ] as const,
+          );
+    });
+  /** What goes into each room sets for sure from `position` (#397, #398). */
+  const settersFrom = (position: Position) => {
+    if (!conditional) {
+      return flagSetters;
+    }
+    const placed = placedSetters(position);
+    return new Map(
+      [...flagSetters].map(([roomId, inRoom]) => [
+        roomId,
+        [
+          ...inRoom,
+          ...placed.flatMap(([at, setter]) => (at === roomId ? [setter] : [])),
+        ],
+      ]),
     );
   };
 
@@ -988,6 +1128,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
           (passage.closeWhen !== undefined &&
             position.flags.includes(passage.closeWhen)) ||
           (keys === "carried" && unflagged(position, passage)) ||
+          (keys === "carried" && unused(position, passage)) ||
           (locked &&
             (keys === "carried" ||
               (keyId !== undefined && position.lostKeyIds.includes(keyId))))
@@ -1029,7 +1170,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       const passage = passageBetween(adventure, keyed[step - 1]!, keyed[step]!);
       if (unflagged(position, passage)) {
         const setters = new Set(
-          [...flagSetters].flatMap(([roomId, inRoom]) =>
+          [...settersFrom(position)].flatMap(([roomId, inRoom]) =>
             roomId !== position.roomId &&
             inRoom.some(
               (setter) =>
@@ -1043,6 +1184,24 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
           ? undefined
           : route(position, setters, enterable, "carried");
       }
+      if (unused(position, passage)) {
+        // To the feature with the item carried; else to fetch an item.
+        const ways = openings.filter(
+          ({ passageId }) => passageId === passage.id,
+        );
+        const carried = ways.filter(({ itemId }) =>
+          position.inventory.includes(itemId),
+        );
+        const toward = new Set(
+          (carried.length > 0
+            ? carried.map(({ roomId }) => roomId)
+            : ways.flatMap(({ itemId }) => itemRoom.get(itemId) ?? [])
+          ).filter((roomId) => roomId !== position.roomId),
+        );
+        return toward.size === 0
+          ? undefined
+          : route(position, toward, enterable, "carried");
+      }
       const keyId = passage.door?.keyItemId;
       if (keyOnly(passage) && !position.inventory.includes(keyId!)) {
         return route(
@@ -1055,10 +1214,12 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
     return undefined;
   };
-  /** The flags going into each room sets for sure (#397). */
-  const roomFlags = (roomId: string) =>
-    flagSetters.get(roomId)!.map(({ flag }) => flag);
-  return { plan, roomById, fightIn, roomFlags };
+  /** The flags going into each room sets for sure from `position` (#397). */
+  const roomFlags = (position: Position, roomId: string) =>
+    settersFrom(position)
+      .get(roomId)!
+      .map(({ flag }) => flag);
+  return { plan, roomById, fightIn, encounterAt, roomFlags };
 }
 
 /** The rooms where winning the fight ends the adventure in victory. */
@@ -1112,7 +1273,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
 }> {
-  const { plan, roomById, roomFlags } = routePlanner(adventure);
+  const { plan, roomById, encounterAt, roomFlags } = routePlanner(adventure);
   const objective = objectiveOf(adventure);
   const legs =
     objective === "victory"
@@ -1120,13 +1281,22 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
       : objective === "escape-with-loot"
         ? [lootRooms(adventure), exitRooms(adventure)]
         : [exitRooms(adventure)];
-  let position: Position = {
+  const start: Position = {
     roomId: adventure.startRoomId,
     inventory: [],
     clearedEncounterIds: [],
     blockedPassageIds: [],
     lostKeyIds: [],
-    flags: roomFlags(adventure.startRoomId),
+    flags: [],
+    visitedRoomIds: [],
+    examinedFeatureIds: [],
+    takenItemIds: [],
+    met: [],
+    usedOpen: [],
+  };
+  let position: Position = {
+    ...start,
+    flags: roomFlags(start, adventure.startRoomId),
     visitedRoomIds: [adventure.startRoomId],
     examinedFeatureIds: roomById
       .get(adventure.startRoomId)!
@@ -1136,6 +1306,29 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
       .items.map(({ id }) => id),
   };
   const roomIds = [adventure.startRoomId];
+  // The items a use needs are carried, as keys are (#400).
+  const openings = useOpenings(adventure);
+  const useItems = new Set(openings.map(({ itemId }) => itemId));
+  /** `position` with the uses its room's features accept made (#400). */
+  const usingItems = (at: Position): Position => ({
+    ...at,
+    usedOpen: [
+      ...at.usedOpen,
+      ...openings.flatMap(({ roomId, itemId, passageId }) =>
+        roomId === at.roomId &&
+        at.inventory.includes(itemId) &&
+        !at.usedOpen.includes(passageId)
+          ? [passageId]
+          : [],
+      ),
+    ],
+  });
+  position = usingItems({
+    ...position,
+    inventory: roomById
+      .get(adventure.startRoomId)!
+      .items.flatMap(({ id }) => (useItems.has(id) ? [id] : [])),
+  });
   for (const targets of legs) {
     while (!targets.has(position.roomId)) {
       const path = plan(position, targets, () => true);
@@ -1155,23 +1348,38 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
         );
       }
       const arrived = roomById.get(path.at(-1)!)!;
-      // The character fights its way through and takes any key it reaches.
-      position = {
+      // The character fights its way through, room by room, each fight
+      // where the flags set so far place it (#398); it examines and takes
+      // everything on the way, and so sets the flags those rooms set for
+      // sure (#397).
+      let passing = position;
+      for (const roomId of path) {
+        const fight = encounterAt(passing, roomId);
+        passing = {
+          ...passing,
+          clearedEncounterIds: [
+            ...passing.clearedEncounterIds,
+            ...(fight === undefined ? [] : [fight]),
+          ],
+        };
+        passing = {
+          ...passing,
+          flags: [...passing.flags, ...roomFlags(passing, roomId)],
+        };
+      }
+      // It takes any key it reaches, and any item a use needs (#400),
+      // which it uses on a feature there that accepts it.
+      position = usingItems({
         ...position,
         roomId: arrived.id,
         inventory: [
           ...position.inventory,
           ...arrived.items.flatMap(({ id, kind }) =>
-            kind === "key" ? [id] : [],
+            kind === "key" || useItems.has(id) ? [id] : [],
           ),
         ],
-        clearedEncounterIds: [
-          ...position.clearedEncounterIds,
-          ...path.flatMap((roomId) => roomById.get(roomId)!.encounterId ?? []),
-        ],
-        // It examines and takes everything on the way, and so sets the flags
-        // those rooms set for sure (#397).
-        flags: [...position.flags, ...path.flatMap(roomFlags)],
+        clearedEncounterIds: passing.clearedEncounterIds,
+        flags: passing.flags,
         visitedRoomIds: [...position.visitedRoomIds, ...path],
         examinedFeatureIds: [
           ...position.examinedFeatureIds,
@@ -1185,7 +1393,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
             roomById.get(roomId)!.items.map(({ id }) => id),
           ),
         ],
-      };
+      });
       roomIds.push(...path.filter((roomId) => !roomIds.includes(roomId)));
     }
   }
@@ -1302,6 +1510,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   move: true,
   examine: true,
   take: true,
+  // Every style uses an item on a feature as soon as it carries one the
+  // feature accepts (#400), before it leaves the room.
+  "use-on": true,
   force: true,
   pick: true,
   break: true,
@@ -1444,6 +1655,7 @@ const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
   "cast",
   "examine",
   "take",
+  "use-on",
 ]);
 
 /** The first kinds, once everything in the room is examined. */
@@ -1671,7 +1883,7 @@ export function playAdventure(
       }
     }
   }
-  const { plan, roomById, fightIn } = routePlanner(adventure);
+  const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
   const required = new Set(requiredPath(adventure).roomIds);
   const objective = objectiveOf(adventure);
   const winning = victoryRooms(adventure);
@@ -1771,7 +1983,7 @@ export function playAdventure(
             id:
               state.wandering === true
                 ? adventure.wanderingEncounter!.encounterId
-                : roomById.get(state.roomId)!.encounterId!,
+                : encounterAt(positionNow(), state.roomId)!,
             hpLost: 0,
             fled: 0,
             surrendered: 0,
@@ -1935,6 +2147,8 @@ export function playAdventure(
     visitedRoomIds: roomIds,
     examinedFeatureIds: state.examinedFeatureIds,
     takenItemIds: [...state.inventory, ...state.usedItemIds],
+    met: state.metEncounters ?? [],
+    usedOpen: openedByUses(adventure, state.featureUses ?? []),
   });
   /** The way to an exit room from `position` through no fight (#396). */
   const safeWayOut = (position: Position) =>
@@ -1953,7 +2167,7 @@ export function playAdventure(
     const fightId =
       state.wandering === true
         ? adventure.wanderingEncounter!.encounterId
-        : roomById.get(state.roomId)!.encounterId!;
+        : encounterAt(positionNow(), state.roomId)!;
     if (encounter.pendingReaction !== undefined || fledFrom.includes(fightId)) {
       return undefined;
     }
@@ -2368,10 +2582,11 @@ export function playAdventure(
     ) => readonly ActionView[],
   ): ActionView | undefined => {
     const room = roomById.get(state.roomId)!;
+    const here = encounterAt(positionNow(), state.roomId);
     const searchable = new Set([
       ...room.features.map(({ id }) => id),
       ...(adventure.encounters
-        .find(({ id }) => id === room.encounterId)
+        .find(({ id }) => id === here)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
     // Once everything here is examined, no examination is projected.
@@ -2429,7 +2644,10 @@ export function playAdventure(
         ({ target }) =>
           searchable.has(target!.id) &&
           !state.examinedFeatureIds.includes(target!.id),
-      ) ?? offered(first, "take")[0];
+      ) ??
+      offered(first, "take")[0] ??
+      // An item a feature here accepts is used on it before leaving (#400).
+      offered(first, "use-on")[0];
     if (find !== undefined) {
       return find;
     }
@@ -2476,6 +2694,8 @@ export function playAdventure(
         visitedRoomIds: roomIds,
         examinedFeatureIds: state.examinedFeatureIds,
         takenItemIds: [...state.inventory, ...state.usedItemIds],
+        met: state.metEncounters ?? [],
+        usedOpen: openedByUses(adventure, state.featureUses ?? []),
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
         (!winning.has(id) || targets.has(id)) &&

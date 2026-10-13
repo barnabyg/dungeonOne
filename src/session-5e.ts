@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 55).
+ * A 5e adventure session and its save file (format version 57).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -48,7 +48,7 @@ import {
   SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 55;
+export const FIFTH_SESSION_FORMAT = 57;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;

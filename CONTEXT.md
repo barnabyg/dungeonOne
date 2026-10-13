@@ -288,12 +288,16 @@ How many times the character has gone from one room into another in an adventure
 _Avoid_: Turns, Steps, Time
 
 **Flag**:
-A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled) or a check's band. A passage may open once a flag is set, or close once one is, and a circumstance may name one. The AI DM cannot set one.
+A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.
 _Avoid_: Switch, Variable, Trigger, Quest state
 
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
+
+**Use (of an item on a feature)**:
+Using an item the character carries on a feature in the room, as its adventure module allows (#400): fitting a carving into a door, pouring oil on a coffin. The module names the items a feature accepts, the words said, whether the item is used up and what it does, as a check's band would. Each use is made once. The engine refuses an item the feature doesn't accept, one not carried, and a use already made.
+_Avoid_: Combine, Apply
 
 **Discovery**:
 The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.

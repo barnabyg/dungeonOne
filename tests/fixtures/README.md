@@ -170,6 +170,27 @@ set, and examining the Rusted Winch in the alcove sets it.
 setter and adds closing passages and circumstances for each trigger and the
 validator's refusals; `tests/issue-397-browser.test.mjs` pulls the winch.
 
+## Changing with flags (issues 398 and 399)
+
+`hermitTunnels` (_The Hermit's Tunnels_, from `hermitTunnelsFile`) is the
+winch tunnels with a Hermit at the stair foot who talks about the winch until
+the portcullis rises and about the cellar once it has; the Rusted Lantern and
+the winch read differently once it has risen (`tests/issue-399.test.mjs`).
+`rousedTunnels` (_The Roused Tunnels_, from `rousedTunnelsFile()`) puts the
+Giant Rat in a nest off the stair foot until knocking the lantern down sets
+`rat-roused`, which moves it into the cellar on the required path;
+`rousedTunnelsFile(false)` is _The Sleeping Tunnels_, where it never moves
+(`tests/issue-398.test.mjs` gates both). Neither is in `FIXTURE_MODULES`.
+
+## Using an item on a feature (issue 400)
+
+`snakeDoor` (_The Snake Door_, from `snakeDoorFile`) puts a Stone Snake in
+the alcove and a Stone Door at the stair foot whose snake-shaped hollow it
+fits, which uses it up and opens a hidden way to the Snake Vault. It is in the
+seeded playthroughs, so the bar tests see a use; `adventures/eval/snake-door.json`
+is the same module for the AI DM's item cases. `tests/issue-400.test.mjs` and
+`tests/issue-400-browser.test.mjs` play it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

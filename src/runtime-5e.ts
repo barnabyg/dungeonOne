@@ -106,12 +106,20 @@ import {
   type FifthEncounter,
   type FifthMerchant,
   type FifthEnding,
+  type FeatureUse,
+  type FifthFeature,
   type FifthItem,
   type FlagOutcome,
+  type MetEncounter,
   type FifthPassage,
   type FifthRoom,
+  type FifthTopic,
   type FifthTrap,
   type StatBlock,
+  encounterInRoom,
+  encounterPlacements,
+  isConditional,
+  placementsByRoom,
 } from "./adventure-5e.js";
 import {
   REACTION_OPTION_NAMES,
@@ -312,7 +320,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v36";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v37";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -539,6 +547,17 @@ export type FifthState = Readonly<{
    */
   flags: readonly string[];
   /**
+   * Where each encounter flags place (#398) was first met: sneaked up on,
+   * lain in wait, reacted, fought, slipped past or fled from. It stays
+   * there whatever flags are set after. Left out while there is none.
+   */
+  metEncounters?: readonly MetEncounter[];
+  /**
+   * Each item used on a feature (#400), in order: each use is made once.
+   * Left out while there is none.
+   */
+  featureUses?: readonly Readonly<{ featureId: string; itemId: string }>[];
+  /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
    */
@@ -600,6 +619,8 @@ export type FifthAction =
   /** Vampiric Touch's attack again (#344), with the action. */
   | Readonly<{ type: "drain-attack"; actorId: string; targetId: string }>
   | Readonly<{ type: "move"; destinationId: string }>
+  /** Using a carried item on a feature here (#400), as the module allows. */
+  | Readonly<{ type: "use-on"; featureId: string; itemId: string }>
   /**
    * Fleeing the fight here (#396) through the exit to `destinationId`, with
    * the action: each opponent able to act first makes one attack, unless
@@ -959,6 +980,14 @@ const TARGET_TOOLS = {
       ...chosen(approach, retry),
     }),
   },
+  // Using a carried item on a feature (#400): `featureId:itemId`.
+  use_on: {
+    parameter: "use",
+    action: (use: string): FifthAction => {
+      const [featureId = "", itemId = ""] = use.split(":", 2);
+      return { type: "use-on", featureId, itemId };
+    },
+  },
   talk: {
     parameter: "topic",
     action: (
@@ -1039,6 +1068,31 @@ export type FifthEvent =
       room: string;
       to: string;
       opponents: readonly string[];
+    }>
+  /**
+   * An item used on a feature (#400), with the module's words: its effects
+   * follow as a band's do, and the item, when it is used up.
+   */
+  | Readonly<{
+      type: "used-on";
+      featureId: string;
+      feature: string;
+      itemId: string;
+      item: string;
+      text: string;
+    }>
+  /**
+   * Opponents a flag just placed in the character's room (#398) come into
+   * it: their fight begins, or they react.
+   */
+  | Readonly<{
+      type: "arrived";
+      encounterId: string;
+      room: string;
+      /** The descriptions of the opponents that come in. */
+      opponents: readonly string[];
+      /** Their ids, in the same order. */
+      opponentIds: readonly string[];
     }>
   | Readonly<{
       type: "entered";
@@ -1552,6 +1606,10 @@ export type FifthRefusalCode =
   | "trap-disarmed"
   | "trap-sprung"
   | "no-topic"
+  /** Using an item on a feature (#400). */
+  | "no-feature"
+  | "wrong-item"
+  | "already-used"
   | "already-asked"
   | "not-an-exit"
   | "no-merchant"
@@ -1584,7 +1642,7 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
-Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a mundane tool the module placed, such as a rope or an iron spike, used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a mundane tool the module placed, such as a rope or an iron spike, used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). To use an item the character carries on a feature in the room (fitting a carving into a door, pouring oil on a coffin, throwing meat to a beast), call use_on with the one listed pair the player's words pick out: it lists only the items each feature accepts that the character carries, each once. What the use does comes only from the engine's result. If the player names an item use_on doesn't list for that feature (one the character doesn't carry, one that does nothing there, or one already used), say it does nothing now, without calling a tool; never describe an effect yourself. Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Right after the character fails an ability check, a character with Tactical Mind may spend a use of Second Wind to add 1d10 to that check: only then is tactical_mind offered. Call it only when the player asks to use Tactical Mind, or to push themselves to succeed at the check they just failed. The engine rolls the d10 and grades the check again, without rerolling it, and says whether the use was spent; it is spent only if the check now succeeds. If tactical_mind is not offered, say so without calling a tool. Never add to a check, change its band or claim it now succeeds in your words.
 
@@ -3151,6 +3209,12 @@ export function renderFifthEvent(
         `You enter the ${event.name}. ${event.description}`,
         ...event.opponents,
       ].join(" ");
+    case "arrived":
+      return [`Someone comes into the ${event.room}.`, ...event.opponents].join(
+        " ",
+      );
+    case "used-on":
+      return `You use the ${event.item} on the ${event.feature}. ${event.text}`;
     case "examined":
       return [
         `${event.name}: ${event.description}`,
@@ -3571,7 +3635,8 @@ function lineIcons(
     }
   };
   switch (event.type) {
-    case "entered": {
+    case "entered":
+    case "arrived": {
       let at = text.length - event.opponents.join(" ").length;
       event.opponents.forEach((description, index) => {
         mark(at, icons.opponent(state, event.opponentIds[index]!));
@@ -3588,6 +3653,9 @@ function lineIcons(
     case "taken":
     case "potion":
       mark(0, icons.item(event.itemId));
+      break;
+    case "used-on":
+      mark(text.indexOf(event.item), icons.item(event.itemId));
       break;
     case "sold-treasure":
       mark(0, icons.item(event.item) ?? TREASURE_ICON);
@@ -4468,6 +4536,8 @@ export type ActionKind =
   | "react"
   | "examine"
   | "take"
+  /** Using an item on a feature (#400). */
+  | "use-on"
   | DoorApproach
   | "search"
   | "disarm"
@@ -4513,6 +4583,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   react: true,
   examine: true,
   take: true,
+  "use-on": true,
   force: true,
   pick: true,
   break: true,
@@ -4550,6 +4621,8 @@ export const ACTION_KINDS = Object.keys(
 export type ActionView = Readonly<{
   action: ActionKind;
   target?: Readonly<{ id: string; name: string }>;
+  /** The carried item an item's use (#400) uses on its target, a feature. */
+  item?: Readonly<{ id: string; name: string }>;
   /**
    * How a check with several approaches is tried (#283), such as
    * Athletics: one entry per approach while the check is unmade. A
@@ -4728,6 +4801,9 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "trap-disarmed": "Trap disarmed",
   "trap-sprung": "Trap sprung",
   "no-topic": "No such topic",
+  "no-feature": "No such feature",
+  "wrong-item": "No use there",
+  "already-used": "Already used",
   "already-asked": "Already asked",
   "not-an-exit": "No way out here",
   "interaction-used": "Interaction used",
@@ -5211,9 +5287,36 @@ export function createFifthRuntime(
     const region = adventure.regions?.find(({ id }) => id === of.region);
     return region === undefined ? {} : { region: region.name };
   };
+  /** The rooms each encounter may be in (#398). */
+  const placements = encounterPlacements(adventure);
+  const roomPlacements = placementsByRoom(placements);
+  const encounterById = new Map(
+    adventure.encounters.map((encounter) => [encounter.id, encounter]),
+  );
+  /** Encounters flags place (#398), whose first meeting is remembered. */
+  const placedByFlags = adventure.encounters.filter(isConditional);
+  /**
+   * The encounter in room `roomId` now: one flags place (#398) is where it
+   * was met, or else where the flags set place it.
+   */
+  const encounterIn = (state: FifthState, roomId: string) => {
+    const here = roomPlacements.get(roomId);
+    if (here === undefined) {
+      return undefined;
+    }
+    // A fight no flag places is simply there.
+    const only = here.length === 1 ? here[0]! : undefined;
+    const encounterId =
+      only !== undefined && only.while === undefined && only.until === undefined
+        ? only.encounterId
+        : encounterInRoom(here, roomId, state.flags, state.metEncounters);
+    return encounterId === undefined
+      ? undefined
+      : encounterById.get(encounterId);
+  };
   /** The encounter placed in the character's room, if any. */
   const placedEncounterOf = (state: FifthState) =>
-    adventure.encounters.find(({ id }) => id === room(state).encounterId);
+    encounterIn(state, state.roomId);
   /** The module's wandering encounter (#335), if it has one. */
   const wanderer = adventure.encounters.find(
     ({ id }) => id === adventure.wanderingEncounter?.encounterId,
@@ -5252,6 +5355,9 @@ export function createFifthRuntime(
       features.map((feature) => [feature.id, feature] as const),
     ),
   );
+  /** The use of item `itemId` on feature `featureId` (#400), if authored. */
+  const useOf = (featureId: string, itemId: string): FeatureUse | undefined =>
+    featureById.get(featureId)?.uses?.find(({ item }) => item === itemId);
   /** Each authored check, by the id its outcome is remembered under (#281). */
   const siteChecks = new Map(
     authoredChecks(adventure).map((site) => [checkSiteId(site), site.check]),
@@ -5398,6 +5504,46 @@ export function createFifthRuntime(
         yielded.encounterId === encounterId &&
         yielded.opponentId === opponentId,
     );
+  /**
+   * What each placed encounter's opponents carry, listed in its own room
+   * (#398: one flags move takes it with it).
+   */
+  const carriedBy = new Map(
+    adventure.rooms.flatMap(({ encounterId, items: listed }) => {
+      const fight = adventure.encounters.find(({ id }) => id === encounterId);
+      return fight === undefined
+        ? []
+        : [
+            [
+              fight.id,
+              listed.filter(({ hiddenIn }) =>
+                fight.opponents.some(({ id }) => id === hiddenIn),
+              ),
+            ] as const,
+          ];
+    }),
+  );
+  const carriedIds = new Set(
+    [...carriedBy.values()].flat().map(({ id }) => id),
+  );
+  /**
+   * The items in the character's room: its own, but what opponents carry
+   * goes with their fight (#398), so it is in the room of the fight here
+   * now.
+   */
+  const itemsHere = (state: FifthState): readonly FifthItem[] => {
+    const own = room(state).items;
+    if (placedByFlags.length === 0) {
+      return own;
+    }
+    const fight = placedEncounterOf(state);
+    return fight?.id === room(state).encounterId
+      ? own
+      : [
+          ...own.filter(({ id }) => !carriedIds.has(id)),
+          ...(fight === undefined ? [] : carriedBy.get(fight.id)!),
+        ];
+  };
   /** Whether the opponent fell: it neither fled nor surrendered. */
   const fellIn = (state: FifthState, encounterId: string, opponentId: string) =>
     !fledFrom(state, encounterId, opponentId) &&
@@ -5444,11 +5590,19 @@ export function createFifthRuntime(
             description: "It lies where it fell.",
           }));
   };
+  /**
+   * The feature as it is now (#399): with its changed description while
+   * that flag is set.
+   */
+  const featureNow = (state: FifthState, feature: FifthFeature) =>
+    feature.changed === undefined || !state.flags.includes(feature.changed.when)
+      ? feature
+      : { ...feature, description: feature.changed.description };
   /** What the character can examine to find things: features, then bodies. */
   const searchable = (
     state: FifthState,
   ): readonly (Named & Readonly<{ discovery?: string; body?: true }>)[] => [
-    ...room(state).features,
+    ...room(state).features.map((feature) => featureNow(state, feature)),
     ...bodies(state).map((body) => ({ ...body, body: true as const })),
   ];
   /**
@@ -5460,7 +5614,7 @@ export function createFifthRuntime(
     holderId: string,
     all = false,
   ): readonly FifthItem[] =>
-    room(state).items.filter(
+    itemsHere(state).filter(
       (item) =>
         item.hiddenIn === holderId &&
         present(item) &&
@@ -5483,7 +5637,7 @@ export function createFifthRuntime(
     );
   /** Items lying in the room that the character can see. */
   const roomItems = (state: FifthState): readonly FifthItem[] =>
-    room(state).items.filter(
+    itemsHere(state).filter(
       (item) =>
         present(item) &&
         (item.hiddenIn === undefined ||
@@ -5694,15 +5848,42 @@ export function createFifthRuntime(
   const armed = (state: FifthState, trapId: string) =>
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
-  /** The creatures to talk to: the room's, then its surrendered opponents. */
-  const creaturesHere = (state: FifthState): readonly FifthCreature[] => {
+  /**
+   * Whether a topic is offered now (#399): once its `offeredWhile` flag is
+   * set, and until its `offeredUntil` flag is.
+   */
+  const offeredNow = (state: FifthState, topic: FifthTopic) =>
+    (topic.offeredWhile === undefined ||
+      state.flags.includes(topic.offeredWhile)) &&
+    (topic.offeredUntil === undefined ||
+      !state.flags.includes(topic.offeredUntil));
+  /**
+   * The creatures to talk to: the room's, then its surrendered opponents,
+   * each with the topics offered now (#399); with `asked`, also those
+   * already asked about, for what the creature said.
+   */
+  const creaturesHere = (
+    state: FifthState,
+    asked = false,
+  ): readonly FifthCreature[] => {
     // While opponents react, those trading are a creature here too (#305).
     const trader = traderHere(state);
     return [
       ...room(state).creatures,
       ...captives(state),
       ...(trader === undefined ? [] : [trader]),
-    ];
+    ].map((creature) =>
+      creature.topics.every((topic) => offeredNow(state, topic))
+        ? creature
+        : {
+            ...creature,
+            topics: creature.topics.filter(
+              (topic) =>
+                offeredNow(state, topic) ||
+                (asked && state.talkedTopicIds.includes(topic.id)),
+            ),
+          },
+    );
   };
   /**
    * The merchant in the character's room, if there is one: while opponents
@@ -7264,7 +7445,8 @@ export function createFifthRuntime(
         };
       }
       case "talk": {
-        const creature = creaturesHere(state).find(({ topics }) =>
+        // Its band may have withdrawn the topic itself (#399).
+        const creature = creaturesHere(state, true).find(({ topics }) =>
           topics.some((topic) => topic.id === site.id),
         )!;
         const topic = creature.topics.find((entry) => entry.id === site.id)!;
@@ -7275,7 +7457,7 @@ export function createFifthRuntime(
         };
       }
       case "examine": {
-        const feature = featureById.get(site.id)!;
+        const feature = featureNow(state, featureById.get(site.id)!);
         return {
           state,
           events: [
@@ -7574,8 +7756,17 @@ export function createFifthRuntime(
         opened: new Set(),
         closed: new Set(),
       };
-      for (const { id, band } of state.checks) {
-        for (const effect of effectsOf(siteChecks.get(id)?.bands?.[band])) {
+      const effects = [
+        ...state.checks.flatMap(({ id, band }) =>
+          effectsOf(siteChecks.get(id)?.bands?.[band]),
+        ),
+        // And each item used on a feature (#400).
+        ...(state.featureUses ?? []).flatMap(
+          ({ featureId, itemId }) => useOf(featureId, itemId)!.effects,
+        ),
+      ];
+      {
+        for (const effect of effects) {
           if (effect.type === "discovery") {
             found.discoveries.add(effect.feature);
           } else if (effect.type === "item") {
@@ -7781,6 +7972,13 @@ export function createFifthRuntime(
       case "use-item": {
         const itemId = field("itemId");
         return itemId === undefined ? undefined : { type: action.type, itemId };
+      }
+      case "use-on": {
+        const featureId = field("featureId");
+        const itemId = field("itemId");
+        return featureId === undefined || itemId === undefined
+          ? undefined
+          : { type: "use-on", featureId, itemId };
       }
       case "force":
       case "pick":
@@ -8242,10 +8440,13 @@ export function createFifthRuntime(
   ): FifthResult => {
     // A flight (#396), or a hit's answer that ends one, goes on through
     // the exit once the character has got away; then whatever it did sets
-    // its flags (#397).
-    const result = withFlags(
-      state,
-      getAway(perform(state, requested, random), random),
+    // its flags (#397), which may bring a fight into the room (#398).
+    const result = arrive(
+      withFlags(
+        state,
+        withMet(getAway(perform(state, requested, random), random)),
+      ),
+      random,
     );
     // Tactical Mind is offered only right after the failed check (#315):
     // any other accepted action takes the offer away. A check that fails
@@ -8255,6 +8456,105 @@ export function createFifthRuntime(
       result.state.tacticalMind === state.tacticalMind
       ? { ...result, state: cleared(result.state, "tacticalMind") }
       : result;
+  };
+
+  /**
+   * Whether encounter `id`, one flags place (#398), has been met: sneaked
+   * up on, lain in wait, reacted, parleyed, fought (or is being), won,
+   * ended peacefully, slipped past or left with opponents gone or hurt.
+   */
+  const touched = (state: FifthState, id: string) =>
+    [state.sneaks, state.lurks, state.reactions, state.parleys].some(
+      (records) => records.some(({ encounterId }) => encounterId === id),
+    ) ||
+    [...(state.fallenOpponents ?? []), ...(state.woundedOpponents ?? [])].some(
+      ({ encounterId }) => encounterId === id,
+    ) ||
+    state.clearedEncounterIds.includes(id) ||
+    state.bypassedEncounterIds.includes(id) ||
+    state.peacefulEncounterIds.includes(id) ||
+    state.unseenBy === id ||
+    state.reactingTo === id ||
+    (state.encounter !== undefined &&
+      state.wandering !== true &&
+      placedEncounterOf(state)?.id === id);
+
+  /**
+   * The result with each encounter flags place (#398) that its action met
+   * remembered where it was met, so that no flag set after moves it.
+   */
+  const withMet = (result: FifthResult): FifthResult => {
+    if (result.rejection !== undefined || placedByFlags.length === 0) {
+      return result;
+    }
+    const state = result.state;
+    const met = state.metEncounters ?? [];
+    const fresh = placedByFlags.flatMap(({ id }) =>
+      met.some(({ encounterId }) => encounterId === id) || !touched(state, id)
+        ? []
+        : [
+            {
+              encounterId: id,
+              roomId:
+                placements.find(
+                  ({ encounterId, roomId }) =>
+                    encounterId === id &&
+                    encounterInRoom(placements, roomId, state.flags) === id,
+                )?.roomId ?? state.roomId,
+            },
+          ],
+    );
+    return fresh.length === 0
+      ? result
+      : { ...result, state: { ...state, metEncounters: [...met, ...fresh] } };
+  };
+
+  /**
+   * The result with the fight a flag it set placed in the character's room
+   * (#398) met at once: its opponents come in, and it begins as one the
+   * character walked into would, reacting first if it reacts. Nothing
+   * comes into a fight under way, a room whose fight is unseen or
+   * reacting, or the room of a wandering encounter.
+   */
+  const arrive = (
+    result: FifthResult,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const state = result.state;
+    if (
+      result.rejection !== undefined ||
+      placedByFlags.length === 0 ||
+      state.status !== "playing" ||
+      fighting(state) ||
+      state.unseenBy !== undefined ||
+      state.reactingTo !== undefined ||
+      state.wandering === true
+    ) {
+      return result;
+    }
+    const fight = placedEncounterOf(state);
+    if (
+      fight === undefined ||
+      settled(state, fight.id) ||
+      touched(state, fight.id)
+    ) {
+      return result;
+    }
+    const comers = fight.opponents.filter(
+      ({ id }) => !fallen(state, fight.id, id),
+    );
+    return withMet(
+      meet(state, random, [
+        ...result.events,
+        {
+          type: "arrived",
+          encounterId: fight.id,
+          room: room(state).name,
+          opponents: comers.map(({ description }) => description),
+          opponentIds: comers.map(({ id }) => id),
+        },
+      ]),
+    );
   };
 
   /** The flag `sets` names, as a list: none when it names none (#397). */
@@ -8318,6 +8618,14 @@ export function createFifthRuntime(
         ),
         "fled",
       ),
+      // An item used on a feature (#400) sets its use's flags.
+      ...(after.featureUses ?? [])
+        .slice((before.featureUses ?? []).length)
+        .flatMap(({ featureId, itemId }) =>
+          useOf(featureId, itemId)!.effects.flatMap((effect) =>
+            effect.type === "set" ? [effect.flag] : [],
+          ),
+        ),
       ...after.checks
         .filter((made, index) => made !== before.checks[index])
         .flatMap(({ id, band }) =>
@@ -8731,9 +9039,7 @@ export function createFifthRuntime(
           return reject("door-shut", `The ${door.name} is shut.`);
         }
         const destination = roomById(way.to);
-        const ahead = adventure.encounters.find(
-          ({ id }) => id === destination.encounterId,
-        );
+        const ahead = encounterIn(state, destination.id);
         if (
           action.type === "sneak" &&
           (ahead === undefined || settled(state, ahead.id))
@@ -9086,6 +9392,92 @@ export function createFifthRuntime(
         return {
           state: next,
           events: [...paid.events, ...around([words(success)])],
+        };
+      }
+      case "use-on": {
+        if (fighting(state)) {
+          return reject("fighting", "Not while you are fighting.");
+        }
+        const feature = room(state).features.find(
+          ({ id }) => id === action.featureId,
+        );
+        if (feature === undefined) {
+          return reject(
+            "no-feature",
+            "There is nothing like that here to use anything on.",
+          );
+        }
+        const item = state.inventory.includes(action.itemId)
+          ? items.get(action.itemId)!
+          : undefined;
+        if (item === undefined) {
+          return reject("not-carried", "You don't carry that.");
+        }
+        const use = useOf(feature.id, item.id);
+        if (use === undefined) {
+          return reject(
+            "wrong-item",
+            `The ${item.name} is no use on the ${feature.name}.`,
+          );
+        }
+        const made = state.featureUses ?? [];
+        if (
+          made.some(
+            ({ featureId, itemId }) =>
+              featureId === feature.id && itemId === item.id,
+          )
+        ) {
+          return reject(
+            "already-used",
+            `You already used the ${item.name} on the ${feature.name}.`,
+          );
+        }
+        // Remembered, so its revelations follow from it; then its effects
+        // as a band's, and the item, when it is used up.
+        const used: FifthState = {
+          ...state,
+          featureUses: [...made, { featureId: feature.id, itemId: item.id }],
+          ...(use.consumes === true
+            ? {
+                inventory: state.inventory.filter((id) => id !== item.id),
+                usedItemIds: [...state.usedItemIds, item.id],
+              }
+            : {}),
+        };
+        const outcome = bandOutcome(
+          used,
+          { effects: use.effects },
+          feature.name,
+          use.effects.some(({ type }) => type === "damage")
+            ? need(random, "Using an item")
+            : {
+                roll() {
+                  throw new Error("Using an item draws no dice.");
+                },
+              },
+        );
+        return {
+          state: outcome.state,
+          events: [
+            {
+              type: "used-on",
+              featureId: feature.id,
+              feature: feature.name,
+              itemId: item.id,
+              item: item.name,
+              text: use.text,
+            },
+            ...(use.consumes === true
+              ? [
+                  {
+                    type: "used-up" as const,
+                    itemId: item.id,
+                    name: item.name,
+                  },
+                ]
+              : []),
+            ...outcome.events,
+          ],
         };
       }
       case "examine": {
@@ -9707,7 +10099,7 @@ export function createFifthRuntime(
     }
     /** Whether a fight not yet won waits in the room `roomId`. */
     const fightAhead = (roomId: string) => {
-      const encounterId = roomById(roomId).encounterId;
+      const encounterId = encounterIn(state, roomId)?.id;
       return encounterId !== undefined && !settled(state, encounterId);
     };
     const view = (
@@ -9733,6 +10125,13 @@ export function createFifthRuntime(
       };
       if (target !== undefined) {
         entry.target = { id: target.id, name: target.name };
+      }
+      // The item an item's use names (#400).
+      if (action.type === "use-on") {
+        entry.item = {
+          id: action.itemId,
+          name: items.get(action.itemId)!.name,
+        };
       }
       if (approach !== undefined) {
         entry.approach = {
@@ -10378,6 +10777,20 @@ export function createFifthRuntime(
           ),
         ),
       ...searchable(state).flatMap(examine),
+      // Each item the character carries that a feature here accepts (#400).
+      ...room(state).features.flatMap((feature) =>
+        (feature.uses ?? []).flatMap(({ item }) =>
+          state.inventory.includes(item)
+            ? [
+                view(
+                  "use-on",
+                  { type: "use-on", featureId: feature.id, itemId: item },
+                  featureNow(state, feature),
+                ),
+              ]
+            : [],
+        ),
+      ),
       ...creaturesHere(state).flatMap((creature) =>
         creature.topics.flatMap((topic) =>
           tries(
@@ -10812,7 +11225,8 @@ export function createFifthRuntime(
         }),
       ),
       features: describedFeatures(state),
-      creatures: creaturesHere(state).map((creature) => ({
+      // A topic withdrawn (#399) still shows what the creature said.
+      creatures: creaturesHere(state, true).map((creature) => ({
         ...named(creature),
         topics: creature.topics.map((topic) => {
           const words = said(state, topic);
@@ -11220,6 +11634,21 @@ export function createFifthRuntime(
         "The id of the trap to disarm.",
         approachChoices("disarm"),
         retryChoices("disarm"),
+      ),
+      ...targetTool(
+        "use_on",
+        "Use an item the character carries on a feature in the room, only when the player asks to (fit it, pour it, throw it, put it in or on something); the engine decides what it does. Only the items each feature accepts, each once:",
+        actions.flatMap(({ action, target, item, available }) =>
+          action === "use-on" && available
+            ? [
+                {
+                  id: `${target!.id}:${item!.id}`,
+                  name: `the ${item!.name} on the ${target!.name}`,
+                },
+              ]
+            : [],
+        ),
+        "The feature's id and the item's id, as listed.",
       ),
       ...targetTool(
         "talk",

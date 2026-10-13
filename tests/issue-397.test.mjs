@@ -89,10 +89,10 @@ function nookFile(base, flag, setter, closing = false) {
 const nook = (...args) => validateModule(nookFile(...args));
 
 test("the formats bump; the prompt does not change", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 33);
-  assert.equal(FIFTH_SESSION_FORMAT, 55);
-  assert.equal(FIFTH_TRACE_FORMAT, 49);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v36");
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 36);
+  assert.equal(FIFTH_SESSION_FORMAT, 57);
+  assert.equal(FIFTH_TRACE_FORMAT, 51);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v37");
 });
 
 // The validator.
@@ -122,7 +122,7 @@ test("the validator refuses a flag nothing sets, nothing uses, or declared twice
   delete unused.passages.find(({ id }) => id === "stair-to-cellar").openWhen;
   assert.throws(
     () => validateModule(unused),
-    /flag portcullis-raised is never used: a passage or a circumstance must name it, or leave it out\./u,
+    /flag portcullis-raised is never used: a passage, a circumstance, an encounter, a feature or a topic must name it, or leave it out\./u,
   );
   const twice = structuredClone(winchTunnelsFile);
   twice.flags.push("portcullis-raised");

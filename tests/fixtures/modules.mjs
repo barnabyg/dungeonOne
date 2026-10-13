@@ -678,6 +678,145 @@ export const winchTunnelsFile = (() => {
 })();
 export const winchTunnels = validateModule(structuredClone(winchTunnelsFile));
 
+/**
+ * Flags that change features and topics (#399): the winch tunnels with a
+ * hermit at the foot of the stair. Until the portcullis rises he will talk
+ * about the winch; once it has, about the cellar instead. The rusted lantern
+ * by the stair, and the winch itself, read differently once it has risen.
+ */
+export const hermitTunnelsFile = (() => {
+  const module = structuredClone(winchTunnelsFile);
+  module.id = "hermit-tunnels";
+  module.title = "The Hermit's Tunnels";
+  const foot = room(module, "stair-foot");
+  foot.features[0].changed = {
+    when: "portcullis-raised",
+    description:
+      "The rusted lantern swings on its hook, still shaking from the portcullis.",
+  };
+  room(module, "alcove").features.at(-1).changed = {
+    when: "portcullis-raised",
+    description: "The rusted winch is wound tight, its chain taut.",
+  };
+  foot.creatures = [
+    {
+      id: "hermit",
+      name: "Hermit",
+      description: "A ragged hermit squats by the stair, warming his hands.",
+      topics: [
+        {
+          id: "hermit-winch",
+          name: "The winch",
+          reply:
+            "The winch in the alcove lifts the portcullis. Put your back into it.",
+          offeredUntil: "portcullis-raised",
+        },
+        {
+          id: "hermit-cellar",
+          name: "The cellar",
+          reply: "Now it's open, mind the rat. It bites.",
+          offeredWhile: "portcullis-raised",
+        },
+        {
+          id: "hermit-weather",
+          name: "The weather",
+          reply: "Damp. Always damp.",
+        },
+      ],
+    },
+  ];
+  return module;
+})();
+export const hermitTunnels = validateModule(structuredClone(hermitTunnelsFile));
+
+/**
+ * A fight a flag moves (#398): the rat tunnels as _The Roused Tunnels_,
+ * level 1, hard. The Giant Rat sleeps in a nest off the foot of the stair,
+ * out of the way, until knocking the rusted lantern down rouses it
+ * (`rat-roused`): then it waits in the cellar, on the way to the den. With
+ * `moving` false it never leaves its nest, and the lantern sets nothing.
+ */
+export function rousedTunnelsFile(moving = true) {
+  const module = moduleFile("rat-tunnels");
+  module.id = moving ? "roused-tunnels" : "sleeping-tunnels";
+  module.title = moving ? "The Roused Tunnels" : "The Sleeping Tunnels";
+  module.rooms.push({
+    id: "nest",
+    name: "Rat's Nest",
+    description: "A low burrow of shredded sacking, warm and rank.",
+    encounterId: "cellar-rat",
+    features: [],
+    items: [],
+  });
+  delete room(module, "rat-cellar").encounterId;
+  module.passages.push({
+    id: "stair-to-nest",
+    between: ["stair-foot", "nest"],
+    description: "A burrow under the bottom step.",
+  });
+  if (moving) {
+    module.flags = ["rat-roused"];
+    room(module, "stair-foot").features[0].sets = "rat-roused";
+    module.encounters[0].movesTo = { roomId: "rat-cellar", when: "rat-roused" };
+  }
+  return module;
+}
+export const rousedTunnels = validateModule(rousedTunnelsFile());
+
+/**
+ * Using an item on a feature (#400): the rat tunnels as _The Snake Door_. A
+ * Stone Snake lies in the alcove, and a Stone Door at the foot of the stair
+ * has a snake-shaped hollow: fitting the snake into it uses it up and opens
+ * the hidden way to the Snake Vault.
+ */
+export const snakeDoorFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "snake-door";
+  module.title = "The Snake Door";
+  room(module, "alcove").items.push({
+    id: "stone-snake",
+    name: "Stone Snake",
+    description: "A coiled snake carved from grey stone, the length of a hand.",
+    kind: "tool",
+  });
+  room(module, "stair-foot").features.push({
+    id: "stone-door",
+    name: "Stone Door",
+    description:
+      "A stone door carved with coiled snakes. One carving is missing, leaving a snake-shaped hollow.",
+    uses: [
+      {
+        item: "stone-snake",
+        text: "The carving fits the hollow. With a grinding of stone, the door swings inward.",
+        consumes: true,
+        effects: [{ type: "open", passage: "stair-to-vault" }],
+      },
+    ],
+  });
+  module.rooms.push({
+    id: "vault",
+    name: "Snake Vault",
+    description: "A dry vault, its walls painted with snakes.",
+    features: [
+      {
+        id: "snake-mural",
+        name: "Snake Mural",
+        description: "Painted snakes coil round the walls.",
+        discovery: "The snakes all point toward the den.",
+      },
+    ],
+    items: [],
+  });
+  module.passages.push({
+    id: "stair-to-vault",
+    between: ["stair-foot", "vault"],
+    description: "The stone door, and a passage beyond it.",
+    hidden: true,
+  });
+  return module;
+})();
+export const snakeDoor = validateModule(structuredClone(snakeDoorFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

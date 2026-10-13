@@ -10,6 +10,8 @@ import {
   FIFTH_REACTION_DM_CASES,
   loadFifthApproachEvaluationAdventure,
   loadFifthFlagEvaluationAdventure,
+  FIFTH_ITEM_DM_CASES,
+  loadFifthItemEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -20,12 +22,13 @@ const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
   "       [--max-calls <count>]",
-  "       [--suite delve|approaches|reactions|parley|flags]",
+  "       [--suite delve|approaches|reactions|parley|flags|items]",
   "       Runs the abandoned-delve cases, with --suite approaches the",
   "       obstacle-yard approach-selection cases, or with --suite reactions",
   "       the wary-cellar reaction cases, or with --suite parley the",
   "       bandit-toll parley and toll cases, or with --suite flags the",
-  "       winch-tunnels flag cases. It calls the live provider",
+  "       winch-tunnels flag cases, or with --suite items the",
+  "       snake-door item cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -75,7 +78,9 @@ function parseArguments(args) {
       parsed.maxCalls = Number(value);
     } else if (
       name === "--suite" &&
-      ["delve", "approaches", "reactions", "parley", "flags"].includes(value)
+      ["delve", "approaches", "reactions", "parley", "flags", "items"].includes(
+        value,
+      )
     ) {
       parsed.suite = value;
     } else {
@@ -172,6 +177,10 @@ try {
     flags: {
       cases: FIFTH_FLAG_DM_CASES,
       load: loadFifthFlagEvaluationAdventure,
+    },
+    items: {
+      cases: FIFTH_ITEM_DM_CASES,
+      load: loadFifthItemEvaluationAdventure,
     },
   };
   const suite = suites[configuration.suite];

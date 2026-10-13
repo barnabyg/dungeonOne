@@ -566,6 +566,11 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),
+  // Using a carried item on a feature (#400): `featureId:itemId`.
+  "use-on": (target) => {
+    const [featureId = "", itemId = ""] = target.split(":", 2);
+    return { type: "use-on", featureId, itemId };
+  },
   force: (doorId) => ({ type: "force", doorId }),
   pick: (doorId) => ({ type: "pick", doorId }),
   break: (doorId) => ({ type: "break", doorId }),

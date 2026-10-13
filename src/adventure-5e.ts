@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 33) and its validator.
+ * The 5e adventure module format (format version 36) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -78,6 +78,19 @@
  * (`closeWhen`), and a circumstance may name a flag. Reachability treats
  * flags as a fixed point: the rooms reached and the flags set for sure are
  * grown together until neither changes.
+ *
+ * An encounter may be in its room only while a flag is set
+ * (`presentWhile`), only until one is (`presentUntil`), or in another room
+ * once one is (`movesTo`) (#398); one met stays where it was met, and no
+ * room may hold two. A feature may have another description while a flag
+ * is set (`changed`), and a creature's topic may be offered only while a
+ * flag is set (`offeredWhile`) or only until one is (`offeredUntil`)
+ * (#399).
+ *
+ * A feature may accept items the character carries (`uses`, #400): each
+ * names its item, its words, whether the item is used up, and effects as a
+ * band's. A way a use opens counts toward reachability only once the
+ * feature's room and the item are reached for sure.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -188,7 +201,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 33;
+export const FIFTH_ADVENTURE_FORMAT = 36;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -270,7 +283,126 @@ export type FifthEncounter = Readonly<{
    * peacefully, or fled from by the character.
    */
   sets?: Readonly<Partial<Record<FlagOutcome, string>>>;
+  /**
+   * Its room holds it only once this flag is set (#398): it appears. At
+   * most one of `presentWhile`, `presentUntil` and `movesTo`.
+   */
+  presentWhile?: string;
+  /** Its room holds it only until this flag is set (#398): it vanishes. */
+  presentUntil?: string;
+  /**
+   * Once the flag `when` is set, it is in the room `roomId` instead of its
+   * own (#398): defenders fall back, gather or take up an ambush.
+   */
+  movesTo?: Readonly<{ roomId: string; when: string }>;
 }>;
+
+/**
+ * A room an encounter may be in (#398): while a flag is set, until one is,
+ * or always.
+ */
+export type Placement = Readonly<{
+  encounterId: string;
+  roomId: string;
+  while?: string;
+  until?: string;
+}>;
+
+/**
+ * Where an encounter was first met (#398): an encounter not yet begun goes
+ * where the flags place it, and one met stays there.
+ */
+export type MetEncounter = Readonly<{ encounterId: string; roomId: string }>;
+
+/** Whether flags place the encounter (#398): it appears, vanishes or moves. */
+export const isConditional = (encounter: FifthEncounter): boolean =>
+  encounter.presentWhile !== undefined ||
+  encounter.presentUntil !== undefined ||
+  encounter.movesTo !== undefined;
+
+/**
+ * Every room each placed encounter may be in (#398): its own room, while
+ * its `presentWhile` flag is set or until its `presentUntil` flag is; or,
+ * for one that moves, its own room until the flag and the other once it is
+ * set.
+ */
+export function encounterPlacements(
+  adventure: Pick<FifthAdventure, "rooms" | "encounters">,
+): readonly Placement[] {
+  return adventure.rooms.flatMap(({ id: roomId, encounterId }) => {
+    const encounter = adventure.encounters.find(
+      ({ id: entry }) => entry === encounterId,
+    );
+    if (encounter === undefined) {
+      return [];
+    }
+    const { presentWhile, presentUntil, movesTo } = encounter;
+    return movesTo !== undefined
+      ? [
+          { encounterId: encounter.id, roomId, until: movesTo.when },
+          {
+            encounterId: encounter.id,
+            roomId: movesTo.roomId,
+            while: movesTo.when,
+          },
+        ]
+      : [
+          {
+            encounterId: encounter.id,
+            roomId,
+            ...(presentWhile === undefined ? {} : { while: presentWhile }),
+            ...(presentUntil === undefined ? {} : { until: presentUntil }),
+          },
+        ];
+  });
+}
+
+/**
+ * `placements` by room (#398), so a lookup reads only its room's: the
+ * route planner and the projections look up a room's fight at every step.
+ */
+export function placementsByRoom(
+  placements: readonly Placement[],
+): ReadonlyMap<string, readonly Placement[]> {
+  const byRoom = new Map<string, Placement[]>();
+  for (const placement of placements) {
+    byRoom.set(placement.roomId, [
+      ...(byRoom.get(placement.roomId) ?? []),
+      placement,
+    ]);
+  }
+  return byRoom;
+}
+
+/**
+ * The id of the encounter in room `roomId` now (#398), from `placements`:
+ * one met stays where it was met; one not yet met is where the flags set
+ * place it. Undefined when none is.
+ */
+export function encounterInRoom(
+  placements: readonly Placement[],
+  roomId: string,
+  flags: readonly string[],
+  met: readonly MetEncounter[] = [],
+): string | undefined {
+  for (const placement of placements) {
+    if (placement.roomId !== roomId) {
+      continue;
+    }
+    const metIn = met.find(
+      ({ encounterId }) => encounterId === placement.encounterId,
+    );
+    if (
+      metIn !== undefined
+        ? metIn.roomId === roomId
+        : (placement.while === undefined || flags.includes(placement.while)) &&
+          (placement.until === undefined || !flags.includes(placement.until))
+    ) {
+      return placement.encounterId;
+    }
+  }
+  return undefined;
+}
 
 /**
  * A reaction-eligible encounter's reaction (#304): the options each band but
@@ -333,7 +465,30 @@ export type FifthFeature = Readonly<{
   check?: AuthoredCheck;
   /** The flag examining it sets (#397), whatever its check's band. */
   sets?: string;
+  /**
+   * Its description while a flag is set (#399): the altar after the ritual,
+   * the hall after the alarm. Its discovery and check are unchanged.
+   */
+  changed?: Readonly<{ when: string; description: string }>;
+  /** The items it accepts (#400), each once, and what using one does. */
+  uses?: readonly FeatureUse[];
 }>;
+
+/**
+ * Using an item on a feature (#400): the item, the words said, whether the
+ * item is used up, and the effects, as a band's: a discovery, an item
+ * revealed, damage, a passage opened or closed, or a flag set. Each use is
+ * made once.
+ */
+export type FeatureUse = Readonly<{
+  item: string;
+  text: string;
+  consumes?: true;
+  effects: readonly CheckEffect[];
+}>;
+
+/** The most items one feature may accept (#400). */
+const MAX_USES = 4;
 
 /**
  * One effect of a check's band (#281): a feature's discovery made, an item
@@ -583,7 +738,12 @@ export function sureFlagSetters(
       : BANDS.map((band) =>
           flagsSetBy(check.bands?.[authoredBand(check, band)]),
         ).reduce((all, flags) => all.filter((flag) => flags.includes(flag)));
-  const fight = encounters.find(({ id }) => id === room.encounterId);
+  // A fight flags place (#398) may never be met here: the validator and
+  // the harness count on it only where it surely is.
+  const fight = encounters.find(
+    (encounter) =>
+      encounter.id === room.encounterId && !isConditional(encounter),
+  );
   const unchecked = new Set(
     room.features.flatMap(({ id, check }) => (check === undefined ? [id] : [])),
   );
@@ -704,6 +864,10 @@ export type FifthTopic = Readonly<{
    * one): only a surrendered opponent gives, and only what it carries (#238).
    */
   gives?: readonly string[];
+  /** Offered only once this flag is set (#399). */
+  offeredWhile?: string;
+  /** Offered only until this flag is set (#399), then withdrawn. */
+  offeredUntil?: string;
 }>;
 
 /**
@@ -1422,10 +1586,22 @@ function topics(
     const topic = knownKeys(
       rawTopic,
       ["id", "name", "reply"],
-      gifts ? ["check", "failure", "gives"] : ["check", "failure"],
+      [
+        "check",
+        "failure",
+        "offeredWhile",
+        "offeredUntil",
+        ...(gifts ? ["gives"] : []),
+      ],
       on,
     );
     const topicId = id(topic.id, `${on} id`);
+    if (
+      topic.offeredWhile !== undefined &&
+      topic.offeredWhile === topic.offeredUntil
+    ) {
+      fail(`topic ${topicId} is offered while and until the same flag.`);
+    }
     if ((topic.check === undefined) !== (topic.failure === undefined)) {
       fail(
         topic.check === undefined
@@ -1450,6 +1626,12 @@ function topics(
               id(given, `${on} gives ${number + 1}`),
             ),
           }),
+      ...(topic.offeredWhile === undefined
+        ? {}
+        : { offeredWhile: id(topic.offeredWhile, `${on} offeredWhile`) }),
+      ...(topic.offeredUntil === undefined
+        ? {}
+        : { offeredUntil: id(topic.offeredUntil, `${on} offeredUntil`) }),
     };
   });
   // The player asks about topics by name, in any case.
@@ -1836,9 +2018,29 @@ function validateModule(
           "lurking",
           "reaction",
           "sets",
+          "presentWhile",
+          "presentUntil",
+          "movesTo",
         ],
         where,
       );
+      if (
+        ["presentWhile", "presentUntil", "movesTo"].filter(
+          (field) => encounter[field] !== undefined,
+        ).length > 1
+      ) {
+        fail(
+          `${where} may have only one of presentWhile, presentUntil and movesTo.`,
+        );
+      }
+      const movesTo =
+        encounter.movesTo === undefined
+          ? undefined
+          : exactKeys(
+              encounter.movesTo,
+              ["roomId", "when"],
+              `${where} movesTo`,
+            );
       if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
         fail(`${where} sneakAgain must be true, or left out.`);
       }
@@ -2031,6 +2233,24 @@ function validateModule(
         ...(encounter.sets === undefined
           ? {}
           : { sets: outcomeFlags(encounter.sets, `${where} sets`) }),
+        ...(encounter.presentWhile === undefined
+          ? {}
+          : {
+              presentWhile: id(encounter.presentWhile, `${where} presentWhile`),
+            }),
+        ...(encounter.presentUntil === undefined
+          ? {}
+          : {
+              presentUntil: id(encounter.presentUntil, `${where} presentUntil`),
+            }),
+        ...(movesTo === undefined
+          ? {}
+          : {
+              movesTo: {
+                roomId: id(movesTo.roomId, `${where} movesTo roomId`),
+                when: id(movesTo.when, `${where} movesTo when`),
+              },
+            }),
       };
     },
   );
@@ -2091,9 +2311,49 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check", "sets"],
+          ["discovery", "check", "sets", "changed", "uses"],
           at,
         );
+        const uses =
+          feature.uses === undefined
+            ? undefined
+            : list(feature.uses, `${at} uses`, MAX_USES).map((value, index) => {
+                const on = `${at} use ${index + 1}`;
+                const use = knownKeys(
+                  value,
+                  ["item", "text", "effects"],
+                  ["consumes"],
+                  on,
+                );
+                if (use.consumes !== undefined && use.consumes !== true) {
+                  fail(`${on} consumes must be true, or left out.`);
+                }
+                return {
+                  item: id(use.item, `${on} item`),
+                  text: text(use.text, `${on} text`),
+                  ...(use.consumes === true ? { consumes: true as const } : {}),
+                  effects: list(use.effects, `${on} effects`, MAX_EFFECTS).map(
+                    (entry, number) =>
+                      effect(entry, `${on} effect ${number + 1}`),
+                  ),
+                };
+              });
+        if (uses !== undefined) {
+          distinct(
+            uses,
+            ({ item }) => item,
+            ({ item }) =>
+              `${at} (${String(feature.id)}) accepts item ${item} twice.`,
+          );
+        }
+        const changed =
+          feature.changed === undefined
+            ? undefined
+            : exactKeys(
+                feature.changed,
+                ["when", "description"],
+                `${at} changed`,
+              );
         return {
           id: id(feature.id, `${at} id`),
           name: text(feature.name, `${at} name`, 60),
@@ -2107,6 +2367,18 @@ function validateModule(
           ...(feature.sets === undefined
             ? {}
             : { sets: id(feature.sets, `${at} sets`) }),
+          ...(uses === undefined ? {} : { uses }),
+          ...(changed === undefined
+            ? {}
+            : {
+                changed: {
+                  when: id(changed.when, `${at} changed when`),
+                  description: text(
+                    changed.description,
+                    `${at} changed description`,
+                  ),
+                },
+              }),
         };
       },
     );
@@ -2369,6 +2641,50 @@ function validateModule(
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
+  // Encounters flags place (#398): one moves to a known room not its own;
+  // the one whose fight wins the adventure stays put; and no room may hold
+  // two.
+  for (const encounter of encounters) {
+    const { id: encounterId, movesTo, victoryEndingId } = encounter;
+    if (movesTo !== undefined) {
+      if (!roomIds.has(movesTo.roomId)) {
+        fail(
+          `encounter ${encounterId} moves to unknown room ${movesTo.roomId}.`,
+        );
+      }
+      if (
+        rooms.some(
+          ({ id: roomId, encounterId: here }) =>
+            here === encounterId && roomId === movesTo.roomId,
+        )
+      ) {
+        fail(
+          `encounter ${encounterId} moves to room ${movesTo.roomId}, which is already its own.`,
+        );
+      }
+    }
+    if (isConditional(encounter) && victoryEndingId !== undefined) {
+      fail(
+        `encounter ${encounterId} ends the adventure in victory, so it can't appear, vanish or move.`,
+      );
+    }
+  }
+  // A fight met stays where it was met, so two encounters that may each be
+  // in a room could both be there, whatever their flags.
+  const placements = encounterPlacements({ rooms, encounters });
+  placements.forEach((one, index) => {
+    const other = placements
+      .slice(index + 1)
+      .find(
+        ({ roomId, encounterId }) =>
+          roomId === one.roomId && encounterId !== one.encounterId,
+      );
+    if (other !== undefined) {
+      fail(
+        `room ${one.roomId} may hold encounters ${one.encounterId} and ${other.encounterId} at once; only one fight waits in a room.`,
+      );
+    }
+  });
   const door = (value: unknown, where: string): FifthDoor => {
     const raw = knownKeys(
       value,
@@ -2650,10 +2966,23 @@ function validateModule(
       setters.add(flag);
     }
   }
-  for (const { id: encounterId, sets } of encounters) {
+  for (const {
+    id: encounterId,
+    sets,
+    presentWhile,
+    presentUntil,
+    movesTo,
+  } of encounters) {
     for (const [outcome, flag] of Object.entries(sets ?? {})) {
       flagNamed(flag, `encounter ${encounterId}'s ${outcome}`);
       setters.add(flag);
+    }
+    // Where it is (#398).
+    for (const flag of [presentWhile, presentUntil, movesTo?.when]) {
+      if (flag !== undefined) {
+        flagNamed(flag, `encounter ${encounterId}`);
+        flagUsers.add(flag);
+      }
     }
   }
   for (const { id: passageId, openWhen, closeWhen } of passages) {
@@ -2664,9 +2993,97 @@ function validateModule(
       }
     }
   }
+  // A feature's changed description and a topic's offer (#399) use flags.
+  const allTopics = [
+    ...rooms.flatMap(({ creatures }) =>
+      creatures.flatMap(({ topics }) => topics),
+    ),
+    ...encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
+    ),
+  ];
+  for (const { id: featureId, changed } of rooms.flatMap(
+    ({ features }) => features,
+  )) {
+    if (changed !== undefined) {
+      flagNamed(changed.when, `feature ${featureId}`);
+      flagUsers.add(changed.when);
+    }
+  }
+  for (const { id: topicId, offeredWhile, offeredUntil } of allTopics) {
+    for (const flag of [offeredWhile, offeredUntil]) {
+      if (flag !== undefined) {
+        flagNamed(flag, `topic ${topicId}`);
+        flagUsers.add(flag);
+      }
+    }
+  }
   /** Hidden passages some band opens, and who can close each passage. */
   const openable = new Set<string>();
   const closers = new Map<string, string[]>();
+  /**
+   * Checks one effect of a band, or of a use of an item on a feature
+   * (#400): it names a feature with a discovery, an item hidden in a
+   * feature, a defeat ending, a passage (only a hidden one opened) or a
+   * flag. `on` names where it is.
+   */
+  const checkEffect = (entry: CheckEffect, on: string) => {
+    switch (entry.type) {
+      case "discovery": {
+        const feature = featureById.get(entry.feature);
+        if (feature === undefined) {
+          fail(`${on} names unknown discovery ${entry.feature}.`);
+        }
+        if (feature.discovery === undefined) {
+          fail(
+            `${on} names ${feature.id}'s discovery, but it has no discovery.`,
+          );
+        }
+        break;
+      }
+      case "item": {
+        const placed = itemRooms.get(entry.item)?.item;
+        if (placed === undefined) {
+          fail(`${on} names unknown item ${entry.item}.`);
+        }
+        if (
+          placed.hiddenIn === undefined ||
+          !featureById.has(placed.hiddenIn)
+        ) {
+          fail(`${on} reveals ${placed.id}, which is not hidden in a feature.`);
+        }
+        revealed.add(placed.id);
+        break;
+      }
+      case "damage":
+        ending(entry.defeatEndingId, "defeat", on);
+        break;
+      case "open":
+      case "close": {
+        const way = passages.find(
+          ({ id: passageId }) => passageId === entry.passage,
+        );
+        if (way === undefined) {
+          fail(`${on} names unknown passage ${entry.passage}.`);
+        }
+        if (entry.type === "open" && way.hidden !== true) {
+          fail(
+            `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
+          );
+        }
+        if (entry.type === "open") {
+          openable.add(way.id);
+        } else {
+          closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
+        }
+        break;
+      }
+      case "set":
+        flagNamed(entry.flag, on);
+        setters.add(entry.flag);
+        break;
+    }
+  };
   for (const site of authoredChecks({ rooms, passages, encounters })) {
     const label = siteLabel(site);
     // Thieves' tools (#309) pick locks and disarm traps, and nothing else.
@@ -2708,63 +3125,40 @@ function validateModule(
         );
       }
       for (const entry of effectsOf(outcome)) {
-        switch (entry.type) {
-          case "discovery": {
-            const feature = featureById.get(entry.feature);
-            if (feature === undefined) {
-              fail(`${on} names unknown discovery ${entry.feature}.`);
-            }
-            if (feature.discovery === undefined) {
-              fail(
-                `${on} names ${feature.id}'s discovery, but it has no discovery.`,
-              );
-            }
-            break;
-          }
-          case "item": {
-            const placed = itemRooms.get(entry.item)?.item;
-            if (placed === undefined) {
-              fail(`${on} names unknown item ${entry.item}.`);
-            }
-            if (
-              placed.hiddenIn === undefined ||
-              !featureById.has(placed.hiddenIn)
-            ) {
-              fail(
-                `${on} reveals ${placed.id}, which is not hidden in a feature.`,
-              );
-            }
-            revealed.add(placed.id);
-            break;
-          }
-          case "damage":
-            ending(entry.defeatEndingId, "defeat", on);
-            break;
-          case "open":
-          case "close": {
-            const way = passages.find(
-              ({ id: passageId }) => passageId === entry.passage,
-            );
-            if (way === undefined) {
-              fail(`${on} names unknown passage ${entry.passage}.`);
-            }
-            if (entry.type === "open" && way.hidden !== true) {
-              fail(
-                `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
-              );
-            }
-            if (entry.type === "open") {
-              openable.add(way.id);
-            } else {
-              closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
-            }
-            break;
-          }
-          case "set":
-            flagNamed(entry.flag, on);
-            setters.add(entry.flag);
-            break;
-        }
+        checkEffect(entry, on);
+      }
+    }
+  }
+  // Each use of an item on a feature (#400) names an item the character
+  // can hold, which only a use that keeps it may be treasure, and effects as
+  // a band's.
+  for (const { id: featureId, uses } of featureById.values()) {
+    for (const use of uses ?? []) {
+      const on = `feature ${featureId}'s use of ${use.item}`;
+      const placed = itemRooms.get(use.item)?.item;
+      if (placed === undefined) {
+        fail(`${on} names unknown item ${use.item}.`);
+      }
+      if (
+        placed.kind === "coin" ||
+        placed.kind === "gear" ||
+        placed.kind === "scroll" ||
+        placed.kind === "wand"
+      ) {
+        fail(
+          `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : placed.kind === "gear" ? "stowed gear" : "magic items"}, so it is never carried to use.`,
+        );
+      }
+      if (use.consumes === true && placed.kind === "treasure") {
+        fail(
+          `${on} uses up ${placed.id}, which is treasure: treasure is sold or carried out, never used up.`,
+        );
+      }
+      if (use.effects.length === 0) {
+        fail(`${on} needs effects.`);
+      }
+      for (const entry of use.effects) {
+        checkEffect(entry, on);
       }
     }
   }
@@ -2862,7 +3256,9 @@ function validateModule(
   }
   for (const { id: passageId, hidden } of passages) {
     if (hidden === true && !openable.has(passageId)) {
-      fail(`passage ${passageId} is hidden, but no check's band opens it.`);
+      fail(
+        `passage ${passageId} is hidden, but no check's band or use of an item opens it.`,
+      );
     }
   }
   for (const flag of flags) {
@@ -2873,7 +3269,7 @@ function validateModule(
     }
     if (!flagUsers.has(flag)) {
       fail(
-        `flag ${flag} is never used: a passage or a circumstance must name it, or leave it out.`,
+        `flag ${flag} is never used: a passage, a circumstance, an encounter, a feature or a topic must name it, or leave it out.`,
       );
     }
   }
@@ -2955,6 +3351,20 @@ function validateModule(
    * The approaches a character can take: without thieves' tools (#309),
    * none that needs them.
    */
+  const topicById = new Map(allTopics.map((topic) => [topic.id, topic]));
+  /**
+   * Whether a topic's check is surely there to make once `flags` are set
+   * (#399): one withdrawn once a flag is set may be gone before it is
+   * asked, and one offered only once a flag is set waits for it. Any other
+   * check is.
+   */
+  const surelyOffered = (site: AuthoredSite, flags: ReadonlySet<string>) => {
+    const topic = site.kind === "talk" ? topicById.get(site.id) : undefined;
+    return (
+      topic?.offeredUntil === undefined &&
+      (topic?.offeredWhile === undefined || flags.has(topic.offeredWhile))
+    );
+  };
   const takeable = (site: AuthoredSite, tools: boolean) =>
     approachesOf(site.check).filter(({ tool }) => tools || tool === undefined);
   /** The effective bands some character can roll on a check. */
@@ -2981,9 +3391,77 @@ function validateModule(
   const roomFlags = new Map(
     rooms.map((room) => [room.id, roomSureFlags(room, encounters)] as const),
   );
+  /**
+   * The uses of items on features (#400) that can be counted on, each with
+   * its feature's room and its item's: an item in plain sight or hidden in a
+   * feature with no check (not one a band may never reveal, nor one an
+   * opponent carries), that nothing else uses up first.
+   */
+  const usingUp = [
+    ...[...featureById.values()].flatMap(({ uses }) =>
+      (uses ?? []).flatMap(({ item, consumes }) =>
+        consumes === true ? [item] : [],
+      ),
+    ),
+    ...sites.flatMap(({ check: { retry } }) =>
+      retry?.cost?.type === "item" ? [retry.cost.item] : [],
+    ),
+  ];
+  const sureUseSites = rooms.flatMap(({ id: roomId, features }) =>
+    features.flatMap(({ uses }) =>
+      (uses ?? []).flatMap((use) => {
+        const { item, roomId: itemRoomId } = itemRooms.get(use.item)!;
+        const holder =
+          item.hiddenIn === undefined
+            ? undefined
+            : featureById.get(item.hiddenIn);
+        return (item.hiddenIn !== undefined &&
+          (holder === undefined || holder.check !== undefined)) ||
+          usingUp.filter((id) => id === use.item).length >
+            (use.consumes === true ? 1 : 0)
+          ? []
+          : [{ roomId, itemRoomId, use }];
+      }),
+    ),
+  );
+  /** Each encounter flags place (#398), with its own room. */
+  const placedByFlags = encounters.flatMap((fight) => {
+    const own = rooms.find(({ encounterId }) => encounterId === fight.id);
+    return isConditional(fight) && own !== undefined
+      ? [[fight, own.id] as const]
+      : [];
+  });
+  /**
+   * Whether a fight flags place (#398) is surely met, given the rooms
+   * `reached` and the flags `flagged` for sure: one that moves once its new
+   * room is reached and either its flag is set or its own room is reached
+   * too, as wherever it is the character meets it; one that appears once
+   * its room is reached and its flag is set; one that vanishes never, as
+   * it may be gone first.
+   */
+  const surelyMet = (
+    fight: FifthEncounter,
+    own: string,
+    reached: ReadonlySet<string>,
+    flagged: ReadonlySet<string>,
+  ) =>
+    fight.movesTo !== undefined
+      ? reached.has(fight.movesTo.roomId) &&
+        (flagged.has(fight.movesTo.when) || reached.has(own))
+      : fight.presentWhile !== undefined &&
+        reached.has(own) &&
+        flagged.has(fight.presentWhile);
   /** The rooms reached for sure, and the flags set for sure (#397). */
   type Reach = Readonly<{ rooms: Set<string>; flags: Set<string> }>;
-  const reachable = (excluded: ReadonlySet<string>, tools = false): Reach => {
+  /**
+   * With `fixed`, fights flags place (#398) count as staying in their own
+   * rooms, to tell when moving one is what cuts a room off.
+   */
+  const reachable = (
+    excluded: ReadonlySet<string>,
+    tools = false,
+    fixed = false,
+  ): Reach => {
     // The rooms reached from `from` through ways needing no check, and the
     // passages in `extra` a band has made ways; and the flags set on the
     // way, beside those in `set` (#397). Flags only turn on, so the two
@@ -3001,21 +3479,48 @@ function validateModule(
         reached.has(itemRooms.get(shut.keyItemId)!.roomId) &&
         featureById.get(itemRooms.get(shut.keyItemId)!.item.hiddenIn ?? "")
           ?.check === undefined;
+      // A use of an item on a feature (#400) is made for sure once its
+      // feature's room and its item are reached for sure.
+      const used = new Set<string>();
       const passable = (entry: FifthPassage) =>
         !excluded.has(entry.id) &&
         entry.trap === undefined &&
         (entry.openWhen === undefined || flagged.has(entry.openWhen)) &&
         (extra.has(entry.id) ||
+          used.has(entry.id) ||
           (entry.hidden !== true &&
             (entry.door === undefined || keyed(entry.door))));
       for (let grew = true; grew;) {
         grew = false;
-        for (const roomId of reached) {
-          for (const flag of roomFlags.get(roomId)!) {
-            if (!flagged.has(flag)) {
-              flagged.add(flag);
+        const sureUses = sureUseSites.filter(
+          ({ roomId, itemRoomId }) =>
+            reached.has(roomId) && reached.has(itemRoomId),
+        );
+        for (const { use } of sureUses) {
+          for (const entry of use.effects) {
+            if (entry.type === "open" && !used.has(entry.passage)) {
+              used.add(entry.passage);
               grew = true;
             }
+          }
+        }
+        const sureFlags = [
+          ...sureUses.flatMap(({ use }) =>
+            use.effects.flatMap((entry) =>
+              entry.type === "set" ? [entry.flag] : [],
+            ),
+          ),
+          ...[...reached].flatMap((roomId) => roomFlags.get(roomId)!),
+          ...placedByFlags.flatMap(([fight, own]) =>
+            (fixed ? reached.has(own) : surelyMet(fight, own, reached, flagged))
+              ? encounterSureFlags(fight)
+              : [],
+          ),
+        ];
+        for (const flag of sureFlags) {
+          if (!flagged.has(flag)) {
+            flagged.add(flag);
+            grew = true;
           }
         }
         for (const entry of passages) {
@@ -3042,7 +3547,8 @@ function validateModule(
         // they can make is never counted on.
         if (
           !siteRooms(site).some((roomId) => sure.rooms.has(roomId)) ||
-          takeable(site, tools).length === 0
+          takeable(site, tools).length === 0 ||
+          !surelyOffered(site, sure.flags)
         ) {
           continue;
         }
@@ -3077,8 +3583,52 @@ function validateModule(
     return sure;
   };
   const freeReach = reachable(new Set());
+  // A surrendered opponent hands over what it carries only through a topic
+  // (#238), so a topic that gives must stay there to ask (#399): never
+  // withdrawn, and offered only once a flag set for sure is set.
+  for (const { id: topicId, gives, offeredWhile, offeredUntil } of allTopics) {
+    if (gives === undefined) {
+      continue;
+    }
+    if (offeredUntil !== undefined) {
+      fail(
+        `topic ${topicId} gives ${gives.join(", ")}, but is withdrawn once flag ${offeredUntil} is set: what it gives could be lost.`,
+      );
+    }
+    if (offeredWhile !== undefined && !freeReach.flags.has(offeredWhile)) {
+      fail(
+        `topic ${topicId} gives ${gives.join(", ")}, but is offered only once flag ${offeredWhile} is set, which nothing sets for sure.`,
+      );
+    }
+  }
   const free = freeReach.rooms;
   const safe = reachable(new Set(closers.keys())).rooms;
+  /**
+   * Fails when `what` is cut off only because a fight flags place (#398)
+   * may never be met where the character is sure to go: the flag its fight
+   * sets is then never counted on. Names the first such encounter.
+   */
+  const placedCutOff = (what: string, gone: (sure: Set<string>) => boolean) => {
+    if (!gone(reachable(new Set(), false, true).rooms)) {
+      const blamed = placedByFlags.find(
+        ([fight, own]) =>
+          encounterSureFlags(fight).length > 0 &&
+          !surelyMet(fight, own, freeReach.rooms, freeReach.flags),
+      );
+      if (blamed !== undefined) {
+        const [fight] = blamed;
+        const how =
+          fight.movesTo !== undefined
+            ? `once flag ${fight.movesTo.when} is set it moves to room ${fight.movesTo.roomId}, where it may never be met`
+            : fight.presentWhile !== undefined
+              ? `it is there only once flag ${fight.presentWhile} is set`
+              : `it vanishes once flag ${fight.presentUntil!} is set`;
+        fail(
+          `encounter ${fight.id} can cut off ${what}: ${how}, so flag ${encounterSureFlags(fight).join(", ")} its fight sets is never set for sure.`,
+        );
+      }
+    }
+  };
   /** A door only thieves' tools open (#309): no key, force or break. */
   const toolsOnly = (shut: FifthDoor) =>
     shut.pick !== undefined &&
@@ -3114,6 +3664,7 @@ function validateModule(
       winning.has(encounterId) &&
       !free.has(roomId)
     ) {
+      placedCutOff(`essential room ${roomId}`, (sure) => !sure.has(roomId));
       // The rooms the essential one joins without passing the free rooms;
       // the guards are on the passages from the free rooms into them.
       const beyond = new Set([roomId]);
@@ -3172,6 +3723,7 @@ function validateModule(
   const exitIn = (sure: Set<string>) =>
     rooms.some(({ id: roomId, exit }) => exit && sure.has(roomId));
   if (hasExit && !exitIn(free)) {
+    placedCutOff("every exit", (sure) => !exitIn(sure));
     fail(
       exitIn(tooled)
         ? "every exit needs thieves' tools to reach; one must be reachable without them."
@@ -3222,6 +3774,16 @@ function validateModule(
         : []),
     ]),
   );
+  // So can a use's (#400).
+  for (const { uses } of featureById.values()) {
+    for (const { effects } of uses ?? []) {
+      for (const entry of effects) {
+        if (entry.type === "damage") {
+          damageEndings.add(entry.defeatEndingId);
+        }
+      }
+    }
+  }
   for (const { id: endingId, kind } of endings) {
     if (
       kind !== "escape-with-loot" &&
@@ -3296,6 +3858,11 @@ function wandering(
   }
   if (fight.reaction !== undefined) {
     fail(`${where} can't have a reaction: it comes upon the character.`);
+  }
+  if (isConditional(fight)) {
+    fail(
+      `${where} can't appear, vanish or move: it is in no room, and comes to the character as it rests.`,
+    );
   }
   for (const opponent of fight.opponents) {
     if (opponent.surrender !== undefined) {
