@@ -241,7 +241,7 @@ test("the validator rejects opens and closes naming the wrong passage", () => {
       (wall(m).check.bands.success.effects = [
         { type: "discovery", feature: "reliquary-niche" },
       ]),
-    /passage hall-to-reliquary is hidden, but no check's band opens it\./,
+    /passage hall-to-reliquary is hidden, but no check's band or use of an item opens it\./,
   );
   rejects((m) => {
     wall(m).check.bands.success.effects = [];

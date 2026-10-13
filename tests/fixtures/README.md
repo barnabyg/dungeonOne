@@ -182,6 +182,15 @@ Giant Rat in a nest off the stair foot until knocking the lantern down sets
 `rousedTunnelsFile(false)` is _The Sleeping Tunnels_, where it never moves
 (`tests/issue-398.test.mjs` gates both). Neither is in `FIXTURE_MODULES`.
 
+## Using an item on a feature (issue 400)
+
+`snakeDoor` (_The Snake Door_, from `snakeDoorFile`) puts a Stone Snake in
+the alcove and a Stone Door at the stair foot whose snake-shaped hollow it
+fits, which uses it up and opens a hidden way to the Snake Vault. It is in the
+seeded playthroughs, so the bar tests see a use; `adventures/eval/snake-door.json`
+is the same module for the AI DM's item cases. `tests/issue-400.test.mjs` and
+`tests/issue-400-browser.test.mjs` play it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

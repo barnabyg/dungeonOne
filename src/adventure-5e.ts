@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 35) and its validator.
+ * The 5e adventure module format (format version 36) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -192,7 +192,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 35;
+export const FIFTH_ADVENTURE_FORMAT = 36;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -444,7 +444,25 @@ export type FifthFeature = Readonly<{
    * the hall after the alarm. Its discovery and check are unchanged.
    */
   changed?: Readonly<{ when: string; description: string }>;
+  /** The items it accepts (#400), each once, and what using one does. */
+  uses?: readonly FeatureUse[];
 }>;
+
+/**
+ * Using an item on a feature (#400): the item, the words said, whether the
+ * item is used up, and the effects, as a band's: a discovery, an item
+ * revealed, damage, a passage opened or closed, or a flag set. Each use is
+ * made once.
+ */
+export type FeatureUse = Readonly<{
+  item: string;
+  text: string;
+  consumes?: true;
+  effects: readonly CheckEffect[];
+}>;
+
+/** The most items one feature may accept (#400). */
+const MAX_USES = 4;
 
 /**
  * One effect of a check's band (#281): a feature's discovery made, an item
@@ -2267,9 +2285,41 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check", "sets", "changed"],
+          ["discovery", "check", "sets", "changed", "uses"],
           at,
         );
+        const uses =
+          feature.uses === undefined
+            ? undefined
+            : list(feature.uses, `${at} uses`, MAX_USES).map((value, index) => {
+                const on = `${at} use ${index + 1}`;
+                const use = knownKeys(
+                  value,
+                  ["item", "text", "effects"],
+                  ["consumes"],
+                  on,
+                );
+                if (use.consumes !== undefined && use.consumes !== true) {
+                  fail(`${on} consumes must be true, or left out.`);
+                }
+                return {
+                  item: id(use.item, `${on} item`),
+                  text: text(use.text, `${on} text`),
+                  ...(use.consumes === true ? { consumes: true as const } : {}),
+                  effects: list(use.effects, `${on} effects`, MAX_EFFECTS).map(
+                    (entry, number) =>
+                      effect(entry, `${on} effect ${number + 1}`),
+                  ),
+                };
+              });
+        if (uses !== undefined) {
+          distinct(
+            uses,
+            ({ item }) => item,
+            ({ item }) =>
+              `${at} (${String(feature.id)}) accepts item ${item} twice.`,
+          );
+        }
         const changed =
           feature.changed === undefined
             ? undefined
@@ -2291,6 +2341,7 @@ function validateModule(
           ...(feature.sets === undefined
             ? {}
             : { sets: id(feature.sets, `${at} sets`) }),
+          ...(uses === undefined ? {} : { uses }),
           ...(changed === undefined
             ? {}
             : {
@@ -2944,6 +2995,69 @@ function validateModule(
   /** Hidden passages some band opens, and who can close each passage. */
   const openable = new Set<string>();
   const closers = new Map<string, string[]>();
+  /**
+   * Checks one effect of a band, or of a use of an item on a feature
+   * (#400): it names a feature with a discovery, an item hidden in a
+   * feature, a defeat ending, a passage (only a hidden one opened) or a
+   * flag. `on` names where it is.
+   */
+  const checkEffect = (entry: CheckEffect, on: string) => {
+    switch (entry.type) {
+      case "discovery": {
+        const feature = featureById.get(entry.feature);
+        if (feature === undefined) {
+          fail(`${on} names unknown discovery ${entry.feature}.`);
+        }
+        if (feature.discovery === undefined) {
+          fail(
+            `${on} names ${feature.id}'s discovery, but it has no discovery.`,
+          );
+        }
+        break;
+      }
+      case "item": {
+        const placed = itemRooms.get(entry.item)?.item;
+        if (placed === undefined) {
+          fail(`${on} names unknown item ${entry.item}.`);
+        }
+        if (
+          placed.hiddenIn === undefined ||
+          !featureById.has(placed.hiddenIn)
+        ) {
+          fail(`${on} reveals ${placed.id}, which is not hidden in a feature.`);
+        }
+        revealed.add(placed.id);
+        break;
+      }
+      case "damage":
+        ending(entry.defeatEndingId, "defeat", on);
+        break;
+      case "open":
+      case "close": {
+        const way = passages.find(
+          ({ id: passageId }) => passageId === entry.passage,
+        );
+        if (way === undefined) {
+          fail(`${on} names unknown passage ${entry.passage}.`);
+        }
+        if (entry.type === "open" && way.hidden !== true) {
+          fail(
+            `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
+          );
+        }
+        if (entry.type === "open") {
+          openable.add(way.id);
+        } else {
+          closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
+        }
+        break;
+      }
+      case "set":
+        flagNamed(entry.flag, on);
+        setters.add(entry.flag);
+        break;
+    }
+  };
   for (const site of authoredChecks({ rooms, passages, encounters })) {
     const label = siteLabel(site);
     // Thieves' tools (#309) pick locks and disarm traps, and nothing else.
@@ -2985,63 +3099,40 @@ function validateModule(
         );
       }
       for (const entry of effectsOf(outcome)) {
-        switch (entry.type) {
-          case "discovery": {
-            const feature = featureById.get(entry.feature);
-            if (feature === undefined) {
-              fail(`${on} names unknown discovery ${entry.feature}.`);
-            }
-            if (feature.discovery === undefined) {
-              fail(
-                `${on} names ${feature.id}'s discovery, but it has no discovery.`,
-              );
-            }
-            break;
-          }
-          case "item": {
-            const placed = itemRooms.get(entry.item)?.item;
-            if (placed === undefined) {
-              fail(`${on} names unknown item ${entry.item}.`);
-            }
-            if (
-              placed.hiddenIn === undefined ||
-              !featureById.has(placed.hiddenIn)
-            ) {
-              fail(
-                `${on} reveals ${placed.id}, which is not hidden in a feature.`,
-              );
-            }
-            revealed.add(placed.id);
-            break;
-          }
-          case "damage":
-            ending(entry.defeatEndingId, "defeat", on);
-            break;
-          case "open":
-          case "close": {
-            const way = passages.find(
-              ({ id: passageId }) => passageId === entry.passage,
-            );
-            if (way === undefined) {
-              fail(`${on} names unknown passage ${entry.passage}.`);
-            }
-            if (entry.type === "open" && way.hidden !== true) {
-              fail(
-                `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
-              );
-            }
-            if (entry.type === "open") {
-              openable.add(way.id);
-            } else {
-              closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
-            }
-            break;
-          }
-          case "set":
-            flagNamed(entry.flag, on);
-            setters.add(entry.flag);
-            break;
-        }
+        checkEffect(entry, on);
+      }
+    }
+  }
+  // Each use of an item on a feature (#400) names an item the character
+  // can hold, which only a use that keeps it may be treasure, and effects as
+  // a band's.
+  for (const { id: featureId, uses } of featureById.values()) {
+    for (const use of uses ?? []) {
+      const on = `feature ${featureId}'s use of ${use.item}`;
+      const placed = itemRooms.get(use.item)?.item;
+      if (placed === undefined) {
+        fail(`${on} names unknown item ${use.item}.`);
+      }
+      if (
+        placed.kind === "coin" ||
+        placed.kind === "gear" ||
+        placed.kind === "scroll" ||
+        placed.kind === "wand"
+      ) {
+        fail(
+          `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : placed.kind === "gear" ? "stowed gear" : "magic items"}, so it is never carried to use.`,
+        );
+      }
+      if (use.consumes === true && placed.kind === "treasure") {
+        fail(
+          `${on} uses up ${placed.id}, which is treasure: treasure is sold or carried out, never used up.`,
+        );
+      }
+      if (use.effects.length === 0) {
+        fail(`${on} needs effects.`);
+      }
+      for (const entry of use.effects) {
+        checkEffect(entry, on);
       }
     }
   }
@@ -3139,7 +3230,9 @@ function validateModule(
   }
   for (const { id: passageId, hidden } of passages) {
     if (hidden === true && !openable.has(passageId)) {
-      fail(`passage ${passageId} is hidden, but no check's band opens it.`);
+      fail(
+        `passage ${passageId} is hidden, but no check's band or use of an item opens it.`,
+      );
     }
   }
   for (const flag of flags) {
@@ -3272,6 +3365,39 @@ function validateModule(
   const roomFlags = new Map(
     rooms.map((room) => [room.id, roomSureFlags(room, encounters)] as const),
   );
+  /**
+   * The uses of items on features (#400) that can be counted on, each with
+   * its feature's room and its item's: an item in plain sight or hidden in a
+   * feature with no check (not one a band may never reveal, nor one an
+   * opponent carries), that nothing else uses up first.
+   */
+  const usingUp = [
+    ...[...featureById.values()].flatMap(({ uses }) =>
+      (uses ?? []).flatMap(({ item, consumes }) =>
+        consumes === true ? [item] : [],
+      ),
+    ),
+    ...sites.flatMap(({ check: { retry } }) =>
+      retry?.cost?.type === "item" ? [retry.cost.item] : [],
+    ),
+  ];
+  const sureUseSites = rooms.flatMap(({ id: roomId, features }) =>
+    features.flatMap(({ uses }) =>
+      (uses ?? []).flatMap((use) => {
+        const { item, roomId: itemRoomId } = itemRooms.get(use.item)!;
+        const holder =
+          item.hiddenIn === undefined
+            ? undefined
+            : featureById.get(item.hiddenIn);
+        return (item.hiddenIn !== undefined &&
+          (holder === undefined || holder.check !== undefined)) ||
+          usingUp.filter((id) => id === use.item).length >
+            (use.consumes === true ? 1 : 0)
+          ? []
+          : [{ roomId, itemRoomId, use }];
+      }),
+    ),
+  );
   /** Each encounter flags place (#398), with its own room. */
   const placedByFlags = encounters.flatMap((fight) => {
     const own = rooms.find(({ encounterId }) => encounterId === fight.id);
@@ -3327,16 +3453,37 @@ function validateModule(
         reached.has(itemRooms.get(shut.keyItemId)!.roomId) &&
         featureById.get(itemRooms.get(shut.keyItemId)!.item.hiddenIn ?? "")
           ?.check === undefined;
+      // A use of an item on a feature (#400) is made for sure once its
+      // feature's room and its item are reached for sure.
+      const used = new Set<string>();
       const passable = (entry: FifthPassage) =>
         !excluded.has(entry.id) &&
         entry.trap === undefined &&
         (entry.openWhen === undefined || flagged.has(entry.openWhen)) &&
         (extra.has(entry.id) ||
+          used.has(entry.id) ||
           (entry.hidden !== true &&
             (entry.door === undefined || keyed(entry.door))));
       for (let grew = true; grew;) {
         grew = false;
+        const sureUses = sureUseSites.filter(
+          ({ roomId, itemRoomId }) =>
+            reached.has(roomId) && reached.has(itemRoomId),
+        );
+        for (const { use } of sureUses) {
+          for (const entry of use.effects) {
+            if (entry.type === "open" && !used.has(entry.passage)) {
+              used.add(entry.passage);
+              grew = true;
+            }
+          }
+        }
         const sureFlags = [
+          ...sureUses.flatMap(({ use }) =>
+            use.effects.flatMap((entry) =>
+              entry.type === "set" ? [entry.flag] : [],
+            ),
+          ),
           ...[...reached].flatMap((roomId) => roomFlags.get(roomId)!),
           ...placedByFlags.flatMap(([fight, own]) =>
             (fixed ? reached.has(own) : surelyMet(fight, own, reached, flagged))
@@ -3601,6 +3748,16 @@ function validateModule(
         : []),
     ]),
   );
+  // So can a use's (#400).
+  for (const { uses } of featureById.values()) {
+    for (const { effects } of uses ?? []) {
+      for (const entry of effects) {
+        if (entry.type === "damage") {
+          damageEndings.add(entry.defeatEndingId);
+        }
+      }
+    }
+  }
   for (const { id: endingId, kind } of endings) {
     if (
       kind !== "escape-with-loot" &&

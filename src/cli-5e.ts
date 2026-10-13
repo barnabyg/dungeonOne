@@ -82,6 +82,8 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   search: "Search ",
   disarm: "Disarm ",
   talk: "Talk to ",
+  // The item goes before its feature (#400): "Use Stone Snake on Stone Door".
+  "use-on": "Use ",
   equip: "Equip ",
   unequip: "Unequip ",
   swap: "Wield ",
@@ -293,6 +295,7 @@ function renderView(session: FifthSession): string {
         {
           action,
           target,
+          item,
           approach,
           retry,
           cunningStrike,
@@ -303,7 +306,7 @@ function renderView(session: FifthSession): string {
         },
         index,
       ) =>
-        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${mode === undefined ? "" : `(${mode}) at `}${spell === undefined ? "" : `${spell.name}${spell.damageType === undefined ? "" : ` ${spell.damageTypeUse === "dealt" ? "of" : "against"} ${spell.damageType}`}${spell.curseName === undefined ? "" : ` (${spell.curseName})`}${spell.item === undefined ? (spell.slotLevel === undefined ? "" : ` (level ${spell.slotLevel} slot)`) : ` from ${spell.item.name}${spell.slotLevel === undefined ? "" : ` at level ${spell.slotLevel}`}`} at `}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
+        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${mode === undefined ? "" : `(${mode}) at `}${spell === undefined ? "" : `${spell.name}${spell.damageType === undefined ? "" : ` ${spell.damageTypeUse === "dealt" ? "of" : "against"} ${spell.damageType}`}${spell.curseName === undefined ? "" : ` (${spell.curseName})`}${spell.item === undefined ? (spell.slotLevel === undefined ? "" : ` (level ${spell.slotLevel} slot)`) : ` from ${spell.item.name}${spell.slotLevel === undefined ? "" : ` at level ${spell.slotLevel}`}`} at `}${item === undefined ? "" : `${item.name} on `}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
     ),
   ].join("\n");
 }

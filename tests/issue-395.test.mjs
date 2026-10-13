@@ -30,9 +30,9 @@ import {
 // The validator.
 
 test("a module may declare regions and give each room one", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 35);
-  assert.equal(FIFTH_SESSION_FORMAT, 56);
-  assert.equal(FIFTH_TRACE_FORMAT, 50);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 36);
+  assert.equal(FIFTH_SESSION_FORMAT, 57);
+  assert.equal(FIFTH_TRACE_FORMAT, 51);
   assert.deepEqual(regionTunnels.regions, [
     { id: "upper", name: "Upper Tunnels" },
     { id: "lower", name: "Lower Tunnels" },

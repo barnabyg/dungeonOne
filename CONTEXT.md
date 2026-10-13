@@ -295,6 +295,10 @@ _Avoid_: Switch, Variable, Trigger, Quest state
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
 
+**Use (of an item on a feature)**:
+Using an item the character carries on a feature in the room, as its adventure module allows (#400): fitting a carving into a door, pouring oil on a coffin. The module names the items a feature accepts, the words said, whether the item is used up and what it does, as a check's band would. Each use is made once. The engine refuses an item the feature doesn't accept, one not carried, and a use already made.
+_Avoid_: Combine, Apply
+
 **Discovery**:
 The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.
 _Avoid_: Clue, Journal entry

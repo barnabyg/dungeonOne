@@ -71,9 +71,9 @@ const sneakable = (runtime, state) =>
     .map(({ target }) => target.id);
 
 test("the formats bump", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 35);
-  assert.equal(FIFTH_SESSION_FORMAT, 56);
-  assert.equal(FIFTH_TRACE_FORMAT, 50);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 36);
+  assert.equal(FIFTH_SESSION_FORMAT, 57);
+  assert.equal(FIFTH_TRACE_FORMAT, 51);
 });
 
 // The validator.

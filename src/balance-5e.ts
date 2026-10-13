@@ -882,10 +882,23 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
       ),
     ),
   );
+  // Using an item on a feature (#400) opens one too.
+  const usedOpen = new Set(
+    adventure.rooms.flatMap(({ features }) =>
+      features.flatMap(({ uses }) =>
+        (uses ?? []).flatMap(({ effects }) =>
+          effects.flatMap((effect) =>
+            effect.type === "open" ? [effect.passage] : [],
+          ),
+        ),
+      ),
+    ),
+  );
   return new Set(
     adventure.passages.flatMap(({ id, hidden }) =>
       hidden === true &&
-      !openers.some(({ kind, passage }) => passage === id && kind !== "talk")
+      !openers.some(({ kind, passage }) => passage === id && kind !== "talk") &&
+      !usedOpen.has(id)
         ? [id]
         : [],
     ),
@@ -1374,6 +1387,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   move: true,
   examine: true,
   take: true,
+  // Every style uses an item on a feature as soon as it carries one the
+  // feature accepts (#400), before it leaves the room.
+  "use-on": true,
   force: true,
   pick: true,
   break: true,
@@ -1516,6 +1532,7 @@ const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
   "cast",
   "examine",
   "take",
+  "use-on",
 ]);
 
 /** The first kinds, once everything in the room is examined. */
@@ -2503,7 +2520,10 @@ export function playAdventure(
         ({ target }) =>
           searchable.has(target!.id) &&
           !state.examinedFeatureIds.includes(target!.id),
-      ) ?? offered(first, "take")[0];
+      ) ??
+      offered(first, "take")[0] ??
+      // An item a feature here accepts is used on it before leaving (#400).
+      offered(first, "use-on")[0];
     if (find !== undefined) {
       return find;
     }

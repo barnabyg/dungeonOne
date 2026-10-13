@@ -763,6 +763,60 @@ export function rousedTunnelsFile(moving = true) {
 }
 export const rousedTunnels = validateModule(rousedTunnelsFile());
 
+/**
+ * Using an item on a feature (#400): the rat tunnels as _The Snake Door_. A
+ * Stone Snake lies in the alcove, and a Stone Door at the foot of the stair
+ * has a snake-shaped hollow: fitting the snake into it uses it up and opens
+ * the hidden way to the Snake Vault.
+ */
+export const snakeDoorFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "snake-door";
+  module.title = "The Snake Door";
+  room(module, "alcove").items.push({
+    id: "stone-snake",
+    name: "Stone Snake",
+    description: "A coiled snake carved from grey stone, the length of a hand.",
+    kind: "tool",
+  });
+  room(module, "stair-foot").features.push({
+    id: "stone-door",
+    name: "Stone Door",
+    description:
+      "A stone door carved with coiled snakes. One carving is missing, leaving a snake-shaped hollow.",
+    uses: [
+      {
+        item: "stone-snake",
+        text: "The carving fits the hollow. With a grinding of stone, the door swings inward.",
+        consumes: true,
+        effects: [{ type: "open", passage: "stair-to-vault" }],
+      },
+    ],
+  });
+  module.rooms.push({
+    id: "vault",
+    name: "Snake Vault",
+    description: "A dry vault, its walls painted with snakes.",
+    features: [
+      {
+        id: "snake-mural",
+        name: "Snake Mural",
+        description: "Painted snakes coil round the walls.",
+        discovery: "The snakes all point toward the den.",
+      },
+    ],
+    items: [],
+  });
+  module.passages.push({
+    id: "stair-to-vault",
+    between: ["stair-foot", "vault"],
+    description: "The stone door, and a passage beyond it.",
+    hidden: true,
+  });
+  return module;
+})();
+export const snakeDoor = validateModule(structuredClone(snakeDoorFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

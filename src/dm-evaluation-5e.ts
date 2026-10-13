@@ -901,6 +901,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   search: "search",
   disarm: "disarm",
   talk: "talk",
+  "use-on": "use_on",
   equip: "equip",
   unequip: "unequip",
   swap: "swap_weapon",
@@ -963,7 +964,7 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       ({ available, action, cunningStrike }) =>
         available && TOOL_OF[action] && cunningStrike === undefined,
     )
-    .flatMap(({ action, target, rest, spell }) => {
+    .flatMap(({ action, target, item, rest, spell }) => {
       // A rest (#334) takes each number of hit dice the engine accepts.
       if (action === "rest") {
         return rest!.hitDice.map((count) => `rest:${count}`);
@@ -974,6 +975,10 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       }
       if (UNTARGETED.includes(action)) {
         return [TOOL_OF[action]!];
+      }
+      // An item's use (#400) is offered by its feature and item.
+      if (action === "use-on") {
+        return [`use_on:${target!.id}:${item!.id}`];
       }
       return action === "buy" || action === "sell"
         ? [`trade:${action}:${target!.id}`]
@@ -1620,6 +1625,69 @@ export const FIFTH_FLAG_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     playerInput: "I turn and run back out to the alcove!",
     reply:
       "The gate has dropped shut behind you: there is no way out of the cage to flee by, so you'll have to fight.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The module the item cases (#400) play: a Stone Snake in the alcove, and a
+ * Stone Door at the foot of the stair whose snake-shaped hollow it fits,
+ * which opens the hidden way to the Snake Vault. It is for the evaluation
+ * only, and never offered to play.
+ */
+export function loadFifthItemEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/snake-door.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada takes the stone snake, and the potion from the alcove's chest, and
+// goes back to the door.
+const toDoorWithSnake = [
+  { type: "move", destinationId: "alcove" },
+  { type: "take", itemId: "stone-snake" },
+  { type: "examine", targetId: "iron-chest" },
+  { type: "take", itemId: "healing-potion" },
+  { type: "move", destinationId: "stair-foot" },
+] as const;
+
+/**
+ * Using an item on a feature (#400), on the snake door: the AI DM calls
+ * use_on with the pair the player's words pick out, and calls nothing for
+ * an item the feature doesn't accept or one the character doesn't carry.
+ */
+export const FIFTH_ITEM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "item-right",
+    seed: 0,
+    setup: toDoorWithSnake,
+    playerInput: "I press the stone snake into the hollow in the door.",
+    name: "use_on",
+    arguments: { use: "stone-door:stone-snake" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "item-wrong",
+    kind: "refusal",
+    seed: 0,
+    setup: toDoorWithSnake,
+    playerInput: "I pour the healing potion into the hollow in the door.",
+    reply:
+      "The potion does nothing for the door: the hollow is shaped for something else.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "item-not-carried",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I fit the stone snake into the door's hollow.",
+    reply: "You don't have a stone snake to fit into it.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
