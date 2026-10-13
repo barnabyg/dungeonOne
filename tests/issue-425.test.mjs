@@ -1,16 +1,19 @@
 // #425: the AI DM failed three cases of the delve evaluation suite on main.
 // Asked to take an item in the guard post, or to sneak up on whoever is at
 // the broken gate, it moved there, and asked to slip past a fight it had
-// already joined, it fled. The prompt (v43) says a move is made only when the player asks to go,
-// that a sneak with no fight to sneak up on moves nowhere in its place, and
-// that slipping past a fight is not fleeing.
+// already joined, it fled. The prompt (v43) says a move is made only when
+// the player asks to go, that a sneak with no fight to sneak up on moves
+// nowhere in its place, and that slipping past a fight is not fleeing. The
+// clear attack case names the test Fighter's mace, not a sword she lacks.
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { FIFTH_DM_CASES } from "../dist/dm-evaluation-5e.js";
 import {
   FIFTH_DM_SYSTEM_PROMPT,
   FIFTH_PROMPT_VERSION,
 } from "../dist/runtime-5e.js";
+import { TEST_FIGHTER_CHOICES } from "../dist/test-fighter-5e.js";
 
 test("the prompt is v43", () => {
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v43");
@@ -39,4 +42,10 @@ test("slipping past a fight is not fleeing", () => {
     FIFTH_DM_SYSTEM_PROMPT,
     /Slipping, sneaking or creeping past a fight is not fleeing: never call flee in its place; if flee lists that way, say each opponent able to act will attack as the character goes, and ask whether it flees instead\./u,
   );
+});
+
+test("the clear attack names the test Fighter's own weapon, her mace", () => {
+  const sample = FIFTH_DM_CASES.find(({ id }) => id === "clear-attack");
+  assert.equal(sample.playerInput, "Attack the zombie with my mace.");
+  assert.equal(TEST_FIGHTER_CHOICES.kit, "mace");
 });
