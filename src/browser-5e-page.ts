@@ -16,7 +16,10 @@
 //   fleeing and fled opponents (#237) and surrendering and surrendered ones
 //   (#238), and
 //   keeps each roll in #initiative-breakdown; it collapses behind
-//   #initiative-toggle once the fight is over.
+//   #initiative-toggle once the fight is over. After both, #known-rooms
+//   (#405) lists every room the character has visited or seen through an
+//   exit, grouped by region, the current one marked; choosing one shows
+//   its record in #known-room-record and never moves the character.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Tactical Mind right after a failed
 //   check, #315; a reaction's options, #304) and, in a fight, the turn's
@@ -185,6 +188,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
 <p id="feature-rule" class="hint"></p>
 </section>
+<section id="known-rooms" aria-labelledby="known-rooms-title"><h3 id="known-rooms-title">Known rooms</h3><p class="hint">Where you have been and what you learned there. Choosing a room shows its record; it doesn't move you.</p><div id="known-room-list"></div><div id="known-room-record" aria-live="polite"></div></section>
 </div>
 <div id="session-dock">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div><div id="leave-controls" class="controls"></div></div><div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><div class="controls"><button id="confirm-leave" type="button" class="primary">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div></section>
@@ -246,7 +250,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}.known-list button{padding:4px 10px}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status p{margin:0}
 #gear-numbers{flex-basis:100%}#session-status{grid-area:status;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
@@ -1020,6 +1024,7 @@ function showAdventure(value) {
   const form = element("message-form");
   if (form.dataset.session !== session.id) {
     form.dataset.session = session.id;
+    knownRoomId = null;
     element("message").value = "";
     confirmingLeave = false;
     confirmingSale = null;
@@ -1041,6 +1046,7 @@ function renderAdventure() {
   element("adventure-objective").textContent = adventure.objective;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
+  renderKnownRooms();
   // In a fight the Fight section comes before the room (#386); otherwise after.
   const scene = element("session-scene");
   if (fighting !== (scene.firstElementChild === element("encounter"))) {
@@ -1595,6 +1601,67 @@ const ROOM_LISTS = [
 ];
 
 const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
+
+// The known rooms (#405), as the engine projects them: the room chosen to
+// show its record, or null for the current room.
+let knownRoomId = null;
+const KNOWN_FIGHTS = { "under-way": "under way", won: "won", peaceful: "ended peacefully", bypassed: "slipped past", fled: "fled from", waiting: "still waits" };
+
+function renderKnownRooms() {
+  const groups = session.knownRooms;
+  const rooms = groups.flatMap((group) => group.rooms);
+  const chosen = rooms.find(({ id }) => id === knownRoomId) ?? rooms.find(({ current }) => current);
+  element("known-room-list").replaceChildren(...groups.map(({ region, rooms }) => {
+    const group = make("div", undefined, "known-region");
+    const list = make("ul", undefined, "known-list");
+    if (region) {
+      group.append(make("h4", region));
+      list.setAttribute("aria-label", region);
+    }
+    list.append(...rooms.map((room) => {
+      const item = make("li");
+      const button = make("button", room.name + (room.current ? " (you are here)" : room.visited ? "" : " (seen)"), "secondary");
+      button.type = "button";
+      button.dataset.room = room.id;
+      button.setAttribute("aria-pressed", String(room === chosen));
+      button.addEventListener("click", () => {
+        knownRoomId = room.id;
+        renderKnownRooms();
+        document.querySelector("#known-room-list button[data-room='" + room.id + "']").focus();
+      });
+      item.append(button);
+      return item;
+    }));
+    group.append(list);
+    return group;
+  }));
+  renderKnownRecord(chosen);
+}
+
+// A known room's record (#405): what the engine says was learned there.
+function renderKnownRecord(room) {
+  const record = element("known-room-record");
+  if (!room) {
+    record.replaceChildren();
+    return;
+  }
+  const heading = make("h4", room.name + (room.current ? ": you are here" : ""));
+  if (!room.record) {
+    record.replaceChildren(heading, make("p", "Seen through an exit; you have not been in.", "hint"));
+    return;
+  }
+  const { discoveries, creatures, doors, traps, fight } = room.record;
+  const facts = [
+    ...(fight ? [make("li", "Fight with " + fight.opponents.join(", ") + ": " + KNOWN_FIGHTS[fight.status] + ".")] : []),
+    ...discoveries.map(({ name, discovery }) => make("li", name + ": " + discovery, "discovery")),
+    ...creatures.flatMap(({ name, said }) => said.map((answer) => make("li", name + ", about " + answer.topic + ": " + answer.said))),
+    ...doors.map(({ name, to, open }) => make("li", name + " (to the " + to + "): " + (open ? "open" : "shut") + ".")),
+    ...traps.map(({ name, to, state }) => make("li", name + " (on the way to the " + to + "): " + TRAP_STATES[state] + ".")),
+  ];
+  const list = make("ul", undefined, "things");
+  list.append(...facts);
+  record.replaceChildren(heading, facts.length ? list : make("p", "Nothing learned here yet.", "hint"));
+}
 
 // Disclosures (#157): once the fight is over the initiative table collapses
 // behind #initiative-toggle. It starts collapsed whenever it appears; the

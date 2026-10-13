@@ -314,6 +314,13 @@ the encounter panel, which comes first and lists each combatant in initiative
 order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
 
+**Known rooms**, below the room, lists every room you have been in or seen
+through an exit, grouped by region, with the room you are in marked. Choose a
+room to see what you learned there: the discoveries you made, the creatures
+you talked to and what they said, its doors, the traps you found and whether
+its fight was won, slipped past, fled from, ended peacefully or still waits.
+Choosing a room never moves you, and a reload shows the same record.
+
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
 hears the full "Examine Rusted Lantern"). Outside a fight, what you carry is
@@ -537,7 +544,7 @@ the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 26.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 61.
+  `characters-adventures` directory beside the library, in format version 62.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or

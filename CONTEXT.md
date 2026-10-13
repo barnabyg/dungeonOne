@@ -295,6 +295,10 @@ _Avoid_: Big module, Campaign
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time
 
+**Known rooms**:
+The rooms the character has visited in an adventure, or seen through a visited room's exits (#405), grouped by region with the current one marked. Each visited room keeps its record: the discoveries made there, the creatures talked to and what they said, its doors, the traps found and how its fight stands. The engine projects them; choosing one in the browser shows its record and never moves the character.
+_Avoid_: Journal, Map, Log, Clue
+
 **Flag**:
 A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.
 _Avoid_: Switch, Variable, Trigger, Quest state

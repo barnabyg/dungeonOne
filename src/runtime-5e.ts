@@ -581,6 +581,16 @@ export type FifthState = Readonly<{
   /** The character's moves between rooms in this adventure (#395). */
   moves: number;
   /**
+   * The rooms the character has been in (#405), the start room first, each
+   * once, in the order first entered.
+   */
+  visitedRoomIds: readonly string[];
+  /**
+   * The fights the character has fled (#396, #405), in order. Left out
+   * while there is none.
+   */
+  fledEncounterIds?: readonly string[];
+  /**
    * The module's flags set so far (#397), in the order they were set. A
    * flag only ever turns on.
    */
@@ -4612,6 +4622,54 @@ export function healthOf(hp: number, maxHp: number): Health {
   return hp * 2 <= maxHp ? "bloodied" : "healthy";
 }
 
+/** How a known room's fight stands (#405). */
+export type KnownFightStatus =
+  "under-way" | "won" | "peaceful" | "bypassed" | "fled" | "waiting";
+
+/**
+ * A room the character knows (#405): one it has visited, with its record,
+ * or one only seen through an exit, with its name alone.
+ */
+export type KnownRoomView = Readonly<{
+  id: string;
+  name: string;
+  /** The character is here. */
+  current?: true;
+  visited: boolean;
+  /**
+   * What the character learned here, once visited: the discoveries made,
+   * the creatures talked to and what they said, the doors on its exits and
+   * the traps found on them, and how its fight stands, if it has one the
+   * character has met.
+   */
+  record?: Readonly<{
+    discoveries: readonly Readonly<{ name: string; discovery: string }>[];
+    creatures: readonly Readonly<{
+      name: string;
+      said: readonly Readonly<{ topic: string; said: string }>[];
+    }>[];
+    doors: readonly Readonly<{ name: string; to: string; open: boolean }>[];
+    traps: readonly Readonly<{
+      name: string;
+      to: string;
+      state: "armed" | "disarmed" | "sprung";
+    }>[];
+    fight?: Readonly<{
+      status: KnownFightStatus;
+      opponents: readonly string[];
+    }>;
+  }>;
+}>;
+
+/**
+ * The known rooms of one region (#405), in the module's order: its name,
+ * or none in a module without regions.
+ */
+export type KnownRegionView = Readonly<{
+  region?: string;
+  rooms: readonly KnownRoomView[];
+}>;
+
 /**
  * The player-safe room for the browser: its exits, features (with the
  * discoveries the character has made), visible items, what the character
@@ -5125,12 +5183,18 @@ export type FifthRuntime = Omit<
      */
     projectEffects(state: FifthState): readonly EffectView[];
     /**
-     * The rests of `kind` left in the adventure, and the most: short
-     * (#334) or long (#335).
+     * The rests of `kind` left in the adventure, or in the character's
+     * region of a long module (#404), and the most: short (#334) or long
+     * (#335).
      */
     projectRests(state: FifthState, kind: RestKind): RestsView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
+    /**
+     * The rooms the character knows (#405), by region: those visited, each
+     * with its record, and those seen through their exits.
+     */
+    projectKnownRooms(state: FifthState): readonly KnownRegionView[];
     /** Its module's monster and item icons, for result lines (#377). */
     icons: IconLookup;
     /**
@@ -8797,6 +8861,9 @@ export function createFifthRuntime(
       ...kept,
       roomId: destination.id,
       moves: kept.moves + 1,
+      ...(kept.visitedRoomIds.includes(destination.id)
+        ? {}
+        : { visitedRoomIds: [...kept.visitedRoomIds, destination.id] }),
     };
     const fight = encounterOf(arrived);
     const metHere =
@@ -8883,8 +8950,13 @@ export function createFifthRuntime(
         return event;
       },
     );
+    // The known rooms (#405) say the fight was fled.
+    const fled = away.state.fledEncounterIds ?? [];
+    const fightId = encounterOf(result.state)!.id;
     return goThrough(
-      away.state,
+      fled.includes(fightId)
+        ? away.state
+        : { ...away.state, fledEncounterIds: [...fled, fightId] },
       [...result.events, ...away.events],
       way.passage,
       destination,
@@ -11987,16 +12059,148 @@ export function createFifthRuntime(
     };
   };
 
+  /** Whether the trap `trapId` is armed, disarmed or has sprung. */
+  const trapStateOf = (state: FifthState, trapId: string) =>
+    state.sprungTrapIds.includes(trapId)
+      ? ("sprung" as const)
+      : state.disarmedTrapIds.includes(trapId)
+        ? ("disarmed" as const)
+        : ("armed" as const);
+  /** Whether the character has found the trap `trapId`, or it has sprung on it. */
+  const trapKnown = (state: FifthState, trapId: string) =>
+    state.foundTrapIds.includes(trapId) || state.sprungTrapIds.includes(trapId);
+
+  /** `state` as room `roomId` is with the character away from it (#405). */
+  const awayIn = (state: FifthState, roomId: string): FifthState => {
+    const { encounter: _here, ...rest } = cleared(
+      cleared(
+        cleared(cleared(cleared(state, "wandering"), "omen"), "unseenBy"),
+        "reactingTo",
+      ),
+      "tacticalMind",
+    );
+    void _here;
+    return { ...rest, roomId };
+  };
+
+  /**
+   * What the character learned in room `of` (#405), seen from `state`:
+   * its discoveries, the creatures talked to and what they said, its doors,
+   * the traps found and how its fight stands.
+   */
+  const knownRecord = (
+    state: FifthState,
+    of: FifthRoom,
+  ): NonNullable<KnownRoomView["record"]> => {
+    const here = of.id === state.roomId;
+    const there = here ? state : awayIn(state, of.id);
+    const fight = placedEncounterOf(there);
+    // A fight flags placed here is known only once met (#398).
+    const met =
+      fight !== undefined &&
+      (!isConditional(fight) ||
+        (state.metEncounters ?? []).some(
+          ({ encounterId }) => encounterId === fight.id,
+        ));
+    const status = (id: string): KnownFightStatus =>
+      state.clearedEncounterIds.includes(id)
+        ? "won"
+        : state.peacefulEncounterIds.includes(id)
+          ? "peaceful"
+          : here && fighting(state) && state.wandering === undefined
+            ? "under-way"
+            : state.bypassedEncounterIds.includes(id)
+              ? "bypassed"
+              : (state.fledEncounterIds ?? []).includes(id)
+                ? "fled"
+                : "waiting";
+    const exitsThere = ways(there).filter(
+      ({ passage }) => !isClosed(there, passage),
+    );
+    return {
+      discoveries: describedFeatures(there).flatMap(({ name, discovery }) =>
+        discovery === undefined ? [] : [{ name, discovery }],
+      ),
+      creatures: creaturesHere(there, true).flatMap(({ name, topics }) => {
+        const answers = topics.flatMap((topic) => {
+          const words = said(there, topic);
+          return words === undefined
+            ? []
+            : [{ topic: topic.name, said: words }];
+        });
+        return answers.length === 0 ? [] : [{ name, said: answers }];
+      }),
+      doors: exitsThere.flatMap(({ passage: { door }, to }) =>
+        door === undefined
+          ? []
+          : [
+              {
+                name: door.name,
+                to: roomById(to).name,
+                open: isOpen(there, door),
+              },
+            ],
+      ),
+      traps: exitsThere.flatMap(({ passage: { trap }, to }) =>
+        trap === undefined || !trapKnown(there, trap.id)
+          ? []
+          : [
+              {
+                name: trap.name,
+                to: roomById(to).name,
+                state: trapStateOf(there, trap.id),
+              },
+            ],
+      ),
+      ...(met
+        ? {
+            fight: {
+              status: status(fight.id),
+              opponents: fight.opponents.map(({ name }) => name),
+            },
+          }
+        : {}),
+    };
+  };
+
+  /**
+   * The known rooms (#405): every room visited, with its record, and every
+   * room seen through a visited room's exits, grouped by region in the
+   * module's order, the character's own marked. A module without regions
+   * has one group.
+   */
+  const projectKnownRooms = (state: FifthState): readonly KnownRegionView[] => {
+    const visited = new Set(state.visitedRoomIds);
+    const seen = new Set(
+      state.visitedRoomIds.flatMap((roomId) =>
+        ways({ ...state, roomId }).map(({ to }) => to),
+      ),
+    );
+    const known = adventure.rooms.filter(
+      ({ id }) => visited.has(id) || seen.has(id),
+    );
+    const entry = (of: FifthRoom): KnownRoomView => ({
+      id: of.id,
+      name: of.name,
+      ...(of.id === state.roomId ? { current: true as const } : {}),
+      visited: visited.has(of.id),
+      ...(visited.has(of.id) ? { record: knownRecord(state, of) } : {}),
+    });
+    return adventure.regions === undefined
+      ? [{ rooms: known.map(entry) }]
+      : adventure.regions.flatMap(({ id, name }) => {
+          const rooms = known.filter(({ region }) => region === id);
+          return rooms.length === 0
+            ? []
+            : [{ region: name, rooms: rooms.map(entry) }];
+        });
+  };
+
   function projectRoom(state: FifthState): RoomView {
     const current = room(state);
     const ids = (entries: readonly Readonly<{ id: string }>[]) =>
       entries.map(({ id }) => id);
-    const trapState = (trapId: string) =>
-      state.sprungTrapIds.includes(trapId)
-        ? ("sprung" as const)
-        : state.disarmedTrapIds.includes(trapId)
-          ? ("disarmed" as const)
-          : ("armed" as const);
+    const trapState = (trapId: string) => trapStateOf(state, trapId);
     return {
       id: current.id,
       name: current.name,
@@ -12030,11 +12234,7 @@ export function createFifthRuntime(
                 },
               }),
           // A trap shows once found, or once it has sprung on the character.
-          ...(trap === undefined ||
-          !(
-            state.foundTrapIds.includes(trap.id) ||
-            state.sprungTrapIds.includes(trap.id)
-          )
+          ...(trap === undefined || !trapKnown(state, trap.id)
             ? {}
             : { trap: { ...named(trap), state: trapState(trap.id) } }),
         }),
@@ -13306,6 +13506,7 @@ export function createFifthRuntime(
       shortRests: 0,
       longRests: 0,
       moves: 0,
+      visitedRoomIds: [adventure.startRoomId],
       // First entering a room may set a flag (#397): the start room's is
       // set as the adventure begins.
       flags: startFlags,
@@ -13346,6 +13547,7 @@ export function createFifthRuntime(
     projectHitDice,
     projectEffects: (state: FifthState) => effectViews(self(state)),
     projectRests,
+    projectKnownRooms,
     projectRoom,
     icons,
     projectActions,

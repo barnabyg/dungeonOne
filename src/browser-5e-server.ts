@@ -206,6 +206,8 @@ function sessionView(session: FifthSession) {
     sequence: session.transitions.length,
     adventure: adventureView(adventure),
     room: runtime.projectRoom(state),
+    // The known rooms (#405), by region, each visited one with its record.
+    knownRooms: runtime.projectKnownRooms(state),
     status: state.status,
     ...(ending === undefined
       ? {}
