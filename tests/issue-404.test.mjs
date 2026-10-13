@@ -5,9 +5,11 @@
 // XP limit one level higher (D6). Adventure 40, session 61, trace 55.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
@@ -141,6 +143,27 @@ test("a long module's treasure budget is twice its maximum level's, and its exce
     () => validateModule(purse(851)),
     /module long-tunnels: its findable treasure is worth 901 gp, 1 gp over the 900 gp budget for a long module at level 3\./u,
   );
+});
+
+test("npm run loot names a long module's budget", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-404-loot-"));
+  try {
+    const path = join(directory, "long.json");
+    await writeFile(path, JSON.stringify(longTunnelsFile));
+    const script = fileURLToPath(
+      new URL("../scripts/loot-5e.mjs", import.meta.url),
+    );
+    const run = spawnSync(process.execPath, [script, path, "--seed", "1"], {
+      encoding: "utf8",
+    });
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(
+      run.stdout,
+      /Findable treasure: 50 gp of the 900 gp budget for a long module at level 3\.\n$/u,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("the gate's XP limit allows a long module one more level", () => {

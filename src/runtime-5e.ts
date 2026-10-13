@@ -404,7 +404,7 @@ export function restsText(
   kind: RestKind,
   { left, max, per }: RestsView,
 ): string {
-  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left${per === "region" ? " in this region" : ""}`;
+  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left${per === "region" ? ` ${restsScope({ left, max, per })}` : ""}`;
 }
 
 /** "in this adventure", or "in this region" in a long module (#404). */
@@ -7354,26 +7354,21 @@ export function createFifthRuntime(
     state: FifthState,
     kind: RestKind,
   ): Pick<FifthState, "shortRests" | "longRests" | "regionRests"> => {
-    const counts = {
-      shortRests: state.shortRests + (kind === "short" ? 1 : 0),
-      longRests: state.longRests + (kind === "long" ? 1 : 0),
-    };
+    const counts =
+      kind === "short"
+        ? { shortRests: state.shortRests + 1, longRests: state.longRests }
+        : { shortRests: state.shortRests, longRests: state.longRests + 1 };
     if (adventure.long !== true) {
       return counts;
     }
+    // A long module has regions in every room (the validator's rule).
     const regionId = room(state).region!;
-    const { short, long } = state.regionRests?.[regionId] ?? {
-      short: 0,
-      long: 0,
-    };
+    const taken = state.regionRests?.[regionId] ?? { short: 0, long: 0 };
     return {
       ...counts,
       regionRests: {
         ...state.regionRests,
-        [regionId]: {
-          short: short + (kind === "short" ? 1 : 0),
-          long: long + (kind === "long" ? 1 : 0),
-        },
+        [regionId]: { ...taken, [kind]: taken[kind] + 1 },
       },
     };
   };
