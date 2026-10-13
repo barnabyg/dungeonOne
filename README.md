@@ -320,7 +320,8 @@ room to see what you learned there: the discoveries you made, the creatures
 you talked to and what they said, its doors, the traps you found and whether
 its fight was won, slipped past, fled from, ended peacefully or still waits.
 Choose it again to hide the record. Choosing a room never moves you, and a
-reload shows the same rooms.
+reload shows the same rooms. The AI DM sees them too, so you can ask it where
+a door was, what a creature told you or the way back to a room.
 
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
@@ -661,9 +662,10 @@ These are for development, not play.
   fight action cases (#402), on _The Statue Cellar_
   (`adventures/eval/statue-cellar.json`), `--suite alarm` the alarm cases
   (#401), on _The Alarmed Tunnels_ (`adventures/eval/alarm-tunnels.json`),
-  and `--suite wandering` the wandering encounter cases (#403), on _The
-  Wandering Tunnels_ (`adventures/eval/wandering-tunnels.json`), modules for
-  the evaluation only.
+  `--suite wandering` the wandering encounter cases (#403), on _The
+  Wandering Tunnels_ (`adventures/eval/wandering-tunnels.json`), and
+  `--suite memory` the known rooms cases (#406), on _The Remembered Tunnels_
+  (`adventures/eval/memory-tunnels.json`), modules for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

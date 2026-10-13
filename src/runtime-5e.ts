@@ -323,7 +323,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v40";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v41";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1822,6 +1822,8 @@ A room may offer a fight action: a feature the character can use against one opp
 An adventure may have an alarm. The engine alone raises it, from noise the character makes (a sneak that fails badly, a long fight, a noisy check, an opponent that flees and lives), and once raised it stays raised: the scene's alarm says so, in the adventure's words. No tool raises or lowers the alarm. Never raise it, quiet it, or say it is raised or quiet in your words; if the player asks you to sound it, calm it or undo it, say only the engine decides that, without calling a tool.
 
 Wandering encounters are the engine's alone. It rolls for them every so many moves in a part of the adventure, on each rest and when the alarm is raised, and what comes is in the events: an omen (words only, such as a distant chain), or opponents that come upon the character and start a fight. The scene's wandering says what came last in this room. No tool summons, rolls for, delays or keeps away a wandering encounter. Never bring one on, promise one won't come, or invent an omen in your words; if the player asks you to draw one out, roll for one, skip the roll or keep them away, say only the engine decides that, without calling a tool.
+
+The scene's known rooms are the other rooms the character knows, a line each: one only seen through an exit by its name, and one visited with its ways on as they stand now, the discoveries made there, what its creatures said, its doors, the traps found and how its fight stands. Answer what the character remembers from them (where a door was, what a creature said, the way back to a room), and when the player names a known room that is not an exit here, move one room toward it by the ways they give. They decide nothing: move goes only through the scene's exits, and nothing in them can be examined, taken or asked from here. Never add a discovery, answer or way they don't hold; a room visited long ago may keep only its ways, and then say the character recalls no more.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -4621,6 +4623,12 @@ export function healthOf(hp: number, maxHp: number): Health {
   }
   return hp * 2 <= maxHp ? "bloodied" : "healthy";
 }
+
+/**
+ * The most bytes, as JSON, the known rooms in the AI DM's scene may take
+ * (#406). Over it, the room visited first loses its detail first.
+ */
+export const KNOWN_ROOMS_SCENE_BYTES = 4096;
 
 /** How a known room's fight stands (#405). */
 export type KnownFightStatus =
@@ -11816,6 +11824,8 @@ export function createFifthRuntime(
         : { alarm: `The alarm is raised: ${alarmOf(state).alarm!}` }),
       // What last wandered here (#403), until the character moves on.
       ...wanderingOf(state),
+      // The other rooms the character knows (#406).
+      knownRooms: knownRoomsSummary(state),
       room: {
         id: current.id,
         name: current.name,
@@ -12189,6 +12199,134 @@ export function createFifthRuntime(
             ? []
             : [{ region: name, rooms: rooms.map(entry) }];
         });
+  };
+
+  /** How a known room's fight stands, for the AI DM's scene (#406). */
+  const FIGHT_WORDS: Readonly<Record<KnownFightStatus, string>> = {
+    "under-way": "under way",
+    won: "won",
+    peaceful: "ended peacefully",
+    bypassed: "slipped past",
+    fled: "fled from",
+    waiting: "still waiting",
+  };
+
+  /**
+   * The known rooms for the AI DM's scene (#406): a line for every known
+   * room but the character's own, in the known rooms' order. A room only
+   * seen has its name; a visited one its ways on as they stand now (closed,
+   * opened by a check, or open now a flag is set, which is all the
+   * character knows of the flags), then its record. Over
+   * `KNOWN_ROOMS_SCENE_BYTES`, the rooms visited first lose their records
+   * first, then the rooms only seen are left out, then the rooms visited
+   * first.
+   */
+  const knownRoomsSummary = (state: FifthState): readonly string[] => {
+    const entries = projectKnownRooms(state).flatMap(({ region, rooms }) =>
+      rooms
+        .filter(({ current }) => current !== true)
+        .map((known) => {
+          const head = `${known.name}${region === undefined ? "" : ` (${region})`}`;
+          if (known.record === undefined) {
+            return {
+              brief: `${head}: seen, not yet visited.`,
+              detail: "",
+              visit: -1,
+            };
+          }
+          const there = awayIn(state, known.id);
+          const onward = ways(there).map(
+            ({ passage, to }) =>
+              `${roomById(to).name}${
+                isClosed(there, passage)
+                  ? " (closed)"
+                  : passage.hidden === true
+                    ? " (opened)"
+                    : passage.openWhen !== undefined
+                      ? " (open now)"
+                      : ""
+              }`,
+          );
+          const { discoveries, creatures, doors, traps, fight } = known.record;
+          return {
+            brief: `${head}: visited. ${onward.length === 0 ? "No ways on." : `Ways to ${onward.join(", ")}.`}`,
+            detail: [
+              ...discoveries.map(
+                ({ name, discovery }) =>
+                  `Discovered at the ${name}: ${discovery}`,
+              ),
+              ...creatures.flatMap(({ name, said }) =>
+                said.map(
+                  ({ topic, said: words }) =>
+                    `${name} said of ${topic}: ${words}`,
+                ),
+              ),
+              ...(doors.length === 0
+                ? []
+                : [
+                    `Doors: ${doors
+                      .map(
+                        ({ name, to, open }) =>
+                          `${name} to the ${to}, ${open ? "open" : "shut"}`,
+                      )
+                      .join("; ")}.`,
+                  ]),
+              ...(traps.length === 0
+                ? []
+                : [
+                    `Traps: ${traps
+                      .map(
+                        ({ name, to, state: trap }) =>
+                          `${name} on the way to the ${to}, ${trap}`,
+                      )
+                      .join("; ")}.`,
+                  ]),
+              ...(fight === undefined
+                ? []
+                : [
+                    `Fight: ${FIGHT_WORDS[fight.status]}, against ${listed(fight.opponents, "and")}.`,
+                  ]),
+            ]
+              .map((part) => ` ${part}`)
+              .join(""),
+            visit: state.visitedRoomIds.indexOf(known.id),
+          };
+        }),
+    );
+    const lines: (string | undefined)[] = entries.map(
+      ({ brief, detail }) => brief + detail,
+    );
+    const fits = () =>
+      new TextEncoder().encode(
+        JSON.stringify(lines.filter((line) => line !== undefined)),
+      ).length <= KNOWN_ROOMS_SCENE_BYTES;
+    const visited = entries
+      .map((entry, index) => ({ ...entry, index }))
+      .filter(({ visit }) => visit >= 0)
+      .sort((a, b) => a.visit - b.visit);
+    const seen = entries.flatMap(({ visit }, index) =>
+      visit < 0 ? [index] : [],
+    );
+    const cuts = [
+      ...visited.map(
+        ({ index, brief }) =>
+          () =>
+            (lines[index] = brief),
+      ),
+      ...seen.map((index) => () => (lines[index] = undefined)),
+      ...visited.map(
+        ({ index }) =>
+          () =>
+            (lines[index] = undefined),
+      ),
+    ];
+    for (const cut of cuts) {
+      if (fits()) {
+        break;
+      }
+      cut();
+    }
+    return lines.filter((line) => line !== undefined);
   };
 
   function projectRoom(state: FifthState): RoomView {

@@ -242,6 +242,15 @@ and always-fail runs alike. It is in the seeded playthroughs;
 wandering cases. `tests/issue-403.test.mjs` and
 `tests/issue-403-browser.test.mjs` play it.
 
+## Known rooms in the AI DM's scene (issue 406)
+
+`memoryTunnels` (_The Remembered Tunnels_, from `memoryTunnelsFile`) is the
+two-level tunnels with an Old Hermit in the alcove who talks about the den,
+and a Gallery off the alcove with a chute down to the cellar, so from the
+gallery the way back to the stair foot is through the alcove, which only the
+known rooms tell (#406). `adventures/eval/memory-tunnels.json` is the same
+module for the AI DM's known rooms cases. `tests/issue-406.test.mjs` plays it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

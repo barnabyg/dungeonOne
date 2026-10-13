@@ -296,7 +296,7 @@ How many times the character has gone from one room into another in an adventure
 _Avoid_: Turns, Steps, Time
 
 **Known rooms**:
-The rooms the character has visited in an adventure, or seen through a visited room's exits (#405), grouped by region with the current one marked. Each visited room keeps its record: the discoveries made there, the creatures talked to and what they said, its doors, the traps found and how its fight stands. The engine projects them; choosing one in the browser shows its record and never moves the character.
+The rooms the character has visited in an adventure, or seen through a visited room's exits (#405), grouped by region with the current one marked. Each visited room keeps its record: the discoveries made there, the creatures talked to and what they said, its doors, the traps found and how its fight stands. The engine projects them; choosing one in the browser shows its record and never moves the character. The AI DM's scene holds a line for each, within a size cap (#406), so it can answer what the character remembers.
 _Avoid_: Journal, Map, Log, Clue
 
 **Flag**:

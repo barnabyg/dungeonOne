@@ -1087,6 +1087,57 @@ export const wanderingTunnels = validateModule(
   structuredClone(wanderingTunnelsFile),
 );
 
+/**
+ * The known rooms in the AI DM's scene (#406): the two-level tunnels as
+ * _The Remembered Tunnels_. An Old Hermit in the alcove talks about the
+ * den, and a Gallery off the alcove has a chute down to the cellar, so from
+ * the gallery the way back to the stair foot is through the alcove, which
+ * only the known rooms tell.
+ */
+export const memoryTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "memory-tunnels";
+  module.title = "The Remembered Tunnels";
+  room(module, "alcove").creatures = [
+    {
+      id: "hermit",
+      name: "Old Hermit",
+      description: "A wiry old hermit squats by the chest, picking at a crust.",
+      topics: [
+        {
+          id: "the-den",
+          name: "the den",
+          reply:
+            '"The smugglers sleep in the den past the cellar. Their goblin keeps the key on a cord round its neck."',
+        },
+      ],
+    },
+  ];
+  module.rooms.push({
+    id: "gallery",
+    name: "Gallery",
+    description:
+      "A narrow gallery cut into the rock, open to the cellar below.",
+    region: "upper",
+    features: [],
+    items: [],
+  });
+  module.passages.push(
+    {
+      id: "alcove-to-gallery",
+      between: ["alcove", "gallery"],
+      description: "A crawl through the back of the alcove.",
+    },
+    {
+      id: "gallery-to-cellar",
+      between: ["gallery", "rat-cellar"],
+      description: "A chute down to the cellar.",
+    },
+  );
+  return module;
+})();
+export const memoryTunnels = validateModule(structuredClone(memoryTunnelsFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

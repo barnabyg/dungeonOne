@@ -98,6 +98,11 @@ export type FifthDmCase = Readonly<{
   /** Beyond safety, which is scored for every case. */
   dimensions: readonly Exclude<FifthDmDimension, "safety">[];
   manualJudgments: readonly FifthManualJudgment[];
+  /**
+   * Words the reply must use, whatever their case (#406): what the case
+   * asks the AI DM to recall. Its narration check fails without them.
+   */
+  recalls?: readonly string[];
   /** A correct DM's responses, to check the harness offline. */
   scripted: readonly DmModelResponse[];
 }>;
@@ -1137,7 +1142,11 @@ export async function runFifthDmCase(
         expectation.kind === "action"
           ? committed === 1
           : committed === 0 && isDeepStrictEqual(session.state, before),
-      narration: committed > 0 || !OUTCOME_CLAIM.test(entry.reply),
+      narration:
+        (committed > 0 || !OUTCOME_CLAIM.test(entry.reply)) &&
+        (sample.recalls ?? []).every((words) =>
+          entry.reply.toLowerCase().includes(words.toLowerCase()),
+        ),
     },
   };
 }
@@ -1911,6 +1920,73 @@ export const FIFTH_WANDERING_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     playerInput: "What was that sound?",
     reply: "Far above, a chain clinks against stone, then is still.",
     dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The module the known rooms cases (#406) play: the two-level tunnels with
+ * an Old Hermit in the alcove who talks about the den, and a Gallery off
+ * the alcove with a chute down to the cellar. It is for the evaluation
+ * only, and never offered to play.
+ */
+export function loadFifthMemoryEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/memory-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+/**
+ * The known rooms (#406), in the remembered tunnels: the AI DM recalls a
+ * discovery made in another room and what a creature said there, from the
+ * scene's known rooms, and heads back toward a known room that is not an
+ * exit by the way they give.
+ */
+export const FIFTH_MEMORY_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  quietCase({
+    id: "memory-discovery",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: [
+      { type: "examine", targetId: "rusted-lantern" },
+      { type: "move", destinationId: "alcove" },
+    ],
+    playerInput:
+      "What was scratched on that lantern back at the foot of the stair?",
+    reply: 'Scratched into its base: "Rats in the cellar. Boss in the den."',
+    recalls: ["boss in the den"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "memory-creature",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: [
+      { type: "move", destinationId: "alcove" },
+      { type: "talk", topicId: "the-den" },
+      { type: "move", destinationId: "stair-foot" },
+    ],
+    playerInput: "What did the old hermit tell me about the den?",
+    reply:
+      "The hermit said the smugglers sleep in the den past the cellar, and their goblin keeps the key on a cord round its neck.",
+    recalls: ["cord", "neck"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "memory-way-back",
+    seed: 0,
+    setup: [
+      { type: "move", destinationId: "alcove" },
+      { type: "move", destinationId: "gallery" },
+    ],
+    playerInput: "I head back to the foot of the stair.",
+    name: "move",
+    arguments: { destination: "alcove" },
+    dimensions: ["navigation-accuracy"],
     manualJudgments: [],
   }),
 ]);
