@@ -107,6 +107,7 @@ import {
   type FifthMerchant,
   type FifthEnding,
   type FeatureUse,
+  fightActionBand,
   type FifthFeature,
   type FifthItem,
   type FlagOutcome,
@@ -168,6 +169,8 @@ import {
   TURN_UNDEAD,
   DIVINE_SPARK_MODES,
   everyFoeTurned,
+  checkDisadvantages,
+  featureRefusal,
   fleeAttackers,
   type DivineSparkMode,
   itemCastLevels,
@@ -320,7 +323,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v37";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v38";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -558,6 +561,27 @@ export type FifthState = Readonly<{
    */
   featureUses?: readonly Readonly<{ featureId: string; itemId: string }>[];
   /**
+   * Each fight action used (#402), in order: the feature, the fight it was
+   * used in, its opponent and the band whose outcome applied. Each is used
+   * once per fight or once per adventure, as its module authors, and its
+   * check is never rerolled. Left out while there is none.
+   */
+  fightActions?: readonly Readonly<{
+    featureId: string;
+    encounterId: string;
+    targetId: string;
+    band: Band;
+  }>[];
+  /**
+   * The opponents a fight action removed from their fight (#402): defeated
+   * for XP, they leave no body, and what they carried is lost. Left out
+   * while there is none.
+   */
+  removedOpponents?: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+  }>[];
+  /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
    */
@@ -621,6 +645,17 @@ export type FifthAction =
   | Readonly<{ type: "move"; destinationId: string }>
   /** Using a carried item on a feature here (#400), as the module allows. */
   | Readonly<{ type: "use-on"; featureId: string; itemId: string }>
+  /**
+   * A fight action (#402): using a feature here against opponent
+   * `targetId`, with the action, by `approach` when its check offers
+   * several.
+   */
+  | Readonly<{
+      type: "use-feature";
+      featureId: string;
+      targetId: string;
+      approach?: string;
+    }>
   /**
    * Fleeing the fight here (#396) through the exit to `destinationId`, with
    * the action: each opponent able to act first makes one attack, unless
@@ -830,6 +865,8 @@ const APPROACH_TOOLS: readonly string[] = [
   "break_door",
   "disarm",
   "talk",
+  // A fight action (#402), never retried.
+  "use_feature",
 ];
 
 /** The AI DM's tools that take one id, with the argument and action. */
@@ -988,6 +1025,19 @@ const TARGET_TOOLS = {
       return { type: "use-on", featureId, itemId };
     },
   },
+  // A fight action (#402): `featureId:targetId`, by an approach.
+  use_feature: {
+    parameter: "use",
+    action: (use: string, approach?: string): FifthAction => {
+      const [featureId = "", targetId = ""] = use.split(":", 2);
+      return {
+        type: "use-feature",
+        featureId,
+        targetId,
+        ...(approach === undefined ? {} : { approach }),
+      };
+    },
+  },
   talk: {
     parameter: "topic",
     action: (
@@ -1080,6 +1130,17 @@ export type FifthEvent =
       itemId: string;
       item: string;
       text: string;
+    }>
+  /**
+   * A fight action (#402): the character uses a feature against an
+   * opponent; its check, its band's words and its effects follow.
+   */
+  | Readonly<{
+      type: "used-feature";
+      featureId: string;
+      feature: string;
+      targetId: string;
+      target: string;
     }>
   /**
    * Opponents a flag just placed in the character's room (#398) come into
@@ -1659,6 +1720,8 @@ The character's own gear (its catalogue weapons, armour and shield) is named by 
 A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 On its turn, with its action, the character may flee the fight through an exit it could otherwise go through: flee is offered then, listing only those exits, and says which opponents will attack as it goes. Call flee with the exit the player's words pick out when they run, flee, retreat or make a break for it ("I run for the door"); if they name no exit and more than one is listed, ask which, without calling a tool. Before the character goes, each opponent able to act makes one attack against it: the engine rolls them, and the character may fall before it gets away. Nothing spares those attacks but Disengage: a character with Cunning Action may first disengage with its bonus action (call disengage when the player asks to disengage, slip away or get clear), and then fleeing this turn draws none. A player cannot flee unharmed by asking; never promise it. If flee is not offered, or doesn't list the way the player names (a shut door, a closed way or a way not yet found), say they can't flee that way now, without calling a tool. The fight stays where it was: its fallen stay fallen, its standing foes keep their wounds and wait there, and they never follow.
+
+A room may offer a fight action: a feature the character can use against one opponent with its action (toppling a statue onto it, cutting a chain, pushing it into a chasm). use_feature is offered then, listing each feature and opponent as feature:opponent, with the approaches each offers, and only while the engine would accept it: on the character's turn, with its action left, against an opponent still in the fight, and only until it has been used, once per fight or once per adventure as the room allows. Call use_feature only when the player asks to use the feature against an opponent, with the pair and the approach the player's words pick out (heaving or shoving is Athletics; a deft cut or a quick tug is Dexterity or Sleight of Hand); if they name no opponent and more than one is listed, or their words fit none of the approaches or more than one, ask which, without calling a tool. The engine rolls the check once and decides what it does to the opponent: damage, a condition, or taking it out of the fight, which counts as defeating it and loses whatever it carried. Narrate only that. If use_feature is not offered, or doesn't list the opponent the player names (one fallen, fled or not in this fight), or the feature was already used, say it can't be done now, without calling a tool; never describe the feature's effect yourself.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -3113,6 +3176,17 @@ export function renderFifthEvent(
     case "effect-ended":
     case "concentration":
       return effectText(event, name);
+    case "used-feature":
+      return `You use the ${event.feature} against ${event.target}.`;
+    case "feature-damage": {
+      const target = name(event.targetId);
+      const rolled =
+        event.damageRolls.reduce((sum, value) => sum + value, 0) +
+        event.damageModifier;
+      return `The ${event.source} hits ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${combatant(state.encounter!, event.targetId).maxHp} HP.`;
+    }
+    case "removed":
+      return `${name(event.combatantId)} is out of the fight, defeated, and whatever it carried is lost with it.`;
     case "turn-ended":
       return `${name(event.combatantId)} ends the turn.`;
     case "defeated":
@@ -4295,6 +4369,24 @@ export function describeFifthResult(
             ];
       case "spell-damage":
         return [spellDamageGroup(event), ...curseGroups(event)];
+      case "feature-damage":
+        // A fight action's damage (#402), dealt by its feature.
+        return [
+          {
+            purpose: "damage",
+            roller: event.source,
+            target: name(event.targetId),
+            dice: take(event.damageRolls),
+            modifier: event.damageModifier,
+            total: event.damage,
+            damageType: event.damageType,
+            ...(event.damageAdjustment === undefined
+              ? {}
+              : { adjustment: event.damageAdjustment.by }),
+            hpAfter: event.hpAfter,
+            maxHp: combatant(state.encounter!, event.targetId).maxHp,
+          },
+        ];
       case "spell-healing":
         return [
           {
@@ -4538,6 +4630,8 @@ export type ActionKind =
   | "take"
   /** Using an item on a feature (#400). */
   | "use-on"
+  /** A fight action (#402): a feature used against an opponent. */
+  | "use-feature"
   | DoorApproach
   | "search"
   | "disarm"
@@ -4584,6 +4678,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   examine: true,
   take: true,
   "use-on": true,
+  "use-feature": true,
   force: true,
   pick: true,
   break: true,
@@ -4623,6 +4718,8 @@ export type ActionView = Readonly<{
   target?: Readonly<{ id: string; name: string }>;
   /** The carried item an item's use (#400) uses on its target, a feature. */
   item?: Readonly<{ id: string; name: string }>;
+  /** The feature a fight action (#402) uses against its target, an opponent. */
+  feature?: Readonly<{ id: string; name: string }>;
   /**
    * How a check with several approaches is tried (#283), such as
    * Athletics: one entry per approach while the check is unmade. A
@@ -5544,6 +5641,20 @@ export function createFifthRuntime(
           ...(fight === undefined ? [] : carriedBy.get(fight.id)!),
         ];
   };
+  /**
+   * Whether a fight action took the opponent out of the encounter's fight
+   * (#402): it left no body.
+   */
+  const removedFrom = (
+    state: FifthState,
+    encounterId: string,
+    opponentId: string,
+  ) =>
+    (state.removedOpponents ?? []).some(
+      (removed) =>
+        removed.encounterId === encounterId &&
+        removed.opponentId === opponentId,
+    );
   /** Whether the opponent fell: it neither fled nor surrendered. */
   const fellIn = (state: FifthState, encounterId: string, opponentId: string) =>
     !fledFrom(state, encounterId, opponentId) &&
@@ -5583,7 +5694,10 @@ export function createFifthRuntime(
       !state.clearedEncounterIds.includes(fight.id)
       ? []
       : fight.opponents
-          .filter(({ id }) => fellIn(state, fight.id, id))
+          .filter(
+            ({ id }) =>
+              fellIn(state, fight.id, id) && !removedFrom(state, fight.id, id),
+          )
           .map(({ id, name }) => ({
             id,
             name: `${name}'s body`,
@@ -7980,6 +8094,21 @@ export function createFifthRuntime(
           ? undefined
           : { type: "use-on", featureId, itemId };
       }
+      case "use-feature": {
+        const featureId = field("featureId");
+        const targetId = field("targetId");
+        return featureId === undefined ||
+          targetId === undefined ||
+          !approachOk ||
+          action.retry !== undefined
+          ? undefined
+          : {
+              type: "use-feature",
+              featureId,
+              targetId,
+              ...(approach === undefined ? {} : { approach }),
+            };
+      }
       case "force":
       case "pick":
       case "break":
@@ -9394,6 +9523,119 @@ export function createFifthRuntime(
           events: [...paid.events, ...around([words(success)])],
         };
       }
+      case "use-feature": {
+        if (!fighting(state)) {
+          return reject(
+            "no-fight",
+            "There is no fight here to use anything in.",
+          );
+        }
+        const feature = room(state).features.find(
+          ({ id }) => id === action.featureId,
+        );
+        const usable = feature?.fightAction;
+        if (feature === undefined || usable === undefined) {
+          return reject(
+            "no-feature",
+            "There is nothing like that here to use in this fight.",
+          );
+        }
+        const fight = encounterOf(state)!;
+        if (
+          (state.fightActions ?? []).some(
+            ({ featureId, encounterId }) =>
+              featureId === feature.id &&
+              (usable.once === "adventure" || encounterId === fight.id),
+          )
+        ) {
+          return reject(
+            "already-used",
+            `You already used the ${feature.name} ${usable.once === "fight" ? "in this fight" : "in this adventure"}.`,
+          );
+        }
+        const refused = featureRefusal(
+          state.encounter!,
+          PLAYER_ID,
+          action.targetId,
+        );
+        if (refused !== undefined) {
+          return { state, rejection: refused };
+        }
+        const choice = chooseApproach(state, usable.check, action.approach);
+        if (choice.refused !== undefined) {
+          return { state, rejection: choice.refused };
+        }
+        // The check, rolled once from the seeded stream and remembered with
+        // the band whose outcome applied; the character's own conditions
+        // (poisoned) give it disadvantage.
+        const dice = need(random, "A fight action");
+        const spec = choice.spec!;
+        const roll = policyRoll(
+          abilityCheck(sheetOf(state), spec, dice, {
+            advantage: [],
+            disadvantage: checkDisadvantages(state.encounter!, PLAYER_ID),
+          }),
+          spec,
+        );
+        const band = fightActionBand(usable, bandOf(roll));
+        const outcome = usable.bands[band];
+        const target = combatant(state.encounter!, action.targetId);
+        const result = fightAction(
+          {
+            ...state,
+            fightActions: [
+              ...(state.fightActions ?? []),
+              {
+                featureId: feature.id,
+                encounterId: fight.id,
+                targetId: target.id,
+                band,
+              },
+            ],
+          },
+          {
+            type: "use-feature",
+            actorId: PLAYER_ID,
+            targetId: target.id,
+            source: feature.name,
+            effects: outcome?.effects ?? [],
+          },
+          dice,
+          reject,
+        );
+        if (result.rejection !== undefined) {
+          return result;
+        }
+        const removed = result.events.some(
+          (event) =>
+            event.type === "removed" && event.combatantId === target.id,
+        );
+        return {
+          state: removed
+            ? {
+                ...result.state,
+                removedOpponents: [
+                  ...(result.state.removedOpponents ?? []),
+                  { encounterId: fight.id, opponentId: target.id },
+                ],
+              }
+            : result.state,
+          events: [
+            {
+              type: "used-feature",
+              featureId: feature.id,
+              feature: feature.name,
+              targetId: target.id,
+              target: target.name,
+            },
+            { type: "check", roll, band },
+            ...(outcome?.text === undefined
+              ? []
+              : [{ type: "outcome" as const, text: outcome.text }]),
+            ...result.events,
+          ],
+        };
+      }
       case "use-on": {
         if (fighting(state)) {
           return reject("fighting", "Not while you are fighting.");
@@ -10126,6 +10368,13 @@ export function createFifthRuntime(
       if (target !== undefined) {
         entry.target = { id: target.id, name: target.name };
       }
+      // The feature a fight action uses (#402).
+      if (action.type === "use-feature") {
+        entry.feature = {
+          id: action.featureId,
+          name: featureById.get(action.featureId)!.name,
+        };
+      }
       // The item an item's use names (#400).
       if (action.type === "use-on") {
         entry.item = {
@@ -10675,6 +10924,28 @@ export function createFifthRuntime(
         ...exits(state).map((exit) =>
           view("flee", { type: "flee", destinationId: exit.id }, exit),
         ),
+        // Each fight action here (#402), at each opponent, by each approach.
+        ...room(state).features.flatMap(({ id: featureId, fightAction }) => {
+          if (fightAction === undefined) {
+            return [];
+          }
+          const specs = approachesOf(fightAction.check);
+          return targets.flatMap((target) =>
+            specs.map((spec) =>
+              view(
+                "use-feature",
+                {
+                  type: "use-feature",
+                  featureId,
+                  targetId: target.id,
+                  ...(specs.length > 1 ? { approach: approachId(spec) } : {}),
+                },
+                target,
+                spec,
+              ),
+            ),
+          );
+        }),
         feature("end-turn"),
       ];
     }
@@ -11553,6 +11824,46 @@ export function createFifthRuntime(
         "The id of the room to flee into.",
       ),
       ...targetTool(
+        "use_feature",
+        "Only when the player asks to use a feature of the room against an opponent in the fight (topple it onto them, cut it loose over them, push them into it): the character uses it with its action, and the engine rolls the check once and decides what it does to that opponent. Each feature and opponent, as feature:opponent:",
+        actions
+          .flatMap(({ action, target, feature, available }) =>
+            action === "use-feature" && available
+              ? [
+                  {
+                    id: `${feature!.id}:${target!.id}`,
+                    name: `the ${feature!.name} against ${target!.name}`,
+                  },
+                ]
+              : [],
+          )
+          .filter(
+            ({ id }, index, all) =>
+              all.findIndex((entry) => entry.id === id) === index,
+          ),
+        "The feature's id and the opponent's id, as listed.",
+        [
+          ...actions
+            .reduce(
+              (byPair, { action, target, feature, approach, available }) => {
+                if (
+                  action === "use-feature" &&
+                  available &&
+                  approach !== undefined &&
+                  approachesOf(featureById.get(feature!.id)!.fightAction!.check)
+                    .length > 1
+                ) {
+                  const pair = `${feature!.id}:${target!.id}`;
+                  byPair.set(pair, [...(byPair.get(pair) ?? []), approach]);
+                }
+                return byPair;
+              },
+              new Map<string, Readonly<{ id: string; name: string }>[]>(),
+            )
+            .entries(),
+        ].map(([target, offered]) => ({ target, approaches: offered })),
+      ),
+      ...targetTool(
         "sneak",
         "Only when the player asks to sneak, creep or steal into a room: go through the exit quietly. The engine rolls the character's Stealth against the opponents' best passive Perception: on a success they have not noticed the character, who may then ambush them or slip past; on a failure the fight begins. Rooms where a fight waits:",
         choices("sneak"),
@@ -12104,7 +12415,8 @@ export function createFifthRuntime(
           (approach === null || typeof approach === "string")) ||
           (key === "retry" &&
             typeof retry === "boolean" &&
-            call.name !== "react")));
+            call.name !== "react" &&
+            call.name !== "use_feature")));
     // The rest tool (#334) takes only its whole number of hit dice, and
     // Memorize Spell's two spells (#344), both or neither, while offered.
     const isRest = call.name === "rest";

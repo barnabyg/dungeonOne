@@ -12,6 +12,8 @@ import {
   loadFifthFlagEvaluationAdventure,
   FIFTH_ITEM_DM_CASES,
   loadFifthItemEvaluationAdventure,
+  FIFTH_FIGHT_ACTION_DM_CASES,
+  loadFifthFightActionEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -22,13 +24,14 @@ const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
   "       [--max-calls <count>]",
-  "       [--suite delve|approaches|reactions|parley|flags|items]",
+  "       [--suite delve|approaches|reactions|parley|flags|items|room]",
   "       Runs the abandoned-delve cases, with --suite approaches the",
   "       obstacle-yard approach-selection cases, or with --suite reactions",
   "       the wary-cellar reaction cases, or with --suite parley the",
   "       bandit-toll parley and toll cases, or with --suite flags the",
   "       winch-tunnels flag cases, or with --suite items the",
-  "       snake-door item cases. It calls the live provider",
+  "       snake-door item cases, or with --suite room the",
+  "       statue-cellar fight action cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -78,9 +81,15 @@ function parseArguments(args) {
       parsed.maxCalls = Number(value);
     } else if (
       name === "--suite" &&
-      ["delve", "approaches", "reactions", "parley", "flags", "items"].includes(
-        value,
-      )
+      [
+        "delve",
+        "approaches",
+        "reactions",
+        "parley",
+        "flags",
+        "items",
+        "room",
+      ].includes(value)
     ) {
       parsed.suite = value;
     } else {
@@ -181,6 +190,10 @@ try {
     items: {
       cases: FIFTH_ITEM_DM_CASES,
       load: loadFifthItemEvaluationAdventure,
+    },
+    room: {
+      cases: FIFTH_FIGHT_ACTION_DM_CASES,
+      load: loadFifthFightActionEvaluationAdventure,
     },
   };
   const suite = suites[configuration.suite];

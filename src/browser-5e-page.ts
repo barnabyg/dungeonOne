@@ -1797,6 +1797,8 @@ const ACTIONS = {
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   // Using a carried item on a feature (#400), in the feature's row by the item's name.
   "use-on": { label: "Use ", short: "Use", busy: "Using ", busyLabel: "Using…" },
+  // A fight action (#402): a feature used against an opponent, in the Use the room row.
+  "use-feature": { label: "Use ", busy: "Using ", busyLabel: "Using…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
   pick: { label: "Pick ", short: "Pick", busy: "Picking ", busyLabel: "Picking…" },
   break: { label: "Break ", short: "Break", busy: "Breaking ", busyLabel: "Breaking…" },
@@ -1865,7 +1867,8 @@ const fightingNow = () => Boolean(session.encounter && session.encounter.current
 const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : fightingNow() && FIGHT_GEAR[action] ? FIGHT_GEAR[action] : ACTIONS[action];
 // Leave names the adventure, not the room it is taken from.
 // An item's use (#400) names the item, then the feature.
-const named = (action, target, item) => item ? item.name + " on " + target.name : target && action !== "leave" ? target.name : "";
+// A fight action (#402) names the feature, then its opponent.
+const named = (action, target, item, feature) => feature ? feature.name + " against " + target.name : item ? item.name + " on " + target.name : target && action !== "leave" ? target.name : "";
 // An attack names the weapon it is made with (#392).
 const weaponOf = (action) => {
   const { gear } = session.room;
@@ -1879,7 +1882,7 @@ const heldNames = (held) => {
   for (const { name } of held) counts.set(name, (counts.get(name) ?? 0) + 1);
   return [...counts].map(([name, count]) => (count === 1 ? name : name + " (" + count + ")")).join(" and ");
 };
-const busyName = ({ action, target, item }) => wordsOf(action).busy + named(action, target, item) + withWeapon(action) + "…";
+const busyName = ({ action, target, item, feature }) => wordsOf(action).busy + named(action, target, item, feature) + withWeapon(action) + "…";
 // The attacks on one of several foes, beside its name (#392): their words
 // without it.
 const FOE_WORDS = { attack: "Attack", "light-attack": "Extra attack", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
@@ -1901,9 +1904,9 @@ const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASON
 // row has none. "answer" holds the answers to a hit waiting for a reaction,
 // reaction spells such as Shield among them; "other" any fight action
 // FIGHT_ROW doesn't place.
-const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
+const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["room", "Use the room"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
 // The row each of the fight's actions goes in.
-const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
+const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
 // What End turn would leave unused (#392), by the engine's option kinds.
 const UNUSED_NAMES = { attack: "Attack", "light-attack": "Extra attack", "second-wind": "Second Wind", "action-surge": "Action Surge", hide: "Hide", "steady-aim": "Steady Aim", "drink-potion": "Drink", cast: "Cast a spell", "divine-spark": "Divine Spark", "turn-undead": "Turn Undead", "preserve-life": "Preserve Life", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
 // Whom a Channel Divinity action that takes no choice reaches (#392).
@@ -1987,7 +1990,7 @@ function renderActions() {
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
     // Channel Divinity's uses show once, on its row (#392).
-    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target, option.item) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
+    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target, option.item, option.feature) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -2008,6 +2011,7 @@ function renderActions() {
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     if (option.item) button.dataset.item = option.item.id;
+    if (option.feature) button.dataset.feature = option.feature.id;
     if (option.approach) button.dataset.approach = option.approach.id;
     if (option.retry) button.dataset.retry = "true";
     // An attack the chosen Cunning Strike can't go with (#308).
@@ -2630,11 +2634,11 @@ function strikeChoice(effects) {
   return wrap;
 }
 
-async function perform({ action, target, item, approach, retry, cunningStrike: effect }) {
+async function perform({ action, target, item, feature, approach, retry, cunningStrike: effect }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
-  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (item ? "[data-item=" + JSON.stringify(item.id) + "]" : "") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
-  const busy = busyName({ action, target, item });
+  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (item ? "[data-item=" + JSON.stringify(item.id) + "]" : "") + (feature ? "[data-feature=" + JSON.stringify(feature.id) + "]" : "") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
+  const busy = busyName({ action, target, item, feature });
   // The chosen Cunning Strike (#308) goes with this attack only.
   if (action === "attack" || action === "light-attack") {
     cunningStrike = "";
@@ -2642,7 +2646,8 @@ async function perform({ action, target, item, approach, retry, cunningStrike: e
   } else if (action === "spectral-attack" || action === "drain-attack") await act("/api/5e/session/" + action, { targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
   // An item's use (#400) sends its feature and item as one target.
-  else await act("/api/5e/session/explore", { action, target: item ? targetId + ":" + item.id : targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
+  // A fight action (#402) sends its feature and opponent as one target.
+  else await act("/api/5e/session/explore", { action, target: feature ? feature.id + ":" + targetId : item ? targetId + ":" + item.id : targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
 

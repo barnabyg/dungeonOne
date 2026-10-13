@@ -29,6 +29,7 @@ import {
   goblinTrio,
   sealedCrypt,
   snakeDoor,
+  statueCellar,
 } from "./modules.mjs";
 
 export const PLAYER = "pc";
@@ -153,7 +154,16 @@ export function engineAction(view) {
   };
 }
 
-function madeAction({ action, target, item, targets, rest, spell, mode }) {
+function madeAction({
+  action,
+  target,
+  item,
+  feature,
+  targets,
+  rest,
+  spell,
+  mode,
+}) {
   switch (action) {
     case "attack":
     case "light-attack":
@@ -188,6 +198,13 @@ function madeAction({ action, target, item, targets, rest, spell, mode }) {
     // Using a carried item on a feature (#400).
     case "use-on":
       return { type: "use-on", featureId: target.id, itemId: item.id };
+    // A fight action (#402): a feature used against an opponent.
+    case "use-feature":
+      return {
+        type: "use-feature",
+        featureId: feature.id,
+        targetId: target.id,
+      };
     case "equip":
     case "unequip":
     case "swap":
@@ -288,7 +305,8 @@ const AREAS = {
  * Shield prepared (#337), and with area spells (#338); then a level-3
  * Life Cleric's (#341); then a level-5 Evoker's with Vampiric Touch and
  * Slow (#344), against the trio and the band (#348); then the snake door,
- * whose stone snake fits a door (#400).
+ * whose stone snake fits a door (#400); then the statue cellar, whose
+ * statue may be toppled onto a rat (#402).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -312,6 +330,7 @@ const PLAYTHROUGHS = [
   // since Sleep left the Wizard's list the trio's walk no longer does).
   { adventure: goblinBand, fighters: [evoker()] },
   { adventure: snakeDoor, fighters: [ada] },
+  { adventure: statueCellar, fighters: [ada] },
 ];
 
 /**

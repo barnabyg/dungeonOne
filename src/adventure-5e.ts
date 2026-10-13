@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 36) and its validator.
+ * The 5e adventure module format (format version 37) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -53,6 +53,13 @@
  * opens it. Each essential room, and some exit, must be reachable by a
  * route without a check, or through checks every band of which leaves a way
  * forward, whatever any band may close, and without thieves' tools.
+ *
+ * A feature may offer a fight action (#402): in a fight in its room, with
+ * the character's action, a check against one opponent whose bands damage
+ * it, give it a condition or remove it from the fight, used once per fight
+ * or once per adventure. Only a room where a fight is fought may have one,
+ * and one that can remove an opponent is used once per adventure and never
+ * where a boss may be fought (D4).
  *
  * A Dexterity check may be made with thieves' tools (#309), which only a
  * character carrying them can make: a door's pick always is, and a trap's
@@ -114,7 +121,12 @@ import {
   type Band,
   type CheckSpec,
 } from "./checks-5e.js";
-import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
+import type {
+  Combatant,
+  DamageDefenses,
+  DamageType,
+  FeatureEffect,
+} from "./encounter-5e.js";
 import {
   COIN_VALUES,
   coinsInCopper,
@@ -201,7 +213,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 36;
+export const FIFTH_ADVENTURE_FORMAT = 37;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -472,7 +484,72 @@ export type FifthFeature = Readonly<{
   changed?: Readonly<{ when: string; description: string }>;
   /** The items it accepts (#400), each once, and what using one does. */
   uses?: readonly FeatureUse[];
+  /** What the character can do with it in a fight here (#402). */
+  fightAction?: FeatureFightAction;
 }>;
+
+/**
+ * A fight action (#402): on the character's turn, with its action, a check
+ * against one opponent, made once per fight or once per adventure. Its bands
+ * deal the opponent damage, give it a condition or remove it from the
+ * fight; a band left out, or with only words, does nothing to it.
+ */
+export type FeatureFightAction = Readonly<{
+  once: FightActionOnce;
+  /** One approach, or 2–4 (#283), each a skill or an ability and a DC. */
+  check: AuthoredCheck;
+  bands: Readonly<Partial<Record<Band, FightActionBand>>>;
+}>;
+
+/** How often a fight action may be used: once per fight or per adventure. */
+export const FIGHT_ACTION_ONCE = ["fight", "adventure"] as const;
+export type FightActionOnce = (typeof FIGHT_ACTION_ONCE)[number];
+
+/** What one band of a fight action does (#402): its words and its effects. */
+export type FightActionBand = Readonly<{
+  text?: string;
+  effects?: readonly FightActionEffect[];
+}>;
+
+/** The conditions a fight action may give (#402). */
+export const FIGHT_ACTION_CONDITIONS = [
+  "prone",
+  "poisoned",
+  "paralysed",
+] as const;
+
+/**
+ * One effect of a fight action's band on its opponent (#402), as the
+ * encounter engine applies it (`FeatureEffect`): damage of a type, a
+ * condition for a number of the opponent's turns (prone always one: it gets
+ * up on its next turn), or removal from the fight (pushed into the chasm),
+ * which counts as defeating it and loses what it carries.
+ */
+export type FightActionEffect = FeatureEffect;
+
+/**
+ * The band of a fight action whose outcome applies to a rolled band (#402):
+ * a failure or success by 5 or more it doesn't author counts as plain
+ * failure or success.
+ */
+export function fightActionBand(
+  action: FeatureFightAction,
+  rolled: Band,
+): Band {
+  return action.bands[rolled] !== undefined
+    ? rolled
+    : rolled === "failure-by-5"
+      ? "failure"
+      : rolled === "success-by-5"
+        ? "success"
+        : rolled;
+}
+
+/** Whether a fight action can remove its opponent from the fight (#402). */
+export const removes = (action: FeatureFightAction): boolean =>
+  Object.values(action.bands).some((band) =>
+    (band.effects ?? []).some(({ type }) => type === "remove"),
+  );
 
 /**
  * Using an item on a feature (#400): the item, the words said, whether the
@@ -1427,6 +1504,117 @@ const EFFECT_TYPES = [
   "set",
 ] as const;
 
+/** The most effects one band of a fight action may have (#402). */
+const MAX_FIGHT_EFFECTS = 2;
+
+/** A fight action's effect on its opponent (#402). */
+function fightEffect(value: unknown, where: string): FightActionEffect {
+  const type = isRecord(value) ? value.type : undefined;
+  switch (type) {
+    case "damage": {
+      const raw = exactKeys(
+        value,
+        ["type", "dice", "sides", "modifier", "damageType"],
+        where,
+      );
+      return {
+        type,
+        dice: integer(raw.dice, `${where} dice`, 1, 10),
+        sides: integer(raw.sides, `${where} sides`, 2, 12),
+        modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
+        damageType: damageType(raw.damageType, `${where} damageType`),
+      };
+    }
+    case "condition": {
+      const raw = exactKeys(value, ["type", "condition", "turns"], where);
+      if (!isOneOf(FIGHT_ACTION_CONDITIONS, raw.condition)) {
+        fail(
+          `${where} condition must be ${FIGHT_ACTION_CONDITIONS.join(", ")}.`,
+        );
+      }
+      const turns = integer(raw.turns, `${where} turns`, 1, 10);
+      if (raw.condition === "prone" && turns !== 1) {
+        fail(
+          `${where} gives prone for ${turns} turns, but a prone creature gets up on its next turn: give 1.`,
+        );
+      }
+      return { type, condition: raw.condition, turns };
+    }
+    case "remove":
+      exactKeys(value, ["type"], where);
+      return { type };
+    default:
+      return fail(`${where} type must be damage, condition or remove.`);
+  }
+}
+
+/**
+ * A feature's fight action (#402): `{ once, check, bands }`, its check one
+ * approach or 2–4, each a skill or an ability and a DC only, and its bands
+ * each with text or 1–2 effects of different types, a removal alone.
+ */
+function fightActionOf(value: unknown, where: string): FeatureFightAction {
+  const raw = exactKeys(value, ["once", "check", "bands"], where);
+  if (!isOneOf(FIGHT_ACTION_ONCE, raw.once)) {
+    fail(`${where} once must be ${FIGHT_ACTION_ONCE.join(" or ")}.`);
+  }
+  if (!isRecord(raw.check)) {
+    fail(`${where} check must be an object.`);
+  }
+  const made = approaches(raw.check, `${where} check`);
+  for (const spec of approachesOf(made)) {
+    if (
+      spec.tool !== undefined ||
+      spec.movement !== undefined ||
+      spec.advantage !== undefined ||
+      spec.disadvantage !== undefined
+    ) {
+      fail(
+        `${where} check's approaches take a skill or an ability and a DC only.`,
+      );
+    }
+  }
+  const graded = knownKeys(raw.bands, [], BANDS, `${where} bands`);
+  const bands: Partial<Record<Band, FightActionBand>> = {};
+  for (const band of BANDS) {
+    if (graded[band] === undefined) {
+      continue;
+    }
+    const on = `${where} ${band} band`;
+    const entry = knownKeys(graded[band], [], ["text", "effects"], on);
+    if (entry.text === undefined && entry.effects === undefined) {
+      fail(`${on} needs text or effects.`);
+    }
+    const effects =
+      entry.effects === undefined
+        ? undefined
+        : list(entry.effects, `${on} effects`, MAX_FIGHT_EFFECTS).map(
+            (effectValue, index) =>
+              fightEffect(effectValue, `${on} effect ${index + 1}`),
+          );
+    if (effects !== undefined) {
+      distinct(
+        effects,
+        ({ type }) => type,
+        ({ type }) => `${on} has two ${type} effects.`,
+      );
+      if (effects.length > 1 && effects.some(({ type }) => type === "remove")) {
+        fail(`${on} removes its opponent, so it can have no other effect.`);
+      }
+    }
+    bands[band] = {
+      ...(entry.text === undefined
+        ? {}
+        : { text: text(entry.text, `${on} text`) }),
+      ...(effects === undefined ? {} : { effects }),
+    };
+  }
+  if (!Object.values(bands).some(({ effects }) => effects !== undefined)) {
+    fail(`${where} needs a band with effects.`);
+  }
+  return { once: raw.once, check: made, bands };
+}
+
 /** The most approaches one check may offer (#283). */
 const MAX_APPROACHES = 4;
 
@@ -2311,7 +2499,7 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check", "sets", "changed", "uses"],
+          ["discovery", "check", "sets", "changed", "uses", "fightAction"],
           at,
         );
         const uses =
@@ -2368,6 +2556,14 @@ function validateModule(
             ? {}
             : { sets: id(feature.sets, `${at} sets`) }),
           ...(uses === undefined ? {} : { uses }),
+          ...(feature.fightAction === undefined
+            ? {}
+            : {
+                fightAction: fightActionOf(
+                  feature.fightAction,
+                  `${at} fightAction`,
+                ),
+              }),
           ...(changed === undefined
             ? {}
             : {
@@ -3159,6 +3355,45 @@ function validateModule(
       }
       for (const entry of use.effects) {
         checkEffect(entry, on);
+      }
+    }
+  }
+  // A fight action (#402) needs a fight in its room: the room's own
+  // encounter, one flags move there (#398), or the wandering encounter at
+  // a rest site (#335). One that can remove an opponent is used once per
+  // adventure, and never where a boss may be fought (D4).
+  for (const { id: roomId, encounterId, restSite, features } of rooms) {
+    const fought = encounters.filter(
+      ({ id: fightId, movesTo }) =>
+        fightId === encounterId ||
+        movesTo?.roomId === roomId ||
+        (restSite === true && fightId === wanderingEncounter?.encounterId),
+    );
+    for (const { id: featureId, fightAction } of features) {
+      if (fightAction === undefined) {
+        continue;
+      }
+      const on = `feature ${featureId}'s fight action`;
+      if (fought.length === 0) {
+        fail(
+          `${on} needs a fight, but no fight is ever fought in room ${roomId}.`,
+        );
+      }
+      if (!removes(fightAction)) {
+        continue;
+      }
+      if (fightAction.once !== "adventure") {
+        fail(
+          `${on} can remove an opponent, so it must be usable once per adventure.`,
+        );
+      }
+      for (const { id: fightId, opponents } of fought) {
+        const boss = opponents.find((opponent) => opponent.boss === true);
+        if (boss !== undefined) {
+          fail(
+            `${on} can remove an opponent, but boss ${boss.id} of encounter ${fightId} may be fought in room ${roomId}: a boss is never removed.`,
+          );
+        }
       }
     }
   }

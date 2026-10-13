@@ -817,6 +817,73 @@ export const snakeDoorFile = (() => {
 })();
 export const snakeDoor = validateModule(structuredClone(snakeDoorFile));
 
+/**
+ * A fight action (#402): the rat tunnels as _The Statue Cellar_. The
+ * cellar's fight is two Giant Rats, the second, the Scarred Rat, carrying a
+ * Silver Chain. A Leaning Statue there may be used once in the adventure
+ * against one of them, by Athletics (DC 12) to topple it or Dexterity (DC
+ * 14) to cut the rope that holds it: a failure only rocks it; a success
+ * deals 2d6 bludgeoning damage and knocks the rat prone; a success by 5 or
+ * more buries it, out of the fight.
+ */
+export const statueCellarFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "statue-cellar";
+  module.title = "The Statue Cellar";
+  const fight = module.encounters.find(({ id }) => id === "cellar-rat");
+  fight.opponents.push({
+    ...structuredClone(fight.opponents[0]),
+    id: "scarred-rat",
+    name: "Scarred Rat",
+    description: "A second rat, its hide criss-crossed with old scars.",
+  });
+  room(module, "rat-cellar").items.push({
+    id: "silver-chain",
+    name: "Silver Chain",
+    description: "A tarnished silver chain caught round the rat's neck.",
+    kind: "treasure",
+    treasure: "art-25gp",
+    hiddenIn: "scarred-rat",
+  });
+  room(module, "rat-cellar").features.push({
+    id: "leaning-statue",
+    name: "Leaning Statue",
+    description:
+      "A stone statue of a smuggler leans out from the wall, held up by a frayed rope.",
+    fightAction: {
+      once: "adventure",
+      check: {
+        approaches: [
+          { skill: "athletics", dc: 12 },
+          { ability: "dexterity", dc: 14 },
+        ],
+      },
+      bands: {
+        failure: { text: "The statue rocks, but stays up." },
+        success: {
+          text: "The statue topples onto the rat.",
+          effects: [
+            {
+              type: "damage",
+              dice: 2,
+              sides: 6,
+              modifier: 0,
+              damageType: "bludgeoning",
+            },
+            { type: "condition", condition: "prone", turns: 1 },
+          ],
+        },
+        "success-by-5": {
+          text: "The statue crashes down and buries the rat.",
+          effects: [{ type: "remove" }],
+        },
+      },
+    },
+  });
+  return module;
+})();
+export const statueCellar = validateModule(structuredClone(statueCellarFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

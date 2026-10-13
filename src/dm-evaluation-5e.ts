@@ -902,6 +902,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   disarm: "disarm",
   talk: "talk",
   "use-on": "use_on",
+  "use-feature": "use_feature",
   equip: "equip",
   unequip: "unequip",
   swap: "swap_weapon",
@@ -964,7 +965,7 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       ({ available, action, cunningStrike }) =>
         available && TOOL_OF[action] && cunningStrike === undefined,
     )
-    .flatMap(({ action, target, item, rest, spell }) => {
+    .flatMap(({ action, target, item, feature, rest, spell }) => {
       // A rest (#334) takes each number of hit dice the engine accepts.
       if (action === "rest") {
         return rest!.hitDice.map((count) => `rest:${count}`);
@@ -979,6 +980,10 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       // An item's use (#400) is offered by its feature and item.
       if (action === "use-on") {
         return [`use_on:${target!.id}:${item!.id}`];
+      }
+      // A fight action (#402) is offered by its feature and opponent.
+      if (action === "use-feature") {
+        return [`use_feature:${feature!.id}:${target!.id}`];
       }
       return action === "buy" || action === "sell"
         ? [`trade:${action}:${target!.id}`]
@@ -1692,3 +1697,77 @@ export const FIFTH_ITEM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     manualJudgments: [],
   }),
 ]);
+
+/**
+ * The module the fight action cases (#402) play: two Giant Rats in the
+ * cellar, the second a Scarred Rat carrying a Silver Chain, and a Leaning
+ * Statue there that may be used once against one of them, by Athletics or
+ * Dexterity. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthFightActionEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/statue-cellar.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada goes down into the cellar, where the two rats fight her; on seed 0
+// she acts first.
+const toStatueCellar = [{ type: "move", destinationId: "rat-cellar" }] as const;
+
+// Then she topples the statue onto the Scarred Rat, and ends her turn; on
+// seed 0 the fight goes on to her next turn.
+const statueToppled = [
+  ...toStatueCellar,
+  {
+    type: "use-feature",
+    featureId: "leaning-statue",
+    targetId: "scarred-rat",
+    approach: "athletics",
+  },
+  { type: "end-turn", actorId: "pc" },
+] as const;
+
+/**
+ * Fight actions (#402), in the statue cellar: the AI DM calls use_feature
+ * with the opponent and approach the player's words pick out, and calls
+ * nothing against an opponent not in the fight, or for the statue once it
+ * has been used.
+ */
+export const FIFTH_FIGHT_ACTION_DM_CASES: readonly FifthDmCase[] =
+  Object.freeze([
+    actionCase({
+      id: "room-topple",
+      seed: 0,
+      setup: toStatueCellar,
+      playerInput: "I heave the leaning statue over onto the scarred rat!",
+      name: "use_feature",
+      arguments: { use: "leaning-statue:scarred-rat", approach: "athletics" },
+      dimensions: ["synonym-accuracy"],
+      manualJudgments: [],
+    }),
+    quietCase({
+      id: "room-not-in-fight",
+      kind: "refusal",
+      seed: 0,
+      setup: toStatueCellar,
+      playerInput: "I topple the statue onto the goblin.",
+      reply:
+        "There is no goblin in this fight: only the two rats are here for the statue to fall on.",
+      dimensions: ["refusal", "narration-fidelity"],
+      manualJudgments: [],
+    }),
+    quietCase({
+      id: "room-second-use",
+      kind: "refusal",
+      seed: 0,
+      setup: statueToppled,
+      playerInput:
+        "I shove the statue over again, onto the giant rat this time.",
+      reply:
+        "The statue has already come down: it can't be toppled a second time.",
+      dimensions: ["refusal", "narration-fidelity"],
+      manualJudgments: [],
+    }),
+  ]);

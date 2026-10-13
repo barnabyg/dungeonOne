@@ -79,10 +79,10 @@ const uses = (runtime, state) =>
     }));
 
 test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 36);
-  assert.equal(FIFTH_SESSION_FORMAT, 57);
-  assert.equal(FIFTH_TRACE_FORMAT, 51);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v37");
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 37);
+  assert.equal(FIFTH_SESSION_FORMAT, 58);
+  assert.equal(FIFTH_TRACE_FORMAT, 52);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v38");
 });
 
 // The validator.

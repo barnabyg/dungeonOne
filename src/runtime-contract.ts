@@ -156,6 +156,7 @@ export type FifthToolName =
   | "break_door"
   | "unlock"
   | "use_on"
+  | "use_feature"
   | "disarm"
   | "equip"
   | "unequip"
