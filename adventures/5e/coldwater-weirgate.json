@@ -562,6 +562,12 @@
       "region": "keep",
       "features": [
         {
+          "id": "iron-grate-bars",
+          "name": "Iron Grate",
+          "description": "Heavy iron bars across the stairway, held by a padlock the size of a fist.",
+          "discovery": "The padlock is new and well oiled: the Lockjaw keep its key close."
+        },
+        {
           "id": "bell-line",
           "name": "Bell-Line",
           "description": "A thin cord runs from a small bell on the wall down through the grate.",
@@ -1145,7 +1151,8 @@
         {
           "id": "sluice-levers",
           "name": "Sluice Levers",
-          "description": "A row of levers, all but one chained down, under the words \"Open to drain\". The chains run up toward the sluice-house."
+          "description": "A row of levers, all but one chained down, under the words \"Open to drain\". The chains run up toward the sluice-house.",
+          "discovery": "Each lever's chain runs up to a gear in the sluice-house. A brass plate reads: \"Drain gear: turn with the keeper's crank.\""
         }
       ],
       "items": [],

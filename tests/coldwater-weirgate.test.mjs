@@ -167,7 +167,7 @@ test("its fights: nine placed and two wandering, Grisk the boss whose defeat end
   }
 });
 
-test("two ways lead down, each with one fight before Grisk, and every Culverts room off them is avoidable", () => {
+test("two ways lead down, the stair past the Toll Hall's fight and the culvert past none, to Grisk, and every Culverts room off them is avoidable", () => {
   const grate = passage("keepers-stair").door;
   assert.deepEqual(
     [grate.state, grate.keyItemId, grate.pick],
@@ -336,13 +336,13 @@ const TO_THE_CULVERT = [
 
 test("the keeper's crank drains the culvert, and the way down runs past the outfall and the pump room to Grisk", () => {
   const { state, runtime, random } = firstWalk(level3, TO_THE_CULVERT);
-  assert.equal(
+  assert.notEqual(
     runtime.handleAction(
       state,
       { type: "move", destinationId: "drain-mouth" },
       random,
-    ).rejection?.code !== undefined,
-    true,
+    ).rejection,
+    undefined,
     "the culvert is no way until it is drained",
   );
   const drained = runtime.handleAction(
