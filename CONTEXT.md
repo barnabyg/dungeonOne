@@ -299,6 +299,10 @@ _Avoid_: Object (too broad), Item (an item can be taken)
 Using an item the character carries on a feature in the room, as its adventure module allows (#400): fitting a carving into a door, pouring oil on a coffin. The module names the items a feature accepts, the words said, whether the item is used up and what it does, as a check's band would. Each use is made once. The engine refuses an item the feature doesn't accept, one not carried, and a use already made.
 _Avoid_: Combine, Apply
 
+**Fight action**:
+A feature the character can use against one opponent in a fight, with its action, as its adventure module allows (#402): toppling a statue onto it, cutting a chain, pushing it into a chasm. The engine rolls the action's check once, and its band may damage the opponent, give it a condition (prone, poisoned or paralysed) for some turns, or remove it from the fight: removed, it counts as defeated, and what it carried is lost. Each is used once per fight or once per adventure; a boss is never removed. The single-player stand-in for teamwork against a big monster.
+_Avoid_: Environmental attack, Interaction, Hazard (a trap is a hazard)
+
 **Discovery**:
 The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.
 _Avoid_: Clue, Journal entry

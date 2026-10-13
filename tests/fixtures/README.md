@@ -191,6 +191,18 @@ seeded playthroughs, so the bar tests see a use; `adventures/eval/snake-door.jso
 is the same module for the AI DM's item cases. `tests/issue-400.test.mjs` and
 `tests/issue-400-browser.test.mjs` play it.
 
+## Fight actions (issue 402)
+
+`statueCellar` (_The Statue Cellar_, from `statueCellarFile`) puts a second
+Giant Rat, the Scarred Rat carrying a Silver Chain, in the rat cellar, and a
+Leaning Statue there whose fight action (once per adventure; Athletics DC 12
+or Dexterity DC 14) rocks on a failure, deals 2d6 bludgeoning and knocks the
+rat prone on a success, and buries it out of the fight on a success by 5. It
+is in the seeded playthroughs, so the bar tests see a fight action;
+`adventures/eval/statue-cellar.json` is the same module for the AI DM's fight
+action cases. `tests/issue-402.test.mjs` and `tests/issue-402-browser.test.mjs`
+play it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

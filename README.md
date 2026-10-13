@@ -535,12 +535,12 @@ the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 26.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 57.
+  `characters-adventures` directory beside the library, in format version 58.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 36. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 37. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -555,7 +555,9 @@ the history stays readable, and reloading shows the same ending.
   read differently while a flag is set, and a creature's topic may be offered
   only once one is set or only until one is. A feature may accept items the
   character carries: **Use … on …** in the feature's row fits the stone snake
-  into the door, and the module says what it does.
+  into the door, and the module says what it does. A feature may offer a
+  fight action: in a fight, **Use the room** topples the statue onto an
+  opponent, by the approach chosen, once per fight or once per adventure.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -634,8 +636,9 @@ These are for development, not play.
   (`adventures/eval/bandit-toll.json`), and `--suite flags` the flag cases
   (#397), on _The Winch Tunnels_ (`adventures/eval/winch-tunnels.json`), and
   `--suite items` the cases of using an item on a feature (#400), on _The
-  Snake Door_ (`adventures/eval/snake-door.json`), modules for the evaluation
-  only.
+  Snake Door_ (`adventures/eval/snake-door.json`), and `--suite room` the
+  fight action cases (#402), on _The Statue Cellar_
+  (`adventures/eval/statue-cellar.json`), modules for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
