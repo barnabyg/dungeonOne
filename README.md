@@ -540,7 +540,7 @@ the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 33. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 34. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -550,7 +550,9 @@ the history stays readable, and reloading shows the same ending.
   (#397), facts that only ever turn on, set by what the character does
   (pulling a lever, taking an item, entering a room, a fight's outcome or a
   check's band); a passage may open once a flag is set, or close once one
-  is, and the room panel says so ("The way is open now.").
+  is, and the room panel says so ("The way is open now."). A feature may
+  read differently while a flag is set, and a creature's topic may be offered
+  only once one is set or only until one is.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from

@@ -106,10 +106,12 @@ import {
   type FifthEncounter,
   type FifthMerchant,
   type FifthEnding,
+  type FifthFeature,
   type FifthItem,
   type FlagOutcome,
   type FifthPassage,
   type FifthRoom,
+  type FifthTopic,
   type FifthTrap,
   type StatBlock,
 } from "./adventure-5e.js";
@@ -5444,11 +5446,19 @@ export function createFifthRuntime(
             description: "It lies where it fell.",
           }));
   };
+  /**
+   * The feature as it is now (#399): with its changed description while
+   * that flag is set.
+   */
+  const featureNow = (state: FifthState, feature: FifthFeature) =>
+    feature.changed === undefined || !state.flags.includes(feature.changed.when)
+      ? feature
+      : { ...feature, description: feature.changed.description };
   /** What the character can examine to find things: features, then bodies. */
   const searchable = (
     state: FifthState,
   ): readonly (Named & Readonly<{ discovery?: string; body?: true }>)[] => [
-    ...room(state).features,
+    ...room(state).features.map((feature) => featureNow(state, feature)),
     ...bodies(state).map((body) => ({ ...body, body: true as const })),
   ];
   /**
@@ -5694,15 +5704,42 @@ export function createFifthRuntime(
   const armed = (state: FifthState, trapId: string) =>
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
-  /** The creatures to talk to: the room's, then its surrendered opponents. */
-  const creaturesHere = (state: FifthState): readonly FifthCreature[] => {
+  /**
+   * Whether a topic is offered now (#399): once its `offeredWhile` flag is
+   * set, and until its `offeredUntil` flag is.
+   */
+  const offeredNow = (state: FifthState, topic: FifthTopic) =>
+    (topic.offeredWhile === undefined ||
+      state.flags.includes(topic.offeredWhile)) &&
+    (topic.offeredUntil === undefined ||
+      !state.flags.includes(topic.offeredUntil));
+  /**
+   * The creatures to talk to: the room's, then its surrendered opponents,
+   * each with the topics offered now (#399); with `asked`, also those
+   * already asked about, for what the creature said.
+   */
+  const creaturesHere = (
+    state: FifthState,
+    asked = false,
+  ): readonly FifthCreature[] => {
     // While opponents react, those trading are a creature here too (#305).
     const trader = traderHere(state);
     return [
       ...room(state).creatures,
       ...captives(state),
       ...(trader === undefined ? [] : [trader]),
-    ];
+    ].map((creature) =>
+      creature.topics.every((topic) => offeredNow(state, topic))
+        ? creature
+        : {
+            ...creature,
+            topics: creature.topics.filter(
+              (topic) =>
+                offeredNow(state, topic) ||
+                (asked && state.talkedTopicIds.includes(topic.id)),
+            ),
+          },
+    );
   };
   /**
    * The merchant in the character's room, if there is one: while opponents
@@ -7264,7 +7301,8 @@ export function createFifthRuntime(
         };
       }
       case "talk": {
-        const creature = creaturesHere(state).find(({ topics }) =>
+        // Its band may have withdrawn the topic itself (#399).
+        const creature = creaturesHere(state, true).find(({ topics }) =>
           topics.some((topic) => topic.id === site.id),
         )!;
         const topic = creature.topics.find((entry) => entry.id === site.id)!;
@@ -7275,7 +7313,7 @@ export function createFifthRuntime(
         };
       }
       case "examine": {
-        const feature = featureById.get(site.id)!;
+        const feature = featureNow(state, featureById.get(site.id)!);
         return {
           state,
           events: [
@@ -10812,7 +10850,8 @@ export function createFifthRuntime(
         }),
       ),
       features: describedFeatures(state),
-      creatures: creaturesHere(state).map((creature) => ({
+      // A topic withdrawn (#399) still shows what the creature said.
+      creatures: creaturesHere(state, true).map((creature) => ({
         ...named(creature),
         topics: creature.topics.map((topic) => {
           const words = said(state, topic);

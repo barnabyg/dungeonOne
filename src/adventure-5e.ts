@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 33) and its validator.
+ * The 5e adventure module format (format version 34) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -78,6 +78,10 @@
  * (`closeWhen`), and a circumstance may name a flag. Reachability treats
  * flags as a fixed point: the rooms reached and the flags set for sure are
  * grown together until neither changes.
+ *
+ * A feature may have another description while a flag is set (`changed`),
+ * and a creature's topic may be offered only while a flag is set
+ * (`offeredWhile`) or only until one is (`offeredUntil`) (#399).
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -188,7 +192,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 33;
+export const FIFTH_ADVENTURE_FORMAT = 34;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -333,6 +337,11 @@ export type FifthFeature = Readonly<{
   check?: AuthoredCheck;
   /** The flag examining it sets (#397), whatever its check's band. */
   sets?: string;
+  /**
+   * Its description while a flag is set (#399): the altar after the ritual,
+   * the hall after the alarm. Its discovery and check are unchanged.
+   */
+  changed?: Readonly<{ when: string; description: string }>;
 }>;
 
 /**
@@ -704,6 +713,10 @@ export type FifthTopic = Readonly<{
    * one): only a surrendered opponent gives, and only what it carries (#238).
    */
   gives?: readonly string[];
+  /** Offered only once this flag is set (#399). */
+  offeredWhile?: string;
+  /** Offered only until this flag is set (#399), then withdrawn. */
+  offeredUntil?: string;
 }>;
 
 /**
@@ -1422,10 +1435,22 @@ function topics(
     const topic = knownKeys(
       rawTopic,
       ["id", "name", "reply"],
-      gifts ? ["check", "failure", "gives"] : ["check", "failure"],
+      [
+        "check",
+        "failure",
+        "offeredWhile",
+        "offeredUntil",
+        ...(gifts ? ["gives"] : []),
+      ],
       on,
     );
     const topicId = id(topic.id, `${on} id`);
+    if (
+      topic.offeredWhile !== undefined &&
+      topic.offeredWhile === topic.offeredUntil
+    ) {
+      fail(`topic ${topicId} is offered while and until the same flag.`);
+    }
     if ((topic.check === undefined) !== (topic.failure === undefined)) {
       fail(
         topic.check === undefined
@@ -1450,6 +1475,12 @@ function topics(
               id(given, `${on} gives ${number + 1}`),
             ),
           }),
+      ...(topic.offeredWhile === undefined
+        ? {}
+        : { offeredWhile: id(topic.offeredWhile, `${on} offeredWhile`) }),
+      ...(topic.offeredUntil === undefined
+        ? {}
+        : { offeredUntil: id(topic.offeredUntil, `${on} offeredUntil`) }),
     };
   });
   // The player asks about topics by name, in any case.
@@ -2091,9 +2122,17 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check", "sets"],
+          ["discovery", "check", "sets", "changed"],
           at,
         );
+        const changed =
+          feature.changed === undefined
+            ? undefined
+            : exactKeys(
+                feature.changed,
+                ["when", "description"],
+                `${at} changed`,
+              );
         return {
           id: id(feature.id, `${at} id`),
           name: text(feature.name, `${at} name`, 60),
@@ -2107,6 +2146,17 @@ function validateModule(
           ...(feature.sets === undefined
             ? {}
             : { sets: id(feature.sets, `${at} sets`) }),
+          ...(changed === undefined
+            ? {}
+            : {
+                changed: {
+                  when: id(changed.when, `${at} changed when`),
+                  description: text(
+                    changed.description,
+                    `${at} changed description`,
+                  ),
+                },
+              }),
         };
       },
     );
@@ -2664,6 +2714,31 @@ function validateModule(
       }
     }
   }
+  // A feature's changed description and a topic's offer (#399) use flags.
+  const allTopics = [
+    ...rooms.flatMap(({ creatures }) =>
+      creatures.flatMap(({ topics }) => topics),
+    ),
+    ...encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
+    ),
+  ];
+  for (const { id: featureId, changed } of rooms.flatMap(
+    ({ features }) => features,
+  )) {
+    if (changed !== undefined) {
+      flagNamed(changed.when, `feature ${featureId}`);
+      flagUsers.add(changed.when);
+    }
+  }
+  for (const { id: topicId, offeredWhile, offeredUntil } of allTopics) {
+    for (const flag of [offeredWhile, offeredUntil]) {
+      if (flag !== undefined) {
+        flagNamed(flag, `topic ${topicId}`);
+        flagUsers.add(flag);
+      }
+    }
+  }
   /** Hidden passages some band opens, and who can close each passage. */
   const openable = new Set<string>();
   const closers = new Map<string, string[]>();
@@ -2873,7 +2948,7 @@ function validateModule(
     }
     if (!flagUsers.has(flag)) {
       fail(
-        `flag ${flag} is never used: a passage or a circumstance must name it, or leave it out.`,
+        `flag ${flag} is never used: a passage, a circumstance, a feature or a topic must name it, or leave it out.`,
       );
     }
   }
@@ -2955,6 +3030,20 @@ function validateModule(
    * The approaches a character can take: without thieves' tools (#309),
    * none that needs them.
    */
+  const topicById = new Map(allTopics.map((topic) => [topic.id, topic]));
+  /**
+   * Whether a topic's check is surely there to make once `flags` are set
+   * (#399): one withdrawn once a flag is set may be gone before it is
+   * asked, and one offered only once a flag is set waits for it. Any other
+   * check is.
+   */
+  const surelyOffered = (site: AuthoredSite, flags: ReadonlySet<string>) => {
+    const topic = site.kind === "talk" ? topicById.get(site.id) : undefined;
+    return (
+      topic?.offeredUntil === undefined &&
+      (topic?.offeredWhile === undefined || flags.has(topic.offeredWhile))
+    );
+  };
   const takeable = (site: AuthoredSite, tools: boolean) =>
     approachesOf(site.check).filter(({ tool }) => tools || tool === undefined);
   /** The effective bands some character can roll on a check. */
@@ -3042,7 +3131,8 @@ function validateModule(
         // they can make is never counted on.
         if (
           !siteRooms(site).some((roomId) => sure.rooms.has(roomId)) ||
-          takeable(site, tools).length === 0
+          takeable(site, tools).length === 0 ||
+          !surelyOffered(site, sure.flags)
         ) {
           continue;
         }
@@ -3077,6 +3167,24 @@ function validateModule(
     return sure;
   };
   const freeReach = reachable(new Set());
+  // A surrendered opponent hands over what it carries only through a topic
+  // (#238), so a topic that gives must stay there to ask (#399): never
+  // withdrawn, and offered only once a flag set for sure is set.
+  for (const { id: topicId, gives, offeredWhile, offeredUntil } of allTopics) {
+    if (gives === undefined) {
+      continue;
+    }
+    if (offeredUntil !== undefined) {
+      fail(
+        `topic ${topicId} gives ${gives.join(", ")}, but is withdrawn once flag ${offeredUntil} is set: what it gives could be lost.`,
+      );
+    }
+    if (offeredWhile !== undefined && !freeReach.flags.has(offeredWhile)) {
+      fail(
+        `topic ${topicId} gives ${gives.join(", ")}, but is offered only once flag ${offeredWhile} is set, which nothing sets for sure.`,
+      );
+    }
+  }
   const free = freeReach.rooms;
   const safe = reachable(new Set(closers.keys())).rooms;
   /** A door only thieves' tools open (#309): no key, force or break. */

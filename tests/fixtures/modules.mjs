@@ -678,6 +678,57 @@ export const winchTunnelsFile = (() => {
 })();
 export const winchTunnels = validateModule(structuredClone(winchTunnelsFile));
 
+/**
+ * Flags that change features and topics (#399): the winch tunnels with a
+ * hermit at the foot of the stair. Until the portcullis rises he will talk
+ * about the winch; once it has, about the cellar instead. The rusted lantern
+ * by the stair, and the winch itself, read differently once it has risen.
+ */
+export const hermitTunnelsFile = (() => {
+  const module = structuredClone(winchTunnelsFile);
+  module.id = "hermit-tunnels";
+  module.title = "The Hermit's Tunnels";
+  const foot = room(module, "stair-foot");
+  foot.features[0].changed = {
+    when: "portcullis-raised",
+    description:
+      "The rusted lantern swings on its hook, still shaking from the portcullis.",
+  };
+  room(module, "alcove").features.at(-1).changed = {
+    when: "portcullis-raised",
+    description: "The rusted winch is wound tight, its chain taut.",
+  };
+  foot.creatures = [
+    {
+      id: "hermit",
+      name: "Hermit",
+      description: "A ragged hermit squats by the stair, warming his hands.",
+      topics: [
+        {
+          id: "hermit-winch",
+          name: "The winch",
+          reply:
+            "The winch in the alcove lifts the portcullis. Put your back into it.",
+          offeredUntil: "portcullis-raised",
+        },
+        {
+          id: "hermit-cellar",
+          name: "The cellar",
+          reply: "Now it's open, mind the rat. It bites.",
+          offeredWhile: "portcullis-raised",
+        },
+        {
+          id: "hermit-weather",
+          name: "The weather",
+          reply: "Damp. Always damp.",
+        },
+      ],
+    },
+  ];
+  return module;
+})();
+export const hermitTunnels = validateModule(structuredClone(hermitTunnelsFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

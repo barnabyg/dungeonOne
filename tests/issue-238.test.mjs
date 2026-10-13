@@ -209,7 +209,7 @@ test("the validator refuses topics a surrender can't use or that clash", () => {
             : room,
         ),
       }),
-    /room 1 creature 1 topic 1 must have id, name, reply and may have check, failure, and nothing else\./,
+    /room 1 creature 1 topic 1 must have id, name, reply and may have check, failure, offeredWhile, offeredUntil, and nothing else\./,
   );
   assert.throws(
     withGoblin(1, (opponent) => {
