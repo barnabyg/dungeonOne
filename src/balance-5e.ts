@@ -1365,26 +1365,30 @@ export function requiredPath(
     while (!targets.has(position.roomId)) {
       const path = plan(position, targets, () => true);
       if (path === undefined) {
-        // Name talking only when talking would have reached it, and a flag
-        // only when one keeps the way shut (#407).
+        // Name talking only when talking would have reached it; on a
+        // declared route, else the flag that keeps the way shut (#407).
         const byTalking = routePlanner(adventure, true).plan(
           position,
           targets,
           () => true,
         );
-        const shut = flagShut(position, targets);
-        const why =
-          byTalking !== undefined
-            ? `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}`
-            : shut !== undefined
-              ? `: passage ${shut.id} opens only once flag ${shut.openWhen!} is set, and nothing the character does sets it for sure`
-              : "";
+        const talked =
+          byTalking === undefined
+            ? undefined
+            : `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}`;
         if (route === undefined) {
           throw new BalanceError(
             "unreachable-objective",
-            `${adventure.id}: no route reaches its ${objective} objective${byTalking === undefined ? "" : why}.`,
+            `${adventure.id}: no route reaches its ${objective} objective${talked ?? ""}.`,
           );
         }
+        const shut =
+          talked === undefined ? flagShut(position, targets) : undefined;
+        const why =
+          talked ??
+          (shut === undefined
+            ? ""
+            : `: passage ${shut.id} opens only once flag ${shut.openWhen!} is set, and nothing the character does sets it for sure`);
         const waypoint = targets.size === 1 ? [...targets][0]! : undefined;
         throw new BalanceError(
           "unfollowable-route",
@@ -3869,13 +3873,14 @@ export function gateAdventure(
       (_, index) => (min + index) as Level,
     );
     const limit = stepLimit === undefined ? {} : { stepLimit };
-    // Each declared route (#407), and whether it is other than the
+    // Each declared route (#407), and whether it is off the
     // fewest-fights route, whose runs it shares if not. A route no style
     // can follow fails the module here.
     const fewest = JSON.stringify(requiredPath(adventure).roomIds);
     const routes = (adventure.routes ?? []).map((route) => ({
       route,
-      own: JSON.stringify(requiredPath(adventure, route).roomIds) !== fewest,
+      offFewest:
+        JSON.stringify(requiredPath(adventure, route).roomIds) !== fewest,
     }));
     // In a module without fight actions the use-room style plays as the
     // judged one (#402), so its runs are the judged runs.
@@ -3962,8 +3967,8 @@ export function gateAdventure(
         });
         // Each declared route of its own (#407), on seeded checks and with
         // every check failing.
-        const routeRuns = routes.map(({ route, own }) =>
-          !own
+        const routeRuns = routes.map(({ route, offFewest }) =>
+          !offFewest
             ? runs
             : seeds.map((seed) => {
                 const run = playAdventure(seeded, GATE_STYLE, seed, {
@@ -4017,11 +4022,11 @@ export function gateAdventure(
       branch: Branch,
       style: PlayStyle = GATE_STYLE,
       judging = true,
-      on?: number,
+      routeIndex?: number,
     ): GateMeasures["survival"] => {
       // A declared route's runs (#407), or the fewest-fights route's.
       const runsOf = (entry: (typeof played)[number]) =>
-        on === undefined ? entry.runs : entry.routeRuns[on]!;
+        routeIndex === undefined ? entry.runs : entry.routeRuns[routeIndex]!;
       const kits = played.map((entry) => ({
         kit: entry.kit,
         level: entry.level,
@@ -4054,11 +4059,17 @@ export function gateAdventure(
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
     // Each declared route's checks (#407).
-    const routeChecks = routes.map(({ route: { id, name } }, on) => ({
+    const routeChecks = routes.map(({ route: { id, name } }, routeIndex) => ({
       id,
       name,
-      survival: survivalOf("seeded", "seeded", GATE_STYLE, true, on),
-      alwaysFail: survivalOf("always-fail", "failing", GATE_STYLE, true, on),
+      survival: survivalOf("seeded", "seeded", GATE_STYLE, true, routeIndex),
+      alwaysFail: survivalOf(
+        "always-fail",
+        "failing",
+        GATE_STYLE,
+        true,
+        routeIndex,
+      ),
     }));
     const judgedRuns = played.flatMap(({ runs }) => branchRuns(runs, "seeded"));
     const rests: RestReport = {
