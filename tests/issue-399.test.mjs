@@ -62,7 +62,7 @@ const offeredTalk = (runtime, state) =>
     .map(({ target }) => target.id);
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 34);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 35);
 });
 
 // The validator.
@@ -133,7 +133,7 @@ test("a feature or a topic alone uses a flag", () => {
   delete room(module, "stair-foot").features[0].changed;
   assert.throws(
     () => validateModule(module),
-    /flag portcullis-raised is never used: a passage, a circumstance, a feature or a topic must name it, or leave it out\./u,
+    /flag portcullis-raised is never used: a passage, a circumstance, an encounter, a feature or a topic must name it, or leave it out\./u,
   );
 });
 

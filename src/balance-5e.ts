@@ -13,6 +13,10 @@ import {
   authoredChecks,
   effectsOf,
   sureFlagSetters,
+  encounterInRoom,
+  encounterPlacements,
+  encounterSureFlags,
+  isConditional,
   LOOT_KINDS,
   statBlockDefenses,
   statBlockSaves,
@@ -22,6 +26,7 @@ import {
   type EndingKind,
   type FifthAdventure,
   type FifthPassage,
+  type MetEncounter,
   type StatBlock,
   type SureFlagSetter,
 } from "./adventure-5e.js";
@@ -836,6 +841,8 @@ type Position = Readonly<{
   examinedFeatureIds: readonly string[];
   /** Items taken (or used up): they set no flag again (#397). */
   takenItemIds: readonly string[];
+  /** Where each encounter flags place was met (#398): it stays there. */
+  met: readonly MetEncounter[];
 }>;
 
 /** Rooms a route may pass through or end in; the start is always allowed. */
@@ -928,11 +935,52 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       ),
     ),
   );
+  const placements = encounterPlacements(adventure);
+  /** The encounter in room `roomId` from `position` (#398). */
+  const encounterAt = (position: Position, roomId: string) =>
+    encounterInRoom(placements, roomId, position.flags, position.met);
   const fightIn = (position: Position, roomId: string) => {
-    const encounterId = roomById.get(roomId)!.encounterId;
+    const encounterId = encounterAt(position, roomId);
     return (
       encounterId !== undefined &&
       !position.clearedEncounterIds.includes(encounterId)
+    );
+  };
+  /**
+   * The flags each fight flags place (#398) sets for sure, by the room it is
+   * in from `position`: the planner counts on it where it is now.
+   */
+  const placedSetters = (position: Position) =>
+    adventure.encounters.flatMap((fight) => {
+      if (!isConditional(fight)) {
+        return [];
+      }
+      const roomId = placements.find(
+        (placement) =>
+          placement.encounterId === fight.id &&
+          encounterAt(position, placement.roomId) === fight.id,
+      )?.roomId;
+      return roomId === undefined
+        ? []
+        : encounterSureFlags(fight).map(
+            (flag) =>
+              [
+                roomId,
+                { flag, by: "encounter" as const, id: fight.id },
+              ] as const,
+          );
+    });
+  /** What goes into each room sets for sure from `position` (#397, #398). */
+  const settersFrom = (position: Position) => {
+    const placed = placedSetters(position);
+    return new Map(
+      [...flagSetters].map(([roomId, inRoom]) => [
+        roomId,
+        [
+          ...inRoom,
+          ...placed.flatMap(([at, setter]) => (at === roomId ? [setter] : [])),
+        ],
+      ]),
     );
   };
 
@@ -1029,7 +1077,7 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       const passage = passageBetween(adventure, keyed[step - 1]!, keyed[step]!);
       if (unflagged(position, passage)) {
         const setters = new Set(
-          [...flagSetters].flatMap(([roomId, inRoom]) =>
+          [...settersFrom(position)].flatMap(([roomId, inRoom]) =>
             roomId !== position.roomId &&
             inRoom.some(
               (setter) =>
@@ -1055,10 +1103,12 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     }
     return undefined;
   };
-  /** The flags going into each room sets for sure (#397). */
-  const roomFlags = (roomId: string) =>
-    flagSetters.get(roomId)!.map(({ flag }) => flag);
-  return { plan, roomById, fightIn, roomFlags };
+  /** The flags going into each room sets for sure from `position` (#397). */
+  const roomFlags = (position: Position, roomId: string) =>
+    settersFrom(position)
+      .get(roomId)!
+      .map(({ flag }) => flag);
+  return { plan, roomById, fightIn, encounterAt, roomFlags };
 }
 
 /** The rooms where winning the fight ends the adventure in victory. */
@@ -1112,7 +1162,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
 }> {
-  const { plan, roomById, roomFlags } = routePlanner(adventure);
+  const { plan, roomById, encounterAt, roomFlags } = routePlanner(adventure);
   const objective = objectiveOf(adventure);
   const legs =
     objective === "victory"
@@ -1120,13 +1170,21 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
       : objective === "escape-with-loot"
         ? [lootRooms(adventure), exitRooms(adventure)]
         : [exitRooms(adventure)];
-  let position: Position = {
+  const start: Position = {
     roomId: adventure.startRoomId,
     inventory: [],
     clearedEncounterIds: [],
     blockedPassageIds: [],
     lostKeyIds: [],
-    flags: roomFlags(adventure.startRoomId),
+    flags: [],
+    visitedRoomIds: [],
+    examinedFeatureIds: [],
+    takenItemIds: [],
+    met: [],
+  };
+  let position: Position = {
+    ...start,
+    flags: roomFlags(start, adventure.startRoomId),
     visitedRoomIds: [adventure.startRoomId],
     examinedFeatureIds: roomById
       .get(adventure.startRoomId)!
@@ -1155,7 +1213,26 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
         );
       }
       const arrived = roomById.get(path.at(-1)!)!;
-      // The character fights its way through and takes any key it reaches.
+      // The character fights its way through, room by room, each fight
+      // where the flags set so far place it (#398); it examines and takes
+      // everything on the way, and so sets the flags those rooms set for
+      // sure (#397).
+      let passing = position;
+      for (const roomId of path) {
+        const fight = encounterAt(passing, roomId);
+        passing = {
+          ...passing,
+          clearedEncounterIds: [
+            ...passing.clearedEncounterIds,
+            ...(fight === undefined ? [] : [fight]),
+          ],
+        };
+        passing = {
+          ...passing,
+          flags: [...passing.flags, ...roomFlags(passing, roomId)],
+        };
+      }
+      // It takes any key it reaches.
       position = {
         ...position,
         roomId: arrived.id,
@@ -1165,13 +1242,8 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
             kind === "key" ? [id] : [],
           ),
         ],
-        clearedEncounterIds: [
-          ...position.clearedEncounterIds,
-          ...path.flatMap((roomId) => roomById.get(roomId)!.encounterId ?? []),
-        ],
-        // It examines and takes everything on the way, and so sets the flags
-        // those rooms set for sure (#397).
-        flags: [...position.flags, ...path.flatMap(roomFlags)],
+        clearedEncounterIds: passing.clearedEncounterIds,
+        flags: passing.flags,
         visitedRoomIds: [...position.visitedRoomIds, ...path],
         examinedFeatureIds: [
           ...position.examinedFeatureIds,
@@ -1671,7 +1743,7 @@ export function playAdventure(
       }
     }
   }
-  const { plan, roomById, fightIn } = routePlanner(adventure);
+  const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
   const required = new Set(requiredPath(adventure).roomIds);
   const objective = objectiveOf(adventure);
   const winning = victoryRooms(adventure);
@@ -1771,7 +1843,7 @@ export function playAdventure(
             id:
               state.wandering === true
                 ? adventure.wanderingEncounter!.encounterId
-                : roomById.get(state.roomId)!.encounterId!,
+                : encounterAt(positionNow(), state.roomId)!,
             hpLost: 0,
             fled: 0,
             surrendered: 0,
@@ -1935,6 +2007,7 @@ export function playAdventure(
     visitedRoomIds: roomIds,
     examinedFeatureIds: state.examinedFeatureIds,
     takenItemIds: [...state.inventory, ...state.usedItemIds],
+    met: state.metEncounters ?? [],
   });
   /** The way to an exit room from `position` through no fight (#396). */
   const safeWayOut = (position: Position) =>
@@ -1953,7 +2026,7 @@ export function playAdventure(
     const fightId =
       state.wandering === true
         ? adventure.wanderingEncounter!.encounterId
-        : roomById.get(state.roomId)!.encounterId!;
+        : encounterAt(positionNow(), state.roomId)!;
     if (encounter.pendingReaction !== undefined || fledFrom.includes(fightId)) {
       return undefined;
     }
@@ -2368,10 +2441,11 @@ export function playAdventure(
     ) => readonly ActionView[],
   ): ActionView | undefined => {
     const room = roomById.get(state.roomId)!;
+    const here = encounterAt(positionNow(), state.roomId);
     const searchable = new Set([
       ...room.features.map(({ id }) => id),
       ...(adventure.encounters
-        .find(({ id }) => id === room.encounterId)
+        .find(({ id }) => id === here)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
     // Once everything here is examined, no examination is projected.
@@ -2476,6 +2550,7 @@ export function playAdventure(
         visitedRoomIds: roomIds,
         examinedFeatureIds: state.examinedFeatureIds,
         takenItemIds: [...state.inventory, ...state.usedItemIds],
+        met: state.metEncounters ?? [],
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
         (!winning.has(id) || targets.has(id)) &&

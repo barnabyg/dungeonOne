@@ -109,11 +109,15 @@ import {
   type FifthFeature,
   type FifthItem,
   type FlagOutcome,
+  type MetEncounter,
   type FifthPassage,
   type FifthRoom,
   type FifthTopic,
   type FifthTrap,
   type StatBlock,
+  encounterInRoom,
+  encounterPlacements,
+  isConditional,
 } from "./adventure-5e.js";
 import {
   REACTION_OPTION_NAMES,
@@ -540,6 +544,12 @@ export type FifthState = Readonly<{
    * flag only ever turns on.
    */
   flags: readonly string[];
+  /**
+   * Where each encounter flags place (#398) was first met: sneaked up on,
+   * lain in wait, reacted, fought, slipped past or fled from. It stays
+   * there whatever flags are set after. Left out while there is none.
+   */
+  metEncounters?: readonly MetEncounter[];
   /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
@@ -1041,6 +1051,19 @@ export type FifthEvent =
       room: string;
       to: string;
       opponents: readonly string[];
+    }>
+  /**
+   * Opponents a flag just placed in the character's room (#398) come into
+   * it: their fight begins, or they react.
+   */
+  | Readonly<{
+      type: "arrived";
+      encounterId: string;
+      room: string;
+      /** The descriptions of the opponents that come in. */
+      opponents: readonly string[];
+      /** Their ids, in the same order. */
+      opponentIds: readonly string[];
     }>
   | Readonly<{
       type: "entered";
@@ -3153,6 +3176,10 @@ export function renderFifthEvent(
         `You enter the ${event.name}. ${event.description}`,
         ...event.opponents,
       ].join(" ");
+    case "arrived":
+      return [`Someone comes into the ${event.room}.`, ...event.opponents].join(
+        " ",
+      );
     case "examined":
       return [
         `${event.name}: ${event.description}`,
@@ -3573,7 +3600,8 @@ function lineIcons(
     }
   };
   switch (event.type) {
-    case "entered": {
+    case "entered":
+    case "arrived": {
       let at = text.length - event.opponents.join(" ").length;
       event.opponents.forEach((description, index) => {
         mark(at, icons.opponent(state, event.opponentIds[index]!));
@@ -5213,9 +5241,28 @@ export function createFifthRuntime(
     const region = adventure.regions?.find(({ id }) => id === of.region);
     return region === undefined ? {} : { region: region.name };
   };
+  /** The rooms each encounter may be in (#398). */
+  const placements = encounterPlacements(adventure);
+  /** Encounters flags place (#398), whose first meeting is remembered. */
+  const placedByFlags = adventure.encounters.filter(isConditional);
+  /**
+   * The encounter in room `roomId` now: one flags place (#398) is where it
+   * was met, or else where the flags set place it.
+   */
+  const encounterIn = (state: FifthState, roomId: string) => {
+    const encounterId = encounterInRoom(
+      placements,
+      roomId,
+      state.flags,
+      state.metEncounters,
+    );
+    return encounterId === undefined
+      ? undefined
+      : adventure.encounters.find(({ id }) => id === encounterId);
+  };
   /** The encounter placed in the character's room, if any. */
   const placedEncounterOf = (state: FifthState) =>
-    adventure.encounters.find(({ id }) => id === room(state).encounterId);
+    encounterIn(state, state.roomId);
   /** The module's wandering encounter (#335), if it has one. */
   const wanderer = adventure.encounters.find(
     ({ id }) => id === adventure.wanderingEncounter?.encounterId,
@@ -5400,6 +5447,46 @@ export function createFifthRuntime(
         yielded.encounterId === encounterId &&
         yielded.opponentId === opponentId,
     );
+  /**
+   * What each placed encounter's opponents carry, listed in its own room
+   * (#398: one flags move takes it with it).
+   */
+  const carriedBy = new Map(
+    adventure.rooms.flatMap(({ encounterId, items: listed }) => {
+      const fight = adventure.encounters.find(({ id }) => id === encounterId);
+      return fight === undefined
+        ? []
+        : [
+            [
+              fight.id,
+              listed.filter(({ hiddenIn }) =>
+                fight.opponents.some(({ id }) => id === hiddenIn),
+              ),
+            ] as const,
+          ];
+    }),
+  );
+  const carriedIds = new Set(
+    [...carriedBy.values()].flat().map(({ id }) => id),
+  );
+  /**
+   * The items in the character's room: its own, but what opponents carry
+   * goes with their fight (#398), so it is in the room of the fight here
+   * now.
+   */
+  const itemsHere = (state: FifthState): readonly FifthItem[] => {
+    const own = room(state).items;
+    if (placedByFlags.length === 0) {
+      return own;
+    }
+    const fight = placedEncounterOf(state);
+    return fight?.id === room(state).encounterId
+      ? own
+      : [
+          ...own.filter(({ id }) => !carriedIds.has(id)),
+          ...(fight === undefined ? [] : carriedBy.get(fight.id)!),
+        ];
+  };
   /** Whether the opponent fell: it neither fled nor surrendered. */
   const fellIn = (state: FifthState, encounterId: string, opponentId: string) =>
     !fledFrom(state, encounterId, opponentId) &&
@@ -5470,7 +5557,7 @@ export function createFifthRuntime(
     holderId: string,
     all = false,
   ): readonly FifthItem[] =>
-    room(state).items.filter(
+    itemsHere(state).filter(
       (item) =>
         item.hiddenIn === holderId &&
         present(item) &&
@@ -5493,7 +5580,7 @@ export function createFifthRuntime(
     );
   /** Items lying in the room that the character can see. */
   const roomItems = (state: FifthState): readonly FifthItem[] =>
-    room(state).items.filter(
+    itemsHere(state).filter(
       (item) =>
         present(item) &&
         (item.hiddenIn === undefined ||
@@ -8280,10 +8367,13 @@ export function createFifthRuntime(
   ): FifthResult => {
     // A flight (#396), or a hit's answer that ends one, goes on through
     // the exit once the character has got away; then whatever it did sets
-    // its flags (#397).
-    const result = withFlags(
-      state,
-      getAway(perform(state, requested, random), random),
+    // its flags (#397), which may bring a fight into the room (#398).
+    const result = arrive(
+      withFlags(
+        state,
+        withMet(getAway(perform(state, requested, random), random)),
+      ),
+      random,
     );
     // Tactical Mind is offered only right after the failed check (#315):
     // any other accepted action takes the offer away. A check that fails
@@ -8293,6 +8383,105 @@ export function createFifthRuntime(
       result.state.tacticalMind === state.tacticalMind
       ? { ...result, state: cleared(result.state, "tacticalMind") }
       : result;
+  };
+
+  /**
+   * Whether encounter `id`, one flags place (#398), has been met: sneaked
+   * up on, lain in wait, reacted, parleyed, fought (or is being), won,
+   * ended peacefully, slipped past or left with opponents gone or hurt.
+   */
+  const touched = (state: FifthState, id: string) =>
+    [state.sneaks, state.lurks, state.reactions, state.parleys].some(
+      (records) => records.some(({ encounterId }) => encounterId === id),
+    ) ||
+    [...(state.fallenOpponents ?? []), ...(state.woundedOpponents ?? [])].some(
+      ({ encounterId }) => encounterId === id,
+    ) ||
+    state.clearedEncounterIds.includes(id) ||
+    state.bypassedEncounterIds.includes(id) ||
+    state.peacefulEncounterIds.includes(id) ||
+    state.unseenBy === id ||
+    state.reactingTo === id ||
+    (state.encounter !== undefined &&
+      state.wandering !== true &&
+      placedEncounterOf(state)?.id === id);
+
+  /**
+   * The result with each encounter flags place (#398) that its action met
+   * remembered where it was met, so that no flag set after moves it.
+   */
+  const withMet = (result: FifthResult): FifthResult => {
+    if (result.rejection !== undefined || placedByFlags.length === 0) {
+      return result;
+    }
+    const state = result.state;
+    const met = state.metEncounters ?? [];
+    const fresh = placedByFlags.flatMap(({ id }) =>
+      met.some(({ encounterId }) => encounterId === id) || !touched(state, id)
+        ? []
+        : [
+            {
+              encounterId: id,
+              roomId:
+                placements.find(
+                  ({ encounterId, roomId }) =>
+                    encounterId === id &&
+                    encounterInRoom(placements, roomId, state.flags) === id,
+                )?.roomId ?? state.roomId,
+            },
+          ],
+    );
+    return fresh.length === 0
+      ? result
+      : { ...result, state: { ...state, metEncounters: [...met, ...fresh] } };
+  };
+
+  /**
+   * The result with the fight a flag it set placed in the character's room
+   * (#398) met at once: its opponents come in, and it begins as one the
+   * character walked into would, reacting first if it reacts. Nothing
+   * comes into a fight under way, a room whose fight is unseen or
+   * reacting, or the room of a wandering encounter.
+   */
+  const arrive = (
+    result: FifthResult,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const state = result.state;
+    if (
+      result.rejection !== undefined ||
+      placedByFlags.length === 0 ||
+      state.status !== "playing" ||
+      fighting(state) ||
+      state.unseenBy !== undefined ||
+      state.reactingTo !== undefined ||
+      state.wandering === true
+    ) {
+      return result;
+    }
+    const fight = placedEncounterOf(state);
+    if (
+      fight === undefined ||
+      settled(state, fight.id) ||
+      touched(state, fight.id)
+    ) {
+      return result;
+    }
+    const comers = fight.opponents.filter(
+      ({ id }) => !fallen(state, fight.id, id),
+    );
+    return withMet(
+      meet(state, random, [
+        ...result.events,
+        {
+          type: "arrived",
+          encounterId: fight.id,
+          room: room(state).name,
+          opponents: comers.map(({ description }) => description),
+          opponentIds: comers.map(({ id }) => id),
+        },
+      ]),
+    );
   };
 
   /** The flag `sets` names, as a list: none when it names none (#397). */
@@ -8769,9 +8958,7 @@ export function createFifthRuntime(
           return reject("door-shut", `The ${door.name} is shut.`);
         }
         const destination = roomById(way.to);
-        const ahead = adventure.encounters.find(
-          ({ id }) => id === destination.encounterId,
-        );
+        const ahead = encounterIn(state, destination.id);
         if (
           action.type === "sneak" &&
           (ahead === undefined || settled(state, ahead.id))
@@ -9745,7 +9932,7 @@ export function createFifthRuntime(
     }
     /** Whether a fight not yet won waits in the room `roomId`. */
     const fightAhead = (roomId: string) => {
-      const encounterId = roomById(roomId).encounterId;
+      const encounterId = encounterIn(state, roomId)?.id;
       return encounterId !== undefined && !settled(state, encounterId);
     };
     const view = (

@@ -729,6 +729,40 @@ export const hermitTunnelsFile = (() => {
 })();
 export const hermitTunnels = validateModule(structuredClone(hermitTunnelsFile));
 
+/**
+ * A fight a flag moves (#398): the rat tunnels as _The Roused Tunnels_,
+ * level 1, hard. The Giant Rat sleeps in a nest off the foot of the stair,
+ * out of the way, until knocking the rusted lantern down rouses it
+ * (`rat-roused`): then it waits in the cellar, on the way to the den. With
+ * `moving` false it never leaves its nest, and the lantern sets nothing.
+ */
+export function rousedTunnelsFile(moving = true) {
+  const module = moduleFile("rat-tunnels");
+  module.id = moving ? "roused-tunnels" : "sleeping-tunnels";
+  module.title = moving ? "The Roused Tunnels" : "The Sleeping Tunnels";
+  module.rooms.push({
+    id: "nest",
+    name: "Rat's Nest",
+    description: "A low burrow of shredded sacking, warm and rank.",
+    encounterId: "cellar-rat",
+    features: [],
+    items: [],
+  });
+  delete room(module, "rat-cellar").encounterId;
+  module.passages.push({
+    id: "stair-to-nest",
+    between: ["stair-foot", "nest"],
+    description: "A burrow under the bottom step.",
+  });
+  if (moving) {
+    module.flags = ["rat-roused"];
+    room(module, "stair-foot").features[0].sets = "rat-roused";
+    module.encounters[0].movesTo = { roomId: "rat-cellar", when: "rat-roused" };
+  }
+  return module;
+}
+export const rousedTunnels = validateModule(rousedTunnelsFile());
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

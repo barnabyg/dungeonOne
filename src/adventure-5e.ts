@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 34) and its validator.
+ * The 5e adventure module format (format version 35) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -192,7 +192,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 34;
+export const FIFTH_ADVENTURE_FORMAT = 35;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -274,7 +274,109 @@ export type FifthEncounter = Readonly<{
    * peacefully, or fled from by the character.
    */
   sets?: Readonly<Partial<Record<FlagOutcome, string>>>;
+  /**
+   * Its room holds it only once this flag is set (#398): it appears. At
+   * most one of `presentWhile`, `presentUntil` and `movesTo`.
+   */
+  presentWhile?: string;
+  /** Its room holds it only until this flag is set (#398): it vanishes. */
+  presentUntil?: string;
+  /**
+   * Once the flag `when` is set, it is in the room `roomId` instead of its
+   * own (#398): defenders fall back, gather or take up an ambush.
+   */
+  movesTo?: Readonly<{ roomId: string; when: string }>;
 }>;
+
+/**
+ * A room an encounter may be in (#398): while a flag is set, until one is,
+ * or always.
+ */
+export type Placement = Readonly<{
+  encounterId: string;
+  roomId: string;
+  while?: string;
+  until?: string;
+}>;
+
+/**
+ * Where an encounter was first met (#398): an encounter not yet begun goes
+ * where the flags place it, and one met stays there.
+ */
+export type MetEncounter = Readonly<{ encounterId: string; roomId: string }>;
+
+/** Whether flags place the encounter (#398): it appears, vanishes or moves. */
+export const isConditional = (encounter: FifthEncounter): boolean =>
+  encounter.presentWhile !== undefined ||
+  encounter.presentUntil !== undefined ||
+  encounter.movesTo !== undefined;
+
+/**
+ * Every room each placed encounter may be in (#398): its own room, while
+ * its `presentWhile` flag is set or until its `presentUntil` flag is; or,
+ * for one that moves, its own room until the flag and the other once it is
+ * set.
+ */
+export function encounterPlacements(
+  adventure: Pick<FifthAdventure, "rooms" | "encounters">,
+): readonly Placement[] {
+  return adventure.rooms.flatMap(({ id: roomId, encounterId }) => {
+    const encounter = adventure.encounters.find(
+      ({ id: entry }) => entry === encounterId,
+    );
+    if (encounter === undefined) {
+      return [];
+    }
+    const { presentWhile, presentUntil, movesTo } = encounter;
+    return movesTo !== undefined
+      ? [
+          { encounterId: encounter.id, roomId, until: movesTo.when },
+          {
+            encounterId: encounter.id,
+            roomId: movesTo.roomId,
+            while: movesTo.when,
+          },
+        ]
+      : [
+          {
+            encounterId: encounter.id,
+            roomId,
+            ...(presentWhile === undefined ? {} : { while: presentWhile }),
+            ...(presentUntil === undefined ? {} : { until: presentUntil }),
+          },
+        ];
+  });
+}
+
+/**
+ * The id of the encounter in room `roomId` now (#398), from `placements`:
+ * one met stays where it was met; one not yet met is where the flags set
+ * place it. Undefined when none is.
+ */
+export function encounterInRoom(
+  placements: readonly Placement[],
+  roomId: string,
+  flags: readonly string[],
+  met: readonly MetEncounter[] = [],
+): string | undefined {
+  for (const placement of placements) {
+    if (placement.roomId !== roomId) {
+      continue;
+    }
+    const metIn = met.find(
+      ({ encounterId }) => encounterId === placement.encounterId,
+    );
+    if (
+      metIn !== undefined
+        ? metIn.roomId === roomId
+        : (placement.while === undefined || flags.includes(placement.while)) &&
+          (placement.until === undefined || !flags.includes(placement.until))
+    ) {
+      return placement.encounterId;
+    }
+  }
+  return undefined;
+}
 
 /**
  * A reaction-eligible encounter's reaction (#304): the options each band but
@@ -592,7 +694,12 @@ export function sureFlagSetters(
       : BANDS.map((band) =>
           flagsSetBy(check.bands?.[authoredBand(check, band)]),
         ).reduce((all, flags) => all.filter((flag) => flags.includes(flag)));
-  const fight = encounters.find(({ id }) => id === room.encounterId);
+  // A fight flags place (#398) may never be met here: the validator and
+  // the harness count on it only where it surely is.
+  const fight = encounters.find(
+    (encounter) =>
+      encounter.id === room.encounterId && !isConditional(encounter),
+  );
   const unchecked = new Set(
     room.features.flatMap(({ id, check }) => (check === undefined ? [id] : [])),
   );
@@ -1867,9 +1974,29 @@ function validateModule(
           "lurking",
           "reaction",
           "sets",
+          "presentWhile",
+          "presentUntil",
+          "movesTo",
         ],
         where,
       );
+      if (
+        ["presentWhile", "presentUntil", "movesTo"].filter(
+          (field) => encounter[field] !== undefined,
+        ).length > 1
+      ) {
+        fail(
+          `${where} may have only one of presentWhile, presentUntil and movesTo.`,
+        );
+      }
+      const movesTo =
+        encounter.movesTo === undefined
+          ? undefined
+          : exactKeys(
+              encounter.movesTo,
+              ["roomId", "when"],
+              `${where} movesTo`,
+            );
       if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
         fail(`${where} sneakAgain must be true, or left out.`);
       }
@@ -2062,6 +2189,24 @@ function validateModule(
         ...(encounter.sets === undefined
           ? {}
           : { sets: outcomeFlags(encounter.sets, `${where} sets`) }),
+        ...(encounter.presentWhile === undefined
+          ? {}
+          : {
+              presentWhile: id(encounter.presentWhile, `${where} presentWhile`),
+            }),
+        ...(encounter.presentUntil === undefined
+          ? {}
+          : {
+              presentUntil: id(encounter.presentUntil, `${where} presentUntil`),
+            }),
+        ...(movesTo === undefined
+          ? {}
+          : {
+              movesTo: {
+                roomId: id(movesTo.roomId, `${where} movesTo roomId`),
+                when: id(movesTo.when, `${where} movesTo when`),
+              },
+            }),
       };
     },
   );
@@ -2419,6 +2564,50 @@ function validateModule(
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
+  // Encounters flags place (#398): one moves to a known room not its own;
+  // the one whose fight wins the adventure stays put; and no room may hold
+  // two.
+  for (const encounter of encounters) {
+    const { id: encounterId, movesTo, victoryEndingId } = encounter;
+    if (movesTo !== undefined) {
+      if (!roomIds.has(movesTo.roomId)) {
+        fail(
+          `encounter ${encounterId} moves to unknown room ${movesTo.roomId}.`,
+        );
+      }
+      if (
+        rooms.some(
+          ({ id: roomId, encounterId: here }) =>
+            here === encounterId && roomId === movesTo.roomId,
+        )
+      ) {
+        fail(
+          `encounter ${encounterId} moves to room ${movesTo.roomId}, which is already its own.`,
+        );
+      }
+    }
+    if (isConditional(encounter) && victoryEndingId !== undefined) {
+      fail(
+        `encounter ${encounterId} ends the adventure in victory, so it can't appear, vanish or move.`,
+      );
+    }
+  }
+  // A fight met stays where it was met, so two encounters that may each be
+  // in a room could both be there, whatever their flags.
+  const placements = encounterPlacements({ rooms, encounters });
+  placements.forEach((one, index) => {
+    const other = placements
+      .slice(index + 1)
+      .find(
+        ({ roomId, encounterId }) =>
+          roomId === one.roomId && encounterId !== one.encounterId,
+      );
+    if (other !== undefined) {
+      fail(
+        `room ${one.roomId} may hold encounters ${one.encounterId} and ${other.encounterId} at once; only one fight waits in a room.`,
+      );
+    }
+  });
   const door = (value: unknown, where: string): FifthDoor => {
     const raw = knownKeys(
       value,
@@ -2700,10 +2889,23 @@ function validateModule(
       setters.add(flag);
     }
   }
-  for (const { id: encounterId, sets } of encounters) {
+  for (const {
+    id: encounterId,
+    sets,
+    presentWhile,
+    presentUntil,
+    movesTo,
+  } of encounters) {
     for (const [outcome, flag] of Object.entries(sets ?? {})) {
       flagNamed(flag, `encounter ${encounterId}'s ${outcome}`);
       setters.add(flag);
+    }
+    // Where it is (#398).
+    for (const flag of [presentWhile, presentUntil, movesTo?.when]) {
+      if (flag !== undefined) {
+        flagNamed(flag, `encounter ${encounterId}`);
+        flagUsers.add(flag);
+      }
     }
   }
   for (const { id: passageId, openWhen, closeWhen } of passages) {
@@ -2948,7 +3150,7 @@ function validateModule(
     }
     if (!flagUsers.has(flag)) {
       fail(
-        `flag ${flag} is never used: a passage, a circumstance, a feature or a topic must name it, or leave it out.`,
+        `flag ${flag} is never used: a passage, a circumstance, an encounter, a feature or a topic must name it, or leave it out.`,
       );
     }
   }
@@ -3070,9 +3272,44 @@ function validateModule(
   const roomFlags = new Map(
     rooms.map((room) => [room.id, roomSureFlags(room, encounters)] as const),
   );
+  /** Each encounter flags place (#398), with its own room. */
+  const placedByFlags = encounters.flatMap((fight) => {
+    const own = rooms.find(({ encounterId }) => encounterId === fight.id);
+    return isConditional(fight) && own !== undefined
+      ? [[fight, own.id] as const]
+      : [];
+  });
+  /**
+   * Whether a fight flags place (#398) is surely met, given the rooms
+   * `reached` and the flags `flagged` for sure: one that moves once its new
+   * room is reached and either its flag is set or its own room is reached
+   * too, as wherever it is the character meets it; one that appears once
+   * its room is reached and its flag is set; one that vanishes never, as
+   * it may be gone first.
+   */
+  const surelyMet = (
+    fight: FifthEncounter,
+    own: string,
+    reached: ReadonlySet<string>,
+    flagged: ReadonlySet<string>,
+  ) =>
+    fight.movesTo !== undefined
+      ? reached.has(fight.movesTo.roomId) &&
+        (flagged.has(fight.movesTo.when) || reached.has(own))
+      : fight.presentWhile !== undefined &&
+        reached.has(own) &&
+        flagged.has(fight.presentWhile);
   /** The rooms reached for sure, and the flags set for sure (#397). */
   type Reach = Readonly<{ rooms: Set<string>; flags: Set<string> }>;
-  const reachable = (excluded: ReadonlySet<string>, tools = false): Reach => {
+  /**
+   * With `fixed`, fights flags place (#398) count as staying in their own
+   * rooms, to tell when moving one is what cuts a room off.
+   */
+  const reachable = (
+    excluded: ReadonlySet<string>,
+    tools = false,
+    fixed = false,
+  ): Reach => {
     // The rooms reached from `from` through ways needing no check, and the
     // passages in `extra` a band has made ways; and the flags set on the
     // way, beside those in `set` (#397). Flags only turn on, so the two
@@ -3099,12 +3336,18 @@ function validateModule(
             (entry.door === undefined || keyed(entry.door))));
       for (let grew = true; grew;) {
         grew = false;
-        for (const roomId of reached) {
-          for (const flag of roomFlags.get(roomId)!) {
-            if (!flagged.has(flag)) {
-              flagged.add(flag);
-              grew = true;
-            }
+        const sureFlags = [
+          ...[...reached].flatMap((roomId) => roomFlags.get(roomId)!),
+          ...placedByFlags.flatMap(([fight, own]) =>
+            (fixed ? reached.has(own) : surelyMet(fight, own, reached, flagged))
+              ? encounterSureFlags(fight)
+              : [],
+          ),
+        ];
+        for (const flag of sureFlags) {
+          if (!flagged.has(flag)) {
+            flagged.add(flag);
+            grew = true;
           }
         }
         for (const entry of passages) {
@@ -3187,6 +3430,32 @@ function validateModule(
   }
   const free = freeReach.rooms;
   const safe = reachable(new Set(closers.keys())).rooms;
+  /**
+   * Fails when `what` is cut off only because a fight flags place (#398)
+   * may never be met where the character is sure to go: the flag its fight
+   * sets is then never counted on. Names the first such encounter.
+   */
+  const placedCutOff = (what: string, gone: (sure: Set<string>) => boolean) => {
+    if (!gone(reachable(new Set(), false, true).rooms)) {
+      const blamed = placedByFlags.find(
+        ([fight, own]) =>
+          encounterSureFlags(fight).length > 0 &&
+          !surelyMet(fight, own, freeReach.rooms, freeReach.flags),
+      );
+      if (blamed !== undefined) {
+        const [fight] = blamed;
+        const how =
+          fight.movesTo !== undefined
+            ? `once flag ${fight.movesTo.when} is set it moves to room ${fight.movesTo.roomId}, where it may never be met`
+            : fight.presentWhile !== undefined
+              ? `it is there only once flag ${fight.presentWhile} is set`
+              : `it vanishes once flag ${fight.presentUntil!} is set`;
+        fail(
+          `encounter ${fight.id} can cut off ${what}: ${how}, so flag ${encounterSureFlags(fight).join(", ")} its fight sets is never set for sure.`,
+        );
+      }
+    }
+  };
   /** A door only thieves' tools open (#309): no key, force or break. */
   const toolsOnly = (shut: FifthDoor) =>
     shut.pick !== undefined &&
@@ -3222,6 +3491,7 @@ function validateModule(
       winning.has(encounterId) &&
       !free.has(roomId)
     ) {
+      placedCutOff(`essential room ${roomId}`, (sure) => !sure.has(roomId));
       // The rooms the essential one joins without passing the free rooms;
       // the guards are on the passages from the free rooms into them.
       const beyond = new Set([roomId]);
@@ -3280,6 +3550,7 @@ function validateModule(
   const exitIn = (sure: Set<string>) =>
     rooms.some(({ id: roomId, exit }) => exit && sure.has(roomId));
   if (hasExit && !exitIn(free)) {
+    placedCutOff("every exit", (sure) => !exitIn(sure));
     fail(
       exitIn(tooled)
         ? "every exit needs thieves' tools to reach; one must be reachable without them."
@@ -3404,6 +3675,11 @@ function wandering(
   }
   if (fight.reaction !== undefined) {
     fail(`${where} can't have a reaction: it comes upon the character.`);
+  }
+  if (isConditional(fight)) {
+    fail(
+      `${where} can't appear, vanish or move: it is in no room, and comes to the character as it rests.`,
+    );
   }
   for (const opponent of fight.opponents) {
     if (opponent.surrender !== undefined) {
