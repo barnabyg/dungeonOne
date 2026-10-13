@@ -11297,6 +11297,7 @@ export function createFifthRuntime(
       // A check only thieves' tools can make isn't offered without them (#309).
       if (
         !asked(kind) ||
+        (targets !== undefined && !targets.has(target.id)) ||
         (check !== undefined && takeable(state, check).length === 0)
       ) {
         return [];
@@ -11643,15 +11644,18 @@ export function createFifthRuntime(
       ...(state.unseenBy === undefined
         ? []
         : [view("ambush", { type: "ambush", roomId: here.id }, here)]),
-      ...exits(state).flatMap((exit) => [
-        view("move", { type: "move", destinationId: exit.id }, exit),
-        // Sneaking in (#301) is offered only where a fight waits.
-        ...(asked("sneak") && fightAhead(exit.id)
-          ? [view("sneak", { type: "sneak", destinationId: exit.id }, exit)]
-          : []),
-      ]),
+      // Each part is worked out only when a kind it lists is asked for (#410).
+      ...(!asked("move", "sneak")
+        ? []
+        : exits(state).flatMap((exit) => [
+            view("move", { type: "move", destinationId: exit.id }, exit),
+            // Sneaking in (#301) is offered only where a fight waits.
+            ...(asked("sneak") && fightAhead(exit.id)
+              ? [view("sneak", { type: "sneak", destinationId: exit.id }, exit)]
+              : []),
+          ])),
       // An open door has nothing left to try, so it shows no approaches.
-      ...doorsHere(state)
+      ...(!asked(...DOOR_CHECKS, "unlock") ? [] : doorsHere(state))
         .filter((door) => !isOpen(state, door))
         .flatMap((door) => [
           ...DOOR_CHECKS.filter(
@@ -11679,7 +11683,7 @@ export function createFifthRuntime(
       ...(hasTraps
         ? [view("search", { type: "search", roomId: here.id }, here)]
         : []),
-      ...trapsHere(state)
+      ...(!asked("disarm") ? [] : trapsHere(state))
         .filter(({ trap }) => state.foundTrapIds.includes(trap.id))
         .flatMap(({ trap }) =>
           tries(
@@ -11693,9 +11697,9 @@ export function createFifthRuntime(
             },
           ),
         ),
-      ...searchable(state).flatMap(examine),
+      ...(!asked("examine") ? [] : searchable(state)).flatMap(examine),
       // Each item the character carries that a feature here accepts (#400).
-      ...room(state).features.flatMap((feature) =>
+      ...(!asked("use-on") ? [] : here.features).flatMap((feature) =>
         (feature.uses ?? []).flatMap(({ item }) =>
           state.inventory.includes(item)
             ? [
@@ -11708,7 +11712,7 @@ export function createFifthRuntime(
             : [],
         ),
       ),
-      ...creaturesHere(state).flatMap((creature) =>
+      ...(!asked("talk") ? [] : creaturesHere(state)).flatMap((creature) =>
         creature.topics.flatMap((topic) =>
           tries(
             "talk",
@@ -11720,16 +11724,16 @@ export function createFifthRuntime(
           ),
         ),
       ),
-      ...roomItems(state).flatMap((item) => [
+      ...(!asked("take", "examine") ? [] : roomItems(state)).flatMap((item) => [
         view("take", { type: "take", itemId: item.id }, item),
         ...examine(item),
       ]),
-      ...carried(state).flatMap((item) =>
+      ...(!asked("use", "examine") ? [] : carried(state)).flatMap((item) =>
         potionOf(item) === undefined
           ? examine(item)
           : [use(item), ...examine(item)],
       ),
-      ...droppedHere(state).map((item) =>
+      ...(!asked("take") ? [] : droppedHere(state)).map((item) =>
         view("take", { type: "take", itemId: item.id }, item),
       ),
       ...gearViews(),
