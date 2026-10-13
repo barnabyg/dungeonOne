@@ -24,6 +24,7 @@ import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
 import { vela } from "./level-5-wizard.mjs";
 import {
+  alarmTunnels,
   FIXTURE_MODULES,
   goblinBand,
   goblinTrio,
@@ -306,7 +307,8 @@ const AREAS = {
  * Life Cleric's (#341); then a level-5 Evoker's with Vampiric Touch and
  * Slow (#344), against the trio and the band (#348); then the snake door,
  * whose stone snake fits a door (#400); then the statue cellar, whose
- * statue may be toppled onto a rat (#402).
+ * statue may be toppled onto a rat (#402); then the alarmed tunnels, whose
+ * noise raises an alarm (#401).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -331,6 +333,7 @@ const PLAYTHROUGHS = [
   { adventure: goblinBand, fighters: [evoker()] },
   { adventure: snakeDoor, fighters: [ada] },
   { adventure: statueCellar, fighters: [ada] },
+  { adventure: alarmTunnels, fighters: [ada] },
 ];
 
 /**

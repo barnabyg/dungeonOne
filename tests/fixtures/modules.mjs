@@ -884,6 +884,105 @@ export const statueCellarFile = (() => {
 })();
 export const statueCellar = validateModule(structuredClone(statueCellarFile));
 
+/**
+ * An alarm (#401): the two-level tunnels as _The Alarmed Tunnels_, level 1,
+ * hard. Stacked Crates at the foot of the stair crash down on a Dexterity
+ * check (DC 15) failed by 5 or more, and a fight in the Lower Tunnels going
+ * on past round 2 makes noise too, as do a sneak failed by 5 or more and a
+ * rat or goblin that flees and lives: any of them raises the alarm. Then an
+ * iron grate drops across the passage down from the stair (the crawl from
+ * the alcove still goes down), and the goblin lookout leaves its guard
+ * post for the landing between the cellar and the den.
+ */
+export const alarmTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "alarm-tunnels";
+  module.title = "The Alarmed Tunnels";
+  module.flags = ["alarm"];
+  module.alarm = {
+    flag: "alarm",
+    text: "A gong booms below, and goblin voices shout. The tunnels are roused.",
+    fights: [{ region: "lower", round: 2 }],
+  };
+  room(module, "stair-foot").features.push({
+    id: "stacked-crates",
+    name: "Stacked Crates",
+    description: "Empty crates are stacked high and crooked against the wall.",
+    check: {
+      ability: "dexterity",
+      dc: 15,
+      bands: {
+        "failure-by-5": {
+          text: "The stack topples with a crash that rings down the passage.",
+          noisy: true,
+        },
+        success: { text: "You ease the crates apart. They hold only straw." },
+      },
+    },
+  });
+  module.rooms.push(
+    {
+      id: "landing",
+      name: "Landing",
+      description: "A wide step in the tunnel, worn smooth by many feet.",
+      region: "lower",
+      features: [],
+      items: [],
+    },
+    {
+      id: "guard-post",
+      name: "Guard Post",
+      description: "A niche with a stool, a gong and a view of the landing.",
+      region: "lower",
+      encounterId: "lookout",
+      features: [],
+      items: [],
+    },
+  );
+  const down = module.passages.find(({ id }) => id === "stair-to-cellar");
+  down.description = "The passage, sloping down under an iron grate.";
+  down.closeWhen = "alarm";
+  module.passages = module.passages.filter(({ id }) => id !== "cellar-to-den");
+  module.passages.push(
+    {
+      id: "alcove-to-cellar",
+      between: ["alcove", "rat-cellar"],
+      description: "A tight crawl down through the rock.",
+    },
+    {
+      id: "cellar-to-landing",
+      between: ["rat-cellar", "landing"],
+      description: "A sagging wooden door, ajar.",
+    },
+    {
+      id: "landing-to-den",
+      between: ["landing", "den"],
+      description: "An archway hung with a ragged curtain.",
+    },
+    {
+      id: "landing-to-guard-post",
+      between: ["landing", "guard-post"],
+      description: "A step up into a niche.",
+    },
+  );
+  const goblin = module.encounters.find(({ id }) => id === "den-goblin");
+  module.encounters.push({
+    id: "lookout",
+    opponents: [
+      {
+        ...structuredClone(goblin.opponents[0]),
+        id: "lookout-goblin",
+        name: "Goblin Lookout",
+        description: "A goblin lookout snatches up a spear.",
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+    movesTo: { roomId: "landing", when: "alarm" },
+  });
+  return module;
+})();
+export const alarmTunnels = validateModule(structuredClone(alarmTunnelsFile));
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

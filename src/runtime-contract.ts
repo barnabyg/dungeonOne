@@ -42,6 +42,8 @@ export type DmScene = Readonly<{
   title: string;
   objective: string;
   outcome: RuntimeStatus;
+  /** For a runtime with alarms: that the alarm is raised, in the adventure's words. */
+  alarm?: string;
   room: Readonly<{
     id: string;
     name: string;

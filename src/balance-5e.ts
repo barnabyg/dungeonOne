@@ -1851,6 +1851,11 @@ export type RunRecord = Readonly<{
    */
   fightActions: number;
   /**
+   * What raised the module's alarm (#401), as its card names it; absent
+   * where the run never raised it.
+   */
+  alarm?: string;
+  /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
    */
@@ -1997,6 +2002,8 @@ export function playAdventure(
 
   /** The round of the fight the character is fleeing (#396). */
   let fledRound = 0;
+  /** What raised the module's alarm (#401), once something has. */
+  let alarm: string | undefined;
   const apply = (action: FifthAction) => {
     actions += 1;
     fledRound = state.encounter?.round ?? 0;
@@ -2030,6 +2037,9 @@ export function playAdventure(
             surrendered: 0,
             conditions: {},
           };
+          break;
+        case "alarm":
+          alarm = event.cause;
           break;
         case "attack":
           if (event.targetId === PLAYER_ID) {
@@ -2877,6 +2887,7 @@ export function playAdventure(
     retreatChances,
     fled: fledFrom.length,
     fightActions,
+    ...(alarm === undefined ? {} : { alarm }),
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -3485,6 +3496,8 @@ export type GateVerdict = Readonly<{
   retreat?: RetreatReport;
   /** Reported, not judged (#402); absent when not asked for. */
   useRoom?: UseRoomReport;
+  /** Reported, not judged (#401): for a module with an alarm. */
+  alarm?: AlarmReport;
   /**
    * Reported, not judged (#304): each reaction policy, for a module with a
    * reaction-eligible encounter; absent otherwise, or when not asked for.
@@ -3516,7 +3529,29 @@ export type GateMeasures = Readonly<{
   stealthFirst?: StealthFirstReport;
   retreat?: RetreatReport;
   useRoom?: UseRoomReport;
+  alarm?: AlarmReport;
   reactions?: readonly ReactionPolicyReport[];
+}>;
+
+/**
+ * The judged runs that raised the module's alarm (#401), for a module with
+ * one: the weakest character's cautious runs with each kit at each level,
+ * on seeded checks and with every check failing, each named by its checks,
+ * kit, level and seed, with what raised it. Reported, never judged.
+ */
+export type AlarmReport = Readonly<{
+  level: number;
+  percentile: number;
+  style: PlayStyle;
+  /** How many judged runs each branch played. */
+  runs: Readonly<Record<"seeded" | "always-fail", number>>;
+  raised: readonly Readonly<{
+    checks: "seeded" | "always-fail";
+    kit: KitId;
+    level: number;
+    seed: number;
+    by: string;
+  }>[];
 }>;
 
 /**
@@ -3920,6 +3955,30 @@ export function gateAdventure(
     const reactions: readonly ReactionPolicyReport[] | undefined = reacting
       ? [policyReport("attack", "seeded"), policyReport("peaceful", "peaceful")]
       : undefined;
+    // The judged runs that raised the alarm (#401), in play order.
+    const alarm: AlarmReport | undefined =
+      adventure.alarm === undefined
+        ? undefined
+        : {
+            level: survival.level,
+            percentile: WEAKEST_PERCENTILE,
+            style: GATE_STYLE,
+            runs: {
+              seeded: played.length * seeds.length,
+              "always-fail": played.length * seeds.length,
+            },
+            raised: (["seeded", "always-fail"] as const).flatMap((checks) =>
+              played.flatMap(({ kit, level, runs }) =>
+                runs.flatMap((run, index) => {
+                  const by =
+                    run[checks === "seeded" ? "seeded" : "failing"].alarm;
+                  return by === undefined
+                    ? []
+                    : [{ checks, kit, level, seed: seeds[index]!, by }];
+                }),
+              ),
+            ),
+          };
     const spent = played.flatMap(({ runs }) => branchRuns(runs, "spending"));
     const spendEarly: SpendEarlyReport | undefined = spending
       ? {
@@ -4155,6 +4214,7 @@ export function gateAdventure(
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
           ...(retreat === undefined ? {} : { retreat }),
           ...(useRoom === undefined ? {} : { useRoom }),
+          ...(alarm === undefined ? {} : { alarm }),
           ...(reactions === undefined ? {} : { reactions }),
           ...(spendEarly === undefined ? {} : { spendEarly }),
         },
@@ -4265,6 +4325,7 @@ export function gateVerdictAt(
       : { stealthFirst: measures.stealthFirst }),
     ...(measures.retreat === undefined ? {} : { retreat: measures.retreat }),
     ...(measures.useRoom === undefined ? {} : { useRoom: measures.useRoom }),
+    ...(measures.alarm === undefined ? {} : { alarm: measures.alarm }),
     ...(measures.reactions === undefined
       ? {}
       : { reactions: measures.reactions }),
@@ -4438,6 +4499,7 @@ export function renderGateResult(
       : [
           `  Use the room, reported (not judged): the level ${verdict.useRoom.level}, ${verdict.useRoom.percentile}th percentile ${who} playing ${verdict.useRoom.style} survived ${percent(verdict.useRoom.rate)} of ${verdict.useRoom.runs} runs with its weakest kit, ${verdict.useRoom.kit} (${kits(verdict.useRoom)}); over every kit and level it completed ${percent(verdict.useRoom.completionRate)}, used the room ${decimal(verdict.useRoom.meanFightActions)} times and earned ${decimal(verdict.useRoom.meanXp)} XP a run.`,
         ]),
+    ...(verdict.alarm === undefined ? [] : [alarmLine(verdict.alarm, who)]),
     ...(verdict.spendEarly === undefined
       ? []
       : [
@@ -4448,6 +4510,47 @@ export function renderGateResult(
         `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
     ),
   ].join("\n");
+}
+
+/**
+ * The alarm's report (#401) as a line: in how many judged runs of each
+ * branch it was raised, then those runs, by their checks, kit, level and
+ * what raised it, with their seeds ("seeds 0, 3–5").
+ */
+function alarmLine(report: AlarmReport, who: string): string {
+  const count = (checks: "seeded" | "always-fail") =>
+    `${report.raised.filter((run) => run.checks === checks).length} of ${report.runs[checks]} ${checks} runs`;
+  const groups = new Map<string, number[]>();
+  for (const { checks, kit, level, seed, by } of report.raised) {
+    const key = `${checks} ${kit} level ${level}, by ${by}`;
+    groups.set(key, [...(groups.get(key) ?? []), seed]);
+  }
+  /** Seeds in order, each run of consecutive ones as a range. */
+  const seedList = (seeds: readonly number[]) => {
+    const spans: [number, number][] = [];
+    for (const seed of seeds) {
+      const last = spans.at(-1);
+      if (last !== undefined && last[1] + 1 === seed) {
+        last[1] = seed;
+      } else {
+        spans.push([seed, seed]);
+      }
+    }
+    return spans
+      .map(([from, to]) => (from === to ? `${from}` : `${from}–${to}`))
+      .join(", ");
+  };
+  return (
+    `  Alarm, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} raised it in ${count("seeded")} and ${count("always-fail")}` +
+    (groups.size === 0
+      ? "."
+      : `: ${[...groups]
+          .map(
+            ([key, seeds]) =>
+              `${key}, ${seeds.length === 1 ? "seed" : "seeds"} ${seedList(seeds)}`,
+          )
+          .join("; ")}.`)
+  );
 }
 
 /**

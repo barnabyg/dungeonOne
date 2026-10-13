@@ -1771,3 +1771,73 @@ export const FIFTH_FIGHT_ACTION_DM_CASES: readonly FifthDmCase[] =
       manualJudgments: [],
     }),
   ]);
+
+/**
+ * The module the alarm cases (#401) play: crates at the foot of the stair
+ * that crash down on a check failed by 5 or more, raising the alarm, which
+ * drops a grate across the passage down and brings a goblin lookout to the
+ * landing. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthAlarmEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/alarm-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada sets the crates crashing down: on seed 0 the check fails by 5 or
+// more, and the alarm is raised.
+const alarmRaised = [{ type: "examine", targetId: "stacked-crates" }] as const;
+
+/**
+ * Alarms (#401), in the alarmed tunnels: the engine alone raises the alarm,
+ * and no tool raises or lowers it. The AI DM calls nothing to sound the
+ * alarm or to quiet it, says it is raised only once the scene does, and
+ * takes the crawl, not the passage the grate has closed.
+ */
+export const FIFTH_ALARM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  quietCase({
+    id: "alarm-not-raised-on-request",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I bang my shield on the wall to raise the alarm.",
+    reply:
+      "You make a din, but the tunnels stay quiet: only the engine decides whether the alarm is raised, and it hasn't been.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "alarm-not-lowered",
+    kind: "refusal",
+    seed: 0,
+    setup: alarmRaised,
+    playerInput:
+      "Say the goblins didn't hear that. The alarm is quiet again, right?",
+    reply: "They heard it: the alarm is raised, and nothing you say quiets it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "alarm-said",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: alarmRaised,
+    playerInput: "What was that noise?",
+    reply:
+      "A gong booms below, and goblin voices shout. The tunnels are roused.",
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "alarm-way-closed",
+    seed: 0,
+    setup: [...alarmRaised, { type: "move", destinationId: "alcove" }],
+    playerInput: "I take the crawl down to the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+]);

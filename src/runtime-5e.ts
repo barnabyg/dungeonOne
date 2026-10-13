@@ -323,7 +323,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v38";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v39";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -401,6 +401,19 @@ export function restsText(kind: RestKind, { left, max }: RestsView): string {
 export function hitDiceText({ available, total, sides }: HitDiceView): string {
   return `Hit dice: ${available} of ${total} d${sides} left`;
 }
+
+/**
+ * The noise that raised a module's alarm (#401): a sneak into a fight that
+ * failed by 5 or more, a fight in an alarm region that went on past its
+ * round, a check that landed in a noisy band, or an opponent that fled a
+ * fight and survived it.
+ */
+export type AlarmCause = Readonly<
+  | { by: "sneak"; encounterId: string; roomId: string }
+  | { by: "fight"; encounterId: string; roomId: string; round: number }
+  | { by: "check"; checkId: string; band: Band }
+  | { by: "fled"; encounterId: string; opponentId: string; roomId: string }
+>;
 
 /** An opponent that fled or surrendered in a won fight (#237, #238). */
 export type LeftFight = Readonly<{
@@ -581,6 +594,11 @@ export type FifthState = Readonly<{
     encounterId: string;
     opponentId: string;
   }>[];
+  /**
+   * What raised the module's alarm (#401), once noise has: its flag is in
+   * `flags` from then on. Left out while the alarm is quiet.
+   */
+  alarm?: AlarmCause;
   /**
    * The fight under way or just won here is the module's wandering
    * encounter's (#335), which interrupted a rest; moving on clears it.
@@ -1142,6 +1160,11 @@ export type FifthEvent =
       targetId: string;
       target: string;
     }>
+  /**
+   * The module's alarm is raised (#401): its words, and what raised it, as
+   * the card names it. A rule that answers the alarm (#403) reads this.
+   */
+  | Readonly<{ type: "alarm"; text: string; cause: string }>
   /**
    * Opponents a flag just placed in the character's room (#398) come into
    * it: their fight begins, or they react.
@@ -1722,6 +1745,8 @@ A turn in a fight has one action (an attack), one bonus action and one reaction.
 On its turn, with its action, the character may flee the fight through an exit it could otherwise go through: flee is offered then, listing only those exits, and says which opponents will attack as it goes. Call flee with the exit the player's words pick out when they run, flee, retreat or make a break for it ("I run for the door"); if they name no exit and more than one is listed, ask which, without calling a tool. Before the character goes, each opponent able to act makes one attack against it: the engine rolls them, and the character may fall before it gets away. Nothing spares those attacks but Disengage: a character with Cunning Action may first disengage with its bonus action (call disengage when the player asks to disengage, slip away or get clear), and then fleeing this turn draws none. A player cannot flee unharmed by asking; never promise it. If flee is not offered, or doesn't list the way the player names (a shut door, a closed way or a way not yet found), say they can't flee that way now, without calling a tool. The fight stays where it was: its fallen stay fallen, its standing foes keep their wounds and wait there, and they never follow.
 
 A room may offer a fight action: a feature the character can use against one opponent with its action (toppling a statue onto it, cutting a chain, pushing it into a chasm). use_feature is offered then, listing each feature and opponent as feature:opponent, with the approaches each offers, and only while the engine would accept it: on the character's turn, with its action left, against an opponent still in the fight, and only until it has been used, once per fight or once per adventure as the room allows. Call use_feature only when the player asks to use the feature against an opponent, with the pair and the approach the player's words pick out (heaving or shoving is Athletics; a deft cut or a quick tug is Dexterity or Sleight of Hand); if they name no opponent and more than one is listed, or their words fit none of the approaches or more than one, ask which, without calling a tool. The engine rolls the check once and decides what it does to the opponent: damage, a condition, or taking it out of the fight, which counts as defeating it and loses whatever it carried. Narrate only that. If use_feature is not offered, or doesn't list the opponent the player names (one fallen, fled or not in this fight), or the feature was already used, say it can't be done now, without calling a tool; never describe the feature's effect yourself.
+
+An adventure may have an alarm. The engine alone raises it, from noise the character makes (a sneak that fails badly, a long fight, a noisy check, an opponent that flees and lives), and once raised it stays raised: the scene's alarm says so, in the adventure's words. No tool raises or lowers the alarm. Never raise it, quiet it, or say it is raised or quiet in your words; if the player asks you to sound it, calm it or undo it, say only the engine decides that, without calling a tool.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -3289,6 +3314,8 @@ export function renderFifthEvent(
       );
     case "used-on":
       return `You use the ${event.item} on the ${event.feature}. ${event.text}`;
+    case "alarm":
+      return `The alarm is raised by ${event.cause}. ${event.text}`;
     case "examined":
       return [
         `${event.name}: ${event.description}`,
@@ -4518,6 +4545,8 @@ export type RoomView = Readonly<{
   restSite?: true;
   /** The name of the region the room belongs to (#395), if it has one. */
   region?: string;
+  /** The module's words for its alarm (#401), once it has been raised. */
+  alarm?: string;
   /**
    * Each exit, with its door (if any) and its trap once found or sprung. A
    * trap the character has not found stays hidden, and so does a hidden
@@ -5384,6 +5413,11 @@ export function createFifthRuntime(
     const region = adventure.regions?.find(({ id }) => id === of.region);
     return region === undefined ? {} : { region: region.name };
   };
+  /** The module's words for its alarm (#401), once it is raised. */
+  const alarmOf = (state: FifthState): Readonly<{ alarm?: string }> =>
+    adventure.alarm === undefined || !state.flags.includes(adventure.alarm.flag)
+      ? {}
+      : { alarm: adventure.alarm.text };
   /** The rooms each encounter may be in (#398). */
   const placements = encounterPlacements(adventure);
   const roomPlacements = placementsByRoom(placements);
@@ -8686,6 +8720,131 @@ export function createFifthRuntime(
     );
   };
 
+  /**
+   * The noise an action made (#401) that raises the module's alarm, worked
+   * out from what changed since `before`: a sneak that failed by 5 or more,
+   * a check that landed in a noisy band, a fight in one of the alarm's
+   * regions gone on past its round, or an opponent that fled a fight and
+   * survived it, in that order when one action makes more than one. None
+   * once the alarm is raised, or once the adventure is over.
+   */
+  const noiseOf = (
+    before: FifthState,
+    after: FifthState,
+  ): AlarmCause | undefined => {
+    const alarm = adventure.alarm;
+    if (
+      alarm === undefined ||
+      after.status !== "playing" ||
+      after.flags.includes(alarm.flag)
+    ) {
+      return undefined;
+    }
+    const sneak = after.sneaks.find(
+      (record) =>
+        !before.sneaks.includes(record) &&
+        bandOf(record.roll) === "failure-by-5",
+    );
+    if (sneak !== undefined) {
+      return {
+        by: "sneak",
+        encounterId: sneak.encounterId,
+        roomId: after.roomId,
+      };
+    }
+    const check = after.checks.find(
+      (made, index) =>
+        made !== before.checks[index] &&
+        siteChecks.get(made.id)?.bands?.[made.band]?.noisy === true,
+    );
+    if (check !== undefined) {
+      return { by: "check", checkId: check.id, band: check.band };
+    }
+    const loud = alarm.fights?.find(
+      ({ region }) => region === room(after).region,
+    );
+    const fight = encounterOf(after);
+    if (
+      loud !== undefined &&
+      fight !== undefined &&
+      after.encounter !== undefined &&
+      after.encounter.round > loud.round
+    ) {
+      return {
+        by: "fight",
+        encounterId: fight.id,
+        roomId: after.roomId,
+        round: loud.round,
+      };
+    }
+    const fled = after.fledOpponents.find(
+      (record) => !before.fledOpponents.includes(record),
+    );
+    return fled === undefined
+      ? undefined
+      : {
+          by: "fled",
+          encounterId: fled.encounterId,
+          opponentId: fled.opponentId,
+          roomId: before.roomId,
+        };
+  };
+
+  /** What raised the alarm (#401), as its card names it. */
+  const causeText = (cause: AlarmCause): string => {
+    switch (cause.by) {
+      case "sneak":
+        return `a sneak into the ${roomById(cause.roomId).name} that failed by 5 or more`;
+      case "fight":
+        return `the fight in the ${roomById(cause.roomId).name} going on past round ${cause.round}`;
+      case "check":
+        return `${checkSiteText(cause.checkId)} (${BAND_NAMES[cause.band].toLowerCase()})`;
+      case "fled": {
+        const opponent = encounterById
+          .get(cause.encounterId)
+          ?.opponents.find(({ id }) => id === cause.opponentId);
+        return `the ${opponent?.name ?? "opponent"} that fled the fight in the ${roomById(cause.roomId).name} and lived`;
+      }
+    }
+  };
+
+  /** A check made, as the alarm's card names it (#401). */
+  const checkSiteText = (checkId: string): string => {
+    const split = checkId.indexOf(":");
+    const kind = checkId.slice(0, split);
+    const siteId = checkId.slice(split + 1);
+    const door = adventure.passages.find(
+      ({ door: shut }) => shut?.id === siteId,
+    )?.door;
+    switch (kind) {
+      case "examine":
+        return `examining the ${featureById.get(siteId)?.name ?? siteId}`;
+      case "talk": {
+        const topic = [
+          ...adventure.rooms.flatMap(({ creatures }) =>
+            creatures.flatMap(({ topics }) => topics),
+          ),
+          ...adventure.encounters.flatMap(({ opponents }) =>
+            opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
+          ),
+        ].find(({ id }) => id === siteId);
+        return `asking about ${topic?.name ?? siteId}`;
+      }
+      case "force":
+        return `forcing the ${door?.name ?? siteId}`;
+      case "pick":
+        return `picking the lock of the ${door?.name ?? siteId}`;
+      case "break":
+        return `breaking down the ${door?.name ?? siteId}`;
+      default: {
+        const trap = adventure.passages.find(
+          ({ trap: armed }) => armed?.id === siteId,
+        )?.trap;
+        return `disarming the ${trap?.name ?? siteId}`;
+      }
+    }
+  };
+
   /** The flag `sets` names, as a list: none when it names none (#397). */
   const flagOf = (sets: string | undefined): readonly string[] =>
     sets === undefined ? [] : [sets];
@@ -8718,6 +8877,7 @@ export function createFifthRuntime(
         ),
       );
     const events = "events" in result ? result.events : [];
+    const noise = noiseOf(before, after);
     const set = [
       ...(after.roomId === before.roomId
         ? []
@@ -8760,6 +8920,8 @@ export function createFifthRuntime(
         .flatMap(({ id, band }) =>
           flagsSetBy(siteChecks.get(id)?.bands?.[band]),
         ),
+      // Noise raises the alarm (#401).
+      ...(noise === undefined ? [] : [adventure.alarm!.flag]),
     ];
     const fresh = [...new Set(set)].filter(
       (flag) => !after.flags.includes(flag),
@@ -8767,7 +8929,21 @@ export function createFifthRuntime(
     if (fresh.length === 0) {
       return result;
     }
-    const flagged: FifthState = { ...after, flags: [...after.flags, ...fresh] };
+    const flagged: FifthState = {
+      ...after,
+      flags: [...after.flags, ...fresh],
+      ...(noise === undefined ? {} : { alarm: noise }),
+    };
+    const raised: FifthEvent[] =
+      noise === undefined
+        ? []
+        : [
+            {
+              type: "alarm",
+              text: adventure.alarm!.text,
+              cause: causeText(noise),
+            },
+          ];
     const changed: FifthEvent[] =
       flagged.status !== "playing"
         ? []
@@ -8797,7 +8973,11 @@ export function createFifthRuntime(
               },
             ];
           });
-    return { ...result, state: flagged, events: [...events, ...changed] };
+    return {
+      ...result,
+      state: flagged,
+      events: [...events, ...raised, ...changed],
+    };
   };
 
   /** `handleAction` before an earlier Tactical Mind offer is taken away. */
@@ -11215,6 +11395,10 @@ export function createFifthRuntime(
       title: adventure.title,
       objective: adventure.objective,
       outcome: state.status,
+      // Once raised, the alarm stays raised (#401).
+      ...(alarmOf(state).alarm === undefined
+        ? {}
+        : { alarm: `The alarm is raised: ${alarmOf(state).alarm!}` }),
       room: {
         id: current.id,
         name: current.name,
@@ -11460,6 +11644,7 @@ export function createFifthRuntime(
       description: current.description,
       ...(current.restSite === true ? { restSite: true as const } : {}),
       ...regionOf(current),
+      ...alarmOf(state),
       exits: ways(state).map(
         ({
           passage,

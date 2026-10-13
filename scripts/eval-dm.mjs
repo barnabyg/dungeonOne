@@ -14,6 +14,8 @@ import {
   loadFifthItemEvaluationAdventure,
   FIFTH_FIGHT_ACTION_DM_CASES,
   loadFifthFightActionEvaluationAdventure,
+  FIFTH_ALARM_DM_CASES,
+  loadFifthAlarmEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -24,14 +26,15 @@ const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
   "       [--max-calls <count>]",
-  "       [--suite delve|approaches|reactions|parley|flags|items|room]",
+  "       [--suite delve|approaches|reactions|parley|flags|items|room|alarm]",
   "       Runs the abandoned-delve cases, with --suite approaches the",
   "       obstacle-yard approach-selection cases, or with --suite reactions",
   "       the wary-cellar reaction cases, or with --suite parley the",
   "       bandit-toll parley and toll cases, or with --suite flags the",
   "       winch-tunnels flag cases, or with --suite items the",
   "       snake-door item cases, or with --suite room the",
-  "       statue-cellar fight action cases. It calls the live provider",
+  "       statue-cellar fight action cases, or with --suite alarm the",
+  "       alarm-tunnels alarm cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -89,6 +92,7 @@ function parseArguments(args) {
         "flags",
         "items",
         "room",
+        "alarm",
       ].includes(value)
     ) {
       parsed.suite = value;
@@ -194,6 +198,10 @@ try {
     room: {
       cases: FIFTH_FIGHT_ACTION_DM_CASES,
       load: loadFifthFightActionEvaluationAdventure,
+    },
+    alarm: {
+      cases: FIFTH_ALARM_DM_CASES,
+      load: loadFifthAlarmEvaluationAdventure,
     },
   };
   const suite = suites[configuration.suite];

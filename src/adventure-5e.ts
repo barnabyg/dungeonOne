@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 37) and its validator.
+ * The 5e adventure module format (format version 38) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -98,6 +98,14 @@
  * names its item, its words, whether the item is used up, and effects as a
  * band's. A way a use opens counts toward reachability only once the
  * feature's room and the item are reached for sure.
+ *
+ * A module may declare an alarm (#401): one of its flags, which only noise
+ * sets: a sneak that fails by 5 or more, a fight in one of its `fights`
+ * regions lasting past that region's round, a check's band marked `noisy`,
+ * or an opponent that flees a fight and survives it. What the alarm
+ * changes is authored with flag conditions, and its `text` is how the room
+ * panel says it has been raised. Nothing else may set its flag, and
+ * reachability never counts it as set for sure.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -213,7 +221,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 37;
+export const FIFTH_ADVENTURE_FORMAT = 38;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -594,6 +602,8 @@ export type CheckEffect = Readonly<
 export type CheckBand = Readonly<{
   text?: string;
   effects?: readonly CheckEffect[];
+  /** Landing in it makes noise, which raises the module's alarm (#401). */
+  noisy?: true;
 }>;
 
 /**
@@ -1086,6 +1096,8 @@ export type FifthAdventure = Readonly<{
   regions?: readonly FifthRegion[];
   /** The ids of its flags (#397), each set by something and used by something. */
   flags?: readonly string[];
+  /** Its alarm (#401): a flag only noise sets. */
+  alarm?: FifthAlarm;
   rooms: readonly FifthRoom[];
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
@@ -1098,6 +1110,22 @@ export type FifthAdventure = Readonly<{
    */
   wanderingEncounter?: WanderingEncounter;
 }>;
+
+/**
+ * A module's alarm (#401): the flag noise sets, the words the room panel
+ * shows once it is raised, and the regions where a fight lasting past a
+ * round makes noise. A failed sneak by 5 or more, a `noisy` band and an
+ * opponent that flees a fight and survives it make noise anywhere.
+ */
+export type FifthAlarm = Readonly<{
+  flag: string;
+  text: string;
+  /** A fight in `region` that goes on past round `round` makes noise. */
+  fights?: readonly Readonly<{ region: string; round: number }>[];
+}>;
+
+/** The most rounds an alarm's fight may last before it makes noise (#401). */
+export const MAX_ALARM_ROUND = 10;
 
 /** A module's wandering encounter (#335) and its chance, 1–100 in a d100. */
 export type WanderingEncounter = Readonly<{
@@ -1680,9 +1708,17 @@ function gradedCheck(
           return [];
         }
         const on = `${where} ${band} band`;
-        const raw = knownKeys(graded[band], [], ["text", "effects"], on);
+        const raw = knownKeys(
+          graded[band],
+          [],
+          ["text", "effects", "noisy"],
+          on,
+        );
         if (raw.text === undefined && raw.effects === undefined) {
           fail(`${on} needs text or effects.`);
+        }
+        if (raw.noisy !== undefined && raw.noisy !== true) {
+          fail(`${on} noisy must be true, or left out.`);
         }
         return [
           [
@@ -1691,6 +1727,7 @@ function gradedCheck(
               ...(raw.text === undefined
                 ? {}
                 : { text: text(raw.text, `${on} text`) }),
+              ...(raw.noisy === true ? { noisy: true as const } : {}),
               ...(raw.effects === undefined
                 ? {}
                 : {
@@ -2093,7 +2130,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["regions", "flags", "wanderingEncounter"],
+    ["regions", "flags", "alarm", "wanderingEncounter"],
     "the module",
   );
   const moduleId = id(module.id, "id");
@@ -2468,6 +2505,10 @@ function validateModule(
     (flag) => flag,
     (flag) => `flag ${flag} is declared twice.`,
   );
+  const alarm =
+    module.alarm === undefined
+      ? undefined
+      : readAlarm(module.alarm, new Set(flags), regionIds);
   const rooms = list(module.rooms, "rooms", 50).map((entry, index) => {
     const where = `room ${index + 1}`;
     const room = knownKeys(
@@ -3145,6 +3186,17 @@ function validateModule(
   };
   const setters = new Set<string>();
   const flagUsers = new Set<string>();
+  // Only noise raises the alarm (#401): nothing else may set its flag.
+  if (alarm !== undefined) {
+    setters.add(alarm.flag);
+  }
+  const setBy = (flag: string, on: string) => {
+    flagNamed(flag, on);
+    if (flag === alarm?.flag) {
+      fail(`${on} sets ${flag}, the alarm's flag: only noise raises it.`);
+    }
+    setters.add(flag);
+  };
   for (const room of rooms) {
     const sets = [
       ...(room.sets === undefined
@@ -3158,8 +3210,7 @@ function validateModule(
       ),
     ];
     for (const [flag, on] of sets) {
-      flagNamed(flag, on);
-      setters.add(flag);
+      setBy(flag, on);
     }
   }
   for (const {
@@ -3170,8 +3221,7 @@ function validateModule(
     movesTo,
   } of encounters) {
     for (const [outcome, flag] of Object.entries(sets ?? {})) {
-      flagNamed(flag, `encounter ${encounterId}'s ${outcome}`);
-      setters.add(flag);
+      setBy(flag, `encounter ${encounterId}'s ${outcome}`);
     }
     // Where it is (#398).
     for (const flag of [presentWhile, presentUntil, movesTo?.when]) {
@@ -3275,8 +3325,7 @@ function validateModule(
         break;
       }
       case "set":
-        flagNamed(entry.flag, on);
-        setters.add(entry.flag);
+        setBy(entry.flag, on);
         break;
     }
   };
@@ -3298,6 +3347,9 @@ function validateModule(
         continue;
       }
       const on = `${label}'s ${band} band`;
+      if (outcome.noisy === true && alarm === undefined) {
+        fail(`${on} is noisy, but the module has no alarm for it to raise.`);
+      }
       if (
         !approachesOf(site.check).some((spec) => bandReachable(band, spec, max))
       ) {
@@ -4046,11 +4098,57 @@ function validateModule(
     startRoomId: module.startRoomId as string,
     ...(regions === undefined ? {} : { regions }),
     ...(flags.length === 0 ? {} : { flags }),
+    ...(alarm === undefined ? {} : { alarm }),
     rooms,
     passages,
     encounters,
     endings,
     ...(wanderingEncounter === undefined ? {} : { wanderingEncounter }),
+  };
+}
+
+/**
+ * A module's alarm (#401): `{ flag, text, fights? }`. Its flag is one of the
+ * module's; each of its `fights` names a region of the module, each once,
+ * and the round (1 to `MAX_ALARM_ROUND`) a fight there may last before it
+ * makes noise.
+ */
+function readAlarm(
+  value: unknown,
+  flags: ReadonlySet<string>,
+  regionIds: ReadonlySet<string>,
+): FifthAlarm {
+  const raw = knownKeys(value, ["flag", "text"], ["fights"], "alarm");
+  const flag = id(raw.flag, "alarm flag");
+  if (!flags.has(flag)) {
+    fail(`the alarm names unknown flag ${flag}.`);
+  }
+  const fights =
+    raw.fights === undefined
+      ? undefined
+      : list(raw.fights, "alarm fights", MAX_REGIONS).map((entry, index) => {
+          const where = `alarm fight ${index + 1}`;
+          const fight = exactKeys(entry, ["region", "round"], where);
+          const region = id(fight.region, `${where} region`);
+          if (!regionIds.has(region)) {
+            fail(`${where} names unknown region ${region}.`);
+          }
+          return {
+            region,
+            round: integer(fight.round, `${where} round`, 1, MAX_ALARM_ROUND),
+          };
+        });
+  if (fights !== undefined) {
+    distinct(
+      fights,
+      ({ region }) => region,
+      ({ region }) => `the alarm names region ${region} twice.`,
+    );
+  }
+  return {
+    flag,
+    text: text(raw.text, "alarm text", 200),
+    ...(fights === undefined ? {} : { fights }),
   };
 }
 
