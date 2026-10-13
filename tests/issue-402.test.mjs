@@ -204,6 +204,48 @@ test("the validator refuses removal against a boss, and a fight action where no 
   }
 });
 
+test("the validator refuses removal of an opponent carrying an item needed to go on", () => {
+  // Ordinary loot (the Scarred Rat's Silver Chain) is lost with it (D4);
+  // a key to a way, or an item a use needs, would strand the character.
+  const keyed = structuredClone(statueCellarFile);
+  room(keyed, "rat-cellar").items.push({
+    id: "den-key",
+    name: "Den Key",
+    description: "A small iron key on a greasy thong.",
+    kind: "key",
+    hiddenIn: "scarred-rat",
+  });
+  keyed.passages.find(({ id }) => id === "cellar-to-den").door = {
+    id: "den-door",
+    name: "Den Door",
+    description: "A sagging wooden door, locked.",
+    state: "locked",
+    keyItemId: "den-key",
+  };
+  assert.throws(
+    () => validateModule(keyed),
+    /feature leaning-statue's fight action can remove an opponent, but scarred-rat of encounter cellar-rat, which may be fought in room rat-cellar, carries den-key, which opens door den-door: removed, it would be lost with it\./u,
+  );
+  const used = structuredClone(statueCellarFile);
+  room(used, "rat-cellar").features[0].uses = [
+    {
+      item: "silver-chain",
+      text: "You hang the chain on the sacks.",
+      effects: [{ type: "discovery", feature: "rusted-lantern" }],
+    },
+  ];
+  assert.throws(
+    () => validateModule(used),
+    /feature leaning-statue's fight action can remove an opponent, but scarred-rat of encounter cellar-rat, which may be fought in room rat-cellar, carries silver-chain, which feature gnawed-sacks's use needs: removed, it would be lost with it\./u,
+  );
+  // Without the removal, the key and the use are fine.
+  for (const module of [keyed, used]) {
+    const { fightAction } = room(module, "rat-cellar").features.at(-1);
+    delete fightAction.bands["success-by-5"];
+    assert.doesNotThrow(() => validateModule(module));
+  }
+});
+
 test("a fight action where only the wandering encounter is fought is accepted", () => {
   const module = restingTunnelsFile(25);
   room(module, "alcove").features.push({

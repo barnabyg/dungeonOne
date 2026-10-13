@@ -59,7 +59,8 @@
  * it, give it a condition or remove it from the fight, used once per fight
  * or once per adventure. Only a room where a fight is fought may have one,
  * and one that can remove an opponent is used once per adventure and never
- * where a boss may be fought (D4).
+ * where a boss may be fought (D4), nor where an opponent may be fought that
+ * carries a door's key or an item a use needs.
  *
  * A Dexterity check may be made with thieves' tools (#309), which only a
  * character carrying them can make: a door's pick always is, and a trap's
@@ -3493,7 +3494,21 @@ function validateModule(
   // A fight action (#402) needs a fight in its room: the room's own
   // encounter, one flags move there (#398), or the wandering encounter at
   // a rest site (#335). One that can remove an opponent is used once per
-  // adventure, and never where a boss may be fought (D4).
+  // adventure, and never where a boss may be fought (D4), nor where an
+  // opponent carries an item needed to go on: a key to a door, or an item
+  // a use needs (#331, #400). Its other loot is lost with it.
+  const neededFor = new Map<string, string>([
+    ...passages.flatMap(({ door: shut }) =>
+      shut?.keyItemId === undefined
+        ? []
+        : [[shut.keyItemId, `opens door ${shut.id}`] as const],
+    ),
+    ...[...featureById.values()].flatMap(({ id: featureId, uses }) =>
+      (uses ?? []).map(
+        ({ item }) => [item, `feature ${featureId}'s use needs`] as const,
+      ),
+    ),
+  ]);
   for (const { id: roomId, encounterId, restSite, features } of rooms) {
     const fought = encounters.filter(
       ({ id: fightId, movesTo }) =>
@@ -3531,6 +3546,17 @@ function validateModule(
           fail(
             `${on} can remove an opponent, but boss ${boss.id} of encounter ${fightId} may be fought in room ${roomId}: a boss is never removed.`,
           );
+        }
+        const home = rooms.find((entry) => entry.encounterId === fightId);
+        for (const { id: opponentId } of opponents) {
+          for (const { id: itemId, hiddenIn } of home?.items ?? []) {
+            const why = neededFor.get(itemId);
+            if (hiddenIn === opponentId && why !== undefined) {
+              fail(
+                `${on} can remove an opponent, but ${opponentId} of encounter ${fightId}, which may be fought in room ${roomId}, carries ${itemId}, which ${why}: removed, it would be lost with it.`,
+              );
+            }
+          }
         }
       }
     }
