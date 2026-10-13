@@ -22,7 +22,8 @@ const PLAYER = "pc";
  * `["examine", featureId, approach]` (#350) choosing a check's approach,
  * `["long-rest"]` and `["rest", hitDice]` (#350) resting, and
  * `["equip", itemId]` or `["swap", itemId]` (#350) wielding found gear and
- * `["read", itemId, spellId]` (#350) reading a held scroll on oneself.
+ * `["read", itemId, spellId]` (#350) reading a held scroll on oneself, and
+ * `["use", featureId, itemId]` (#412) using a carried item on a feature.
  */
 export function routeAction([type, target, approach, retry]) {
   switch (type) {
@@ -52,6 +53,8 @@ export function routeAction([type, target, approach, retry]) {
       };
     case "take":
       return { type, itemId: target };
+    case "use":
+      return { type: "use-on", featureId: target, itemId: approach };
     case "leave":
     case "ambush":
       return { type, roomId: target };

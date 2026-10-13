@@ -1,0 +1,1751 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 42,
+  "id": "coldwater-weirgate",
+  "title": "The Coldwater Weirgate",
+  "objective": "Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
+  "recommendedLevels": {
+    "min": 3,
+    "max": 3
+  },
+  "difficulty": "medium",
+  "long": true,
+  "regions": [
+    {
+      "id": "keep",
+      "name": "The Keep",
+      "wandering": {
+        "chance": 15,
+        "every": 4,
+        "entries": [
+          {
+            "encounterId": "lockjaw-patrol",
+            "omen": "Somewhere above, two pairs of boots stamp along the wall-walk and fade."
+          },
+          {
+            "omen": "A barge horn sounds far off on the river, long and mournful."
+          },
+          {
+            "omen": "Boots tramp along the wall-walk overhead, then stop."
+          }
+        ]
+      }
+    },
+    {
+      "id": "culverts",
+      "name": "The Culverts",
+      "wandering": {
+        "chance": 15,
+        "every": 4,
+        "entries": [
+          {
+            "encounterId": "drowned-wanderer",
+            "omen": "Wet footsteps drag through the dark somewhere behind you."
+          },
+          {
+            "omen": "The gears groan overhead, and the water at your feet drops a hand's breadth."
+          },
+          {
+            "omen": "Kobold chatter, quick and anxious, sounds from inside the walls."
+          }
+        ]
+      }
+    }
+  ],
+  "flags": [
+    "culvert-drained",
+    "ogre-lured",
+    "kobold-truce",
+    "knows-bell-wires",
+    "bell-rung"
+  ],
+  "alarm": {
+    "flag": "bell-rung",
+    "text": "The weir bell is clanging; boots drum on the wall-walk above.",
+    "fights": [
+      {
+        "region": "keep",
+        "round": 3
+      }
+    ]
+  },
+  "routes": [
+    {
+      "id": "keepers-stair",
+      "name": "Down the keeper's stair",
+      "rooms": [
+        "toll-hall",
+        "stair-head",
+        "stair-foot",
+        "pump-room",
+        "gear-hall"
+      ]
+    },
+    {
+      "id": "drained-culvert",
+      "name": "Through the drained culvert",
+      "rooms": [
+        "keepers-office",
+        "sluice-house",
+        "drain-mouth",
+        "pump-room",
+        "gear-hall"
+      ]
+    }
+  ],
+  "startRoomId": "towpath-gate",
+  "rooms": [
+    {
+      "id": "towpath-gate",
+      "name": "Towpath Gate",
+      "description": "The river roars over the weir beside you, and the air smells of tar and wet stone. The towpath ends at a stone gatehouse; a narrower path runs along the slipway to the barge yard.",
+      "region": "keep",
+      "exit": true,
+      "features": [
+        {
+          "id": "toll-board",
+          "name": "Toll Board",
+          "description": "A plank board nailed to the gate arch, its prices daubed in tar.",
+          "discovery": "\"Lockjaw tolls: a gold piece a barge, a silver a walker. By order of Sgt Larrow.\" Someone has scratched underneath: \"and the goblin takes half\"."
+        },
+        {
+          "id": "mooring-posts",
+          "name": "Mooring Posts",
+          "description": "Oak posts worn smooth by ropes. Three barges sit tied up downstream, low in the water and going nowhere."
+        },
+        {
+          "id": "gate-arch",
+          "name": "Gate Arch",
+          "description": "A stone arch carved with a weir and three wavy lines.",
+          "discovery": "The carving's lines show the water falling through the keep and out below it, by a culvert to a riverside outfall."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "toll-hall",
+      "name": "Toll Hall",
+      "description": "Smoke from a brazier hangs under the beams, and the room stinks of cheap ale. A tally-board fills one wall; a chest squats by the stair door.",
+      "region": "keep",
+      "encounterId": "toll-hall-fight",
+      "features": [
+        {
+          "id": "toll-chest",
+          "name": "Toll Chest",
+          "description": "An iron-banded chest, its lid propped open with a boot.",
+          "discovery": "Under the day's takings lies a stoppered vial of red liquid.",
+          "changed": {
+            "when": "bell-rung",
+            "description": "The chest's lid has been slammed shut in a hurry, but its hasp hangs loose."
+          }
+        },
+        {
+          "id": "toll-brazier",
+          "name": "Brazier",
+          "description": "A brazier of glowing peat. A ladle of pitch sits warming on its rim.",
+          "changed": {
+            "when": "bell-rung",
+            "description": "The brazier has been kicked over in a rush, and peat smoulders across the floor."
+          }
+        },
+        {
+          "id": "tally-board",
+          "name": "Barge Tally-Board",
+          "description": "A board of chalked barge names and sums.",
+          "discovery": "Every barge's sum is split down the middle: one half marked \"L\", the other \"G\"."
+        }
+      ],
+      "items": [
+        {
+          "id": "toll-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "toll-chest"
+        },
+        {
+          "id": "toll-takings",
+          "name": "Day's Takings",
+          "description": "A heap of toll coin.",
+          "kind": "coin",
+          "coins": {
+            "gp": 20
+          },
+          "hiddenIn": "toll-chest"
+        },
+        {
+          "id": "grate-key",
+          "name": "Grate Key",
+          "description": "A heavy iron key on a greasy cord.",
+          "kind": "key",
+          "hiddenIn": "sergeant-larrow"
+        },
+        {
+          "id": "sergeant-larrow-coins",
+          "name": "Sergeant Larrow's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 9
+          },
+          "hiddenIn": "sergeant-larrow"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "barge-yard",
+      "name": "Barge Yard",
+      "description": "Gulls cry over a cobbled yard open to the sky, slick with river spray. A barge lies beached on its side by the lock gates.",
+      "region": "keep",
+      "features": [
+        {
+          "id": "beached-barge",
+          "name": "Beached Barge",
+          "description": "An old barge, stove in and left to rot. Nettles grow through its hold."
+        },
+        {
+          "id": "lock-gates",
+          "name": "Lock Gates",
+          "description": "Massive oak gates hold back the upper river. Below them, the sluices are barely open.",
+          "discovery": "The sluices below the keep are half shut: the water backs up into the marsh instead of running out to the river."
+        },
+        {
+          "id": "slipway",
+          "name": "Slipway",
+          "description": "A stone ramp into the water, green with weed."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "keepers-office",
+      "name": "Lock-Keeper's Office",
+      "description": "Damp has curled every paper in the room, and it smells of mildew and old ink. A water gauge ticks on the wall.",
+      "region": "keep",
+      "features": [
+        {
+          "id": "chart-cupboard",
+          "name": "Chart Cupboard",
+          "description": "A tall cupboard of rolled river charts.",
+          "discovery": "Behind the charts hangs an iron crank with a square socket, worn bright with use."
+        },
+        {
+          "id": "keepers-desk",
+          "name": "Keeper's Desk",
+          "description": "A slope-topped desk with a ledger chained to it.",
+          "discovery": "The last pages are in another hand: \"Drain gear seized again. Crank works it if you lean on it.\" Then: \"Larrow pays the one below, and the one below keeps the sluices shut.\""
+        },
+        {
+          "id": "water-gauge",
+          "name": "Water Gauge",
+          "description": "A brass needle on a painted dial. It points well into the red."
+        }
+      ],
+      "items": [
+        {
+          "id": "windlass-crank",
+          "name": "Windlass Crank",
+          "description": "An iron crank with a square socket, made to turn the weir's gears.",
+          "kind": "tool",
+          "hiddenIn": "chart-cupboard"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "kennel-larder",
+      "name": "Kennel Larder",
+      "description": "Joints of salt meat hang from the beams, and the air reeks of brine and dog. A chain runs from a ring in the wall to a heap of straw.",
+      "region": "keep",
+      "encounterId": "kennel-fight",
+      "features": [
+        {
+          "id": "meat-hooks",
+          "name": "Meat Hooks",
+          "description": "Iron hooks hung with salt meat.",
+          "discovery": "One whole side of salt pork hangs within reach, heavy and pungent."
+        },
+        {
+          "id": "feed-bin",
+          "name": "Feed Bin",
+          "description": "A lidded bin of dog biscuit.",
+          "discovery": "Someone has hidden a purse at the bottom of the biscuit."
+        },
+        {
+          "id": "hobbs-shackle",
+          "name": "Hobb's Shackle",
+          "description": "A light chain from the wall to a boy's ankle. The pin is only pushed in; he hasn't dared to pull it."
+        }
+      ],
+      "items": [
+        {
+          "id": "salt-pork",
+          "name": "Side of Salt Pork",
+          "description": "A whole side of salt pork, heavy and pungent.",
+          "kind": "tool",
+          "hiddenIn": "meat-hooks"
+        },
+        {
+          "id": "biscuit-purse",
+          "name": "Biscuit Purse",
+          "description": "A small purse of coins, dusty with crumbs.",
+          "kind": "coin",
+          "coins": {
+            "gp": 15
+          },
+          "hiddenIn": "feed-bin"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "hobb",
+          "name": "Hobb",
+          "description": "A bargeboy of about twelve, held here for his family's ransom. He watches you with wide, wary eyes.",
+          "topics": [
+            {
+              "id": "the-drain",
+              "name": "the drain",
+              "reply": "\"The old keeper used to crank the drain gear in the sluice-house, and the culvert under it would empty. Then you could walk down it. He kept the crank in his office.\""
+            },
+            {
+              "id": "the-bell-wires",
+              "name": "the bell-wires",
+              "reply": "\"They strung wires on the ways down, so the goblins can't come up quiet. Low, at your shin. Find the wire and follow it to the weight.\"",
+              "check": {
+                "skill": "persuasion",
+                "dc": 10,
+                "bands": {
+                  "success": {
+                    "text": "He shows you with his hands how the wires are strung.",
+                    "effects": [
+                      {
+                        "type": "set",
+                        "flag": "knows-bell-wires"
+                      }
+                    ]
+                  }
+                }
+              },
+              "failure": "He looks at the door and shakes his head. \"They'll hear.\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bunk-room",
+      "name": "Bunk Room",
+      "description": "Snoring fills a low room of hammocks, and it smells of wet wool and spilt beer.",
+      "region": "keep",
+      "encounterId": "bunk-room-fight",
+      "features": [
+        {
+          "id": "dice-pot",
+          "name": "Dice Pot",
+          "description": "A clay pot on an upturned crate, beside three dice.",
+          "discovery": "The pot holds a night's winnings: coin and a milky stone."
+        },
+        {
+          "id": "hammocks",
+          "name": "Hammocks",
+          "description": "Sagging canvas hammocks, most of them empty and stale."
+        },
+        {
+          "id": "kit-bags",
+          "name": "Kit Bags",
+          "description": "Canvas bags of spare shirts, fishhooks and twine."
+        }
+      ],
+      "items": [
+        {
+          "id": "dice-winnings",
+          "name": "Dice Winnings",
+          "description": "A handful of mixed coin.",
+          "kind": "coin",
+          "coins": {
+            "gp": 15
+          },
+          "hiddenIn": "dice-pot"
+        },
+        {
+          "id": "milky-moonstone",
+          "name": "Milky Moonstone",
+          "description": "A moonstone the size of a thumbnail, with a soft blue sheen.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "dice-pot"
+        },
+        {
+          "id": "bunk-bandit-1-coins",
+          "name": "Sleepy Bandit's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 4
+          },
+          "hiddenIn": "bunk-bandit-1"
+        },
+        {
+          "id": "bunk-bandit-2-coins",
+          "name": "Bleary Bandit's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 11
+          },
+          "hiddenIn": "bunk-bandit-2"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "sluice-house",
+      "name": "Sluice-House",
+      "description": "Water thunders through a channel under the floor, and the whole room shakes with it. A great wheel and a smaller gear stand over a grating.",
+      "region": "keep",
+      "features": [
+        {
+          "id": "drain-gear",
+          "name": "Drain Gear",
+          "description": "An iron gear rusted in place, with a square socket at its hub.",
+          "changed": {
+            "when": "culvert-drained",
+            "description": "The drain gear stands turned, and the grating beside it drips into an empty culvert."
+          },
+          "uses": [
+            {
+              "item": "windlass-crank",
+              "text": "The crank fits the socket. You lean on it, and with a shriek of rust the gear turns. Water gurgles away beneath the grating until the culvert below stands empty.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "drained-culvert"
+                },
+                {
+                  "type": "set",
+                  "flag": "culvert-drained"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sluice-wheel",
+          "name": "Sluice Wheel",
+          "description": "A spoked wheel taller than you, chained fast. The chain runs down through the floor toward the gear hall below."
+        },
+        {
+          "id": "floor-grating",
+          "name": "Floor Grating",
+          "description": "An iron grating over the culvert. Water rushes below it in the dark.",
+          "discovery": "Under the grating, iron rungs run down the culvert wall. The way would be open if the culvert were drained."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "bell-tower",
+      "name": "Bell Tower",
+      "description": "Wind whistles through the arrow slits, and the tower smells of pigeons. A great bronze bell hangs under the roof.",
+      "region": "keep",
+      "encounterId": "bell-tower-fight",
+      "features": [
+        {
+          "id": "weir-bell",
+          "name": "Weir Bell",
+          "description": "A bronze bell green with age, hung under the roof beams. A ladder climbs to its cradle.",
+          "discovery": "From the bell's cradle you can see over the keep's roof: a culvert mouth below the keep, and an outfall on the riverbank downstream.",
+          "check": {
+            "skill": "athletics",
+            "dc": 12,
+            "movement": "climb",
+            "bands": {
+              "failure-by-5": {
+                "text": "The ladder slips. You grab the bell's rim, and it booms out over the water.",
+                "noisy": true
+              },
+              "failure": {
+                "text": "The rungs are rotten. You climb down again."
+              },
+              "success": {
+                "text": "You climb up into the bell's cradle and look out.",
+                "effects": [
+                  {
+                    "type": "discovery",
+                    "feature": "weir-bell"
+                  }
+                ]
+              }
+            }
+          },
+          "changed": {
+            "when": "bell-rung",
+            "description": "The bell still hums, its rope swinging."
+          }
+        },
+        {
+          "id": "lookouts-stool",
+          "name": "Lookout's Stool",
+          "description": "A three-legged stool and a bundle of sacking.",
+          "discovery": "In the sacking are a brass spyglass and a stoppered vial of red liquid."
+        },
+        {
+          "id": "arrow-slits",
+          "name": "Arrow Slits",
+          "description": "Narrow slits looking out over the towpath and the river. Anyone coming along the towpath would be seen."
+        }
+      ],
+      "items": [
+        {
+          "id": "bell-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "lookouts-stool"
+        },
+        {
+          "id": "brass-spyglass",
+          "name": "Brass Spyglass",
+          "description": "A brass spyglass with a cracked lens, engraved with the guild's weir.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "lookouts-stool"
+        },
+        {
+          "id": "lookout-coins",
+          "name": "Lockjaw Lookout's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 6
+          },
+          "hiddenIn": "lookout"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "keepers-loft",
+      "name": "Keeper's Loft",
+      "description": "A quiet room under the roof, smelling of lavender and dust. A stout door bars from inside.",
+      "region": "keep",
+      "restSite": true,
+      "features": [
+        {
+          "id": "keepers-cot",
+          "name": "Keeper's Cot",
+          "description": "A narrow cot, made up neatly, as if the keeper meant to come back."
+        },
+        {
+          "id": "sea-chest",
+          "name": "Sea-Chest",
+          "description": "A painted sea-chest with a journal on top.",
+          "discovery": "The keeper's journal: \"Something huge sleeps in the lock chamber now, on the guild's strongbox. The goblins feed it through the hatch in the pump room, and it never stirs while it eats.\""
+        },
+        {
+          "id": "shuttered-window",
+          "name": "Shuttered Window",
+          "description": "Through the shutters, the marsh spreads grey and flooded to the horizon."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "stair-head",
+      "name": "Stair Head",
+      "description": "Cold air rises from below, smelling of silt and machine oil. An iron grate closes a stair going down.",
+      "region": "keep",
+      "features": [
+        {
+          "id": "bell-line",
+          "name": "Bell-Line",
+          "description": "A thin cord runs from a small bell on the wall down through the grate.",
+          "discovery": "The cord runs down the stair to a wire strung low across the steps."
+        },
+        {
+          "id": "stair-winch",
+          "name": "Winch",
+          "description": "A rope winch for lowering goods down the stair, its rope long since rotted."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "stair-foot",
+      "name": "Stair Foot",
+      "description": "Water drips from the vault, and the clank of gears echoes from somewhere beyond. A goblin lies dead at the foot of the stair.",
+      "region": "culverts",
+      "features": [
+        {
+          "id": "dead-goblin",
+          "name": "Dead Goblin",
+          "description": "A goblin crushed under a sack of ballast stones, a satchel still on its shoulder.",
+          "discovery": "The satchel holds a stoppered vial of red liquid."
+        },
+        {
+          "id": "ballast-sack",
+          "name": "Ballast Sack",
+          "description": "A sack of river stones, burst open. A wire is still tied to its neck."
+        },
+        {
+          "id": "drip-channel",
+          "name": "Drip Channel",
+          "description": "A stone channel carries seepage away along the passage toward the pump room."
+        }
+      ],
+      "items": [
+        {
+          "id": "satchel-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "dead-goblin"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "drain-mouth",
+      "name": "Drain Mouth",
+      "description": "The drained culvert drips and stinks of mud. Iron rungs climb back up to the sluice-house.",
+      "region": "culverts",
+      "features": [
+        {
+          "id": "silt-bank",
+          "name": "Silt Bank",
+          "description": "A bank of grey silt, printed with small clawed feet.",
+          "discovery": "The prints lead to a low tunnel: kobolds come and go this way."
+        },
+        {
+          "id": "tide-marks",
+          "name": "Tide Marks",
+          "description": "Lines of scum on the walls, each higher than the last."
+        },
+        {
+          "id": "drain-grille",
+          "name": "Drain Grille",
+          "description": "A rusted grille. Beyond it, daylight glints off the river."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "pump-room",
+      "name": "Pump Room",
+      "description": "The air is dry here, and the room smells of grease. A hand pump stands by a hatch in the floor, and something huge snores beneath it. An arch opens onto a gallery loud with gears.",
+      "region": "culverts",
+      "restSite": true,
+      "features": [
+        {
+          "id": "feeding-hatch",
+          "name": "Feeding Hatch",
+          "description": "A hatch over a chute that slants down into the lock chamber. It smells of old meat.",
+          "changed": {
+            "when": "ogre-lured",
+            "description": "The hatch hangs open. The snoring below has gone; something chews noisily far off."
+          },
+          "uses": [
+            {
+              "item": "salt-pork",
+              "text": "You heave the salt pork down the chute. It thuds onto stone, and something below grunts awake. Heavy steps drag after it toward the spillway, and then comes the sound of tearing and chewing.",
+              "consumes": true,
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "ogre-lured"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hand-pump",
+          "name": "Hand Pump",
+          "description": "A hand pump that still draws clean water."
+        },
+        {
+          "id": "dry-shelf",
+          "name": "Dry Shelf",
+          "description": "A shelf above the waterline, stacked with oilcloth bundles.",
+          "discovery": "Wrapped in oilcloth is a stoppered vial of red liquid."
+        },
+        {
+          "id": "gallery-arch",
+          "name": "Gallery Arch",
+          "description": "An arch onto a gallery of turning shafts. A goblin voice shouts orders somewhere beyond."
+        }
+      ],
+      "items": [
+        {
+          "id": "shelf-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "dry-shelf"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "outfall",
+      "name": "Outfall",
+      "description": "Daylight and fresh air pour in through a broad arch where the culverts empty into the river.",
+      "region": "culverts",
+      "exit": true,
+      "features": [
+        {
+          "id": "outfall-arch",
+          "name": "Outfall Arch",
+          "description": "A stone arch at water level. You could wade out onto the riverbank from here."
+        },
+        {
+          "id": "eel-traps",
+          "name": "Eel Traps",
+          "description": "Wicker eel traps, kobold-made, tied to the arch."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "kobold-warren",
+      "name": "Kobold Warren",
+      "description": "A warm burrow of baskets and nests smells of fish and smoke. Little clawed hands have built a shrine of gears against the far wall.",
+      "region": "culverts",
+      "encounterId": "warren-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "gear-shrine",
+          "name": "Gear Shrine",
+          "description": "Polished cogs heaped round a prayer-wheel, with offerings at its foot.",
+          "discovery": "Among the offerings lie a stoppered vial of red liquid and a little heap of coin."
+        },
+        {
+          "id": "nest-baskets",
+          "name": "Nest Baskets",
+          "description": "Woven baskets lined with feathers and fish bones."
+        },
+        {
+          "id": "prayer-wheel",
+          "name": "Tikka's Prayer-Wheel",
+          "description": "A wheel of hammered tin, painted with gears and an ogre with its eyes shut."
+        }
+      ],
+      "items": [
+        {
+          "id": "shrine-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "gear-shrine"
+        },
+        {
+          "id": "shrine-offerings",
+          "name": "Shrine Offerings",
+          "description": "A little heap of offered coin.",
+          "kind": "coin",
+          "coins": {
+            "gp": 20
+          },
+          "hiddenIn": "gear-shrine"
+        },
+        {
+          "id": "kobold-1-coins",
+          "name": "Kobold Gearwright's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 6
+          },
+          "hiddenIn": "kobold-1"
+        },
+        {
+          "id": "kobold-2-coins",
+          "name": "Kobold Netter's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 8
+          },
+          "hiddenIn": "kobold-2"
+        },
+        {
+          "id": "kobold-3-coins",
+          "name": "Kobold Stoker's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 16
+          },
+          "hiddenIn": "kobold-3"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "tikka",
+          "name": "Tikka",
+          "description": "An old kobold gear-priestess, nearly blind, who speaks only to friends of the clan.",
+          "topics": [
+            {
+              "id": "the-big-one",
+              "name": "the Big One",
+              "reply": "\"The Big One sleeps in the lock chamber, on the guild-box. Grisk feeds it through the hatch in the pump room. Throw meat down, and it goes to the spillway to eat.\"",
+              "offeredWhile": "kobold-truce",
+              "offeredUntil": "bell-rung"
+            },
+            {
+              "id": "the-silt-tunnel",
+              "name": "the silt tunnel",
+              "reply": "\"There is our old tunnel to the guild's vault. The drowned ones walk there now.\"",
+              "check": {
+                "skill": "persuasion",
+                "dc": 10,
+                "bands": {
+                  "success": {
+                    "text": "She pulls aside a hanging basket. Behind it, a low silted tunnel runs away into the dark.",
+                    "effects": [
+                      {
+                        "type": "open",
+                        "passage": "silt-tunnel"
+                      }
+                    ]
+                  }
+                }
+              },
+              "failure": "She turns her blind eyes away. \"Not for you. Not yet.\"",
+              "offeredWhile": "kobold-truce",
+              "offeredUntil": "bell-rung"
+            },
+            {
+              "id": "about-grisk",
+              "name": "Grisk",
+              "reply": "\"Grisk stands under the counterweight when he shouts at us. One day the chain will slip. We pray it will.\"",
+              "offeredWhile": "kobold-truce",
+              "offeredUntil": "bell-rung"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wheel-pit",
+      "name": "Wheel Pit",
+      "description": "A great undershot wheel creaks round in black water, and the pit stinks of rot.",
+      "region": "culverts",
+      "encounterId": "wheel-pit-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "undershot-wheel",
+          "name": "Undershot Wheel",
+          "description": "A slimy wheel turning slowly in the race. Bones are caught in its paddles."
+        },
+        {
+          "id": "wheelwrights-bones",
+          "name": "Wheelwright's Bones",
+          "description": "A skeleton in a leather apron, wedged among the stones.",
+          "discovery": "A gold ring still sits on one finger, and a purse lies in the apron."
+        },
+        {
+          "id": "pit-ladder",
+          "name": "Pit Ladder",
+          "description": "An iron ladder bolted to the pit wall, rusted but sound."
+        }
+      ],
+      "items": [
+        {
+          "id": "wheelwrights-ring",
+          "name": "Wheelwright's Ring",
+          "description": "A plain gold ring, engraved inside with a wheel.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "wheelwrights-bones"
+        },
+        {
+          "id": "apron-purse",
+          "name": "Apron Purse",
+          "description": "A leather purse of coin.",
+          "kind": "coin",
+          "coins": {
+            "gp": 25
+          },
+          "hiddenIn": "wheelwrights-bones"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "lock-chamber",
+      "name": "Lock Chamber",
+      "description": "A long flooded lock, its walls slick and dripping. The stench of an animal den hangs over everything. Paddle gear stands at the lower gates.",
+      "region": "culverts",
+      "encounterId": "lock-chamber-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "lock-paddles",
+          "name": "Lock Paddles",
+          "description": "Iron paddle gear on the lower gates. Opened, they would let the whole lock rush out at once.",
+          "fightAction": {
+            "once": "adventure",
+            "check": {
+              "approaches": [
+                {
+                  "skill": "athletics",
+                  "dc": 14
+                },
+                {
+                  "ability": "strength",
+                  "dc": 14
+                }
+              ]
+            },
+            "bands": {
+              "failure": {
+                "text": "The paddle gear grinds and sticks."
+              },
+              "success": {
+                "text": "The paddles crash open. The water surges out and knocks your foe off its feet.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  },
+                  {
+                    "type": "condition",
+                    "condition": "prone",
+                    "turns": 1
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "The paddles crash open, and the whole lock pours out through the lower gates, taking your foe with it.",
+                "effects": [
+                  {
+                    "type": "remove"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "guild-strongbox",
+          "name": "Guild Strongbox",
+          "description": "A great iron box stamped with the guild's weir, dented where something has slept on it.",
+          "discovery": "The strongbox holds a gilded seal, a bag of gold and a slim wand of pale wood."
+        },
+        {
+          "id": "ogres-nest",
+          "name": "Ogre's Nest",
+          "description": "A heap of sacking, reeds and gnawed bones."
+        }
+      ],
+      "items": [
+        {
+          "id": "guild-seal",
+          "name": "Gilded Guild Seal",
+          "description": "A heavy gilded seal of the Coldwater Guild, its handle set with river pearls.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "guild-strongbox"
+        },
+        {
+          "id": "strongbox-gold",
+          "name": "Strongbox Gold",
+          "description": "A bag of guild gold.",
+          "kind": "coin",
+          "coins": {
+            "gp": 40
+          },
+          "hiddenIn": "guild-strongbox"
+        },
+        {
+          "id": "guild-wand",
+          "name": "Wand of Magic Missiles",
+          "description": "A slim wand of pale wood, warm to the touch.",
+          "kind": "wand",
+          "wand": "wand-of-magic-missiles",
+          "hiddenIn": "guild-strongbox"
+        },
+        {
+          "id": "old-sullage-coins",
+          "name": "Old Sullage's Coins",
+          "description": "A heavy pouch of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 9
+          },
+          "hiddenIn": "old-sullage"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "spillway",
+      "name": "Spillway",
+      "description": "Water pours over a stone weir into darkness, loud enough to drown your thoughts. Bones lie heaped against the wall.",
+      "region": "culverts",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "spill-weir",
+          "name": "Spill Weir",
+          "description": "A lip of worn stone where the overflow pours down out of sight."
+        },
+        {
+          "id": "bone-heap",
+          "name": "Bone Heap",
+          "description": "Gnawed bones of pigs, sheep and something that might have been a goblin."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "flooded-vault",
+      "name": "Flooded Vault",
+      "description": "Knee-deep water fills a vaulted strongroom, and it smells of drowned things. Shapes stand motionless in the dark.",
+      "region": "culverts",
+      "encounterId": "vault-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "guild-coffer",
+          "name": "Guild Coffer",
+          "description": "A coffer on a stone shelf, just above the waterline.",
+          "discovery": "Inside lies a sapphire on a bed of rotted velvet, with a few coins."
+        },
+        {
+          "id": "silted-arch",
+          "name": "Silted Arch",
+          "description": "An arch in the vault wall, choked with silt and drowned reeds.",
+          "check": {
+            "skill": "investigation",
+            "dc": 14,
+            "bands": {
+              "success": {
+                "text": "You scoop away the silt and find a low tunnel, scratched with kobold marks.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "silt-tunnel"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "drowned-ledger",
+          "name": "Drowned Ledger",
+          "description": "A ledger swollen with water, its pages stuck together.",
+          "discovery": "One legible line: \"Vault sealed. The river has us.\""
+        }
+      ],
+      "items": [
+        {
+          "id": "guild-sapphire",
+          "name": "Guild Sapphire",
+          "description": "A deep blue sapphire, cut flat on one face.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "guild-coffer"
+        },
+        {
+          "id": "coffer-coins",
+          "name": "Coffer Coins",
+          "description": "A few gold coins, green with damp.",
+          "kind": "coin",
+          "coins": {
+            "gp": 20
+          },
+          "hiddenIn": "guild-coffer"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "gear-hall",
+      "name": "Gear Hall",
+      "description": "Huge gears grind and shriek in a hall of iron and stone, and the air tastes of oil. A counterweight hangs on a chain over the middle of the floor.",
+      "region": "culverts",
+      "encounterId": "gear-hall-fight",
+      "features": [
+        {
+          "id": "great-gear-train",
+          "name": "Great Gear Train",
+          "description": "A train of gears as tall as a house, turning the sluices of the whole weir."
+        },
+        {
+          "id": "counterweight-chain",
+          "name": "Counterweight Chain",
+          "description": "A chain runs up over a pulley to a block of iron the size of a cart. A single pin holds it.",
+          "fightAction": {
+            "once": "adventure",
+            "check": {
+              "approaches": [
+                {
+                  "skill": "athletics",
+                  "dc": 13
+                },
+                {
+                  "skill": "sleight-of-hand",
+                  "dc": 13
+                }
+              ]
+            },
+            "bands": {
+              "failure": {
+                "text": "The pin won't shift."
+              },
+              "success": {
+                "text": "The pin jerks free, and the counterweight drops onto your foe.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 8,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "The counterweight drops square onto your foe and slams it to the floor.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 8,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  },
+                  {
+                    "type": "condition",
+                    "condition": "prone",
+                    "turns": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "sluice-levers",
+          "name": "Sluice Levers",
+          "description": "A row of levers, all but one chained down, under the words \"Open to drain\". The chains run up toward the sluice-house."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-toll-hall",
+      "between": ["towpath-gate", "toll-hall"],
+      "description": "The gatehouse arch, into smoke and noise."
+    },
+    {
+      "id": "slipway-path",
+      "between": ["towpath-gate", "barge-yard"],
+      "description": "A narrow path along the slipway, wet with spray."
+    },
+    {
+      "id": "toll-hall-to-yard",
+      "between": ["toll-hall", "barge-yard"],
+      "description": "A side door onto the yard."
+    },
+    {
+      "id": "toll-hall-to-stair-head",
+      "between": ["toll-hall", "stair-head"],
+      "description": "A short passage to the stair door."
+    },
+    {
+      "id": "yard-to-office",
+      "between": ["barge-yard", "keepers-office"],
+      "description": "A weathered door marked \"Keeper\"."
+    },
+    {
+      "id": "yard-to-larder",
+      "between": ["barge-yard", "kennel-larder"],
+      "description": "A low door. A dog's chain rattles behind it."
+    },
+    {
+      "id": "yard-to-sluice-house",
+      "between": ["barge-yard", "sluice-house"],
+      "description": "A doorway into the roar of water."
+    },
+    {
+      "id": "office-to-loft",
+      "between": ["keepers-office", "keepers-loft"],
+      "description": "A ladder up through a trapdoor."
+    },
+    {
+      "id": "larder-to-bunks",
+      "between": ["kennel-larder", "bunk-room"],
+      "description": "A curtained doorway. Snoring comes through it."
+    },
+    {
+      "id": "bunks-to-tower",
+      "between": ["bunk-room", "bell-tower"],
+      "description": "A spiral stair up into the tower."
+    },
+    {
+      "id": "wall-walk",
+      "between": ["bell-tower", "keepers-loft"],
+      "description": "The wall-walk along the top of the keep."
+    },
+    {
+      "id": "keepers-stair",
+      "between": ["stair-head", "stair-foot"],
+      "description": "A stone stair down into the culverts, behind an iron grate.",
+      "door": {
+        "id": "iron-grate",
+        "name": "Iron Grate",
+        "description": "An iron grate across the stair, locked with a heavy padlock.",
+        "state": "locked",
+        "keyItemId": "grate-key",
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 13
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 15,
+          "bands": {
+            "failure-by-5": {
+              "text": "The grate clangs against its frame, and the noise rings up through the keep.",
+              "noisy": true
+            }
+          }
+        }
+      },
+      "trap": {
+        "id": "stair-deadfall",
+        "name": "Bell-Wire Deadfall",
+        "description": "A wire strung low across the steps, tied to a sack of ballast stones overhead and to a bell-line up to the keep.",
+        "find": {
+          "dc": 13
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 13,
+              "advantage": [
+                {
+                  "type": "flag",
+                  "flag": "knows-bell-wires",
+                  "name": "You know the bell-wires"
+                }
+              ]
+            },
+            {
+              "ability": "dexterity",
+              "dc": 13,
+              "advantage": [
+                {
+                  "type": "flag",
+                  "flag": "knows-bell-wires",
+                  "name": "You know the bell-wires"
+                }
+              ]
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "The wire twangs, and a bell jangles far above.",
+              "noisy": true
+            },
+            "success": {
+              "text": "You tie off the wire and see how the Lockjaw rig their deadfalls.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "knows-bell-wires"
+                }
+              ]
+            }
+          }
+        },
+        "trigger": "A wire snaps at your shin, and a sack of stones drops from the dark.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 12
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 6,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "fallen-at-the-weirgate"
+      }
+    },
+    {
+      "id": "drained-culvert",
+      "between": ["sluice-house", "drain-mouth"],
+      "description": "Iron rungs down the culvert wall.",
+      "hidden": true
+    },
+    {
+      "id": "stair-foot-to-pump-room",
+      "between": ["stair-foot", "pump-room"],
+      "description": "A dry passage with a door at its end."
+    },
+    {
+      "id": "gear-gallery",
+      "between": ["pump-room", "gear-hall"],
+      "description": "A gallery of turning shafts, loud with gears."
+    },
+    {
+      "id": "drain-to-outfall",
+      "between": ["drain-mouth", "outfall"],
+      "description": "The culvert, running down toward daylight."
+    },
+    {
+      "id": "drain-to-warren",
+      "between": ["drain-mouth", "kobold-warren"],
+      "description": "A low tunnel printed with small clawed feet.",
+      "trap": {
+        "id": "culvert-deadfall",
+        "name": "Bell-Wire Deadfall",
+        "description": "A wire strung low across the tunnel, tied to a sack of ballast stones above and a bell-line running up toward the keep.",
+        "find": {
+          "dc": 13
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 13,
+              "advantage": [
+                {
+                  "type": "flag",
+                  "flag": "knows-bell-wires",
+                  "name": "You know the bell-wires"
+                }
+              ]
+            },
+            {
+              "ability": "dexterity",
+              "dc": 13,
+              "advantage": [
+                {
+                  "type": "flag",
+                  "flag": "knows-bell-wires",
+                  "name": "You know the bell-wires"
+                }
+              ]
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "The wire twangs, and a bell jangles somewhere up in the keep.",
+              "noisy": true
+            },
+            "success": {
+              "text": "You tie off the wire and see how the Lockjaw rig their deadfalls.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "knows-bell-wires"
+                }
+              ]
+            }
+          }
+        },
+        "trigger": "A wire snaps at your shin, and a sack of stones drops from the dark.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 12
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 6,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "fallen-at-the-weirgate"
+      }
+    },
+    {
+      "id": "pump-room-to-outfall",
+      "between": ["pump-room", "outfall"],
+      "description": "A sloping passage toward daylight."
+    },
+    {
+      "id": "pump-room-to-wheel-pit",
+      "between": ["pump-room", "wheel-pit"],
+      "description": "A ladder down beside the race."
+    },
+    {
+      "id": "lock-walk",
+      "between": ["pump-room", "lock-chamber"],
+      "description": "A narrow walk along the lock's edge. Snoring rumbles up it."
+    },
+    {
+      "id": "warren-to-gear-hall",
+      "between": ["kobold-warren", "gear-hall"],
+      "description": "A kobold tunnel that comes out under the gears."
+    },
+    {
+      "id": "silt-tunnel",
+      "between": ["kobold-warren", "flooded-vault"],
+      "description": "A low tunnel choked with silt.",
+      "hidden": true
+    },
+    {
+      "id": "lock-to-spillway",
+      "between": ["lock-chamber", "spillway"],
+      "description": "A ledge round to the overflow."
+    },
+    {
+      "id": "lock-to-vault",
+      "between": ["lock-chamber", "flooded-vault"],
+      "description": "A sunken doorway, half under water."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "toll-hall-fight",
+      "opponents": [
+        {
+          "id": "sergeant-larrow",
+          "monster": "bandit",
+          "name": "Sergeant Larrow",
+          "description": "A broad river-bandit with a greasy key on a cord round her neck puts down her ale and draws a scimitar."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate",
+      "reaction": {
+        "peacefulXp": 25,
+        "parley": {
+          "approaches": [
+            {
+              "skill": "persuasion",
+              "dc": 13
+            },
+            {
+              "skill": "deception",
+              "dc": 14
+            },
+            {
+              "skill": "intimidation",
+              "dc": 14
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "Larrow spits and lunges before you finish.",
+              "outcome": "surprise-attack"
+            },
+            "failure": {
+              "text": "Larrow's hand drifts to her scimitar.",
+              "shift": -1
+            },
+            "success": {
+              "text": "Larrow snorts, but lowers her blade.",
+              "shift": 1
+            },
+            "success-by-5": {
+              "text": "Larrow laughs and waves you through. \"Mind the goblin.\"",
+              "outcome": "let-pass"
+            }
+          }
+        },
+        "toll": {
+          "coins": {
+            "gp": 5
+          },
+          "text": "Larrow weighs the coins in her palm and steps aside."
+        },
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "parley", "toll"],
+            "text": "\"Five gold to pass, or I take it off your body.\""
+          },
+          "uncertain": {
+            "options": ["attack", "parley", "toll"],
+            "text": "Larrow looks you over. \"Walkers pay five gold today.\""
+          },
+          "indifferent": {
+            "options": ["let-pass", "toll", "attack"],
+            "text": "Larrow yawns. \"Pay or pass, I don't care which.\""
+          },
+          "friendly": {
+            "options": ["let-pass", "attack"],
+            "text": "Larrow raises her mug to you. \"Not a barge, not my business.\""
+          }
+        }
+      }
+    },
+    {
+      "id": "kennel-fight",
+      "opponents": [
+        {
+          "id": "brindle",
+          "monster": "wolf",
+          "name": "Brindle",
+          "description": "A brindled wolf on a long chain lunges out of the straw, snarling."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    },
+    {
+      "id": "bunk-room-fight",
+      "opponents": [
+        {
+          "id": "bunk-bandit-1",
+          "monster": "bandit",
+          "name": "Sleepy Bandit",
+          "description": "A bandit rolls out of a hammock, grabbing for his scimitar."
+        },
+        {
+          "id": "bunk-bandit-2",
+          "monster": "bandit",
+          "name": "Bleary Bandit",
+          "description": "A bleary-eyed bandit staggers up, cursing."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate",
+      "movesTo": {
+        "roomId": "keepers-loft",
+        "when": "bell-rung"
+      }
+    },
+    {
+      "id": "bell-tower-fight",
+      "opponents": [
+        {
+          "id": "lookout",
+          "monster": "bandit",
+          "name": "Lockjaw Lookout",
+          "description": "A lanky lookout jumps off his stool and reaches for the bell rope."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    },
+    {
+      "id": "warren-fight",
+      "opponents": [
+        {
+          "id": "kobold-1",
+          "monster": "kobold",
+          "name": "Kobold Gearwright",
+          "description": "A kobold with a spike-tipped spanner hisses at you."
+        },
+        {
+          "id": "kobold-2",
+          "monster": "kobold",
+          "name": "Kobold Netter",
+          "description": "A kobold with a fish-spear crouches by the baskets."
+        },
+        {
+          "id": "kobold-3",
+          "monster": "kobold",
+          "name": "Kobold Stoker",
+          "description": "A soot-black kobold edges round to your side."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate",
+      "sets": {
+        "peaceful": "kobold-truce"
+      },
+      "reaction": {
+        "peacefulXp": 75,
+        "parley": {
+          "approaches": [
+            {
+              "skill": "persuasion",
+              "dc": 12
+            },
+            {
+              "skill": "deception",
+              "dc": 13
+            },
+            {
+              "skill": "intimidation",
+              "dc": 12
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "\"Grisk's spy!\" the kobolds shriek, and rush you.",
+              "outcome": "surprise-attack"
+            },
+            "failure": {
+              "text": "The kobolds edge closer, spears low.",
+              "shift": -1
+            },
+            "success": {
+              "text": "The kobolds chatter together, spears lowering.",
+              "shift": 1
+            },
+            "success-by-5": {
+              "text": "At the word \"Grisk\" the kobolds hiss and spit, and then they bow and let you in.",
+              "outcome": "let-pass"
+            }
+          }
+        },
+        "toll": {
+          "coins": {
+            "gp": 5
+          },
+          "text": "The kobolds snatch the coins and lay them on the gear shrine."
+        },
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "parley", "toll"],
+            "text": "The kobolds level their spears and hiss."
+          },
+          "uncertain": {
+            "options": ["attack", "parley", "toll"],
+            "text": "The kobolds bunch together, eyes on your weapon."
+          },
+          "indifferent": {
+            "options": ["let-pass", "toll", "attack"],
+            "text": "The kobolds watch you, waiting to see what you do."
+          },
+          "friendly": {
+            "options": ["let-pass", "attack"],
+            "text": "The kobolds bob their heads and point you toward their priestess."
+          }
+        }
+      }
+    },
+    {
+      "id": "wheel-pit-fight",
+      "opponents": [
+        {
+          "id": "drowned-wheelwright",
+          "monster": "ghoul",
+          "name": "Drowned Wheelwright",
+          "description": "A grey thing in a leather apron hauls itself out of the race, its claws long and black."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    },
+    {
+      "id": "lock-chamber-fight",
+      "opponents": [
+        {
+          "id": "old-sullage",
+          "monster": "ogre",
+          "name": "Old Sullage",
+          "description": "An ogre heaves itself up off the strongbox, a beam of oak in its fist, and roars."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate",
+      "movesTo": {
+        "roomId": "spillway",
+        "when": "ogre-lured"
+      }
+    },
+    {
+      "id": "vault-fight",
+      "opponents": [
+        {
+          "id": "guildsman-1",
+          "monster": "zombie",
+          "name": "Drowned Guildsman",
+          "description": "A drowned guildsman in a rotted gown turns toward you through the water."
+        },
+        {
+          "id": "guildsman-2",
+          "monster": "zombie",
+          "name": "Drowned Clerk",
+          "description": "A drowned clerk, ink-stained fingers swollen, wades after it."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    },
+    {
+      "id": "gear-hall-fight",
+      "opponents": [
+        {
+          "id": "grisk",
+          "monster": "goblin-boss",
+          "name": "Grisk",
+          "description": "A goblin in a rusted guild chain-of-office snarls orders over the gears, then turns on you with a notched scimitar.",
+          "boss": true
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate",
+      "victoryEndingId": "sluices-open"
+    },
+    {
+      "id": "lockjaw-patrol",
+      "opponents": [
+        {
+          "id": "patrol-bandit-1",
+          "monster": "bandit",
+          "name": "Patrolling Bandit",
+          "description": "A Lockjaw bandit on patrol rounds the corner and shouts."
+        },
+        {
+          "id": "patrol-bandit-2",
+          "monster": "bandit",
+          "name": "Patrol Bandit",
+          "description": "A second bandit follows, cudgel raised."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    },
+    {
+      "id": "drowned-wanderer",
+      "opponents": [
+        {
+          "id": "wandering-guildsman",
+          "monster": "zombie",
+          "name": "Drifting Guildsman",
+          "description": "A drowned guildsman shambles out of the dark, water pouring from its sleeves."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-weirgate"
+    }
+  ],
+  "endings": [
+    {
+      "id": "sluices-open",
+      "kind": "victory",
+      "title": "The sluices open",
+      "text": "Grisk falls among the gears. You pull the chains from the levers, and with a long groan the sluices open. Far off, the marsh begins to drain toward the river.",
+      "xp": 500
+    },
+    {
+      "id": "out-with-the-weir-goods",
+      "kind": "escape-with-loot",
+      "title": "Out with your finds",
+      "text": "You leave the weirgate with what you found. The marsh is still rising."
+    },
+    {
+      "id": "out-of-the-weirgate",
+      "kind": "escape-without-loot",
+      "title": "Out of the weirgate",
+      "text": "You leave the weirgate with nothing to show for it."
+    },
+    {
+      "id": "fallen-at-the-weirgate",
+      "kind": "defeat",
+      "title": "Fallen at the weirgate",
+      "text": "You fall in the roar of the weirgate. Your adventuring ends here."
+    }
+  ]
+}

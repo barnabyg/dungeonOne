@@ -43,7 +43,6 @@ import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
-import { longTunnels, longWorkings } from "./fixtures/modules.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
 const moduleFiles = Object.fromEntries(
@@ -72,32 +71,29 @@ const gated =
           shipped.find((adventure) => adventure.id === id) ??
           assert.fail(`${id} is not a shipped module`),
       );
-/**
- * The modules the budget times: every shipped module and the gate-time
- * canary, a long module standing in for the first shipped one (#410); or
- * only those named.
- */
-const timed = gated === shipped ? [...shipped, longWorkings] : gated;
 const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
 /**
- * The reference CPU seconds the gate may take over every shipped module and
- * the gate-time canary (#410):
- * 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
+ * The reference CPU seconds the gate may take over every shipped module, the
+ * Coldwater Weirgate (#412) among them as the gate-time canary in place of
+ * #410's fixture long module:
+ * 240 from #412 (owner's choice), when the Weirgate took the gate to 173.9
+ * locally; 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
  */
-const GATE_BUDGET_SECONDS = 180;
+const GATE_BUDGET_SECONDS = 240;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #350)", () => {
+test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #350, #412)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
+      "coldwater-weirgate",
       "drowned-chapel",
       "goblin-warren",
       "gravediggers-lodge",
@@ -135,17 +131,17 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module and the gate-time canary qualify at their declared difficulty for every class within the gate's time budget (#310, #321, #348, #410)", () => {
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
   // The other gate tests below read the results this fills.
   const seconds = referenceCpuSeconds(() => {
-    for (const adventure of timed) {
+    for (const adventure of gated) {
       gateOf(adventure);
     }
   });
-  for (const adventure of timed) {
+  for (const adventure of gated) {
     const gate = gateOf(adventure);
     if (!gate.qualified) {
       assert.fail(renderModuleGateResult(adventure, gate));
@@ -159,64 +155,67 @@ test("every shipped module and the gate-time canary qualify at their declared di
 });
 
 /**
- * The gate-time canary's figures (#410), for each class: the weakest
- * character's survival as [level, kit, rate], then each declared route's
- * and each region sweep's. A speed-up must leave them as they are.
+ * The gate-time canary's figures (#410), the Coldwater Weirgate's since it
+ * shipped (#412), for each class: the weakest character's survival as
+ * [level, kit, rate], then each declared route's and each region sweep's. A
+ * speed-up must leave them as they are.
  */
+const CANARY_ID = "coldwater-weirgate";
 const CANARY_FIGURES = {
   fighter: {
-    survival: [3, "mace", 0.98],
+    survival: [3, "mace", 0.945],
     routes: [
-      ["by-the-shaft", 3, "mace", 0.99],
-      ["down-the-chute", 3, "mace", 0.98],
+      ["keepers-stair", 3, "mace", 0.945],
+      ["drained-culvert", 3, "mace", 0.95],
     ],
     sweeps: [
-      ["upper", 3, "two-daggers", 0.96],
-      ["lower", 3, "mace", 0.98],
+      ["keep", 3, "mace", 0.96],
+      ["culverts", 3, "mace", 0.945],
     ],
   },
   rogue: {
-    survival: [3, "shortsword-and-dagger", 0.99],
+    survival: [3, "shortsword", 0.99],
     routes: [
-      ["by-the-shaft", 3, "shortsword-and-dagger", 0.99],
-      ["down-the-chute", 3, "shortsword-and-dagger", 0.99],
+      ["keepers-stair", 3, "shortsword", 0.99],
+      ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
     ],
     sweeps: [
-      ["upper", 3, "shortsword-and-dagger", 0.98],
-      ["lower", 3, "shortsword-and-dagger", 0.99],
+      ["keep", 3, "shortsword", 0.955],
+      ["culverts", 3, "shortsword", 0.99],
     ],
   },
   cleric: {
-    survival: [3, "mace-and-daggers", 0.93],
+    survival: [3, "mace-and-daggers", 0.935],
     routes: [
-      ["by-the-shaft", 3, "mace-and-daggers", 0.93],
-      ["down-the-chute", 3, "mace-and-daggers", 0.93],
+      ["keepers-stair", 3, "mace-and-daggers", 0.935],
+      ["drained-culvert", 3, "club-and-shield", 0.965],
     ],
     sweeps: [
-      ["upper", 3, "mace-and-daggers", 0.805],
-      ["lower", 3, "mace-and-daggers", 0.93],
+      ["keep", 3, "mace-and-daggers", 0.88],
+      ["culverts", 3, "mace-and-daggers", 0.935],
     ],
   },
   wizard: {
-    survival: [3, "quarterstaff-and-dagger", 0.955],
+    survival: [3, "quarterstaff-and-dagger", 0.94],
     routes: [
-      ["by-the-shaft", 3, "quarterstaff-and-dagger", 0.945],
-      ["down-the-chute", 3, "quarterstaff-and-dagger", 0.955],
+      ["keepers-stair", 3, "quarterstaff-and-dagger", 0.94],
+      ["drained-culvert", 3, "quarterstaff-and-dagger", 0.985],
     ],
     sweeps: [
-      ["upper", 3, "quarterstaff-and-dagger", 0.835],
-      ["lower", 3, "quarterstaff-and-dagger", 0.955],
+      ["keep", 3, "quarterstaff-and-dagger", 0.91],
+      ["culverts", 3, "quarterstaff-and-dagger", 0.94],
     ],
   },
 };
 
-test("the gate gives the gate-time canary its pinned figures (#410)", (t) => {
-  if (!gates.has(longWorkings.id)) {
-    t.skip("the canary is gated only with every shipped module");
+test("the gate gives the gate-time canary its pinned figures (#410, #412)", (t) => {
+  const canary = gated.find(({ id }) => id === CANARY_ID);
+  if (canary === undefined) {
+    t.skip("the canary is gated only when it is named or every module is");
     return;
   }
   const figures = ({ level, kit, rate }) => [level, kit, rate];
-  for (const { classId, result } of gateOf(longWorkings).classes) {
+  for (const { classId, result } of gateOf(canary).classes) {
     const { survival, routes, sweeps } = result.verdict;
     assert.deepEqual(
       {
@@ -248,11 +247,11 @@ test("the recorded gate verdicts the browser offers modules by are the gate's (#
   );
 });
 
-test("a new character's career through the shipped modules and a long module reaches the required level in every class (#290, #310, #348, #404)", () => {
-  // The fixture long module takes its place in the order like any other
-  // (#404), until a shipped one does.
+test("a new character's career through the shipped modules reaches the required level in every class (#290, #310, #348, #404, #412)", () => {
+  // The Coldwater Weirgate, a long module, takes its place in the order like
+  // any other (#404).
   for (const classId of GATE_CLASSES) {
-    const report = simulateCareer([...shipped, longTunnels], { classId });
+    const report = simulateCareer(shipped, { classId });
     assert.equal(report.classId, classId);
     assert.equal(report.requiredLevel, CAREER_REQUIRED_LEVEL);
     assert.equal(report.ok, true, renderCareerResult(report));
@@ -305,6 +304,37 @@ test("every shipped module declares the strictest difficulty every class passes 
  * than in each module's own tests, so the gate plays each module once.
  */
 const QUOTED_FIGURES = {
+  // Long (#412): Medium, as the Wizard's 90.5% when every check fails is 5.5
+  // points over the 85% Medium needs, and every class is under the 98% Easy
+  // needs with its slack. Three kobolds of 15 ordinary foes are over the
+  // cap. Every fight's XP, the wandering ones' included, and the ending's 500.
+  "coldwater-weirgate": {
+    fighter: {
+      survival: [3, "mace", 0.945],
+      alwaysFail: [3, 0.965],
+      overCap: ["kobold-1", "kobold-2", "kobold-3"],
+      enemyCount: 15,
+      xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 500,
+    },
+    rogue: {
+      survival: [3, "shortsword", 0.99],
+      alwaysFail: [3, 0.985],
+      overCap: ["kobold-1", "kobold-2", "kobold-3"],
+      xp: 1775,
+    },
+    cleric: {
+      survival: [3, "mace-and-daggers", 0.935],
+      alwaysFail: [3, 0.91],
+      overCap: ["kobold-1", "kobold-2", "kobold-3"],
+      xp: 1775,
+    },
+    wizard: {
+      survival: [3, "quarterstaff-and-dagger", 0.94],
+      alwaysFail: [3, 0.905],
+      overCap: ["kobold-1", "kobold-2", "kobold-3"],
+      xp: 1775,
+    },
+  },
   // 1 point over the 98% the #252 slack rule asks of an Easy module (1.5
   // until the Champion's initiative advantage, #315, moved the dice).
   "drowned-chapel": {
@@ -457,7 +487,7 @@ const QUOTED_FIGURES = {
   },
 };
 
-test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311)", () => {
+test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311, #412)", () => {
   for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
     const adventure = gated.find((entry) => entry.id === id);
     if (adventure === undefined) {
@@ -518,6 +548,15 @@ const TURN_UNDEAD_FIGURES = {
       ["zombie", 27.5],
       ["skeleton-sergeant", 34.3],
       ["skeleton-guard", 34.3],
+    ],
+  },
+  "coldwater-weirgate": {
+    cap: 0.4,
+    enemies: [
+      ["drowned-wheelwright", 27.5],
+      ["guildsman-1", 27.5],
+      ["guildsman-2", 27.5],
+      ["wandering-guildsman", 27.5],
     ],
   },
   "drowned-chapel": { cap: 0.5, enemies: [["drowned-sexton", 27.5]] },
@@ -582,7 +621,23 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
   }
 });
 
-test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369)", () => {
+/**
+ * Hold Person's chance in percent of keeping each ordinary humanoid foe out
+ * of the fight, for the Cleric and the Wizard (#369), in the one shipped
+ * module of level 3 or more with such foes (#412): the Lockjaw bandits.
+ */
+const HOLD_PERSON_FIGURES = {
+  "coldwater-weirgate": [
+    ["sergeant-larrow", 27.5],
+    ["bunk-bandit-1", 27.5],
+    ["bunk-bandit-2", 27.5],
+    ["lookout", 27.5],
+    ["patrol-bandit-1", 27.5],
+    ["patrol-bandit-2", 27.5],
+  ],
+};
+
+test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369, #412)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
       const { control } = gateOf(adventure).classes.find(
@@ -597,13 +652,19 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
         continue;
       }
       assert.equal(control.ok, true, label);
-      // Sleep's saves with advantage keep every foe under; no shipped module
-      // at level 3 or more has an ordinary humanoid for Hold Person.
+      // Sleep's saves with advantage keep every foe under, and so do Hold
+      // Person's saves each turn on the one module's bandits.
       assert.deepEqual(control.overCap, [], label);
-      assert.ok(
-        control.enemies.every(
-          ({ control: used, chance }) => used !== "hold-person" || chance === 0,
-        ),
+      assert.deepEqual(
+        control.enemies
+          .filter(
+            ({ control: used, chance }) => used === "hold-person" && chance > 0,
+          )
+          .map(({ opponentId, chance }) => [
+            opponentId,
+            Math.round(chance * 1000) / 10,
+          ]),
+        HOLD_PERSON_FIGURES[adventure.id] ?? [],
         label,
       );
     }
@@ -675,7 +736,7 @@ test("every shipped opponent names its bestiary monster instead of an inline sta
 
 test("every shipped module's treasure fits its budget (#239)", () => {
   for (const module of shipped) {
-    const budget = treasureBudget(module.recommendedLevels.max);
+    const budget = treasureBudget(module.recommendedLevels.max, module.long);
     assert.ok(
       findableValue(module) <= budget,
       `${module.id} is worth ${findableValue(module)} cp, over ${budget}`,
@@ -687,6 +748,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
   // The Delve and the Mine keep their shipped treasure; the others were
   // designed against the budget with more than one class of gem or art object.
   for (const id of [
+    "coldwater-weirgate",
     "drowned-chapel",
     "goblin-warren",
     "gravediggers-lodge",
@@ -702,7 +764,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
     "wolfstone-hillfort",
   ]) {
     const module = shipped.find((adventure) => adventure.id === id);
-    const budget = treasureBudget(module.recommendedLevels.max);
+    const budget = treasureBudget(module.recommendedLevels.max, module.long);
     const value = findableValue(module);
     assert.ok(
       value >= budget * 0.75 && value <= budget,
@@ -734,6 +796,15 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     ),
   );
   assert.deepEqual(carriers.sort(), [
+    "coldwater-weirgate/bunk-bandit-1-coins@bunk-bandit-1",
+    "coldwater-weirgate/bunk-bandit-2-coins@bunk-bandit-2",
+    "coldwater-weirgate/grate-key@sergeant-larrow",
+    "coldwater-weirgate/kobold-1-coins@kobold-1",
+    "coldwater-weirgate/kobold-2-coins@kobold-2",
+    "coldwater-weirgate/kobold-3-coins@kobold-3",
+    "coldwater-weirgate/lookout-coins@lookout",
+    "coldwater-weirgate/old-sullage-coins@old-sullage",
+    "coldwater-weirgate/sergeant-larrow-coins@sergeant-larrow",
     "goblin-warren/boss-chain@goblin-boss",
     "gravediggers-lodge/false-gravedigger-coins@false-gravedigger",
     "mallow-counting-house/clerk-eater-coins@clerk-eater",
@@ -774,6 +845,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["gravediggers-lodge", "2–2", "hard"],
       ["silvervein-mine", "2–3", "medium"],
       ["drowned-chapel", "3–3", "easy"],
+      ["coldwater-weirgate", "3–3", "medium"],
       ["goblin-warren", "3–3", "medium"],
       ["hollow-chantry", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],

@@ -105,6 +105,10 @@ export const CONTENT_TESTS = new Map([
     "the increment 15 handoff runs through the browser",
   ],
   [
+    "tests/coldwater-weirgate.test.mjs",
+    "the Coldwater Weirgate's content, routes, flags, alarm, bargain, lure, journeys and generated release run",
+  ],
+  [
     "tests/issue-409-live.test.mjs",
     "the live release script's generated route (#409) through the Hollow Chantry",
   ],
