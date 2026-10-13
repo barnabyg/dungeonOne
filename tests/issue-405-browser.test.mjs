@@ -46,18 +46,16 @@ test("the Known rooms panel lists the rooms by region and shows a room's record 
   try {
     await createAndStart(page, server.url, "region-tunnels");
     assert.deepEqual(await panel(page), [
-      [
-        "Upper Tunnels",
-        ["Foot of the Stair (you are here) [shown]", "Alcove (seen)"],
-      ],
+      ["Upper Tunnels", ["Foot of the Stair (you are here)", "Alcove (seen)"]],
       ["Lower Tunnels", ["Rat-Gnawed Cellar (seen)"]],
     ]);
-    assert.match(await record.innerText(), /Nothing learned here yet\./u);
+    // No record shows until a room is chosen: the room panel shows hers.
+    assert.equal(await record.isVisible(), false);
 
     await clickAction(page, "examine", "rusted-lantern");
     await clickAction(page, "move", "alcove");
     assert.deepEqual(await panel(page), [
-      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here) [shown]"]],
+      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here)"]],
       ["Lower Tunnels", ["Rat-Gnawed Cellar (seen)"]],
     ]);
 
@@ -70,21 +68,30 @@ test("the Known rooms panel lists the rooms by region and shows a room's record 
       /^Foot of the Stair\nRusted Lantern: Scratched into the lantern's base: "Rats in the cellar\. Boss in the den\."$/u,
     );
     assert.equal(await page.locator("#room-title").textContent(), "Alcove");
+    assert.deepEqual((await panel(page))[0], [
+      "Upper Tunnels",
+      ["Foot of the Stair [shown]", "Alcove (you are here)"],
+    ]);
     // A room only seen has no record yet.
     await page
       .locator("#known-room-list button[data-room='rat-cellar']")
       .click();
     assert.match(await record.innerText(), /you have not been in\./u);
+    // Choosing it again hides the record.
+    await page
+      .locator("#known-room-list button[data-room='rat-cellar']")
+      .click();
+    assert.equal(await record.isVisible(), false);
     assert.deepEqual((await sessionFile(directory)).state.visitedRoomIds, [
       "stair-foot",
       "alcove",
     ]);
 
-    // A reload shows the same rooms, the current one's record shown.
+    // A reload shows the same rooms, with no record chosen.
     await page.reload();
     await page.locator("#adventure").waitFor({ state: "visible" });
     assert.deepEqual(await panel(page), [
-      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here) [shown]"]],
+      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here)"]],
       ["Lower Tunnels", ["Rat-Gnawed Cellar (seen)"]],
     ]);
     await page

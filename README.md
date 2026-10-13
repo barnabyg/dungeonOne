@@ -319,7 +319,8 @@ through an exit, grouped by region, with the room you are in marked. Choose a
 room to see what you learned there: the discoveries you made, the creatures
 you talked to and what they said, its doors, the traps you found and whether
 its fight was won, slipped past, fled from, ended peacefully or still waits.
-Choosing a room never moves you, and a reload shows the same record.
+Choose it again to hide the record. Choosing a room never moves you, and a
+reload shows the same rooms.
 
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
