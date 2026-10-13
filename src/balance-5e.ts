@@ -1409,7 +1409,8 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
  *   fight, searches each room for traps and disarms those it finds, and
  *   heals below half its hit points.
  * - `avoid-optional` enters only the required rooms, and heals below a
- *   quarter.
+ *   quarter. Where a flag has closed the way through them (#401), it goes
+ *   round by any room.
  * - `stealth-first` (#302) plays as `cautious`, but sneaks into every fight
  *   it can. Unseen, it slips past the fight unless its goal is in that room
  *   (the victory fight, loot, a key) or the way on is shut: then it springs
@@ -2770,10 +2771,19 @@ export function playAdventure(
       // else as it would have.
       const safe = retreating ? safeWayOut(position) : undefined;
       const aside = retreating ? new Set<string>() : detours(position);
+      // Avoiding optional rooms, once a flag has closed the required way
+      // (#401: the alarm's grate), the style goes round by any room.
+      const roundabout =
+        style === "avoid-optional"
+          ? (id: string) => !winning.has(id) || goal.has(id)
+          : undefined;
       const path =
         safe ??
         plan(position, aside, enterable(aside)) ??
         plan(position, goal, enterable(goal)) ??
+        (roundabout === undefined
+          ? undefined
+          : plan(position, goal, roundabout)) ??
         plan(position, exits, enterable(exits));
       const ambush = offered(views, "ambush")[0];
       // Detours first; then, once the goal is a way out and it is reached,

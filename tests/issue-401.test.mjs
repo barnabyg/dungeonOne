@@ -525,7 +525,7 @@ test("every always-fail run raises the alarm at the crates, takes the crawl and 
   const failing = createFifthRuntime(alarmTunnels, TEST_FIGHTER, {
     checks: "always-fail",
   });
-  for (const style of ["direct", "cautious"]) {
+  for (const style of ["direct", "cautious", "avoid-optional"]) {
     for (const seed of [0, 1, 2]) {
       const run = playAdventure(failing, style, seed);
       const where = `${style} ${seed}`;
