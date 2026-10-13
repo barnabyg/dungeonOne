@@ -20,6 +20,9 @@ import {
   loadFifthWanderingEvaluationAdventure,
   FIFTH_MEMORY_DM_CASES,
   loadFifthMemoryEvaluationAdventure,
+  FIFTH_WEIRGATE_DM_CASES,
+  FIFTH_WEIRGATE_DM_CHARACTER,
+  loadFifthWeirgateEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -30,7 +33,7 @@ const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
   "       [--max-calls <count>]",
-  "       [--suite delve|approaches|reactions|parley|flags|items|room|alarm|wandering|memory]",
+  "       [--suite delve|approaches|reactions|parley|flags|items|room|alarm|wandering|memory|weirgate]",
   "       Runs the abandoned-delve cases, with --suite approaches the",
   "       obstacle-yard approach-selection cases, or with --suite reactions",
   "       the wary-cellar reaction cases, or with --suite parley the",
@@ -40,7 +43,9 @@ const USAGE = [
   "       statue-cellar fight action cases, or with --suite alarm the",
   "       alarm-tunnels alarm cases, or with --suite wandering the",
   "       wandering-tunnels wandering encounter cases, or with --suite memory",
-  "       the memory-tunnels known rooms cases. It calls the live provider",
+  "       the memory-tunnels known rooms cases, or with --suite weirgate",
+  "       the release module cases on the coldwater-weirgate, played at",
+  "       level 3. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -101,6 +106,7 @@ function parseArguments(args) {
         "alarm",
         "wandering",
         "memory",
+        "weirgate",
       ].includes(value)
     ) {
       parsed.suite = value;
@@ -219,6 +225,12 @@ try {
       cases: FIFTH_MEMORY_DM_CASES,
       load: loadFifthMemoryEvaluationAdventure,
     },
+    // The release module (#413) is for level 3 only.
+    weirgate: {
+      cases: FIFTH_WEIRGATE_DM_CASES,
+      load: loadFifthWeirgateEvaluationAdventure,
+      character: FIFTH_WEIRGATE_DM_CHARACTER,
+    },
   };
   const suite = suites[configuration.suite];
   const cases = suite.cases;
@@ -236,6 +248,7 @@ try {
     ...(suite.load === undefined
       ? {}
       : { cases, adventure: await suite.load() }),
+    ...(suite.character === undefined ? {} : { character: suite.character }),
     ...(manualJudgments === undefined ? {} : { manualJudgments }),
     createModel: () => live(configuration.model),
   });
