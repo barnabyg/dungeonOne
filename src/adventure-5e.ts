@@ -79,9 +79,18 @@
  * flags as a fixed point: the rooms reached and the flags set for sure are
  * grown together until neither changes.
  *
- * A feature may have another description while a flag is set (`changed`),
- * and a creature's topic may be offered only while a flag is set
- * (`offeredWhile`) or only until one is (`offeredUntil`) (#399).
+ * An encounter may be in its room only while a flag is set
+ * (`presentWhile`), only until one is (`presentUntil`), or in another room
+ * once one is (`movesTo`) (#398); one met stays where it was met, and no
+ * room may hold two. A feature may have another description while a flag
+ * is set (`changed`), and a creature's topic may be offered only while a
+ * flag is set (`offeredWhile`) or only until one is (`offeredUntil`)
+ * (#399).
+ *
+ * A feature may accept items the character carries (`uses`, #400): each
+ * names its item, its words, whether the item is used up, and effects as a
+ * band's. A way a use opens counts toward reachability only once the
+ * feature's room and the item are reached for sure.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
