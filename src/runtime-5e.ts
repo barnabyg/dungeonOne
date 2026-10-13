@@ -5220,12 +5220,16 @@ export type FifthRuntime = Omit<
      * function's doc. Given `kinds`, it lists and dry-runs only actions of
      * those kinds, in the same order, and keeps nothing for the next call:
      * the balance harness asks for the kinds it plays (#321). Given `spells`
-     * too, it lists and dry-runs only casts of those spells (#347).
+     * too, it lists and dry-runs only casts of those spells (#347). Given
+     * `targets` too, it lists and dry-runs only the entries aimed at one of
+     * them or at nothing: the harness asks only for the move to the next
+     * room on its way (#410).
      */
     projectActions(
       state: FifthState,
       kinds?: ReadonlySet<ActionKind>,
       spells?: ReadonlySet<SpellId>,
+      targets?: ReadonlySet<string>,
     ): readonly ActionView[];
     /**
      * How the adventure settles the character once it has ended with the
@@ -10933,17 +10937,19 @@ export function createFifthRuntime(
 
   /**
    * Dry-runs every action of `kinds` the character might take now (every
-   * kind when omitted), casting only `spells` (every spell when omitted);
-   * see `refusal`. Other entries are listed without a dry run, then
-   * dropped (#321, #347).
+   * kind when omitted), casting only `spells` (every spell when omitted)
+   * and aimed at one of `targets` or at nothing (any target when
+   * omitted); see `refusal`. Other entries are listed without a dry run,
+   * then dropped (#321, #347, #410).
    */
   const dryRunActions = (
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
     spells?: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    const listed = listActions(state, kinds, spells);
-    return kinds === undefined && spells === undefined
+    const listed = listActions(state, kinds, spells, targets);
+    return kinds === undefined && spells === undefined && targets === undefined
       ? listed
       : listed.filter((entry) => entry !== UNASKED);
   };
@@ -10953,6 +10959,7 @@ export function createFifthRuntime(
     state: FifthState,
     kinds: ReadonlySet<ActionKind> | undefined,
     spells: ReadonlySet<SpellId> | undefined,
+    targets: ReadonlySet<string> | undefined,
   ): readonly ActionView[] => {
     if (state.status !== "playing") {
       return [];
@@ -10979,7 +10986,10 @@ export function createFifthRuntime(
         (kinds !== undefined && !kinds.has(kind)) ||
         (spells !== undefined &&
           action.type === "cast" &&
-          !spells.has(action.spellId as SpellId))
+          !spells.has(action.spellId as SpellId)) ||
+        (targets !== undefined &&
+          target !== undefined &&
+          !targets.has(target.id))
       ) {
         return UNASKED;
       }
@@ -11749,10 +11759,11 @@ export function createFifthRuntime(
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
     spells?: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    // A projection of some kinds or spells (the balance harness's, #321,
-    // #347) isn't kept.
-    if (kinds !== undefined || spells !== undefined) {
+    // A projection of some kinds, spells or targets (the balance
+    // harness's, #321, #347, #410) isn't kept.
+    if (kinds !== undefined || spells !== undefined || targets !== undefined) {
       return (
         projections
           .get(state)
@@ -11761,8 +11772,11 @@ export function createFifthRuntime(
               (kinds === undefined || kinds.has(entry.action)) &&
               (spells === undefined ||
                 entry.spell === undefined ||
-                spells.has(entry.spell.id as SpellId)),
-          ) ?? dryRunActions(state, kinds, spells)
+                spells.has(entry.spell.id as SpellId)) &&
+              (targets === undefined ||
+                entry.target === undefined ||
+                targets.has(entry.target.id)),
+          ) ?? dryRunActions(state, kinds, spells, targets)
       );
     }
     let actions = projections.get(state);

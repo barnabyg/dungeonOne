@@ -1822,17 +1822,32 @@ const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
 );
 
 /**
- * The kinds of action exploring looks at once it takes none of the first:
- * below the heal threshold with the heals and their casts, and above it.
+ * What exploring looks at once it takes none of the first (#410), each set
+ * only when its choice comes: below the heal threshold, the heals; for a
+ * careful style, searching and disarming; then the way to the next room
+ * on the path (sneaking in only for stealth-first), or leaving where the
+ * way ends; and the door's ways through only when no move to the next
+ * room is offered. A new kind a style takes while exploring must
+ * be added to one of them, or the harness never sees it offered.
  */
-const EXPLORE_ACTIONS_HURT: ReadonlySet<ActionKind> = new Set(
-  [...CHOSEN_ACTIONS].filter(
-    (kind) => !FIRST_ACTIONS.has(kind) || kind === "cast",
-  ),
-);
-const EXPLORE_ACTIONS_UNHURT: ReadonlySet<ActionKind> = new Set(
-  [...UNHURT_ACTIONS].filter((kind) => !FIRST_ACTIONS.has(kind)),
-);
+const EXPLORE_HEALS: ReadonlySet<ActionKind> = new Set([
+  "long-rest",
+  "rest",
+  "cast",
+  "use",
+]);
+const EXPLORE_SEARCHES: ReadonlySet<ActionKind> = new Set(["search", "disarm"]);
+const EXPLORE_WAYS: ReadonlySet<ActionKind> = new Set(["move", "ambush"]);
+const EXPLORE_WAYS_SNEAKING: ReadonlySet<ActionKind> = new Set([
+  ...EXPLORE_WAYS,
+  "sneak",
+]);
+/** Where the way on ends here: leaving, or an ambush. */
+const EXPLORE_ENDS: ReadonlySet<ActionKind> = new Set(["ambush", "leave"]);
+/** A door's ways through, in the order exploring tries them. */
+const EXPLORE_DOORS_ORDER = ["unlock", "force", "pick", "break"] as const;
+const EXPLORE_DOORS: ReadonlySet<ActionKind> = new Set(EXPLORE_DOORS_ORDER);
+const NO_SPELLS: ReadonlySet<SpellId> = new Set();
 
 /** The spells exploring looks at then: healing spells, below the threshold. */
 const HEALING_SPELLS: ReadonlySet<SpellId> = new Set(
@@ -2786,6 +2801,7 @@ export function playAdventure(
     project: (
       kinds: ReadonlySet<ActionKind>,
       spells: ReadonlySet<SpellId>,
+      targets?: ReadonlySet<string>,
     ) => readonly ActionView[],
   ): ActionView | undefined => {
     const room = roomById.get(state.roomId)!;
@@ -2858,27 +2874,29 @@ export function playAdventure(
     if (find !== undefined) {
       return find;
     }
-    const hurt = low(state.character.hp);
-    const views = project(
-      hurt ? EXPLORE_ACTIONS_HURT : EXPLORE_ACTIONS_UNHURT,
-      hurt ? HEALING_SPELLS : new Set(),
-    );
-    // Low, a long rest at a rest site (#335), then a short rest (#334),
-    // then a healing spell (#339), before a potion, which also heals in a
-    // fight.
-    const heal = [
-      ...offered(views, "long-rest"),
-      ...offered(views, "rest"),
-      ...healingSpells(views, false),
-      ...offered(views, "use"),
-    ][0];
-    if (heal !== undefined && hurt) {
-      return heal;
+    // Then each kind only when the choice comes to it (#410): a heal when
+    // low, a careful style's search, then the way on, and a door's ways
+    // through only when no move is offered.
+    if (low(state.character.hp)) {
+      const heals = project(EXPLORE_HEALS, HEALING_SPELLS);
+      // Low, a long rest at a rest site (#335), then a short rest (#334),
+      // then a healing spell (#339), before a potion, which also heals in
+      // a fight.
+      const heal = [
+        ...offered(heals, "long-rest"),
+        ...offered(heals, "rest"),
+        ...healingSpells(heals, false),
+        ...offered(heals, "use"),
+      ][0];
+      if (heal !== undefined) {
+        return heal;
+      }
     }
     if (CAREFUL.includes(style)) {
+      const searches = project(EXPLORE_SEARCHES, NO_SPELLS);
       const careful = [
-        ...offered(views, "search"),
-        ...offered(views, "disarm"),
+        ...offered(searches, "search"),
+        ...offered(searches, "disarm"),
       ][0];
       if (careful !== undefined) {
         return careful;
@@ -2929,16 +2947,24 @@ export function playAdventure(
           ? undefined
           : plan(position, goal, roundabout)) ??
         plan(position, exits, enterable(exits));
-      const ambush = offered(views, "ambush")[0];
       // Detours first; then, once the goal is a way out and it is reached,
       // leave (if this room is no exit, nothing is left to do). Unseen where
       // the goal is anything but a way out, spring an ambush (#302).
       if (path === undefined || path.length < 2) {
+        const ends = project(EXPLORE_ENDS, NO_SPELLS);
+        const ambush = offered(ends, "ambush")[0];
         return ambush === undefined || goal === exits
-          ? (offered(views, "leave")[0] ?? ambush)
+          ? (offered(ends, "leave")[0] ?? ambush)
           : ambush;
       }
       const next = path[1]!;
+      // Only the way to the next room is tried (#410), and an ambush here.
+      const views = project(
+        style === "stealth-first" ? EXPLORE_WAYS_SNEAKING : EXPLORE_WAYS,
+        NO_SPELLS,
+        new Set([next, state.roomId]),
+      );
+      const ambush = offered(views, "ambush")[0];
       // Stealth-first sneaks into each fight it can (#302).
       const sneak =
         style === "stealth-first"
@@ -2955,9 +2981,13 @@ export function playAdventure(
         return ambush;
       }
       const passage = passageBetween(adventure, state.roomId, next);
-      const opening = (["unlock", "force", "pick", "break"] as const)
-        .flatMap((kind) => offered(views, kind))
-        .find(({ target }) => target!.id === passage.door?.id);
+      const doors =
+        passage.door === undefined
+          ? []
+          : project(EXPLORE_DOORS, NO_SPELLS, new Set([passage.door.id]));
+      const opening = EXPLORE_DOORS_ORDER.flatMap((kind) =>
+        offered(doors, kind),
+      ).find(({ target }) => target!.id === passage.door?.id);
       if (opening !== undefined) {
         return opening;
       }
@@ -2974,8 +3004,9 @@ export function playAdventure(
   const project = (
     kinds: ReadonlySet<ActionKind>,
     spells: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    const projected = runtime.projectActions(state, kinds, spells);
+    const projected = runtime.projectActions(state, kinds, spells, targets);
     const unknown = projected.find(
       ({ action }) => !Object.hasOwn(PLAYED_ACTIONS, action),
     );
