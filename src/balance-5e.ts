@@ -972,7 +972,7 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
  * passable once a use has opened it, and otherwise the plan fetches the
  * item and then goes to the feature, where the character uses it.
  */
-function routePlanner(adventure: FifthAdventure, talking = false) {
+function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
   const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
   // The hidden passages only a use opens (#400): no band of a check does.
   const bandOpened = new Set(
@@ -997,6 +997,23 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   const unused = (position: Position, passage: FifthPassage) =>
     useOnly.has(passage.id) && !position.usedOpen.includes(passage.id);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
+  /** Each room's passages, in the module's order, with where each leads. */
+  const passagesFrom = new Map<
+    string,
+    Readonly<{ passage: FifthPassage; next: string }>[]
+  >();
+  for (const passage of adventure.passages) {
+    const [a, b] = passage.between;
+    const add = (here: string, next: string) =>
+      passagesFrom.set(here, [
+        ...(passagesFrom.get(here) ?? []),
+        { passage, next },
+      ]);
+    add(a, b);
+    if (b !== a) {
+      add(b, a);
+    }
+  }
   const flagSetters = new Map(
     adventure.rooms.map((room) => [
       room.id,
@@ -1120,15 +1137,12 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
         return path;
       }
       done.add(here);
-      for (const passage of adventure.passages) {
-        const [a, b] = passage.between;
-        const next = a === here ? b : b === here ? a : undefined;
+      for (const { passage, next } of passagesFrom.get(here) ?? []) {
         const keyId = passage.door?.keyItemId;
         const locked =
           keyOnly(passage) &&
           (keyId === undefined || !position.inventory.includes(keyId));
         if (
-          next === undefined ||
           done.has(next) ||
           !enterable(next) ||
           talkOnly.has(passage.id) ||
@@ -1248,6 +1262,32 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   return { plan, roomById, fightIn, encounterAt, roomFlags, flagShut };
 }
 
+/** Each adventure's route planners, not talking and talking (#410). */
+const ROUTE_PLANNERS = new WeakMap<
+  FifthAdventure,
+  Map<boolean, ReturnType<typeof newRoutePlanner>>
+>();
+
+/**
+ * The adventure's route planner (`newRoutePlanner`): worked out once, as
+ * every run plays from the same one (#410).
+ */
+function routePlanner(
+  adventure: FifthAdventure,
+  talking = false,
+): ReturnType<typeof newRoutePlanner> {
+  const planners =
+    ROUTE_PLANNERS.get(adventure) ??
+    new Map<boolean, ReturnType<typeof newRoutePlanner>>();
+  ROUTE_PLANNERS.set(adventure, planners);
+  let planner = planners.get(talking);
+  if (planner === undefined) {
+    planner = newRoutePlanner(adventure, talking);
+    planners.set(talking, planner);
+  }
+  return planner;
+}
+
 /**
  * A region's sweep (#408): every room of one region of a long module but
  * those marked `avoidable` and the victory room, which the objective
@@ -1319,6 +1359,32 @@ function objectiveOf(adventure: FifthAdventure): Objective {
     : lootRooms(adventure).size > 0
       ? "escape-with-loot"
       : "escape-without-loot";
+}
+
+/** Each adventure's required rooms, by the route or sweep followed (#410). */
+const REQUIRED_ROOMS = new WeakMap<
+  FifthAdventure,
+  Map<FifthRoute | RegionSweep | undefined, ReadonlySet<string>>
+>();
+
+/**
+ * The rooms of `requiredPath` along `along`: worked out once for every
+ * run that follows it (#410).
+ */
+function requiredRooms(
+  adventure: FifthAdventure,
+  along: FifthRoute | RegionSweep | undefined,
+): ReadonlySet<string> {
+  const paths =
+    REQUIRED_ROOMS.get(adventure) ??
+    new Map<FifthRoute | RegionSweep | undefined, ReadonlySet<string>>();
+  REQUIRED_ROOMS.set(adventure, paths);
+  let rooms = paths.get(along);
+  if (rooms === undefined) {
+    rooms = new Set(requiredPath(adventure, along).roomIds);
+    paths.set(along, rooms);
+  }
+  return rooms;
 }
 
 /**
@@ -1800,21 +1866,18 @@ const UNHURT_SPELLS: Readonly<Record<CastingPolicy, ReadonlySet<SpellId>>> = {
 
 /**
  * The kinds of action exploring looks at first (#347): answering a
- * reaction, Mage Armor, and finding something. Only when it takes none of
- * them does the harness project the rest.
+ * reaction, Mage Armor, and finding something: examining what is here and
+ * not yet examined (`EXAMINING`, #410), taking, using an item on a
+ * feature. Only when it takes none of them does the harness project the
+ * rest.
  */
 const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
   "react",
   "cast",
-  "examine",
   "take",
   "use-on",
 ]);
-
-/** The first kinds, once everything in the room is examined. */
-const FIRST_WITHOUT_EXAMINING: ReadonlySet<ActionKind> = new Set(
-  [...FIRST_ACTIONS].filter((kind) => kind !== "examine"),
-);
+const EXAMINING: ReadonlySet<ActionKind> = new Set(["examine"]);
 
 /** The spells exploring looks at first: Mage Armor, before the first fight. */
 const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
@@ -1822,17 +1885,32 @@ const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
 );
 
 /**
- * The kinds of action exploring looks at once it takes none of the first:
- * below the heal threshold with the heals and their casts, and above it.
+ * What exploring looks at once it takes none of the first (#410), each set
+ * only when its choice comes: below the heal threshold, the heals; for a
+ * careful style, searching and disarming; then the way to the next room
+ * on the path (sneaking in only for stealth-first), or leaving where the
+ * way ends; and the door's ways through only when no move to the next
+ * room is offered. A new kind a style takes while exploring must
+ * be added to one of them, or the harness never sees it offered.
  */
-const EXPLORE_ACTIONS_HURT: ReadonlySet<ActionKind> = new Set(
-  [...CHOSEN_ACTIONS].filter(
-    (kind) => !FIRST_ACTIONS.has(kind) || kind === "cast",
-  ),
-);
-const EXPLORE_ACTIONS_UNHURT: ReadonlySet<ActionKind> = new Set(
-  [...UNHURT_ACTIONS].filter((kind) => !FIRST_ACTIONS.has(kind)),
-);
+const EXPLORE_HEALS: ReadonlySet<ActionKind> = new Set([
+  "long-rest",
+  "rest",
+  "cast",
+  "use",
+]);
+const EXPLORE_SEARCHES: ReadonlySet<ActionKind> = new Set(["search", "disarm"]);
+const EXPLORE_WAYS: ReadonlySet<ActionKind> = new Set(["move", "ambush"]);
+const EXPLORE_WAYS_SNEAKING: ReadonlySet<ActionKind> = new Set([
+  ...EXPLORE_WAYS,
+  "sneak",
+]);
+/** Where the way on ends here: leaving, or an ambush. */
+const EXPLORE_ENDS: ReadonlySet<ActionKind> = new Set(["ambush", "leave"]);
+/** A door's ways through, in the order exploring tries them. */
+const EXPLORE_DOORS_ORDER = ["unlock", "force", "pick", "break"] as const;
+const EXPLORE_DOORS: ReadonlySet<ActionKind> = new Set(EXPLORE_DOORS_ORDER);
+const NO_SPELLS: ReadonlySet<SpellId> = new Set();
 
 /** The spells exploring looks at then: healing spells, below the threshold. */
 const HEALING_SPELLS: ReadonlySet<SpellId> = new Set(
@@ -2057,7 +2135,7 @@ export function playAdventure(
     }
   }
   const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
-  const required = new Set(requiredPath(adventure, sweep ?? route).roomIds);
+  const required = requiredRooms(adventure, sweep ?? route);
   /** The route's rooms (#407), each passed in turn before the objective. */
   const waypoints = route?.rooms ?? [];
   let passed = 0;
@@ -2786,6 +2864,7 @@ export function playAdventure(
     project: (
       kinds: ReadonlySet<ActionKind>,
       spells: ReadonlySet<SpellId>,
+      targets?: ReadonlySet<string>,
     ) => readonly ActionView[],
   ): ActionView | undefined => {
     const room = roomById.get(state.roomId)!;
@@ -2796,13 +2875,9 @@ export function playAdventure(
         .find(({ id }) => id === here)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
-    // Once everything here is examined, no examination is projected.
-    const unexamined = [...searchable].some(
-      (id) => !state.examinedFeatureIds.includes(id),
-    );
     const first = project(
-      unexamined ? FIRST_ACTIONS : FIRST_WITHOUT_EXAMINING,
-      !warded && fights.length === 0 ? WARD_SPELLS : new Set(),
+      FIRST_ACTIONS,
+      !warded && fights.length === 0 ? WARD_SPELLS : NO_SPELLS,
     );
     // Facing a reaction (#304), the policy's kind of option if offered. A
     // toll is offered (enabled) only when the purse holds it.
@@ -2846,39 +2921,46 @@ export function playAdventure(
         return ward;
       }
     }
+    // Only what is here and not yet examined is projected (#410): once
+    // everything is, nothing.
+    const unexamined = new Set(
+      [...searchable].filter((id) => !state.examinedFeatureIds.includes(id)),
+    );
     const find =
-      offered(first, "examine").find(
-        ({ target }) =>
-          searchable.has(target!.id) &&
-          !state.examinedFeatureIds.includes(target!.id),
-      ) ??
+      (unexamined.size === 0
+        ? undefined
+        : offered(project(EXAMINING, NO_SPELLS, unexamined), "examine").find(
+            ({ target }) => unexamined.has(target!.id),
+          )) ??
       offered(first, "take")[0] ??
       // An item a feature here accepts is used on it before leaving (#400).
       offered(first, "use-on")[0];
     if (find !== undefined) {
       return find;
     }
-    const hurt = low(state.character.hp);
-    const views = project(
-      hurt ? EXPLORE_ACTIONS_HURT : EXPLORE_ACTIONS_UNHURT,
-      hurt ? HEALING_SPELLS : new Set(),
-    );
-    // Low, a long rest at a rest site (#335), then a short rest (#334),
-    // then a healing spell (#339), before a potion, which also heals in a
-    // fight.
-    const heal = [
-      ...offered(views, "long-rest"),
-      ...offered(views, "rest"),
-      ...healingSpells(views, false),
-      ...offered(views, "use"),
-    ][0];
-    if (heal !== undefined && hurt) {
-      return heal;
+    // Then each kind only when the choice comes to it (#410): a heal when
+    // low, a careful style's search, then the way on, and a door's ways
+    // through only when no move is offered.
+    if (low(state.character.hp)) {
+      const heals = project(EXPLORE_HEALS, HEALING_SPELLS);
+      // Low, a long rest at a rest site (#335), then a short rest (#334),
+      // then a healing spell (#339), before a potion, which also heals in
+      // a fight.
+      const heal = [
+        ...offered(heals, "long-rest"),
+        ...offered(heals, "rest"),
+        ...healingSpells(heals, false),
+        ...offered(heals, "use"),
+      ][0];
+      if (heal !== undefined) {
+        return heal;
+      }
     }
     if (CAREFUL.includes(style)) {
+      const searches = project(EXPLORE_SEARCHES, NO_SPELLS);
       const careful = [
-        ...offered(views, "search"),
-        ...offered(views, "disarm"),
+        ...offered(searches, "search"),
+        ...offered(searches, "disarm"),
       ][0];
       if (careful !== undefined) {
         return careful;
@@ -2929,16 +3011,24 @@ export function playAdventure(
           ? undefined
           : plan(position, goal, roundabout)) ??
         plan(position, exits, enterable(exits));
-      const ambush = offered(views, "ambush")[0];
       // Detours first; then, once the goal is a way out and it is reached,
       // leave (if this room is no exit, nothing is left to do). Unseen where
       // the goal is anything but a way out, spring an ambush (#302).
       if (path === undefined || path.length < 2) {
+        const ends = project(EXPLORE_ENDS, NO_SPELLS);
+        const ambush = offered(ends, "ambush")[0];
         return ambush === undefined || goal === exits
-          ? (offered(views, "leave")[0] ?? ambush)
+          ? (offered(ends, "leave")[0] ?? ambush)
           : ambush;
       }
       const next = path[1]!;
+      // Only the way to the next room is tried (#410), and an ambush here.
+      const views = project(
+        style === "stealth-first" ? EXPLORE_WAYS_SNEAKING : EXPLORE_WAYS,
+        NO_SPELLS,
+        new Set([next, state.roomId]),
+      );
+      const ambush = offered(views, "ambush")[0];
       // Stealth-first sneaks into each fight it can (#302).
       const sneak =
         style === "stealth-first"
@@ -2955,9 +3045,13 @@ export function playAdventure(
         return ambush;
       }
       const passage = passageBetween(adventure, state.roomId, next);
-      const opening = (["unlock", "force", "pick", "break"] as const)
-        .flatMap((kind) => offered(views, kind))
-        .find(({ target }) => target!.id === passage.door?.id);
+      const doors =
+        passage.door === undefined
+          ? []
+          : project(EXPLORE_DOORS, NO_SPELLS, new Set([passage.door.id]));
+      const opening = EXPLORE_DOORS_ORDER.flatMap((kind) =>
+        offered(doors, kind),
+      ).find(({ target }) => target!.id === passage.door?.id);
       if (opening !== undefined) {
         return opening;
       }
@@ -2974,8 +3068,9 @@ export function playAdventure(
   const project = (
     kinds: ReadonlySet<ActionKind>,
     spells: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    const projected = runtime.projectActions(state, kinds, spells);
+    const projected = runtime.projectActions(state, kinds, spells, targets);
     const unknown = projected.find(
       ({ action }) => !Object.hasOwn(PLAYED_ACTIONS, action),
     );

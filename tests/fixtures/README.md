@@ -176,6 +176,19 @@ tarnished locket, and a Drain Tunnel off the cistern. It is not in
 `FIXTURE_MODULES`. `tests/issue-409.test.mjs` plays its release run on a
 route generated from the harness.
 
+## The gate-time canary (issue 410)
+
+`long-workings.json` (`longWorkings`, _The Long Workings_) is a long module
+of twenty rooms in two regions, level 3, medium: ten rooms in the Upper
+Workings and ten in the Deep Workings, six fights and a wandering one, a
+locked gate whose key lies in the foreman's desk, two declared routes (by
+the shaft, down the chute), an avoidable room with a fight in each region,
+a rest site in each and a wandering table in the Deep Workings. It
+qualifies as medium for every class. It is not in `FIXTURE_MODULES`.
+`tests/shipped-modules.test.mjs` gates it beside the shipped modules, inside
+the gate's time budget, and pins its figures, until a shipped long module
+(#412) replaces it.
+
 ## Fleeing a fight (issue 396)
 
 `modules.mjs` also builds `fleeingCellar` (_The Bolt-Hole Cellar_), which is

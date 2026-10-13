@@ -5220,12 +5220,16 @@ export type FifthRuntime = Omit<
      * function's doc. Given `kinds`, it lists and dry-runs only actions of
      * those kinds, in the same order, and keeps nothing for the next call:
      * the balance harness asks for the kinds it plays (#321). Given `spells`
-     * too, it lists and dry-runs only casts of those spells (#347).
+     * too, it lists and dry-runs only casts of those spells (#347). Given
+     * `targets` too, it lists and dry-runs only the entries aimed at one of
+     * them or at nothing: the harness asks only for the move to the next
+     * room on its way (#410).
      */
     projectActions(
       state: FifthState,
       kinds?: ReadonlySet<ActionKind>,
       spells?: ReadonlySet<SpellId>,
+      targets?: ReadonlySet<string>,
     ): readonly ActionView[];
     /**
      * How the adventure settles the character once it has ended with the
@@ -5974,20 +5978,35 @@ export function createFifthRuntime(
     );
   const carried = (state: FifthState): readonly FifthItem[] =>
     state.inventory.map((id) => items.get(id)!);
+  /**
+   * Each room's passages, in the module's order, each with the room it
+   * leads to: looked up, not searched for, at every step (#410).
+   */
+  const passagesOut = new Map<
+    string,
+    Readonly<{ passage: FifthPassage; to: string }>[]
+  >();
+  for (const passage of adventure.passages) {
+    const [from, to] = passage.between;
+    const add = (here: string, other: string) =>
+      passagesOut.set(here, [
+        ...(passagesOut.get(here) ?? []),
+        { passage, to: other },
+      ]);
+    add(from, to);
+    if (to !== from) {
+      add(to, from);
+    }
+  }
   /** The passages out of the room, each with the room it leads to. */
   const ways = (
     state: FifthState,
   ): readonly Readonly<{ passage: FifthPassage; to: string }>[] =>
-    adventure.passages.flatMap((passage) => {
-      const [from, to] = passage.between;
-      const other =
-        from === state.roomId ? to : to === state.roomId ? from : undefined;
-      // A hidden passage is a way only once a check's band opens it (#282).
-      return other === undefined ||
-        (passage.hidden === true && !revealedIn(state).opened.has(passage.id))
-        ? []
-        : [{ passage, to: other }];
-    });
+    (passagesOut.get(state.roomId) ?? []).filter(
+      ({ passage }) =>
+        // A hidden passage is a way only once a check's band opens it (#282).
+        passage.hidden !== true || revealedIn(state).opened.has(passage.id),
+    );
   /**
    * Whether the passage is closed: a check's band closed it (#282), or a
    * flag (#397), set to close it or not yet set to open it.
@@ -10918,17 +10937,19 @@ export function createFifthRuntime(
 
   /**
    * Dry-runs every action of `kinds` the character might take now (every
-   * kind when omitted), casting only `spells` (every spell when omitted);
-   * see `refusal`. Other entries are listed without a dry run, then
-   * dropped (#321, #347).
+   * kind when omitted), casting only `spells` (every spell when omitted)
+   * and aimed at one of `targets` or at nothing (any target when
+   * omitted); see `refusal`. Other entries are listed without a dry run,
+   * then dropped (#321, #347, #410).
    */
   const dryRunActions = (
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
     spells?: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    const listed = listActions(state, kinds, spells);
-    return kinds === undefined && spells === undefined
+    const listed = listActions(state, kinds, spells, targets);
+    return kinds === undefined && spells === undefined && targets === undefined
       ? listed
       : listed.filter((entry) => entry !== UNASKED);
   };
@@ -10938,6 +10959,7 @@ export function createFifthRuntime(
     state: FifthState,
     kinds: ReadonlySet<ActionKind> | undefined,
     spells: ReadonlySet<SpellId> | undefined,
+    targets: ReadonlySet<string> | undefined,
   ): readonly ActionView[] => {
     if (state.status !== "playing") {
       return [];
@@ -10947,6 +10969,12 @@ export function createFifthRuntime(
       const encounterId = encounterIn(state, roomId)?.id;
       return encounterId !== undefined && !settled(state, encounterId);
     };
+    /**
+     * Whether any of `asking` is a kind asked for. What only an unasked
+     * kind's entries need is never worked out (#410).
+     */
+    const asked = (...asking: readonly ActionKind[]) =>
+      kinds === undefined || asking.some((kind) => kinds.has(kind));
     const view = (
       kind: ActionKind,
       action: FifthAction,
@@ -10958,7 +10986,10 @@ export function createFifthRuntime(
         (kinds !== undefined && !kinds.has(kind)) ||
         (spells !== undefined &&
           action.type === "cast" &&
-          !spells.has(action.spellId as SpellId))
+          !spells.has(action.spellId as SpellId)) ||
+        (targets !== undefined &&
+          target !== undefined &&
+          !targets.has(target.id))
       ) {
         return UNASKED;
       }
@@ -11211,6 +11242,9 @@ export function createFifthRuntime(
      * numbers of hit dice it may spend; the action spends the most.
      */
     const rest = (): readonly ActionView[] => {
+      if (!asked("rest")) {
+        return [];
+      }
       // Memorize Spell (#344) may be the rest's only gain.
       const memorize = memorizeOptions(state);
       const counts = restCounts(state, memorize !== undefined);
@@ -11260,8 +11294,13 @@ export function createFifthRuntime(
       check: AuthoredCheck | undefined,
       site: CheckSite,
     ): readonly ActionView[] => {
-      // A check only thieves' tools can make isn't offered without them (#309).
-      if (check !== undefined && takeable(state, check).length === 0) {
+      // Nothing for a kind not asked for or a site not aimed at (#410); and a
+      // check only thieves' tools can make isn't offered without them (#309).
+      if (
+        !asked(kind) ||
+        (targets !== undefined && !targets.has(target.id)) ||
+        (check !== undefined && takeable(state, check).length === 0)
+      ) {
         return [];
       }
       const each = (
@@ -11321,6 +11360,9 @@ export function createFifthRuntime(
      * engine accepts the others too, but the bar stays short.
      */
     const gearViews = (fight = false): readonly ActionView[] => {
+      if (!asked("unequip", "swap", "equip", "drop")) {
+        return [];
+      }
       const item = (id: ItemId) => ({ id, name: itemName(id) });
       const gear = (kind: GearAction, id: ItemId) =>
         view(kind, { type: kind, itemId: id }, item(id));
@@ -11352,7 +11394,10 @@ export function createFifthRuntime(
      */
     const tradeViews = (): readonly ActionView[] => {
       const trader = merchantHere(state);
-      if (trader === undefined) {
+      if (
+        trader === undefined ||
+        !asked("buy", "sell", "sell-equipped", "sell-treasure")
+      ) {
         return [];
       }
       const item = (id: CatalogueId) => ({ id, name: itemName(id) });
@@ -11600,15 +11645,18 @@ export function createFifthRuntime(
       ...(state.unseenBy === undefined
         ? []
         : [view("ambush", { type: "ambush", roomId: here.id }, here)]),
-      ...exits(state).flatMap((exit) => [
-        view("move", { type: "move", destinationId: exit.id }, exit),
-        // Sneaking in (#301) is offered only where a fight waits.
-        ...(fightAhead(exit.id)
-          ? [view("sneak", { type: "sneak", destinationId: exit.id }, exit)]
-          : []),
-      ]),
+      // Each part is worked out only when a kind it lists is asked for (#410).
+      ...(!asked("move", "sneak")
+        ? []
+        : exits(state).flatMap((exit) => [
+            view("move", { type: "move", destinationId: exit.id }, exit),
+            // Sneaking in (#301) is offered only where a fight waits.
+            ...(asked("sneak") && fightAhead(exit.id)
+              ? [view("sneak", { type: "sneak", destinationId: exit.id }, exit)]
+              : []),
+          ])),
       // An open door has nothing left to try, so it shows no approaches.
-      ...doorsHere(state)
+      ...(!asked(...DOOR_CHECKS, "unlock") ? [] : doorsHere(state))
         .filter((door) => !isOpen(state, door))
         .flatMap((door) => [
           ...DOOR_CHECKS.filter(
@@ -11636,7 +11684,7 @@ export function createFifthRuntime(
       ...(hasTraps
         ? [view("search", { type: "search", roomId: here.id }, here)]
         : []),
-      ...trapsHere(state)
+      ...(!asked("disarm") ? [] : trapsHere(state))
         .filter(({ trap }) => state.foundTrapIds.includes(trap.id))
         .flatMap(({ trap }) =>
           tries(
@@ -11650,9 +11698,9 @@ export function createFifthRuntime(
             },
           ),
         ),
-      ...searchable(state).flatMap(examine),
+      ...(!asked("examine") ? [] : searchable(state)).flatMap(examine),
       // Each item the character carries that a feature here accepts (#400).
-      ...room(state).features.flatMap((feature) =>
+      ...(!asked("use-on") ? [] : here.features).flatMap((feature) =>
         (feature.uses ?? []).flatMap(({ item }) =>
           state.inventory.includes(item)
             ? [
@@ -11665,7 +11713,7 @@ export function createFifthRuntime(
             : [],
         ),
       ),
-      ...creaturesHere(state).flatMap((creature) =>
+      ...(!asked("talk") ? [] : creaturesHere(state)).flatMap((creature) =>
         creature.topics.flatMap((topic) =>
           tries(
             "talk",
@@ -11677,24 +11725,30 @@ export function createFifthRuntime(
           ),
         ),
       ),
-      ...roomItems(state).flatMap((item) => [
+      ...(!asked("take", "examine") ? [] : roomItems(state)).flatMap((item) => [
         view("take", { type: "take", itemId: item.id }, item),
         ...examine(item),
       ]),
-      ...carried(state).flatMap((item) =>
+      ...(!asked("use", "examine") ? [] : carried(state)).flatMap((item) =>
         potionOf(item) === undefined
           ? examine(item)
           : [use(item), ...examine(item)],
       ),
-      ...droppedHere(state).map((item) =>
+      ...(!asked("take") ? [] : droppedHere(state)).map((item) =>
         view("take", { type: "take", itemId: item.id }, item),
       ),
       ...gearViews(),
       ...tradeViews(),
-      ...casts(self(state), [], false),
+      // The character as a combatant is worked out only to list a cast
+      // asked for (#410).
+      ...(asked("cast") && spells?.size !== 0
+        ? casts(self(state), [], false)
+        : []),
       ...rest(),
       // A long rest (#335) at a rest site, while it would restore something.
-      ...(here.restSite === true && longRestRestores(state)
+      ...(here.restSite === true &&
+      asked("long-rest") &&
+      longRestRestores(state)
         ? [view("long-rest", { type: "long-rest" })]
         : []),
       // The final choice comes last, and only where there is a way out.
@@ -11714,10 +11768,11 @@ export function createFifthRuntime(
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
     spells?: ReadonlySet<SpellId>,
+    targets?: ReadonlySet<string>,
   ): readonly ActionView[] => {
-    // A projection of some kinds or spells (the balance harness's, #321,
-    // #347) isn't kept.
-    if (kinds !== undefined || spells !== undefined) {
+    // A projection of some kinds, spells or targets (the balance
+    // harness's, #321, #347, #410) isn't kept.
+    if (kinds !== undefined || spells !== undefined || targets !== undefined) {
       return (
         projections
           .get(state)
@@ -11726,8 +11781,11 @@ export function createFifthRuntime(
               (kinds === undefined || kinds.has(entry.action)) &&
               (spells === undefined ||
                 entry.spell === undefined ||
-                spells.has(entry.spell.id as SpellId)),
-          ) ?? dryRunActions(state, kinds, spells)
+                spells.has(entry.spell.id as SpellId)) &&
+              (targets === undefined ||
+                entry.target === undefined ||
+                targets.has(entry.target.id)),
+          ) ?? dryRunActions(state, kinds, spells, targets)
       );
     }
     let actions = projections.get(state);
