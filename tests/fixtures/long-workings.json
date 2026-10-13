@@ -1,0 +1,623 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 42,
+  "id": "long-workings",
+  "title": "The Long Workings",
+  "objective": "Clear whatever has taken the old workings, down to the deep hall.",
+  "recommendedLevels": {
+    "min": 3,
+    "max": 3
+  },
+  "difficulty": "medium",
+  "long": true,
+  "regions": [
+    {
+      "id": "upper",
+      "name": "Upper Workings"
+    },
+    {
+      "id": "lower",
+      "name": "Deep Workings",
+      "wandering": {
+        "chance": 10,
+        "every": 4,
+        "entries": [
+          {
+            "encounterId": "deep-rat",
+            "omen": "Claws skitter somewhere in the dark."
+          },
+          {
+            "omen": "Water drips in the dark."
+          }
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "by-the-shaft",
+      "name": "By the shaft",
+      "rooms": ["winch-house", "shaft-head", "shaft-foot"]
+    },
+    {
+      "id": "down-the-chute",
+      "name": "Down the chute",
+      "rooms": ["ore-chute", "flooded-gallery"]
+    }
+  ],
+  "startRoomId": "adit",
+  "rooms": [
+    {
+      "id": "adit",
+      "name": "Adit Mouth",
+      "description": "A timbered tunnel mouth in the hillside. Rails run into the dark.",
+      "region": "upper",
+      "exit": true,
+      "features": [
+        {
+          "id": "tally-board",
+          "name": "Tally Board",
+          "description": "A board of chalked tallies by the rails.",
+          "discovery": "The last tally is crossed out, and under it is chalked: \"Shaft shut. Use the chute.\""
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "lamp-room",
+      "name": "Lamp Room",
+      "description": "Shelves of dead lamps line a cramped side room.",
+      "region": "upper",
+      "features": [
+        {
+          "id": "lamp-shelves",
+          "name": "Lamp Shelves",
+          "description": "Rows of lamps, most of them cracked.",
+          "discovery": "Behind the last lamp stands a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "lamp-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "lamp-shelves"
+        }
+      ]
+    },
+    {
+      "id": "guard-post",
+      "name": "Guard Post",
+      "description": "A widening of the tunnel with a brazier and two stools.",
+      "region": "upper",
+      "encounterId": "post-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "tool-store",
+      "name": "Tool Store",
+      "description": "Picks and shovels hang on pegs over a strongbox, its hasp rusted through.",
+      "region": "upper",
+      "features": [
+        {
+          "id": "strongbox",
+          "name": "Strongbox",
+          "description": "A strongbox with a rusted hasp.",
+          "discovery": "A few coins rattle in the bottom of the box."
+        }
+      ],
+      "items": [
+        {
+          "id": "store-coins",
+          "name": "Handful of Coins",
+          "description": "A few silver and gold coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 6,
+            "sp": 12
+          },
+          "hiddenIn": "strongbox"
+        }
+      ]
+    },
+    {
+      "id": "bunkroom",
+      "name": "Bunkroom",
+      "description": "Rows of plank bunks. The door bars from inside.",
+      "region": "upper",
+      "restSite": true,
+      "features": [
+        {
+          "id": "footlocker",
+          "name": "Footlocker",
+          "description": "A footlocker under the end bunk.",
+          "discovery": "Inside, wrapped in a shirt, is a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "bunk-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "footlocker"
+        }
+      ]
+    },
+    {
+      "id": "ore-chute",
+      "name": "Ore Chute",
+      "description": "A steep chute drops away into the lower workings, slick with ore dust.",
+      "region": "upper",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "collapsed-drift",
+      "name": "Collapsed Drift",
+      "description": "A side drift half filled by a roof fall. Something growls behind the rubble.",
+      "region": "upper",
+      "encounterId": "drift-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "roof-fall",
+          "name": "Roof Fall",
+          "description": "Broken timbers and stone.",
+          "discovery": "Under a timber lies a miner's silver cup."
+        }
+      ],
+      "items": [
+        {
+          "id": "drift-cup",
+          "name": "Silver Cup",
+          "description": "A dented silver cup.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "roof-fall"
+        }
+      ]
+    },
+    {
+      "id": "foreman-office",
+      "name": "Foreman's Office",
+      "description": "A plank office with a desk and a ledger.",
+      "region": "upper",
+      "features": [
+        {
+          "id": "foreman-desk",
+          "name": "Foreman's Desk",
+          "description": "A desk with one drawer.",
+          "discovery": "In the drawer is an iron key on a nail and a purse of coins."
+        }
+      ],
+      "items": [
+        {
+          "id": "winch-key",
+          "name": "Winch-House Key",
+          "description": "An iron key on a nail.",
+          "kind": "key",
+          "hiddenIn": "foreman-desk"
+        },
+        {
+          "id": "office-purse",
+          "name": "Foreman's Purse",
+          "description": "A leather purse of coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 15
+          },
+          "hiddenIn": "foreman-desk"
+        }
+      ]
+    },
+    {
+      "id": "winch-house",
+      "name": "Winch House",
+      "description": "A great winch stands over a cage shaft. Kobolds have made it a den.",
+      "region": "upper",
+      "encounterId": "winch-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "shaft-head",
+      "name": "Shaft Head",
+      "description": "The top of the cage shaft, where a ladder runs down beside the cables.",
+      "region": "upper",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "shaft-foot",
+      "name": "Shaft Foot",
+      "description": "The bottom of the shaft, ankle-deep in seepage.",
+      "region": "lower",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "pump-room",
+      "name": "Pump Room",
+      "description": "A dry room round an old beam pump. A stout door shuts it off.",
+      "region": "lower",
+      "restSite": true,
+      "features": [
+        {
+          "id": "pump-housing",
+          "name": "Pump Housing",
+          "description": "The rusted housing of the pump.",
+          "discovery": "Tucked inside the housing is a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "pump-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "pump-housing"
+        }
+      ]
+    },
+    {
+      "id": "old-shrine",
+      "name": "Old Shrine",
+      "description": "A niche with a miner's saint carved in the rock.",
+      "region": "lower",
+      "features": [
+        {
+          "id": "saint-niche",
+          "name": "Saint's Niche",
+          "description": "Offerings lie at the carving's feet.",
+          "discovery": "Among the offerings is a small polished stone."
+        }
+      ],
+      "items": [
+        {
+          "id": "shrine-gem",
+          "name": "Polished Stone",
+          "description": "A small polished gemstone.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "saint-niche"
+        }
+      ]
+    },
+    {
+      "id": "flooded-gallery",
+      "name": "Flooded Gallery",
+      "description": "A long gallery under a foot of black water.",
+      "region": "lower",
+      "encounterId": "gallery-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "sump",
+      "name": "Sump",
+      "description": "The lowest point of the gallery, where silt has gathered.",
+      "region": "lower",
+      "features": [
+        {
+          "id": "silt-bank",
+          "name": "Silt Bank",
+          "description": "A bank of silt.",
+          "discovery": "Something glints: coins washed down from above."
+        }
+      ],
+      "items": [
+        {
+          "id": "sump-coins",
+          "name": "Silted Coins",
+          "description": "Coins crusted with silt.",
+          "kind": "coin",
+          "coins": {
+            "gp": 20
+          },
+          "hiddenIn": "silt-bank"
+        }
+      ]
+    },
+    {
+      "id": "cave-in",
+      "name": "Cave-In",
+      "description": "A tunnel ends at a wall of fallen stone.",
+      "region": "lower",
+      "features": [
+        {
+          "id": "fallen-stone",
+          "name": "Fallen Stone",
+          "description": "A heap of fallen stone."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "crystal-cave",
+      "name": "Crystal Cave",
+      "description": "A natural cave glittering with quartz, hung with old webs.",
+      "region": "lower",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "ore-vault",
+      "name": "Ore Vault",
+      "description": "A strongroom cut for the best ore. Bones stir by the chests.",
+      "region": "lower",
+      "encounterId": "vault-fight",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "ore-chests",
+          "name": "Ore Chests",
+          "description": "Iron chests of sorted ore.",
+          "discovery": "One chest holds a gemstone the size of a thumb."
+        }
+      ],
+      "items": [
+        {
+          "id": "vault-gem",
+          "name": "Raw Gemstone",
+          "description": "A rough gemstone.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "ore-chests"
+        }
+      ]
+    },
+    {
+      "id": "bone-stair",
+      "name": "Bone Stair",
+      "description": "A stair cut down into older rock, littered with bones.",
+      "region": "lower",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "boss-hall",
+      "name": "Deep Hall",
+      "description": "A vaulted hall where the old miners broke into something older.",
+      "region": "lower",
+      "encounterId": "boss-fight",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "adit-to-lamp-room",
+      "between": ["adit", "lamp-room"],
+      "description": "A side door off the adit."
+    },
+    {
+      "id": "adit-to-guard-post",
+      "between": ["adit", "guard-post"],
+      "description": "The rails, running on."
+    },
+    {
+      "id": "guard-post-to-tool-store",
+      "between": ["guard-post", "tool-store"],
+      "description": "A plank door."
+    },
+    {
+      "id": "guard-post-to-bunkroom",
+      "between": ["guard-post", "bunkroom"],
+      "description": "A short passage to a barred door."
+    },
+    {
+      "id": "guard-post-to-ore-chute",
+      "between": ["guard-post", "ore-chute"],
+      "description": "A tunnel sloping down."
+    },
+    {
+      "id": "ore-chute-to-collapsed-drift",
+      "between": ["ore-chute", "collapsed-drift"],
+      "description": "A gap in the rubble."
+    },
+    {
+      "id": "bunkroom-to-foreman-office",
+      "between": ["bunkroom", "foreman-office"],
+      "description": "A boarded walk."
+    },
+    {
+      "id": "foreman-office-to-winch-house",
+      "between": ["foreman-office", "winch-house"],
+      "description": "A passage to the winch."
+    },
+    {
+      "id": "winch-house-to-shaft-head",
+      "between": ["winch-house", "shaft-head"],
+      "description": "An iron gate to the cage shaft.",
+      "door": {
+        "id": "shaft-gate",
+        "name": "Shaft Gate",
+        "description": "An iron gate, locked.",
+        "state": "locked",
+        "keyItemId": "winch-key",
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 13
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 14
+        }
+      }
+    },
+    {
+      "id": "shaft-head-to-shaft-foot",
+      "between": ["shaft-head", "shaft-foot"],
+      "description": "The ladder down beside the cables."
+    },
+    {
+      "id": "ore-chute-to-flooded-gallery",
+      "between": ["ore-chute", "flooded-gallery"],
+      "description": "The chute, down into water."
+    },
+    {
+      "id": "shaft-foot-to-pump-room",
+      "between": ["shaft-foot", "pump-room"],
+      "description": "A stout door."
+    },
+    {
+      "id": "pump-room-to-old-shrine",
+      "between": ["pump-room", "old-shrine"],
+      "description": "A narrow cut."
+    },
+    {
+      "id": "shaft-foot-to-flooded-gallery",
+      "between": ["shaft-foot", "flooded-gallery"],
+      "description": "A flooded passage."
+    },
+    {
+      "id": "flooded-gallery-to-sump",
+      "between": ["flooded-gallery", "sump"],
+      "description": "Down into the silt."
+    },
+    {
+      "id": "sump-to-cave-in",
+      "between": ["sump", "cave-in"],
+      "description": "A low tunnel."
+    },
+    {
+      "id": "flooded-gallery-to-crystal-cave",
+      "between": ["flooded-gallery", "crystal-cave"],
+      "description": "A crack in the gallery wall."
+    },
+    {
+      "id": "crystal-cave-to-ore-vault",
+      "between": ["crystal-cave", "ore-vault"],
+      "description": "A cut passage, its door long gone."
+    },
+    {
+      "id": "shaft-foot-to-bone-stair",
+      "between": ["shaft-foot", "bone-stair"],
+      "description": "An old arch."
+    },
+    {
+      "id": "bone-stair-to-boss-hall",
+      "between": ["bone-stair", "boss-hall"],
+      "description": "The stair's foot."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "post-fight",
+      "opponents": [
+        {
+          "id": "guard",
+          "monster": "zombie",
+          "name": "Dead Guard",
+          "description": "The post's guard, long dead, lurches off its stool."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    },
+    {
+      "id": "vault-fight",
+      "opponents": [
+        {
+          "id": "vault-bones",
+          "monster": "skeleton",
+          "name": "Vault Skeleton",
+          "description": "A skeleton rises to guard the chests."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    },
+    {
+      "id": "drift-fight",
+      "opponents": [
+        {
+          "id": "drift-wolf",
+          "monster": "wolf",
+          "name": "Drift Wolf",
+          "description": "A lean wolf slinks out of the rubble."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    },
+    {
+      "id": "winch-fight",
+      "opponents": [
+        {
+          "id": "winch-zombie",
+          "monster": "zombie",
+          "name": "Winch Hand",
+          "description": "A dead winchman turns from the winch."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    },
+    {
+      "id": "gallery-fight",
+      "opponents": [
+        {
+          "id": "drowned-miner",
+          "monster": "zombie",
+          "name": "Drowned Miner",
+          "description": "A drowned miner rises from the water."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    },
+    {
+      "id": "boss-fight",
+      "opponents": [
+        {
+          "id": "deep-boss",
+          "monster": "goblin-warrior",
+          "name": "Deep Chief",
+          "description": "A goblin chief rises from a heap of furs, scimitar drawn.",
+          "boss": true
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings",
+      "victoryEndingId": "workings-cleared"
+    },
+    {
+      "id": "deep-rat",
+      "opponents": [
+        {
+          "id": "deep-rat",
+          "monster": "giant-rat",
+          "name": "Deep Rat",
+          "description": "A rat scuttles out of the dark."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-workings"
+    }
+  ],
+  "endings": [
+    {
+      "id": "workings-cleared",
+      "kind": "victory",
+      "title": "The workings cleared",
+      "text": "The goblin chief falls in the deep hall, and the workings are quiet.",
+      "xp": 300
+    },
+    {
+      "id": "out-with-finds",
+      "kind": "escape-with-loot",
+      "title": "Out with your finds",
+      "text": "You climb out of the workings with what you found."
+    },
+    {
+      "id": "out-of-the-workings",
+      "kind": "escape-without-loot",
+      "title": "Out of the workings",
+      "text": "You leave the workings with nothing to show for it."
+    },
+    {
+      "id": "fallen-in-the-workings",
+      "kind": "defeat",
+      "title": "Fallen in the workings",
+      "text": "You fall in the dark of the workings. Your adventuring ends here."
+    }
+  ]
+}

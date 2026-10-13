@@ -12,6 +12,7 @@ const NAMES = [
   "graded-cellar",
   "lintel-barrow",
   "lone-goblin",
+  "long-workings",
   "obstacle-yard",
   "picklock-cellar",
   "rat-tunnels",
@@ -1444,6 +1445,15 @@ export const forkedTunnels = validateModule(
     { id: "guard-hall", name: "through the guard hall", rooms: ["guard-hall"] },
   ]),
 );
+
+/**
+ * The gate-time canary (#410): _The Long Workings_, a long module of twenty
+ * rooms in two regions, level 3, medium, with two declared routes, an
+ * avoidable room in each region and a wandering table in the lower. It
+ * stands in for a shipped long module in the gate's time budget until one
+ * replaces it.
+ */
+export const longWorkings = validateModule(moduleFile("long-workings"));
 
 export const FIXTURE_MODULES = [
   loneGoblin,
