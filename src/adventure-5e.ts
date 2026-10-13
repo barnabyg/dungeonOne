@@ -116,6 +116,11 @@
  * module has that or region tables, never both. Wandering encounters count
  * against the module's 30 encounters.
  *
+ * A module with two or more regions, each with a rest site, may declare
+ * itself `long` (#404): its rests are counted per region, and it has twice
+ * the treasure budget for its maximum level and an XP limit one level
+ * higher (D6).
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -230,7 +235,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 39;
+export const FIFTH_ADVENTURE_FORMAT = 40;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -1134,6 +1139,12 @@ export type FifthAdventure = Readonly<{
   recommendedLevels: Readonly<{ min: number; max: number }>;
   difficulty: Difficulty;
   startRoomId: string;
+  /**
+   * A long module (#404): two short rests and one long rest in each region
+   * rather than in the adventure, twice the treasure budget and an XP limit
+   * one level higher (D6). It has two or more regions, each with a rest site.
+   */
+  long?: true;
   /** Its regions (#395), each with a room; without them, rooms have none. */
   regions?: readonly FifthRegion[];
   /** The ids of its flags (#397), each set by something and used by something. */
@@ -2173,9 +2184,13 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["regions", "flags", "alarm", "wanderingEncounter"],
+    ["long", "regions", "flags", "alarm", "wanderingEncounter"],
     "the module",
   );
+  if (module.long !== undefined && module.long !== true) {
+    fail("long must be true, or left out.");
+  }
+  const long = module.long === true;
   const moduleId = id(module.id, "id");
   const levels = exactKeys(
     module.recommendedLevels,
@@ -2875,6 +2890,26 @@ function validateModule(
       fail(`region ${regionId} has no room: give it one, or leave it out.`);
     }
   }
+  // A long module (#404) rests per region, so each region has a rest site.
+  if (long) {
+    const count = regions?.length ?? 0;
+    if (count < 2) {
+      fail(
+        `a long module needs at least two regions: it has ${count === 0 ? "none" : "one"}.`,
+      );
+    }
+    for (const { id: regionId } of regions!) {
+      if (
+        !rooms.some(
+          ({ region, restSite }) => region === regionId && restSite === true,
+        )
+      ) {
+        fail(
+          `region ${regionId} has no rest site: a long module needs one in each region.`,
+        );
+      }
+    }
+  }
   // D10 and D11 (#345): one magic item, from level 3, none needing
   // attunement; a wand (#346) is one.
   const [magicProblem] = magicItemProblems(
@@ -2895,10 +2930,10 @@ function validateModule(
     fail(`module ${moduleId}: ${magicProblem}`);
   }
   const worth = findableValue({ rooms });
-  const budget = treasureBudget(max);
+  const budget = treasureBudget(max, long);
   if (worth > budget) {
     fail(
-      `module ${moduleId}: its findable treasure is worth ${formatCoins(worth)}, ${formatCoins(worth - budget)} over the ${formatCoins(budget)} budget for level ${max}.`,
+      `module ${moduleId}: its findable treasure is worth ${formatCoins(worth)}, ${formatCoins(worth - budget)} over the ${formatCoins(budget)} budget for ${long ? "a long module at " : ""}level ${max}.`,
     );
   }
   if (!roomIds.has(module.startRoomId as string)) {
@@ -4208,6 +4243,7 @@ function validateModule(
     recommendedLevels: { min, max },
     difficulty: module.difficulty as Difficulty,
     startRoomId: module.startRoomId as string,
+    ...(long ? { long: true as const } : {}),
     ...(regions === undefined ? {} : { regions }),
     ...(flags.length === 0 ? {} : { flags }),
     ...(alarm === undefined ? {} : { alarm }),

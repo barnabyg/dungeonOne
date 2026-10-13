@@ -43,6 +43,7 @@ import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
+import { longTunnels } from "./fixtures/modules.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
 const moduleFiles = Object.fromEntries(
@@ -165,13 +166,15 @@ test("the recorded gate verdicts the browser offers modules by are the gate's (#
   );
 });
 
-test("a new character's career through the shipped modules reaches the required level in every class (#290, #310, #348)", () => {
+test("a new character's career through the shipped modules and a long module reaches the required level in every class (#290, #310, #348, #404)", () => {
+  // The fixture long module takes its place in the order like any other
+  // (#404), until a shipped one does.
   for (const classId of GATE_CLASSES) {
-    const report = simulateCareer(shipped, { classId });
+    const report = simulateCareer([...shipped, longTunnels], { classId });
     assert.equal(report.classId, classId);
     assert.equal(report.requiredLevel, CAREER_REQUIRED_LEVEL);
     assert.equal(report.ok, true, renderCareerResult(report));
-    // Every shipped module is played by some career.
+    // Every module is played by some career.
     assert.ok(
       report.modules.every(({ played }) => played > 0),
       renderCareerResult(report),

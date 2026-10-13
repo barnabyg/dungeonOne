@@ -2180,9 +2180,9 @@ function actionRow(key, name, controls) {
 // Rest, disabled with the engine's reason when it would refuse.
 function renderRest(option, fighting) {
   element("rest-group").hidden = fighting || session.status !== "playing";
-  const { left, max } = session.shortRests;
+  const { left, max, per } = session.shortRests;
   const { available, total, sides } = session.hitDice;
-  element("rest-summary").textContent = "Short rests: " + left + " of " + max + " left in this adventure. Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
+  element("rest-summary").textContent = "Short rests: " + left + " of " + max + " left in this " + (per || "adventure") + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
   if (!option) {
     element("rest-controls").replaceChildren();
     return;
@@ -2281,8 +2281,8 @@ function restButton(action, option, onClick) {
 // it would refuse (foes here, or the long rest already taken).
 function renderLongRest(option) {
   element("long-rest").hidden = !session.room.restSite;
-  const { left, max } = session.longRests;
-  element("long-rest-summary").textContent = "This is a safe place to rest. Long rests: " + left + " of " + max + " left in this adventure; a long rest restores every hit point, hit die and feature use.";
+  const { left, max, per } = session.longRests;
+  element("long-rest-summary").textContent = "This is a safe place to rest. Long rests: " + left + " of " + max + " left in this " + (per || "adventure") + "; a long rest restores every hit point, hit die and feature use.";
   if (!option) {
     element("long-rest-controls").replaceChildren();
     return;

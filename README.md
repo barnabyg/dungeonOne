@@ -537,12 +537,12 @@ the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 26.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 60.
+  `characters-adventures` directory beside the library, in format version 61.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 39. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 40. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -567,7 +567,10 @@ the history stays readable, and reloading shows the same ending.
   encounter table of up to six entries, wandering encounters and omens (words
   only): every so many moves there, on each rest there and when the alarm is
   raised there, a d100 decides whether one comes; each wandering encounter
-  comes once, and is an omen after.
+  comes once, and is an omen after. A module with two or more regions, each
+  with a rest site, may declare itself long: the character may then take two
+  short rests and one long rest in each region, and the room panel's rest
+  parts count the rests left in this region.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from

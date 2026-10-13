@@ -352,14 +352,15 @@ export type CharacterResources = Readonly<{
 }>;
 
 /**
- * How many short rests the character may take in one adventure (#334): a
- * house rule, as SRD 5.2 has no limit but the clock this game leaves out.
+ * How many short rests the character may take in one adventure (#334), or
+ * in each region of a long module (#404): a house rule, as SRD 5.2 has no
+ * limit but the clock this game leaves out.
  */
 export const SHORT_RESTS_PER_ADVENTURE = 2;
 
 /**
  * How many long rests the character may take in one adventure (#335, D1),
- * each only at a module's rest site.
+ * or in each region of a long module (#404), each only at a rest site.
  */
 export const LONG_RESTS_PER_ADVENTURE = 1;
 
@@ -383,18 +384,32 @@ export type MemorizeSpell = Readonly<{
   level: number;
 }>;
 
-/** How many rests of each kind the character may take in one adventure. */
+/** How many rests of each kind the character may take in one adventure, or in each region of a long module. */
 const RESTS_PER_ADVENTURE: Readonly<Record<RestKind, number>> = {
   short: SHORT_RESTS_PER_ADVENTURE,
   long: LONG_RESTS_PER_ADVENTURE,
 };
 
-/** The rests of one kind left in the adventure, and the most. */
-export type RestsView = Readonly<{ left: number; max: number }>;
+/**
+ * The rests of one kind left in the adventure, and the most; in a long
+ * module (#404), `per: "region"`: those left in the character's region.
+ */
+export type RestsView = Readonly<{ left: number; max: number; per?: "region" }>;
 
-/** "Short rests: 1 of 2 left" (#334) or "Long rests: 1 of 1 left" (#335). */
-export function restsText(kind: RestKind, { left, max }: RestsView): string {
-  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left`;
+/**
+ * "Short rests: 1 of 2 left" (#334) or "Long rests: 1 of 1 left" (#335),
+ * with "in this region" in a long module (#404).
+ */
+export function restsText(
+  kind: RestKind,
+  { left, max, per }: RestsView,
+): string {
+  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left${per === "region" ? " in this region" : ""}`;
+}
+
+/** "in this adventure", or "in this region" in a long module (#404). */
+export function restsScope({ per }: RestsView): string {
+  return `in this ${per ?? "adventure"}`;
 }
 
 /** "Hit dice: 2 of 3 d10 left". */
@@ -555,6 +570,14 @@ export type FifthState = Readonly<{
   shortRests: number;
   /** The long rests taken in this adventure (#335). */
   longRests: number;
+  /**
+   * The rests taken in each region of a long module (#404), by region id:
+   * there the limits are per region. Left out while there is none, and in
+   * any other module.
+   */
+  regionRests?: Readonly<
+    Record<string, Readonly<{ short: number; long: number }>>
+  >;
   /** The character's moves between rooms in this adventure (#395). */
   moves: number;
   /**
@@ -3414,7 +3437,7 @@ export function renderFifthEvent(
         spent === 0
           ? "no hit dice"
           : `${spent} ${spent === 1 ? "hit die" : "hit dice"}`;
-      return `You take a short rest and spend ${dice} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Short rests: ${shortRests.left} of ${shortRests.max} left in this adventure.`;
+      return `You take a short rest and spend ${dice} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Short rests: ${shortRests.left} of ${shortRests.max} left ${restsScope(shortRests)}.`;
     }
     case "hit-die": {
       const rolled = event.value + event.modifier;
@@ -3423,7 +3446,7 @@ export function renderFifthEvent(
     case "long-rest": {
       const { healing, hpAfter, maxHp, regainedHitDice, hitDice, longRests } =
         event;
-      return `You take a long rest: you regain ${healing} HP (${hpAfter}/${maxHp} HP) and ${regainedHitDice} ${regainedHitDice === 1 ? "hit die" : "hit dice"} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Long rests: ${longRests.left} of ${longRests.max} left in this adventure.`;
+      return `You take a long rest: you regain ${healing} HP (${hpAfter}/${maxHp} HP) and ${regainedHitDice} ${regainedHitDice === 1 ? "hit die" : "hit dice"} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Long rests: ${longRests.left} of ${longRests.max} left ${restsScope(longRests)}.`;
     }
     case "wand-recharged": {
       const rolled =
@@ -7260,6 +7283,38 @@ export function createFifthRuntime(
   };
 
   /**
+   * The counts after a rest of `kind`: the adventure's and, in a long
+   * module (#404), the character's region's.
+   */
+  const restTaken = (
+    state: FifthState,
+    kind: RestKind,
+  ): Pick<FifthState, "shortRests" | "longRests" | "regionRests"> => {
+    const counts = {
+      shortRests: state.shortRests + (kind === "short" ? 1 : 0),
+      longRests: state.longRests + (kind === "long" ? 1 : 0),
+    };
+    if (adventure.long !== true) {
+      return counts;
+    }
+    const regionId = room(state).region!;
+    const { short, long } = state.regionRests?.[regionId] ?? {
+      short: 0,
+      long: 0,
+    };
+    return {
+      ...counts,
+      regionRests: {
+        ...state.regionRests,
+        [regionId]: {
+          short: short + (kind === "short" ? 1 : 0),
+          long: long + (kind === "long" ? 1 : 0),
+        },
+      },
+    };
+  };
+
+  /**
    * A short rest (#334), once the engine has accepted it: up to `count` hit
    * dice are spent one at a time, each healing its roll plus the
    * Constitution modifier (at least 0), until HP is full; then each feature
@@ -7309,7 +7364,7 @@ export function createFifthRuntime(
     const next = recover(
       {
         ...state,
-        shortRests: state.shortRests + 1,
+        ...restTaken(state, "short"),
         character: {
           ...state.character,
           hp,
@@ -7467,7 +7522,7 @@ export function createFifthRuntime(
     const next = recover(
       {
         ...state,
-        longRests: state.longRests + 1,
+        ...restTaken(state, "long"),
         character: { ...state.character, hp: baseMaxHp, hitDice: total },
         possessions: { ...state.possessions, magicItems: wands.held },
       },
@@ -9336,10 +9391,12 @@ export function createFifthRuntime(
         if (blocked !== undefined) {
           return reject(...blocked);
         }
-        if (state.shortRests >= SHORT_RESTS_PER_ADVENTURE) {
+        if (projectRests(state, "short").left === 0) {
           return reject(
             "no-rests-left",
-            "You have taken the two short rests an adventure allows.",
+            adventure.long === true
+              ? "You have taken the two short rests each region allows: rest again in another region."
+              : "You have taken the two short rests an adventure allows.",
           );
         }
         // Memorize Spell's swap (#344) is checked before any die.
@@ -9384,10 +9441,12 @@ export function createFifthRuntime(
         if (blocked !== undefined) {
           return reject(...blocked);
         }
-        if (state.longRests >= LONG_RESTS_PER_ADVENTURE) {
+        if (projectRests(state, "long").left === 0) {
           return reject(
             "no-long-rests-left",
-            "You have taken the one long rest an adventure allows.",
+            adventure.long === true
+              ? "You have taken the one long rest each region allows: rest again in another region."
+              : "You have taken the one long rest an adventure allows.",
           );
         }
         if (!longRestRestores(state)) {
@@ -11835,12 +11894,21 @@ export function createFifthRuntime(
     return { available: state.character.hitDice, total: count, sides };
   };
 
-  const projectRests = (state: FifthState, kind: RestKind): RestsView => ({
-    left:
-      RESTS_PER_ADVENTURE[kind] -
-      (kind === "short" ? state.shortRests : state.longRests),
-    max: RESTS_PER_ADVENTURE[kind],
-  });
+  /**
+   * The rests of `kind` left: in the adventure, or in the character's
+   * region of a long module (#404).
+   */
+  const projectRests = (state: FifthState, kind: RestKind): RestsView => {
+    const max = RESTS_PER_ADVENTURE[kind];
+    if (adventure.long !== true) {
+      return {
+        left: max - (kind === "short" ? state.shortRests : state.longRests),
+        max,
+      };
+    }
+    const taken = state.regionRests?.[room(state).region!]?.[kind] ?? 0;
+    return { left: max - taken, max, per: "region" };
+  };
   /** Whether the module has a rest site (#335), where a long rest may be taken. */
   const hasRestSite = adventure.rooms.some(({ restSite }) => restSite === true);
 
@@ -12777,7 +12845,7 @@ export function createFifthRuntime(
           {
             type: "function",
             name: "long_rest",
-            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take the adventure's one long rest (${restsText("long", projectRests(state, "long")).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
+            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take ${adventure.long === true ? "this region's" : "the adventure's"} one long rest (${restsText("long", projectRests(state, "long")).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
             strict: true,
             parameters: {
               type: "object",
@@ -12800,7 +12868,8 @@ export function createFifthRuntime(
     if (offer?.rest === undefined) {
       return [];
     }
-    const { left, max } = projectRests(state, "short");
+    const rests = projectRests(state, "short");
+    const { left, max } = rests;
     // Memorize Spell (#344), for a level-5 Wizard.
     const { memorize } = offer.rest;
     const spellIds = (spells: readonly MemorizeSpell[]) => [
@@ -12811,7 +12880,7 @@ export function createFifthRuntime(
       {
         type: "function",
         name: "rest",
-        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left in this adventure). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.${memorize === undefined ? "" : " With the rest, Memorize Spell may swap one prepared spell (forget_spell) for another in the spellbook (learn_spell) until the adventure ends: only when the player asks for it, both from those listed; otherwise null for both."}`,
+        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left ${restsScope(rests)}). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.${memorize === undefined ? "" : " With the rest, Memorize Spell may swap one prepared spell (forget_spell) for another in the spellbook (learn_spell) until the adventure ends: only when the player asks for it, both from those listed; otherwise null for both."}`,
         strict: true,
         parameters: {
           type: "object",

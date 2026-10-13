@@ -29,11 +29,11 @@ The character's pool of its class's hit die, one per level, tracked by the adven
 _Avoid_: Hit points, HD (in player-facing text)
 
 **Short rest**:
-A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure: the character spends hit dice one at a time to heal and regains its features' short-rest uses.
+A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure (two in each region of a long module, #404): the character spends hit dice one at a time to heal and regains its features' short-rest uses.
 _Avoid_: Breather, Camp
 
 **Long rest**:
-A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure: it restores every hit point, hit die and feature use.
+A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure (one in each region of a long module, #404): it restores every hit point, hit die and feature use.
 _Avoid_: Sleep, Camp
 
 **Spell**:
@@ -286,6 +286,10 @@ _Avoid_: Location, Square, Tile
 **Region**:
 A named part of an adventure module, such as an upper or a lower level (#395). In a module with regions every room belongs to exactly one; the room panel and the AI DM's scene name the current room's. It is a list of rooms, not a place on a map.
 _Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
+
+**Long module**:
+An adventure module with two or more regions that declares itself long (#404): its rests are counted per region, every region has a rest site, and it has twice the treasure budget and an XP limit one level higher.
+_Avoid_: Big module, Campaign
 
 **Move count**:
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.

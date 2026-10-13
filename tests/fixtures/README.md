@@ -149,6 +149,15 @@ not in `FIXTURE_MODULES`: the rat tunnels with two regions, the Upper Tunnels
 den). `regionTunnelsFile` is its JSON, for the validator's refusals.
 `tests/issue-395.test.mjs` and `tests/issue-395-browser.test.mjs` use it.
 
+## Long modules (issue 404)
+
+`longTunnels` (_The Long Tunnels_, from `longTunnelsFile`) is the two-level
+tunnels declared `long`, for level 3: the alcove is the Upper Tunnels' rest
+site, and a Cistern off the cellar the Lower Tunnels'. It is not in
+`FIXTURE_MODULES`. `tests/issue-404.test.mjs` plays its rests per region,
+and the career check in `tests/shipped-modules.test.mjs` places it among the
+shipped modules.
+
 ## Fleeing a fight (issue 396)
 
 `modules.mjs` also builds `fleeingCellar` (_The Bolt-Hole Cellar_), which is
