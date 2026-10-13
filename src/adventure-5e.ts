@@ -349,6 +349,23 @@ export function encounterPlacements(
 }
 
 /**
+ * `placements` by room (#398), so a lookup reads only its room's: the
+ * route planner and the projections look up a room's fight at every step.
+ */
+export function placementsByRoom(
+  placements: readonly Placement[],
+): ReadonlyMap<string, readonly Placement[]> {
+  const byRoom = new Map<string, Placement[]>();
+  for (const placement of placements) {
+    byRoom.set(placement.roomId, [
+      ...(byRoom.get(placement.roomId) ?? []),
+      placement,
+    ]);
+  }
+  return byRoom;
+}
+
+/**
  * The id of the encounter in room `roomId` now (#398), from `placements`:
  * one met stays where it was met; one not yet met is where the flags set
  * place it. Undefined when none is.

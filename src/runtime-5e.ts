@@ -119,6 +119,7 @@ import {
   encounterInRoom,
   encounterPlacements,
   isConditional,
+  placementsByRoom,
 } from "./adventure-5e.js";
 import {
   REACTION_OPTION_NAMES,
@@ -5288,6 +5289,10 @@ export function createFifthRuntime(
   };
   /** The rooms each encounter may be in (#398). */
   const placements = encounterPlacements(adventure);
+  const roomPlacements = placementsByRoom(placements);
+  const encounterById = new Map(
+    adventure.encounters.map((encounter) => [encounter.id, encounter]),
+  );
   /** Encounters flags place (#398), whose first meeting is remembered. */
   const placedByFlags = adventure.encounters.filter(isConditional);
   /**
@@ -5295,15 +5300,19 @@ export function createFifthRuntime(
    * was met, or else where the flags set place it.
    */
   const encounterIn = (state: FifthState, roomId: string) => {
-    const encounterId = encounterInRoom(
-      placements,
-      roomId,
-      state.flags,
-      state.metEncounters,
-    );
+    const here = roomPlacements.get(roomId);
+    if (here === undefined) {
+      return undefined;
+    }
+    // A fight no flag places is simply there.
+    const only = here.length === 1 ? here[0]! : undefined;
+    const encounterId =
+      only !== undefined && only.while === undefined && only.until === undefined
+        ? only.encounterId
+        : encounterInRoom(here, roomId, state.flags, state.metEncounters);
     return encounterId === undefined
       ? undefined
-      : adventure.encounters.find(({ id }) => id === encounterId);
+      : encounterById.get(encounterId);
   };
   /** The encounter placed in the character's room, if any. */
   const placedEncounterOf = (state: FifthState) =>

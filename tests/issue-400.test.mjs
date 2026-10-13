@@ -500,15 +500,18 @@ test("the AI DM's use_on tool lists only offered pairs", () => {
 
 // The balance harness.
 
-test("the harness uses an item on a feature as soon as it carries it", () => {
+test("the required path fetches the item a use needs, and the harness uses it", () => {
   const module = validateModule(vaultDenFile());
+  // The way to the vault opens only with the snake: the path fetches it
+  // from the alcove before going through the door.
   assert.deepEqual(requiredPath(module).roomIds, [
     "stair-foot",
+    "alcove",
     "vault",
     "den",
   ]);
   const runtime = createFifthRuntime(module, TEST_FIGHTER);
-  for (const style of ["direct", "cautious"]) {
+  for (const style of ["direct", "cautious", "avoid-optional"]) {
     for (const seed of [0, 1, 2]) {
       const run = playAdventure(runtime, style, seed);
       assert.ok(
@@ -517,6 +520,27 @@ test("the harness uses an item on a feature as soon as it carries it", () => {
       );
     }
   }
+});
+
+test("a fight by the item a use needs is on the required path", () => {
+  // A rat guards the snake in the alcove: the cautious run, which skips
+  // optional fights, must fight it to get through the door.
+  const file = vaultDenFile((module) => {
+    module.encounters.push({
+      ...structuredClone(module.encounters[0]),
+      id: "alcove-rat",
+    });
+    module.encounters.at(-1).opponents[0].id = "alcove-giant-rat";
+    room(module, "alcove").encounterId = "alcove-rat";
+  });
+  const module = validateModule(file);
+  assert.ok(requiredPath(module).roomIds.includes("alcove"));
+  const runtime = createFifthRuntime(module, TEST_FIGHTER);
+  const run = playAdventure(runtime, "cautious", 0);
+  assert.ok(
+    run.encounters.some(({ id }) => id === "alcove-rat"),
+    run.roomIds.join(" > "),
+  );
 });
 
 // The AI DM evaluation.
