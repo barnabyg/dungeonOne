@@ -320,7 +320,8 @@ room to see what you learned there: the discoveries you made, the creatures
 you talked to and what they said, its doors, the traps you found and whether
 its fight was won, slipped past, fled from, ended peacefully or still waits.
 Choose it again to hide the record. Choosing a room never moves you, and a
-reload shows the same rooms.
+reload shows the same rooms. The AI DM sees them too, so you can ask it where
+a door was, what a creature told you or the way back to a room.
 
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
@@ -550,7 +551,7 @@ the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 40. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 41. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -578,7 +579,10 @@ the history stays readable, and reloading shows the same ending.
   comes once, and is an omen after. A module with two or more regions, each
   with a rest site, may declare itself long: the character may then take two
   short rests and one long rest in each region, and the room panel's rest
-  parts count the rests left in this region.
+  parts count the rests left in this region. A module may declare its routes
+  from the entrance to the objective, each by the rooms it must pass, and the
+  balance gate then judges every route, naming any too deadly for its
+  difficulty.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -661,9 +665,10 @@ These are for development, not play.
   fight action cases (#402), on _The Statue Cellar_
   (`adventures/eval/statue-cellar.json`), `--suite alarm` the alarm cases
   (#401), on _The Alarmed Tunnels_ (`adventures/eval/alarm-tunnels.json`),
-  and `--suite wandering` the wandering encounter cases (#403), on _The
-  Wandering Tunnels_ (`adventures/eval/wandering-tunnels.json`), modules for
-  the evaluation only.
+  `--suite wandering` the wandering encounter cases (#403), on _The
+  Wandering Tunnels_ (`adventures/eval/wandering-tunnels.json`), and
+  `--suite memory` the known rooms cases (#406), on _The Remembered Tunnels_
+  (`adventures/eval/memory-tunnels.json`), modules for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

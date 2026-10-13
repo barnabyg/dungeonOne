@@ -1087,6 +1087,193 @@ export const wanderingTunnels = validateModule(
   structuredClone(wanderingTunnelsFile),
 );
 
+/**
+ * The known rooms in the AI DM's scene (#406): the two-level tunnels as
+ * _The Remembered Tunnels_. An Old Hermit in the alcove talks about the
+ * den, and a Gallery off the alcove has a chute down to the cellar, so from
+ * the gallery the way back to the stair foot is through the alcove, which
+ * only the known rooms tell.
+ */
+export const memoryTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "memory-tunnels";
+  module.title = "The Remembered Tunnels";
+  room(module, "alcove").creatures = [
+    {
+      id: "hermit",
+      name: "Old Hermit",
+      description: "A wiry old hermit squats by the chest, picking at a crust.",
+      topics: [
+        {
+          id: "the-den",
+          name: "the den",
+          reply:
+            '"The smugglers sleep in the den past the cellar. Their goblin keeps the key on a cord round its neck."',
+        },
+      ],
+    },
+  ];
+  module.rooms.push({
+    id: "gallery",
+    name: "Gallery",
+    description:
+      "A narrow gallery cut into the rock, open to the cellar below.",
+    region: "upper",
+    features: [],
+    items: [],
+  });
+  module.passages.push(
+    {
+      id: "alcove-to-gallery",
+      between: ["alcove", "gallery"],
+      description: "A crawl through the back of the alcove.",
+    },
+    {
+      id: "gallery-to-cellar",
+      between: ["gallery", "rat-cellar"],
+      description: "A chute down to the cellar.",
+    },
+  );
+  return module;
+})();
+export const memoryTunnels = validateModule(structuredClone(memoryTunnelsFile));
+
+/**
+ * Declared routes (#407): the rat tunnels as _The Forked Tunnels_, with two
+ * ways from the stair foot to the den: through the cellar and its Giant
+ * Rat, the fewest-fights route, or through a Guard Hall and its Hall
+ * Guardian, a rat whose bite always kills, then a quiet Hall Stair. A Cache
+ * off the stair foot opens only by talking to the Old Keeper there, and a
+ * Sluice Room off the alcove only once a flag only a check's success sets.
+ * `forkedTunnelsFile(routes)` declares `routes`; `forkedTunnels` declares
+ * both ways.
+ */
+export const forkedTunnelsFile = (routes) => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "forked-tunnels";
+  module.title = "The Forked Tunnels";
+  if (routes !== undefined) {
+    module.routes = routes;
+  }
+  module.flags = ["sluice-open"];
+  room(module, "stair-foot").creatures = [
+    {
+      id: "keeper",
+      name: "Old Keeper",
+      description: "An old keeper dozes on a crate by the stair.",
+      topics: [
+        {
+          id: "cache",
+          name: "the cache",
+          check: {
+            skill: "persuasion",
+            dc: 10,
+            bands: {
+              success: {
+                effects: [{ type: "open", passage: "stair-to-cache" }],
+              },
+            },
+          },
+          reply: '"Behind the loose board, if you must." He pulls it aside.',
+          failure: '"What cache?" He goes back to sleep.',
+        },
+      ],
+    },
+  ];
+  room(module, "alcove").features.push({
+    id: "sluice-wheel",
+    name: "Sluice Wheel",
+    description: "A rusted wheel works a sluice gate in the wall.",
+    check: {
+      skill: "athletics",
+      dc: 10,
+      bands: {
+        success: { effects: [{ type: "set", flag: "sluice-open" }] },
+      },
+    },
+  });
+  const guardian = module.encounters.find(({ id }) => id === "cellar-rat")
+    .opponents[0];
+  module.encounters.push({
+    id: "hall-guardian",
+    opponents: [
+      {
+        ...structuredClone(guardian),
+        id: "guardian",
+        name: "Hall Guardian",
+        statBlock: {
+          ...structuredClone(guardian.statBlock),
+          hitPoints: { average: 60, formula: "11d8+11" },
+          attacks: [
+            {
+              name: "Bite",
+              bonus: 20,
+              damage: { dice: 4, sides: 12, modifier: 20, type: "piercing" },
+            },
+          ],
+        },
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+  });
+  for (const [id, name, description, encounterId] of [
+    [
+      "guard-hall",
+      "Guard Hall",
+      "A long hall lined with empty racks.",
+      "hall-guardian",
+    ],
+    ["hall-stair", "Hall Stair", "Steps down from the guard hall."],
+    ["cache", "Cache", "A cramped hole behind the boards."],
+    ["sluice-room", "Sluice Room", "A dripping chamber behind the sluice."],
+  ]) {
+    module.rooms.push({
+      id,
+      name,
+      description,
+      ...(encounterId === undefined ? {} : { encounterId }),
+      features: [],
+      items: [],
+    });
+  }
+  module.passages.push(
+    {
+      id: "stair-to-hall",
+      between: ["stair-foot", "guard-hall"],
+      description: "An archway into a long hall.",
+    },
+    {
+      id: "hall-to-stair",
+      between: ["guard-hall", "hall-stair"],
+      description: "Steps at the hall's far end.",
+    },
+    {
+      id: "hall-stair-to-den",
+      between: ["hall-stair", "den"],
+      description: "A low door at the foot of the steps.",
+    },
+    {
+      id: "stair-to-cache",
+      between: ["stair-foot", "cache"],
+      description: "A gap behind a loose board.",
+      hidden: true,
+    },
+    {
+      id: "alcove-to-sluice",
+      between: ["alcove", "sluice-room"],
+      description: "The sluice gate.",
+      openWhen: "sluice-open",
+    },
+  );
+  return module;
+};
+export const forkedTunnels = validateModule(
+  forkedTunnelsFile([
+    { id: "cellar", name: "through the cellar", rooms: ["rat-cellar"] },
+    { id: "guard-hall", name: "through the guard hall", rooms: ["guard-hall"] },
+  ]),
+);
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

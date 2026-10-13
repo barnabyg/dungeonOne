@@ -49,6 +49,11 @@ export type DmScene = Readonly<{
    * room, a fight that came or an omen heard, until the character moves on.
    */
   wandering?: string;
+  /**
+   * For a runtime that remembers the rooms the character knows: a line for
+   * each other room, what the character learned there, within a size cap.
+   */
+  knownRooms?: readonly string[];
   room: Readonly<{
     id: string;
     name: string;
