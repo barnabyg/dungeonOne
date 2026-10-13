@@ -556,7 +556,8 @@ export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 /**
  * A long module (#404): the two-level tunnels as _The Long Tunnels_, level
  * 3, hard, declared `long`. The upper alcove is a rest site, and so is a
- * Cistern in the Lower Tunnels off the cellar, so each region has one.
+ * Cistern in the Lower Tunnels off the cellar, so each region has one. The
+ * stair foot is an exit, so every region has one to reach (D9, #408).
  */
 export const longTunnelsFile = (() => {
   const module = structuredClone(regionTunnelsFile);
@@ -564,6 +565,13 @@ export const longTunnelsFile = (() => {
   module.title = "The Long Tunnels";
   module.long = true;
   module.recommendedLevels = { min: 3, max: 3 };
+  room(module, "stair-foot").exit = true;
+  module.endings.push({
+    id: "climbed-out",
+    kind: "escape-without-loot",
+    title: "Back up the stair",
+    text: "You climb out into the daylight with nothing to show for it.",
+  });
   room(module, "alcove").restSite = true;
   module.rooms.push({
     id: "cistern",
@@ -582,6 +590,63 @@ export const longTunnelsFile = (() => {
   return module;
 })();
 export const longTunnels = validateModule(structuredClone(longTunnelsFile));
+
+/**
+ * Region sweeps (#408): the long tunnels as _The Lair Tunnels_, with a Lair
+ * off the upper alcove where a Lair Guardian waits whose bite always kills.
+ * The Lair is optional: the fewest-fights route never goes there, but the
+ * Upper Tunnels' sweep does, unless `avoidable` marks it so. `routes`, when
+ * given, are declared as they are.
+ */
+export const lairTunnelsFile = ({ avoidable = false, routes } = {}) => {
+  const module = structuredClone(longTunnelsFile);
+  module.id = "lair-tunnels";
+  module.title = "The Lair Tunnels";
+  if (routes !== undefined) {
+    module.routes = routes;
+  }
+  const rat = module.encounters.find(({ id }) => id === "cellar-rat")
+    .opponents[0];
+  module.encounters.push({
+    id: "lair-guardian",
+    opponents: [
+      {
+        ...structuredClone(rat),
+        id: "guardian",
+        name: "Lair Guardian",
+        statBlock: {
+          ...structuredClone(rat.statBlock),
+          hitPoints: { average: 60, formula: "11d8+11" },
+          attacks: [
+            {
+              name: "Bite",
+              bonus: 20,
+              damage: { dice: 4, sides: 12, modifier: 20, type: "piercing" },
+            },
+          ],
+        },
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+  });
+  module.rooms.push({
+    id: "lair",
+    name: "Lair",
+    description: "Gnawed bones carpet a low den.",
+    region: "upper",
+    encounterId: "lair-guardian",
+    ...(avoidable ? { avoidable: true } : {}),
+    features: [],
+    items: [],
+  });
+  module.passages.push({
+    id: "alcove-to-lair",
+    between: ["alcove", "lair"],
+    description: "A crawl that stinks of old meat.",
+  });
+  return module;
+};
+export const lairTunnels = validateModule(lairTunnelsFile());
 
 /**
  * Fleeing a fight (#396): the rat tunnels as _The Bolt-Hole Cellar_. The

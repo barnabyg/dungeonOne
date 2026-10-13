@@ -295,6 +295,14 @@ _Avoid_: Big module, Campaign
 A way from an adventure module's entrance to its objective that the module declares (#407), such as "through the guard hall": the rooms it must pass, in order. The balance gate judges each declared route; a module that declares none is judged on its fewest-fights route.
 _Avoid_: Path (the required path is the gate's own), Branch, Track
 
+**Region sweep**:
+The balance gate's run through one region of a long module (#408): the cautious style visits every room of the region not marked avoidable, fighting what waits in each, then goes on to the objective. Each sweep is judged one difficulty lower than the module's.
+_Avoid_: Clear, Full run, Exploration
+
+**Avoidable room**:
+A long module's room marked `avoidable` (#408): left out of its region's sweep, so the gate never makes the character go there. It lies off every declared route.
+_Avoid_: Optional room (every room off the required path is optional), Secret room
+
 **Move count**:
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time

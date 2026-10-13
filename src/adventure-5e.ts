@@ -125,6 +125,12 @@
  * the objective, each by the rooms it must pass in order, for the balance
  * gate to judge each.
  *
+ * A long module's room may be `avoidable` (#408): left out of its region's
+ * sweep, so the balance gate never makes the character go there. It must
+ * lie off every declared route, and can't be where the victory is won.
+ * From every room of a long module the character must be able to reach an
+ * exit by ways nothing can close (D9).
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -239,7 +245,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 41;
+export const FIFTH_ADVENTURE_FORMAT = 42;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -1020,6 +1026,11 @@ export type FifthRoom = Readonly<{
   region?: string;
   /** The flag first entering it sets (#397); the start room's, at the start. */
   sets?: string;
+  /**
+   * Left out of its region's sweep (#408): a long module's room the
+   * character may leave unvisited, off every declared route.
+   */
+  avoidable?: true;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
   creatures: readonly FifthCreature[];
@@ -2600,7 +2611,15 @@ function validateModule(
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId", "creatures", "exit", "restSite", "region", "sets"],
+      [
+        "encounterId",
+        "creatures",
+        "exit",
+        "restSite",
+        "region",
+        "sets",
+        "avoidable",
+      ],
       where,
     );
     if (room.region !== undefined && !regionIds.has(room.region as string)) {
@@ -2613,6 +2632,9 @@ function validateModule(
     }
     if (room.restSite !== undefined && room.restSite !== true) {
       fail(`${where} restSite must be true, or left out.`);
+    }
+    if (room.avoidable !== undefined && room.avoidable !== true) {
+      fail(`room ${String(room.id)} avoidable must be true, or left out.`);
     }
     if (
       room.encounterId !== undefined &&
@@ -2891,6 +2913,7 @@ function validateModule(
       ...(room.exit === true ? { exit: true as const } : {}),
       ...(room.restSite === true ? { restSite: true as const } : {}),
       ...(room.region === undefined ? {} : { region: room.region as string }),
+      ...(room.avoidable === true ? { avoidable: true as const } : {}),
       ...(room.sets === undefined
         ? {}
         : { sets: id(room.sets, `${where} sets`) }),
@@ -2934,6 +2957,13 @@ function validateModule(
       }
     }
   }
+  // Only a long module is swept (#408), so only its rooms are avoidable.
+  const avoidable = rooms.filter((room) => room.avoidable === true);
+  if (!long && avoidable.length > 0) {
+    fail(
+      `room ${avoidable[0]!.id} is avoidable, but only a long module's rooms are swept.`,
+    );
+  }
   const routes =
     module.routes === undefined
       ? undefined
@@ -2941,6 +2971,15 @@ function validateModule(
           module.routes,
           new Set(rooms.map(({ id: roomId }) => roomId)),
         );
+  // D8 (#408): an avoidable room lies off every declared route.
+  for (const { id: roomId } of avoidable) {
+    const route = routes?.find(({ rooms: on }) => on.includes(roomId));
+    if (route !== undefined) {
+      fail(
+        `room ${roomId} is avoidable, but route ${route.id} names it: an avoidable room must lie off every declared route.`,
+      );
+    }
+  }
   // D10 and D11 (#345): one magic item, from level 3, none needing
   // attunement; a wand (#346) is one.
   const [magicProblem] = magicItemProblems(
@@ -4197,6 +4236,49 @@ function validateModule(
   }
   if (hasExit && !exitIn(safe)) {
     cutOff("every exit room", (sure) => !exitIn(sure));
+  }
+  for (const { id: roomId, encounterId } of avoidable) {
+    if (encounterId !== undefined && winning.has(encounterId)) {
+      fail(
+        `room ${roomId} is avoidable, but winning its fight is the module's victory.`,
+      );
+    }
+  }
+  // D9 (#408): from every room of a long module the character can reach an
+  // exit, by ways nothing can close, so a hurt character can leave with
+  // what it found. A way it came by that can close is not counted on.
+  if (long) {
+    const lasting = passages.filter(
+      ({ id: passageId }) => !closers.has(passageId),
+    );
+    for (const { id: roomId, region } of rooms) {
+      const reached = new Set([roomId]);
+      for (let grew = true; grew;) {
+        grew = false;
+        for (const { between } of lasting) {
+          const [from, to] = between;
+          if (reached.has(from) !== reached.has(to)) {
+            reached.add(from).add(to);
+            grew = true;
+          }
+        }
+      }
+      if (!exitIn(reached)) {
+        const closing = passages.flatMap(({ id: passageId, between }) =>
+          closers.has(passageId) &&
+          between.some((end) => reached.has(end)) &&
+          !between.every((end) => reached.has(end))
+            ? [passageId]
+            : [],
+        );
+        fail(
+          `region ${region!} has no exit to reach from room ${roomId}: ` +
+            (!hasExit
+              ? "the module has no exit."
+              : `every way out passes ${closing.length === 1 ? "passage" : "passages"} ${closing.join(", ")}, which can close. Every region of a long module needs an exit the character can reach from each of its rooms (D9).`),
+        );
+      }
+    }
   }
   const hasTreasure = rooms.some(({ items }) =>
     items.some(({ kind }) => LOOT_KINDS.includes(kind)),
