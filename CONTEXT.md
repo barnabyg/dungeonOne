@@ -303,6 +303,10 @@ _Avoid_: Clear, Full run, Exploration
 A long module's room marked `avoidable` (#408): left out of its region's sweep, so the gate never makes the character go there. It lies off every declared route.
 _Avoid_: Optional room (every room off the required path is optional), Secret room
 
+**Gate-time canary**:
+_The Long Workings_ (#410), a test-owned long module of twenty rooms in two regions, with routes and sweeps, that the balance gate's time budget gates beside the shipped modules until the first shipped long module replaces it. It stands in for that module's cost; it is never offered to players.
+_Avoid_: Benchmark module, Dummy module
+
 **Release run**:
 A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written for the shipped modules that have one; the code calls its step list its `route`, which is not a module's declared route.
 _Avoid_: Playthrough (the harness's), Handoff run

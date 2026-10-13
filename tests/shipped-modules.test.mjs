@@ -43,7 +43,7 @@ import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
-import { longTunnels } from "./fixtures/modules.mjs";
+import { longTunnels, longWorkings } from "./fixtures/modules.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
 const moduleFiles = Object.fromEntries(
@@ -72,11 +72,18 @@ const gated =
           shipped.find((adventure) => adventure.id === id) ??
           assert.fail(`${id} is not a shipped module`),
       );
+/**
+ * The modules the budget times: every shipped module and the gate-time
+ * canary, a long module standing in for the first shipped one (#410); or
+ * only those named.
+ */
+const timed = gated === shipped ? [...shipped, longWorkings] : gated;
 const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
 /**
- * The reference CPU seconds the gate may take over every shipped module:
+ * The reference CPU seconds the gate may take over every shipped module and
+ * the gate-time canary (#410):
  * 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
@@ -128,17 +135,17 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348)", () => {
+test("every shipped module and the gate-time canary qualify at their declared difficulty for every class within the gate's time budget (#310, #321, #348, #410)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
   // The other gate tests below read the results this fills.
   const seconds = referenceCpuSeconds(() => {
-    for (const adventure of gated) {
+    for (const adventure of timed) {
       gateOf(adventure);
     }
   });
-  for (const adventure of gated) {
+  for (const adventure of timed) {
     const gate = gateOf(adventure);
     if (!gate.qualified) {
       assert.fail(renderModuleGateResult(adventure, gate));
@@ -149,6 +156,81 @@ test("every shipped module qualifies at its declared difficulty for every class 
     gated !== shipped || seconds < GATE_BUDGET_SECONDS,
     `the gate took ${seconds.toFixed(1)} s of reference CPU`,
   );
+});
+
+/**
+ * The gate-time canary's figures (#410), for each class: the weakest
+ * character's survival as [level, kit, rate], then each declared route's
+ * and each region sweep's. A speed-up must leave them as they are.
+ */
+const CANARY_FIGURES = {
+  fighter: {
+    survival: [3, "mace", 0.98],
+    routes: [
+      ["by-the-shaft", 3, "mace", 0.99],
+      ["down-the-chute", 3, "mace", 0.98],
+    ],
+    sweeps: [
+      ["upper", 3, "two-daggers", 0.96],
+      ["lower", 3, "mace", 0.98],
+    ],
+  },
+  rogue: {
+    survival: [3, "shortsword-and-dagger", 0.99],
+    routes: [
+      ["by-the-shaft", 3, "shortsword-and-dagger", 0.99],
+      ["down-the-chute", 3, "shortsword-and-dagger", 0.99],
+    ],
+    sweeps: [
+      ["upper", 3, "shortsword-and-dagger", 0.98],
+      ["lower", 3, "shortsword-and-dagger", 0.99],
+    ],
+  },
+  cleric: {
+    survival: [3, "mace-and-daggers", 0.93],
+    routes: [
+      ["by-the-shaft", 3, "mace-and-daggers", 0.93],
+      ["down-the-chute", 3, "mace-and-daggers", 0.93],
+    ],
+    sweeps: [
+      ["upper", 3, "mace-and-daggers", 0.805],
+      ["lower", 3, "mace-and-daggers", 0.93],
+    ],
+  },
+  wizard: {
+    survival: [3, "quarterstaff-and-dagger", 0.955],
+    routes: [
+      ["by-the-shaft", 3, "quarterstaff-and-dagger", 0.945],
+      ["down-the-chute", 3, "quarterstaff-and-dagger", 0.955],
+    ],
+    sweeps: [
+      ["upper", 3, "quarterstaff-and-dagger", 0.835],
+      ["lower", 3, "quarterstaff-and-dagger", 0.955],
+    ],
+  },
+};
+
+test("the gate gives the gate-time canary its pinned figures (#410)", (t) => {
+  if (!gates.has(longWorkings.id)) {
+    t.skip("the canary is gated only with every shipped module");
+    return;
+  }
+  const figures = ({ level, kit, rate }) => [level, kit, rate];
+  for (const { classId, result } of gateOf(longWorkings).classes) {
+    const { survival, routes, sweeps } = result.verdict;
+    assert.deepEqual(
+      {
+        survival: figures(survival),
+        routes: routes.map(({ id, survival: way }) => [id, ...figures(way)]),
+        sweeps: sweeps.map(({ region, survival: way }) => [
+          region,
+          ...figures(way),
+        ]),
+      },
+      CANARY_FIGURES[classId],
+      classId,
+    );
+  }
 });
 
 test("the recorded gate verdicts the browser offers modules by are the gate's (#310)", async () => {
