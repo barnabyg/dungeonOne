@@ -1409,7 +1409,8 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
  *   fight, searches each room for traps and disarms those it finds, and
  *   heals below half its hit points.
  * - `avoid-optional` enters only the required rooms, and heals below a
- *   quarter.
+ *   quarter. Where a flag has closed the way through them (#401), it goes
+ *   round by any room.
  * - `stealth-first` (#302) plays as `cautious`, but sneaks into every fight
  *   it can. Unseen, it slips past the fight unless its goal is in that room
  *   (the victory fight, loot, a key) or the way on is shut: then it springs
@@ -1420,6 +1421,11 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
  *   to an exit room passes no fight, with Disengage first when it has it.
  *   Once it has fled it heads out by the nearest such way and leaves. It
  *   flees each fight once: met again, it fights on.
+ * - `use-room` (#402) plays as `cautious`, but in a fight, with no heal to
+ *   take, it uses the room's fight action whenever one is offered, against
+ *   the opponent with the most hit points left (the first listed on a tie),
+ *   by its first approach. In a module without fight actions it plays
+ *   exactly as `cautious`.
  */
 export const PLAY_STYLES = [
   "direct",
@@ -1427,6 +1433,7 @@ export const PLAY_STYLES = [
   "avoid-optional",
   "stealth-first",
   "retreat",
+  "use-room",
 ] as const;
 export type PlayStyle = (typeof PLAY_STYLES)[number];
 
@@ -1436,10 +1443,16 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
   "avoid-optional": 1 / 4,
   "stealth-first": 1 / 2,
   retreat: 1 / 2,
+  "use-room": 1 / 2,
 };
 
 /** The styles that skip optional fights but look into rooms without one. */
-const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first", "retreat"];
+const CAREFUL: readonly PlayStyle[] = [
+  "cautious",
+  "stealth-first",
+  "retreat",
+  "use-room",
+];
 
 /**
  * How a run answers a reaction roll's band (#304): `attack`, the default,
@@ -1513,6 +1526,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Every style uses an item on a feature as soon as it carries one the
   // feature accepts (#400), before it leaves the room.
   "use-on": true,
+  // Only the use-room style uses the room in a fight (#402); the judged
+  // styles never do, so the gate stays a lower bound.
+  "use-feature": true,
   force: true,
   pick: true,
   break: true,
@@ -1550,10 +1566,16 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
 /** The kinds of action only the retreat style plays (#396), when low. */
 const RETREAT_ACTIONS: readonly ActionKind[] = ["disengage", "flee"];
 
+/** The kinds of action only the use-room style plays (#402). */
+const ROOM_ACTIONS: readonly ActionKind[] = ["use-feature"];
+
 /** The kinds of action the harness asks the runtime to project. */
 const CHOSEN_ACTIONS: ReadonlySet<ActionKind> = new Set(
   (Object.keys(PLAYED_ACTIONS) as ActionKind[]).filter(
-    (kind) => PLAYED_ACTIONS[kind] && !RETREAT_ACTIONS.includes(kind),
+    (kind) =>
+      PLAYED_ACTIONS[kind] &&
+      !RETREAT_ACTIONS.includes(kind) &&
+      !ROOM_ACTIONS.includes(kind),
   ),
 );
 
@@ -1628,6 +1650,20 @@ const HEALING_ACTIONS: readonly ActionKind[] = [
 const UNHURT_ACTIONS: ReadonlySet<ActionKind> = new Set(
   [...CHOSEN_ACTIONS].filter((kind) => !HEALING_ACTIONS.includes(kind)),
 );
+
+/** What the use-room style (#402) projects in a fight, hurt or not. */
+const ROOM_FIGHT_ACTIONS: Readonly<
+  Record<"hurt" | "unhurt", ReadonlySet<ActionKind>>
+> = {
+  hurt: new Set([...CHOSEN_ACTIONS, ...ROOM_ACTIONS]),
+  unhurt: new Set([...UNHURT_ACTIONS, ...ROOM_ACTIONS]),
+};
+
+/** Whether a module offers a fight action anywhere (#402). */
+export const hasFightActions = (adventure: FifthAdventure): boolean =>
+  adventure.rooms.some(({ features }) =>
+    features.some(({ fightAction }) => fightAction !== undefined),
+  );
 
 /**
  * The spells the harness projects above its heal threshold, by casting
@@ -1811,6 +1847,16 @@ export type RunRecord = Readonly<{
   /** How many fights the run fled (#396): only the retreat style flees. */
   fled: number;
   /**
+   * How many fight actions the run used (#402): only the use-room style
+   * uses one.
+   */
+  fightActions: number;
+  /**
+   * What raised the module's alarm (#401), as its card names it; absent
+   * where the run never raised it.
+   */
+  alarm?: string;
+  /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
    */
@@ -1943,6 +1989,7 @@ export function playAdventure(
   let spellsCast = 0;
   let reactionChoices = 0;
   let retreatChances = 0;
+  let fightActions = 0;
   /** The fights the run fled (#396), each fled once, and whether it is heading out. */
   const fledFrom: string[] = [];
   let retreating = false;
@@ -1956,6 +2003,8 @@ export function playAdventure(
 
   /** The round of the fight the character is fleeing (#396). */
   let fledRound = 0;
+  /** What raised the module's alarm (#401), once something has. */
+  let alarm: string | undefined;
   const apply = (action: FifthAction) => {
     actions += 1;
     fledRound = state.encounter?.round ?? 0;
@@ -1979,16 +2028,17 @@ export function playAdventure(
       switch (event.type) {
         case "initiative":
           fight = {
-            // A wandering encounter (#335) fights in a room not its own.
-            id:
-              state.wandering === true
-                ? adventure.wanderingEncounter!.encounterId
-                : encounterAt(positionNow(), state.roomId)!,
+            // A wandering encounter (#335, #403) fights in a room not its
+            // own.
+            id: state.wandering ?? encounterAt(positionNow(), state.roomId)!,
             hpLost: 0,
             fled: 0,
             surrendered: 0,
             conditions: {},
           };
+          break;
+        case "alarm":
+          alarm = event.cause;
           break;
         case "attack":
           if (event.targetId === PLAYER_ID) {
@@ -2056,7 +2106,10 @@ export function playAdventure(
           hp = event.hpAfter;
           break;
         case "wandering-roll":
-          healing.interruptedRests += event.interrupted ? 1 : 0;
+          // Only a rest is interrupted; moves and the alarm (#403) bring a
+          // fight, counted like any other.
+          healing.interruptedRests +=
+            event.interrupted && event.rest !== undefined ? 1 : 0;
           break;
         case "hit-die":
           healing.hitDice += 1;
@@ -2165,9 +2218,7 @@ export function playAdventure(
     encounter: EncounterState,
   ): ActionView | undefined => {
     const fightId =
-      state.wandering === true
-        ? adventure.wanderingEncounter!.encounterId
-        : encounterAt(positionNow(), state.roomId)!;
+      state.wandering ?? encounterAt(positionNow(), state.roomId)!;
     if (encounter.pendingReaction !== undefined || fledFrom.includes(fightId)) {
       return undefined;
     }
@@ -2239,6 +2290,19 @@ export function playAdventure(
       if (flight !== undefined) {
         return flight;
       }
+    }
+    // The use-room style (#402) uses the room whenever it can, against the
+    // opponent with the most hit points left.
+    const room = offered(views, "use-feature").reduce<ActionView | undefined>(
+      (best, view) =>
+        best === undefined || hpOf(view.target!.id) > hpOf(best.target!.id)
+          ? view
+          : best,
+      undefined,
+    );
+    if (room !== undefined) {
+      fightActions += 1;
+      return room;
     }
     // The Cleric policy (#341): Turn Undead whenever an undead foe is left
     // to turn; turned foes are attacked only once every foe is turned, so
@@ -2706,10 +2770,19 @@ export function playAdventure(
       // else as it would have.
       const safe = retreating ? safeWayOut(position) : undefined;
       const aside = retreating ? new Set<string>() : detours(position);
+      // Avoiding optional rooms, once a flag has closed the required way
+      // (#401: the alarm's grate), the style goes round by any room.
+      const roundabout =
+        style === "avoid-optional"
+          ? (id: string) => !winning.has(id) || goal.has(id)
+          : undefined;
       const path =
         safe ??
         plan(position, aside, enterable(aside)) ??
         plan(position, goal, enterable(goal)) ??
+        (roundabout === undefined
+          ? undefined
+          : plan(position, goal, roundabout)) ??
         plan(position, exits, enterable(exits));
       const ambush = offered(views, "ambush")[0];
       // Detours first; then, once the goal is a way out and it is reached,
@@ -2778,11 +2851,13 @@ export function playAdventure(
     const choice = fighting
       ? fightChoice(
           project(
-            hurt
-              ? style === "retreat"
-                ? RETREATING_ACTIONS
-                : CHOSEN_ACTIONS
-              : UNHURT_ACTIONS,
+            style === "use-room"
+              ? ROOM_FIGHT_ACTIONS[hurt ? "hurt" : "unhurt"]
+              : hurt
+                ? style === "retreat"
+                  ? RETREATING_ACTIONS
+                  : CHOSEN_ACTIONS
+                : UNHURT_ACTIONS,
             hurt ? CHOSEN_SPELLS : UNHURT_SPELLS[casting],
           ),
         )
@@ -2820,6 +2895,8 @@ export function playAdventure(
     reactionChoices,
     retreatChances,
     fled: fledFrom.length,
+    fightActions,
+    ...(alarm === undefined ? {} : { alarm }),
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -2887,6 +2964,8 @@ export type BalanceCell = Readonly<{
   meanBypassed: number;
   /** Fights fled, a run (#396): only the retreat style flees. */
   meanFled: number;
+  /** Fight actions used, a run (#402): only the use-room style uses them. */
+  meanFightActions: number;
   /** Each opponent, and the chance one attack kills it from full HP. */
   oneHitKill: readonly Readonly<{
     encounterId: string;
@@ -2971,6 +3050,7 @@ function summarise(
     meanTreasure: mean(runs.map(({ treasure }) => treasure)),
     meanBypassed: mean(runs.map(({ bypassed }) => bypassed)),
     meanFled: mean(runs.map(({ fled }) => fled)),
+    meanFightActions: mean(runs.map(({ fightActions: used }) => used)),
     oneHitKill: adventure.encounters.flatMap(({ id: encounterId, opponents }) =>
       opponents.map(({ id, name, statBlock }) => ({
         encounterId,
@@ -3102,7 +3182,9 @@ export function renderBalanceResult(
           ? `; slipped past ${decimal(cell.meanBypassed)} fights`
           : cell.style === "retreat"
             ? `; fled ${decimal(cell.meanFled)} fights`
-            : ""),
+            : cell.style === "use-room"
+              ? `; used the room ${decimal(cell.meanFightActions)} times`
+              : ""),
       ...cell.encounters.map(
         (fight) =>
           `    ${fight.id}: fought in ${fight.runs}, lost ${percent(fight.defeatRate)}, ` +
@@ -3157,6 +3239,8 @@ export const XP_STYLE: PlayStyle = "direct";
 export const STEALTH_STYLE: PlayStyle = "stealth-first";
 /** The style that flees, which the gate reports too (#396). */
 export const RETREAT_STYLE: PlayStyle = "retreat";
+/** The style that uses the room in a fight, which the gate reports (#402). */
+export const ROOM_STYLE: PlayStyle = "use-room";
 
 /**
  * The SRD 5.2 XP needed for levels 1–7. Characters stop at level 5; levels 6
@@ -3230,6 +3314,20 @@ export type RetreatReport = Omit<SurvivalCheck, "ok" | "required"> &
   Readonly<{
     completionRate: number;
     meanFled: number;
+    meanXp: number;
+  }>;
+
+/**
+ * The weakest character's use-room runs (#402) with each kit at each
+ * recommended level, on seeded checks: reported beside the judged checks,
+ * never judged itself, as the judged styles never use the room in a fight.
+ * `rate`, `kit` and `level` are the kit and level it survives least with;
+ * the completion rate, fight actions used and XP are over every run.
+ */
+export type UseRoomReport = Omit<SurvivalCheck, "ok" | "required"> &
+  Readonly<{
+    completionRate: number;
+    meanFightActions: number;
     meanXp: number;
   }>;
 
@@ -3405,6 +3503,12 @@ export type GateVerdict = Readonly<{
   stealthFirst?: StealthFirstReport;
   /** Reported, not judged (#396); absent when not asked for. */
   retreat?: RetreatReport;
+  /** Reported, not judged (#402); absent when not asked for. */
+  useRoom?: UseRoomReport;
+  /** Reported, not judged (#401): for a module with an alarm. */
+  alarm?: AlarmReport;
+  /** Reported, not judged (#403): for a module with region tables. */
+  wandering?: WanderingReport;
   /**
    * Reported, not judged (#304): each reaction policy, for a module with a
    * reaction-eligible encounter; absent otherwise, or when not asked for.
@@ -3435,7 +3539,53 @@ export type GateMeasures = Readonly<{
   spendEarly?: SpendEarlyReport;
   stealthFirst?: StealthFirstReport;
   retreat?: RetreatReport;
+  useRoom?: UseRoomReport;
+  alarm?: AlarmReport;
+  wandering?: WanderingReport;
   reactions?: readonly ReactionPolicyReport[];
+}>;
+
+/**
+ * The wandering fights the judged runs met (#403), for a module whose
+ * regions have wandering encounter tables: the weakest character's
+ * cautious runs with each kit at each level, on seeded checks and with
+ * every check failing. Those fights already count in survival like any
+ * other, and their XP in the XP limit; this only says how many runs met
+ * one and fell in one, and the XP they offer. Reported, never judged.
+ */
+export type WanderingReport = Readonly<{
+  level: number;
+  percentile: number;
+  style: PlayStyle;
+  /** How many judged runs each branch played. */
+  runs: Readonly<Record<"seeded" | "always-fail", number>>;
+  /** How many runs of each branch met a wandering fight. */
+  met: Readonly<Record<"seeded" | "always-fail", number>>;
+  /** How many runs of each branch ended in defeat in a wandering fight. */
+  fell: Readonly<Record<"seeded" | "always-fail", number>>;
+  /** The XP the wandering encounters offer, of the XP check's total. */
+  xp: number;
+}>;
+
+/**
+ * The judged runs that raised the module's alarm (#401), for a module with
+ * one: the weakest character's cautious runs with each kit at each level,
+ * on seeded checks and with every check failing, each named by its checks,
+ * kit, level and seed, with what raised it. Reported, never judged.
+ */
+export type AlarmReport = Readonly<{
+  level: number;
+  percentile: number;
+  style: PlayStyle;
+  /** How many judged runs each branch played. */
+  runs: Readonly<Record<"seeded" | "always-fail", number>>;
+  raised: readonly Readonly<{
+    checks: "seeded" | "always-fail";
+    kit: KitId;
+    level: number;
+    seed: number;
+    by: string;
+  }>[];
 }>;
 
 /**
@@ -3480,6 +3630,11 @@ export type GateOptions = Pick<
      * They are never judged, so `passesGate` leaves them out.
      */
     reportRetreat?: boolean;
+    /**
+     * Whether to play and report the use-room runs (#402); true by
+     * default. They are never judged, so `passesGate` leaves them out.
+     */
+    reportUseRoom?: boolean;
     /**
      * Whether to play and report both reaction policies (#304) for a module
      * with a reaction-eligible encounter; true by default. Never judged.
@@ -3605,6 +3760,7 @@ export function gateAdventure(
     stepLimit,
     reportStealth = true,
     reportRetreat = true,
+    reportUseRoom = true,
     reportReactions = true,
     classId = DEFAULT_CLASS,
   }: GateOptions = {},
@@ -3626,6 +3782,9 @@ export function gateAdventure(
       (_, index) => (min + index) as Level,
     );
     const limit = stepLimit === undefined ? {} : { stepLimit };
+    // In a module without fight actions the use-room style plays as the
+    // judged one (#402), so its runs are the judged runs.
+    const roomy = hasFightActions(adventure);
     // Both reaction policies are reported where a reaction can be rolled.
     const reacting =
       reportReactions &&
@@ -3688,6 +3847,11 @@ export function gateAdventure(
               : run.retreatChances === 0
                 ? run
                 : playAdventure(seeded, RETREAT_STYLE, seed, policy),
+            useRoom: !reportUseRoom
+              ? undefined
+              : roomy
+                ? playAdventure(seeded, ROOM_STYLE, seed, policy)
+                : run,
             // A run its reaction policy never decided is the peaceful
             // run too (#347).
             peaceful: !reacting
@@ -3706,7 +3870,13 @@ export function gateAdventure(
     );
     /** A branch's runs: none for a branch not played. */
     type Branch =
-      "seeded" | "failing" | "stealth" | "retreat" | "peaceful" | "spending";
+      | "seeded"
+      | "failing"
+      | "stealth"
+      | "retreat"
+      | "useRoom"
+      | "peaceful"
+      | "spending";
     const branchRuns = (
       runs: (typeof played)[number]["runs"],
       branch: Branch,
@@ -3788,6 +3958,19 @@ export function gateAdventure(
           meanXp: mean(retreating.map(({ xp }) => xp)),
         }
       : undefined;
+    const roomRuns = played.flatMap(({ runs }) => branchRuns(runs, "useRoom"));
+    const useRoom: UseRoomReport | undefined = reportUseRoom
+      ? {
+          ...survivalOf("seeded", "useRoom", ROOM_STYLE, false),
+          completionRate:
+            roomRuns.filter(({ outcome }) => outcome === objective).length /
+            roomRuns.length,
+          meanFightActions: mean(
+            roomRuns.map(({ fightActions: used }) => used),
+          ),
+          meanXp: mean(roomRuns.map(({ xp }) => xp)),
+        }
+      : undefined;
     const policyReport = (
       policy: ReactionPolicy,
       branch: "seeded" | "peaceful",
@@ -3806,6 +3989,82 @@ export function gateAdventure(
     const reactions: readonly ReactionPolicyReport[] | undefined = reacting
       ? [policyReport("attack", "seeded"), policyReport("peaceful", "peaceful")]
       : undefined;
+    // The judged runs that raised the alarm (#401), in play order.
+    const alarm: AlarmReport | undefined =
+      adventure.alarm === undefined
+        ? undefined
+        : {
+            level: survival.level,
+            percentile: WEAKEST_PERCENTILE,
+            style: GATE_STYLE,
+            runs: {
+              seeded: played.length * seeds.length,
+              "always-fail": played.length * seeds.length,
+            },
+            raised: (["seeded", "always-fail"] as const).flatMap((checks) =>
+              played.flatMap(({ kit, level, runs }) =>
+                runs.flatMap((run, index) => {
+                  const by =
+                    run[checks === "seeded" ? "seeded" : "failing"].alarm;
+                  return by === undefined
+                    ? []
+                    : [{ checks, kit, level, seed: seeds[index]!, by }];
+                }),
+              ),
+            ),
+          };
+    // The wandering fights the judged runs met (#403).
+    const wanderers = new Set(
+      (adventure.regions ?? []).flatMap(({ wandering: table }) =>
+        (table?.entries ?? []).flatMap((entry) =>
+          "encounterId" in entry ? [entry.encounterId] : [],
+        ),
+      ),
+    );
+    const wanderingRuns = (checks: "seeded" | "always-fail") =>
+      played.flatMap(({ runs }) =>
+        runs.map((run) => run[checks === "seeded" ? "seeded" : "failing"]),
+      );
+    const wandering: WanderingReport | undefined =
+      wanderers.size === 0
+        ? undefined
+        : {
+            level: survival.level,
+            percentile: WEAKEST_PERCENTILE,
+            style: GATE_STYLE,
+            runs: {
+              seeded: played.length * seeds.length,
+              "always-fail": played.length * seeds.length,
+            },
+            met: {
+              seeded: wanderingRuns("seeded").filter(({ encounters }) =>
+                encounters.some(({ id }) => wanderers.has(id)),
+              ).length,
+              "always-fail": wanderingRuns("always-fail").filter(
+                ({ encounters }) =>
+                  encounters.some(({ id }) => wanderers.has(id)),
+              ).length,
+            },
+            fell: {
+              seeded: wanderingRuns("seeded").filter(({ encounters }) =>
+                fellToWanderer(encounters, wanderers),
+              ).length,
+              "always-fail": wanderingRuns("always-fail").filter(
+                ({ encounters }) => fellToWanderer(encounters, wanderers),
+              ).length,
+            },
+            xp: adventure.encounters
+              .filter(({ id }) => wanderers.has(id))
+              .reduce(
+                (sum, { opponents }) =>
+                  sum +
+                  opponents.reduce(
+                    (total, { statBlock }) => total + statBlock.xp,
+                    0,
+                  ),
+                0,
+              ),
+          };
     const spent = played.flatMap(({ runs }) => branchRuns(runs, "spending"));
     const spendEarly: SpendEarlyReport | undefined = spending
       ? {
@@ -4040,6 +4299,9 @@ export function gateAdventure(
           rests,
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
           ...(retreat === undefined ? {} : { retreat }),
+          ...(useRoom === undefined ? {} : { useRoom }),
+          ...(alarm === undefined ? {} : { alarm }),
+          ...(wandering === undefined ? {} : { wandering }),
           ...(reactions === undefined ? {} : { reactions }),
           ...(spendEarly === undefined ? {} : { spendEarly }),
         },
@@ -4149,6 +4411,11 @@ export function gateVerdictAt(
       ? {}
       : { stealthFirst: measures.stealthFirst }),
     ...(measures.retreat === undefined ? {} : { retreat: measures.retreat }),
+    ...(measures.useRoom === undefined ? {} : { useRoom: measures.useRoom }),
+    ...(measures.alarm === undefined ? {} : { alarm: measures.alarm }),
+    ...(measures.wandering === undefined
+      ? {}
+      : { wandering: measures.wandering }),
     ...(measures.reactions === undefined
       ? {}
       : { reactions: measures.reactions }),
@@ -4210,6 +4477,7 @@ export function passesGate(adventure: FifthAdventure): boolean {
     passed = gateModule(adventure, {
       reportStealth: false,
       reportRetreat: false,
+      reportUseRoom: false,
       reportReactions: false,
     }).qualified;
     gated.set(key, passed);
@@ -4316,6 +4584,17 @@ export function renderGateResult(
       : [
           `  Retreat, reported (not judged): the level ${verdict.retreat.level}, ${verdict.retreat.percentile}th percentile ${who} playing ${verdict.retreat.style} survived ${percent(verdict.retreat.rate)} of ${verdict.retreat.runs} runs with its weakest kit, ${verdict.retreat.kit} (${kits(verdict.retreat)}); over every kit and level it completed ${percent(verdict.retreat.completionRate)}, fled ${decimal(verdict.retreat.meanFled)} fights and earned ${decimal(verdict.retreat.meanXp)} XP a run.`,
         ]),
+    ...(verdict.useRoom === undefined
+      ? []
+      : [
+          `  Use the room, reported (not judged): the level ${verdict.useRoom.level}, ${verdict.useRoom.percentile}th percentile ${who} playing ${verdict.useRoom.style} survived ${percent(verdict.useRoom.rate)} of ${verdict.useRoom.runs} runs with its weakest kit, ${verdict.useRoom.kit} (${kits(verdict.useRoom)}); over every kit and level it completed ${percent(verdict.useRoom.completionRate)}, used the room ${decimal(verdict.useRoom.meanFightActions)} times and earned ${decimal(verdict.useRoom.meanXp)} XP a run.`,
+        ]),
+    ...(verdict.alarm === undefined ? [] : [alarmLine(verdict.alarm, who)]),
+    ...(verdict.wandering === undefined
+      ? []
+      : [
+          `  Wandering encounters, reported (not judged): the level ${verdict.wandering.level}, ${verdict.wandering.percentile}th percentile ${who} playing ${verdict.wandering.style} met one in ${verdict.wandering.met.seeded} of ${verdict.wandering.runs.seeded} seeded runs and ${verdict.wandering.met["always-fail"]} of ${verdict.wandering.runs["always-fail"]} always-fail runs, and fell in one in ${verdict.wandering.fell.seeded} and ${verdict.wandering.fell["always-fail"]}; they count in survival, and their ${verdict.wandering.xp} XP in the XP limit.`,
+        ]),
     ...(verdict.spendEarly === undefined
       ? []
       : [
@@ -4326,6 +4605,58 @@ export function renderGateResult(
         `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
     ),
   ].join("\n");
+}
+
+/** Whether a run fell in a wandering fight (#403): its last, lost. */
+function fellToWanderer(
+  encounters: readonly FightRecord[],
+  wanderers: ReadonlySet<string>,
+): boolean {
+  const last = encounters.at(-1);
+  return (
+    last !== undefined && last.outcome === "defeat" && wanderers.has(last.id)
+  );
+}
+
+/**
+ * The alarm's report (#401) as a line: in how many judged runs of each
+ * branch it was raised, then those runs, by their checks, kit, level and
+ * what raised it, with their seeds ("seeds 0, 3–5").
+ */
+function alarmLine(report: AlarmReport, who: string): string {
+  const count = (checks: "seeded" | "always-fail") =>
+    `${report.raised.filter((run) => run.checks === checks).length} of ${report.runs[checks]} ${checks} runs`;
+  const groups = new Map<string, number[]>();
+  for (const { checks, kit, level, seed, by } of report.raised) {
+    const key = `${checks} ${kit} level ${level}, by ${by}`;
+    groups.set(key, [...(groups.get(key) ?? []), seed]);
+  }
+  /** Seeds in order, each run of consecutive ones as a range. */
+  const seedList = (seeds: readonly number[]) => {
+    const spans: [number, number][] = [];
+    for (const seed of seeds) {
+      const last = spans.at(-1);
+      if (last !== undefined && last[1] + 1 === seed) {
+        last[1] = seed;
+      } else {
+        spans.push([seed, seed]);
+      }
+    }
+    return spans
+      .map(([from, to]) => (from === to ? `${from}` : `${from}–${to}`))
+      .join(", ");
+  };
+  return (
+    `  Alarm, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} raised it in ${count("seeded")} and ${count("always-fail")}` +
+    (groups.size === 0
+      ? "."
+      : `: ${[...groups]
+          .map(
+            ([key, seeds]) =>
+              `${key}, ${seeds.length === 1 ? "seed" : "seeds"} ${seedList(seeds)}`,
+          )
+          .join("; ")}.`)
+  );
 }
 
 /**

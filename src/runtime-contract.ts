@@ -42,6 +42,13 @@ export type DmScene = Readonly<{
   title: string;
   objective: string;
   outcome: RuntimeStatus;
+  /** For a runtime with alarms: that the alarm is raised, in the adventure's words. */
+  alarm?: string;
+  /**
+   * For a runtime with wandering encounters: what last wandered into the
+   * room, a fight that came or an omen heard, until the character moves on.
+   */
+  wandering?: string;
   room: Readonly<{
     id: string;
     name: string;
@@ -156,6 +163,7 @@ export type FifthToolName =
   | "break_door"
   | "unlock"
   | "use_on"
+  | "use_feature"
   | "disarm"
   | "equip"
   | "unequip"

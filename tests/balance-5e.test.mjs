@@ -353,6 +353,7 @@ test("a report has metrics for each level, character percentile and style", () =
           "avoid-optional",
           "stealth-first",
           "retreat",
+          "use-room",
         ].map((style) => [level, percentile, style]),
       ),
     ),

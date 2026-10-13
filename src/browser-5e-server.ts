@@ -554,6 +554,8 @@ const APPROACH_ACTIONS: readonly string[] = [
   "break",
   "disarm",
   "talk",
+  // A fight action (#402).
+  "use-feature",
 ];
 /** The clicked exploring actions, and the action each makes from its target. */
 const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
@@ -570,6 +572,12 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   "use-on": (target) => {
     const [featureId = "", itemId = ""] = target.split(":", 2);
     return { type: "use-on", featureId, itemId };
+  },
+  // A fight action (#402): `featureId:targetId`, the opponent it is used
+  // against.
+  "use-feature": (target) => {
+    const [featureId = "", targetId = ""] = target.split(":", 2);
+    return { type: "use-feature", featureId, targetId };
   },
   force: (doorId) => ({ type: "force", doorId }),
   pick: (doorId) => ({ type: "pick", doorId }),
@@ -996,7 +1004,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           typeof body.action !== "string" ||
           !Object.hasOwn(EXPLORE_ACTIONS, body.action) ||
           typeof body.target !== "string" ||
-          ((approach || retry) && !APPROACH_ACTIONS.includes(body.action))
+          ((approach || retry) && !APPROACH_ACTIONS.includes(body.action)) ||
+          // A fight action (#402) names its approach, but is never retried.
+          (retry && body.action === "use-feature")
         ) {
           throw new Error("Invalid exploring request.");
         }

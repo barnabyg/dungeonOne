@@ -124,8 +124,12 @@ A room a module marks as a safe place to rest, where a long rest may be taken.
 _Avoid_: Camp, Safe room
 
 **Wandering encounter**:
-The one encounter a module may author to interrupt rests (#335): each rest rolls a d100 against its chance, and on an interruption the rest restores nothing and its fight begins where the character rests. It comes at most once, and is in no room.
-_Avoid_: Random encounter, Ambush
+An encounter in no room that comes upon the character where it is (#335, #403). A region's **wandering encounter table** holds up to six entries, each a wandering encounter or an omen; every authored number of moves within the region, on each rest there and when the alarm is raised there, the engine rolls the table's chance on a d100, which also picks the entry. A wandering encounter's fight comes at most once and is its omen from then on. One that comes on a rest interrupts it, and the rest restores nothing. A module's single `wanderingEncounter` is a one-entry table rolled only on rests. Wandering encounters count against a module's 30 encounters. The AI DM cannot summon, roll for or keep one away.
+_Avoid_: Random encounter, Ambush, Random monster
+
+**Omen**:
+An entry of a wandering encounter table that is words only (#403): a distant chain, wet footsteps. It brings no fight and may come again and again; a wandering encounter that has come is its omen from then on. The card says it, and the AI DM's scene holds it until the character moves on.
+_Avoid_: Clue, Sign, Portent
 
 **Character library**:
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.
@@ -291,6 +295,14 @@ _Avoid_: Turns, Steps, Time
 A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.
 _Avoid_: Switch, Variable, Trigger, Quest state
 
+**Alarm**:
+A flag of an adventure module that only noise sets (#401): once the character makes noise, the alarm is raised for the rest of the session, and what it changes (defenders gathered, an ambush laid, a gate barred, a creature that will no longer talk) is authored with flag conditions. The engine remembers what raised it; the room panel shows the module's words for it, and the card of the action that raised it names the noise. The AI DM cannot raise or lower it.
+_Avoid_: Alert, Alarm level, Awareness
+
+**Noise**:
+What raises a module's alarm (#401): a sneak that fails by 5 or more, a fight in one of the alarm's regions going on past its authored round, a check that lands in a band marked noisy (the dropped tray, the stuck door forced), or an opponent that flees a fight and survives it.
+_Avoid_: Sound, Disturbance
+
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
@@ -298,6 +310,10 @@ _Avoid_: Object (too broad), Item (an item can be taken)
 **Use (of an item on a feature)**:
 Using an item the character carries on a feature in the room, as its adventure module allows (#400): fitting a carving into a door, pouring oil on a coffin. The module names the items a feature accepts, the words said, whether the item is used up and what it does, as a check's band would. Each use is made once. The engine refuses an item the feature doesn't accept, one not carried, and a use already made.
 _Avoid_: Combine, Apply
+
+**Fight action**:
+A feature the character can use against one opponent in a fight, with its action, as its adventure module allows (#402): toppling a statue onto it, cutting a chain, pushing it into a chasm. The engine rolls the action's check once, and its band may damage the opponent, give it a condition (prone, poisoned or paralysed) for some turns, or remove it from the fight: removed, it counts as defeated, and what it carried is lost. Each is used once per fight or once per adventure; a boss is never removed. The single-player stand-in for teamwork against a big monster.
+_Avoid_: Environmental attack, Interaction, Hazard (a trap is a hazard)
 
 **Discovery**:
 The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.

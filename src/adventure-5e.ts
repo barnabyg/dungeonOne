@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 36) and its validator.
+ * The 5e adventure module format (format version 39) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -54,6 +54,14 @@
  * route without a check, or through checks every band of which leaves a way
  * forward, whatever any band may close, and without thieves' tools.
  *
+ * A feature may offer a fight action (#402): in a fight in its room, with
+ * the character's action, a check against one opponent whose bands damage
+ * it, give it a condition or remove it from the fight, used once per fight
+ * or once per adventure. Only a room where a fight is fought may have one,
+ * and one that can remove an opponent is used once per adventure and never
+ * where a boss may be fought (D4), nor where an opponent may be fought that
+ * carries a door's key or an item a use needs.
+ *
  * A Dexterity check may be made with thieves' tools (#309), which only a
  * character carrying them can make: a door's pick always is, and a trap's
  * disarm may be, alone or as one of its approaches. Nothing else uses them.
@@ -92,6 +100,22 @@
  * band's. A way a use opens counts toward reachability only once the
  * feature's room and the item are reached for sure.
  *
+ * A module may declare an alarm (#401): one of its flags, which only noise
+ * sets: a sneak that fails by 5 or more, a fight in one of its `fights`
+ * regions lasting past that region's round, a check's band marked `noisy`,
+ * or an opponent that flees a fight and survives it. What the alarm
+ * changes is authored with flag conditions, and its `text` is how the room
+ * panel says it has been raised. Nothing else may set its flag, and
+ * reachability never counts it as set for sure.
+ *
+ * A region may have a wandering encounter table (#403) of up to six
+ * entries, each an encounter in no room or an omen (words only). Every
+ * `every` moves within the region, on each rest there and when the alarm
+ * is raised there, the engine rolls its chance. A module's single
+ * `wanderingEncounter` (#335) is a one-entry table rolled only on rests; a
+ * module has that or region tables, never both. Wandering encounters count
+ * against the module's 30 encounters.
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -114,7 +138,12 @@ import {
   type Band,
   type CheckSpec,
 } from "./checks-5e.js";
-import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
+import type {
+  Combatant,
+  DamageDefenses,
+  DamageType,
+  FeatureEffect,
+} from "./encounter-5e.js";
 import {
   COIN_VALUES,
   coinsInCopper,
@@ -201,12 +230,18 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 36;
+export const FIFTH_ADVENTURE_FORMAT = 39;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
 /** The most regions one module may declare (#395). */
 const MAX_REGIONS = 10;
+/** The most encounters one module may have, wandering ones included (D5). */
+export const MAX_ENCOUNTERS = 30;
+/** The most entries a region's wandering encounter table may have (#403). */
+export const MAX_WANDERING_ENTRIES = 6;
+/** The most moves within a region between its table's rolls (#403). */
+export const MAX_WANDERING_EVERY = 20;
 /** The most flags one module may declare (#397). */
 const MAX_FLAGS = 30;
 /** The encounter outcomes that may set a flag (#397). */
@@ -472,7 +507,72 @@ export type FifthFeature = Readonly<{
   changed?: Readonly<{ when: string; description: string }>;
   /** The items it accepts (#400), each once, and what using one does. */
   uses?: readonly FeatureUse[];
+  /** What the character can do with it in a fight here (#402). */
+  fightAction?: FeatureFightAction;
 }>;
+
+/**
+ * A fight action (#402): on the character's turn, with its action, a check
+ * against one opponent, made once per fight or once per adventure. Its bands
+ * deal the opponent damage, give it a condition or remove it from the
+ * fight; a band left out, or with only words, does nothing to it.
+ */
+export type FeatureFightAction = Readonly<{
+  once: FightActionOnce;
+  /** One approach, or 2–4 (#283), each a skill or an ability and a DC. */
+  check: AuthoredCheck;
+  bands: Readonly<Partial<Record<Band, FightActionBand>>>;
+}>;
+
+/** How often a fight action may be used: once per fight or per adventure. */
+export const FIGHT_ACTION_ONCE = ["fight", "adventure"] as const;
+export type FightActionOnce = (typeof FIGHT_ACTION_ONCE)[number];
+
+/** What one band of a fight action does (#402): its words and its effects. */
+export type FightActionBand = Readonly<{
+  text?: string;
+  effects?: readonly FightActionEffect[];
+}>;
+
+/** The conditions a fight action may give (#402). */
+export const FIGHT_ACTION_CONDITIONS = [
+  "prone",
+  "poisoned",
+  "paralysed",
+] as const;
+
+/**
+ * One effect of a fight action's band on its opponent (#402), as the
+ * encounter engine applies it (`FeatureEffect`): damage of a type, a
+ * condition for a number of the opponent's turns (prone always one: it gets
+ * up on its next turn), or removal from the fight (pushed into the chasm),
+ * which counts as defeating it and loses what it carries.
+ */
+export type FightActionEffect = FeatureEffect;
+
+/**
+ * The band of a fight action whose outcome applies to a rolled band (#402):
+ * a failure or success by 5 or more it doesn't author counts as plain
+ * failure or success.
+ */
+export function fightActionBand(
+  action: FeatureFightAction,
+  rolled: Band,
+): Band {
+  return action.bands[rolled] !== undefined
+    ? rolled
+    : rolled === "failure-by-5"
+      ? "failure"
+      : rolled === "success-by-5"
+        ? "success"
+        : rolled;
+}
+
+/** Whether a fight action can remove its opponent from the fight (#402). */
+export const removes = (action: FeatureFightAction): boolean =>
+  Object.values(action.bands).some((band) =>
+    (band.effects ?? []).some(({ type }) => type === "remove"),
+  );
 
 /**
  * Using an item on a feature (#400): the item, the words said, whether the
@@ -517,6 +617,8 @@ export type CheckEffect = Readonly<
 export type CheckBand = Readonly<{
   text?: string;
   effects?: readonly CheckEffect[];
+  /** Landing in it makes noise, which raises the module's alarm (#401). */
+  noisy?: true;
 }>;
 
 /**
@@ -919,7 +1021,34 @@ export type FifthRoom = Readonly<{
  * rooms, not a place on a map. In a module with regions every room belongs
  * to one, and every region has a room.
  */
-export type FifthRegion = Readonly<{ id: string; name: string }>;
+export type FifthRegion = Readonly<{
+  id: string;
+  name: string;
+  /** Its wandering encounter table (#403), if it has one. */
+  wandering?: WanderingTable;
+}>;
+
+/**
+ * A region's wandering encounter table (#403). Every `every` moves within
+ * the region (never, without it), on each rest in it and when the alarm is
+ * raised in it, a d100 is rolled: at `chance` or less one entry comes, the
+ * entries sharing the chance equally in order (with chance 30 and three
+ * entries, 1–10 the first, 11–20 the second, 21–30 the third).
+ */
+export type WanderingTable = Readonly<{
+  chance: number;
+  every?: number;
+  entries: readonly WanderingEntry[];
+}>;
+
+/**
+ * An entry of a wandering encounter table (#403): an encounter in no room,
+ * whose fight comes at most once and is then the omen its words say; or
+ * an omen alone, words that may come again and again.
+ */
+export type WanderingEntry = Readonly<
+  { encounterId: string; omen: string } | { omen: string }
+>;
 
 /**
  * A shut door in a passage. A stuck door is forced open; a locked one opens
@@ -1009,6 +1138,8 @@ export type FifthAdventure = Readonly<{
   regions?: readonly FifthRegion[];
   /** The ids of its flags (#397), each set by something and used by something. */
   flags?: readonly string[];
+  /** Its alarm (#401): a flag only noise sets. */
+  alarm?: FifthAlarm;
   rooms: readonly FifthRoom[];
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
@@ -1017,10 +1148,27 @@ export type FifthAdventure = Readonly<{
    * The one encounter that can interrupt a rest (#335): each short or long
    * rest rolls a d100, and on `chance` or less the rest restores nothing and
    * this encounter's fight begins where the character rests. It fires at
-   * most once. It is in no room. Without one, no rest is interrupted.
+   * most once. It is in no room. It is a one-entry wandering table rolled
+   * only on rests (#403), and a module with it has no region tables.
    */
   wanderingEncounter?: WanderingEncounter;
 }>;
+
+/**
+ * A module's alarm (#401): the flag noise sets, the words the room panel
+ * shows once it is raised, and the regions where a fight lasting past a
+ * round makes noise. A failed sneak by 5 or more, a `noisy` band and an
+ * opponent that flees a fight and survives it make noise anywhere.
+ */
+export type FifthAlarm = Readonly<{
+  flag: string;
+  text: string;
+  /** A fight in `region` that goes on past round `round` makes noise. */
+  fights?: readonly Readonly<{ region: string; round: number }>[];
+}>;
+
+/** The most rounds an alarm's fight may last before it makes noise (#401). */
+export const MAX_ALARM_ROUND = 10;
 
 /** A module's wandering encounter (#335) and its chance, 1–100 in a d100. */
 export type WanderingEncounter = Readonly<{
@@ -1427,6 +1575,117 @@ const EFFECT_TYPES = [
   "set",
 ] as const;
 
+/** The most effects one band of a fight action may have (#402). */
+const MAX_FIGHT_EFFECTS = 2;
+
+/** A fight action's effect on its opponent (#402). */
+function fightEffect(value: unknown, where: string): FightActionEffect {
+  const type = isRecord(value) ? value.type : undefined;
+  switch (type) {
+    case "damage": {
+      const raw = exactKeys(
+        value,
+        ["type", "dice", "sides", "modifier", "damageType"],
+        where,
+      );
+      return {
+        type,
+        dice: integer(raw.dice, `${where} dice`, 1, 10),
+        sides: integer(raw.sides, `${where} sides`, 2, 12),
+        modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
+        damageType: damageType(raw.damageType, `${where} damageType`),
+      };
+    }
+    case "condition": {
+      const raw = exactKeys(value, ["type", "condition", "turns"], where);
+      if (!isOneOf(FIGHT_ACTION_CONDITIONS, raw.condition)) {
+        fail(
+          `${where} condition must be ${FIGHT_ACTION_CONDITIONS.join(", ")}.`,
+        );
+      }
+      const turns = integer(raw.turns, `${where} turns`, 1, 10);
+      if (raw.condition === "prone" && turns !== 1) {
+        fail(
+          `${where} gives prone for ${turns} turns, but a prone creature gets up on its next turn: give 1.`,
+        );
+      }
+      return { type, condition: raw.condition, turns };
+    }
+    case "remove":
+      exactKeys(value, ["type"], where);
+      return { type };
+    default:
+      return fail(`${where} type must be damage, condition or remove.`);
+  }
+}
+
+/**
+ * A feature's fight action (#402): `{ once, check, bands }`, its check one
+ * approach or 2–4, each a skill or an ability and a DC only, and its bands
+ * each with text or 1–2 effects of different types, a removal alone.
+ */
+function fightActionOf(value: unknown, where: string): FeatureFightAction {
+  const raw = exactKeys(value, ["once", "check", "bands"], where);
+  if (!isOneOf(FIGHT_ACTION_ONCE, raw.once)) {
+    fail(`${where} once must be ${FIGHT_ACTION_ONCE.join(" or ")}.`);
+  }
+  if (!isRecord(raw.check)) {
+    fail(`${where} check must be an object.`);
+  }
+  const made = approaches(raw.check, `${where} check`);
+  for (const spec of approachesOf(made)) {
+    if (
+      spec.tool !== undefined ||
+      spec.movement !== undefined ||
+      spec.advantage !== undefined ||
+      spec.disadvantage !== undefined
+    ) {
+      fail(
+        `${where} check's approaches take a skill or an ability and a DC only.`,
+      );
+    }
+  }
+  const graded = knownKeys(raw.bands, [], BANDS, `${where} bands`);
+  const bands: Partial<Record<Band, FightActionBand>> = {};
+  for (const band of BANDS) {
+    if (graded[band] === undefined) {
+      continue;
+    }
+    const on = `${where} ${band} band`;
+    const entry = knownKeys(graded[band], [], ["text", "effects"], on);
+    if (entry.text === undefined && entry.effects === undefined) {
+      fail(`${on} needs text or effects.`);
+    }
+    const effects =
+      entry.effects === undefined
+        ? undefined
+        : list(entry.effects, `${on} effects`, MAX_FIGHT_EFFECTS).map(
+            (effectValue, index) =>
+              fightEffect(effectValue, `${on} effect ${index + 1}`),
+          );
+    if (effects !== undefined) {
+      distinct(
+        effects,
+        ({ type }) => type,
+        ({ type }) => `${on} has two ${type} effects.`,
+      );
+      if (effects.length > 1 && effects.some(({ type }) => type === "remove")) {
+        fail(`${on} removes its opponent, so it can have no other effect.`);
+      }
+    }
+    bands[band] = {
+      ...(entry.text === undefined
+        ? {}
+        : { text: text(entry.text, `${on} text`) }),
+      ...(effects === undefined ? {} : { effects }),
+    };
+  }
+  if (!Object.values(bands).some(({ effects }) => effects !== undefined)) {
+    fail(`${where} needs a band with effects.`);
+  }
+  return { once: raw.once, check: made, bands };
+}
+
 /** The most approaches one check may offer (#283). */
 const MAX_APPROACHES = 4;
 
@@ -1492,9 +1751,17 @@ function gradedCheck(
           return [];
         }
         const on = `${where} ${band} band`;
-        const raw = knownKeys(graded[band], [], ["text", "effects"], on);
+        const raw = knownKeys(
+          graded[band],
+          [],
+          ["text", "effects", "noisy"],
+          on,
+        );
         if (raw.text === undefined && raw.effects === undefined) {
           fail(`${on} needs text or effects.`);
+        }
+        if (raw.noisy !== undefined && raw.noisy !== true) {
+          fail(`${on} noisy must be true, or left out.`);
         }
         return [
           [
@@ -1503,6 +1770,7 @@ function gradedCheck(
               ...(raw.text === undefined
                 ? {}
                 : { text: text(raw.text, `${on} text`) }),
+              ...(raw.noisy === true ? { noisy: true as const } : {}),
               ...(raw.effects === undefined
                 ? {}
                 : {
@@ -1905,7 +2173,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["regions", "flags", "wanderingEncounter"],
+    ["regions", "flags", "alarm", "wanderingEncounter"],
     "the module",
   );
   const moduleId = id(module.id, "id");
@@ -2005,7 +2273,7 @@ function validateModule(
   };
   /** The treasure type of each opponent that names a bestiary monster. */
   const treasureTypes = new Map<FifthOpponent, TreasureTypeId>();
-  const encounters = list(module.encounters, "encounters", 20).map(
+  const encounters = list(module.encounters, "encounters", MAX_ENCOUNTERS).map(
     (entry, index) => {
       const where = `encounter ${index + 1}`;
       const encounter = knownKeys(
@@ -2260,10 +2528,14 @@ function validateModule(
       ? undefined
       : list(module.regions, "regions", MAX_REGIONS).map((entry, index) => {
           const where = `region ${index + 1}`;
-          const region = exactKeys(entry, ["id", "name"], where);
+          const region = knownKeys(entry, ["id", "name"], ["wandering"], where);
+          const regionId = id(region.id, `${where} id`);
           return {
-            id: id(region.id, `${where} id`),
+            id: regionId,
             name: text(region.name, `${where} name`, 60),
+            ...(region.wandering === undefined
+              ? {}
+              : { wandering: wanderingTable(region.wandering, regionId) }),
           };
         });
   const regionIds = unique(regions ?? [], "region");
@@ -2280,6 +2552,10 @@ function validateModule(
     (flag) => flag,
     (flag) => `flag ${flag} is declared twice.`,
   );
+  const alarm =
+    module.alarm === undefined
+      ? undefined
+      : readAlarm(module.alarm, new Set(flags), regionIds);
   const rooms = list(module.rooms, "rooms", 50).map((entry, index) => {
     const where = `room ${index + 1}`;
     const room = knownKeys(
@@ -2311,7 +2587,7 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery", "check", "sets", "changed", "uses"],
+          ["discovery", "check", "sets", "changed", "uses", "fightAction"],
           at,
         );
         const uses =
@@ -2368,6 +2644,14 @@ function validateModule(
             ? {}
             : { sets: id(feature.sets, `${at} sets`) }),
           ...(uses === undefined ? {} : { uses }),
+          ...(feature.fightAction === undefined
+            ? {}
+            : {
+                fightAction: fightActionOf(
+                  feature.fightAction,
+                  `${at} fightAction`,
+                ),
+              }),
           ...(changed === undefined
             ? {}
             : {
@@ -2633,11 +2917,45 @@ function validateModule(
     encounters,
     rooms,
   );
+  // Region tables (#403): each fight entry names a wandering encounter as
+  // the module's one does, and each wandering encounter is in one table.
+  const tabled = (regions ?? []).flatMap(({ id: regionId, wandering: table }) =>
+    (table?.entries ?? []).flatMap((entry) =>
+      "encounterId" in entry
+        ? [{ regionId, encounterId: entry.encounterId }]
+        : [],
+    ),
+  );
+  if (
+    wanderingEncounter !== undefined &&
+    (regions ?? []).some(({ wandering: table }) => table !== undefined)
+  ) {
+    fail(
+      "a module has a wanderingEncounter or regions with wandering tables, not both.",
+    );
+  }
+  for (const { regionId, encounterId } of tabled) {
+    wanderer(
+      encounterId,
+      encounters,
+      rooms,
+      `region ${regionId}'s wandering table`,
+    );
+  }
+  distinct(
+    tabled,
+    ({ encounterId }) => encounterId,
+    ({ encounterId }) =>
+      `wandering encounter ${encounterId} is in more than one wandering table entry.`,
+  );
+  const wanderers = new Set([
+    ...(wanderingEncounter === undefined
+      ? []
+      : [wanderingEncounter.encounterId]),
+    ...tabled.map(({ encounterId }) => encounterId),
+  ]);
   for (const { id: encounterId } of encounters) {
-    if (
-      !placed.includes(encounterId) &&
-      encounterId !== wanderingEncounter?.encounterId
-    ) {
+    if (!placed.includes(encounterId) && !wanderers.has(encounterId)) {
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
@@ -2949,6 +3267,17 @@ function validateModule(
   };
   const setters = new Set<string>();
   const flagUsers = new Set<string>();
+  // Only noise raises the alarm (#401): nothing else may set its flag.
+  if (alarm !== undefined) {
+    setters.add(alarm.flag);
+  }
+  const setBy = (flag: string, on: string) => {
+    flagNamed(flag, on);
+    if (flag === alarm?.flag) {
+      fail(`${on} sets ${flag}, the alarm's flag: only noise raises it.`);
+    }
+    setters.add(flag);
+  };
   for (const room of rooms) {
     const sets = [
       ...(room.sets === undefined
@@ -2962,8 +3291,7 @@ function validateModule(
       ),
     ];
     for (const [flag, on] of sets) {
-      flagNamed(flag, on);
-      setters.add(flag);
+      setBy(flag, on);
     }
   }
   for (const {
@@ -2974,8 +3302,7 @@ function validateModule(
     movesTo,
   } of encounters) {
     for (const [outcome, flag] of Object.entries(sets ?? {})) {
-      flagNamed(flag, `encounter ${encounterId}'s ${outcome}`);
-      setters.add(flag);
+      setBy(flag, `encounter ${encounterId}'s ${outcome}`);
     }
     // Where it is (#398).
     for (const flag of [presentWhile, presentUntil, movesTo?.when]) {
@@ -3079,8 +3406,7 @@ function validateModule(
         break;
       }
       case "set":
-        flagNamed(entry.flag, on);
-        setters.add(entry.flag);
+        setBy(entry.flag, on);
         break;
     }
   };
@@ -3102,6 +3428,9 @@ function validateModule(
         continue;
       }
       const on = `${label}'s ${band} band`;
+      if (outcome.noisy === true && alarm === undefined) {
+        fail(`${on} is noisy, but the module has no alarm for it to raise.`);
+      }
       if (
         !approachesOf(site.check).some((spec) => bandReachable(band, spec, max))
       ) {
@@ -3159,6 +3488,76 @@ function validateModule(
       }
       for (const entry of use.effects) {
         checkEffect(entry, on);
+      }
+    }
+  }
+  // A fight action (#402) needs a fight in its room: the room's own
+  // encounter, one flags move there (#398), or the wandering encounter at
+  // a rest site (#335). One that can remove an opponent is used once per
+  // adventure, and never where a boss may be fought (D4), nor where an
+  // opponent carries an item needed to go on: a key to a door, or an item
+  // a use needs (#331, #400). Its other loot is lost with it.
+  const neededFor = new Map<string, string>([
+    ...passages.flatMap(({ door: shut }) =>
+      shut?.keyItemId === undefined
+        ? []
+        : [[shut.keyItemId, `opens door ${shut.id}`] as const],
+    ),
+    ...[...featureById.values()].flatMap(({ id: featureId, uses }) =>
+      (uses ?? []).map(
+        ({ item }) => [item, `feature ${featureId}'s use needs`] as const,
+      ),
+    ),
+  ]);
+  for (const { id: roomId, encounterId, restSite, features } of rooms) {
+    const fought = encounters.filter(
+      ({ id: fightId, movesTo }) =>
+        fightId === encounterId ||
+        movesTo?.roomId === roomId ||
+        (restSite === true && fightId === wanderingEncounter?.encounterId) ||
+        // A region's wandering encounters (#403) may come anywhere in it.
+        tabled.some(
+          (entry) =>
+            entry.encounterId === fightId &&
+            entry.regionId === rooms.find(({ id }) => id === roomId)?.region,
+        ),
+    );
+    for (const { id: featureId, fightAction } of features) {
+      if (fightAction === undefined) {
+        continue;
+      }
+      const on = `feature ${featureId}'s fight action`;
+      if (fought.length === 0) {
+        fail(
+          `${on} needs a fight, but no fight is ever fought in room ${roomId}.`,
+        );
+      }
+      if (!removes(fightAction)) {
+        continue;
+      }
+      if (fightAction.once !== "adventure") {
+        fail(
+          `${on} can remove an opponent, so it must be usable once per adventure.`,
+        );
+      }
+      for (const { id: fightId, opponents } of fought) {
+        const boss = opponents.find((opponent) => opponent.boss === true);
+        if (boss !== undefined) {
+          fail(
+            `${on} can remove an opponent, but boss ${boss.id} of encounter ${fightId} may be fought in room ${roomId}: a boss is never removed.`,
+          );
+        }
+        const home = rooms.find((entry) => entry.encounterId === fightId);
+        for (const { id: opponentId } of opponents) {
+          for (const { id: itemId, hiddenIn } of home?.items ?? []) {
+            const why = neededFor.get(itemId);
+            if (hiddenIn === opponentId && why !== undefined) {
+              fail(
+                `${on} can remove an opponent, but ${opponentId} of encounter ${fightId}, which may be fought in room ${roomId}, carries ${itemId}, which ${why}: removed, it would be lost with it.`,
+              );
+            }
+          }
+        }
       }
     }
   }
@@ -3811,11 +4210,57 @@ function validateModule(
     startRoomId: module.startRoomId as string,
     ...(regions === undefined ? {} : { regions }),
     ...(flags.length === 0 ? {} : { flags }),
+    ...(alarm === undefined ? {} : { alarm }),
     rooms,
     passages,
     encounters,
     endings,
     ...(wanderingEncounter === undefined ? {} : { wanderingEncounter }),
+  };
+}
+
+/**
+ * A module's alarm (#401): `{ flag, text, fights? }`. Its flag is one of the
+ * module's; each of its `fights` names a region of the module, each once,
+ * and the round (1 to `MAX_ALARM_ROUND`) a fight there may last before it
+ * makes noise.
+ */
+function readAlarm(
+  value: unknown,
+  flags: ReadonlySet<string>,
+  regionIds: ReadonlySet<string>,
+): FifthAlarm {
+  const raw = knownKeys(value, ["flag", "text"], ["fights"], "alarm");
+  const flag = id(raw.flag, "alarm flag");
+  if (!flags.has(flag)) {
+    fail(`the alarm names unknown flag ${flag}.`);
+  }
+  const fights =
+    raw.fights === undefined
+      ? undefined
+      : list(raw.fights, "alarm fights", MAX_REGIONS).map((entry, index) => {
+          const where = `alarm fight ${index + 1}`;
+          const fight = exactKeys(entry, ["region", "round"], where);
+          const region = id(fight.region, `${where} region`);
+          if (!regionIds.has(region)) {
+            fail(`${where} names unknown region ${region}.`);
+          }
+          return {
+            region,
+            round: integer(fight.round, `${where} round`, 1, MAX_ALARM_ROUND),
+          };
+        });
+  if (fights !== undefined) {
+    distinct(
+      fights,
+      ({ region }) => region,
+      ({ region }) => `the alarm names region ${region} twice.`,
+    );
+  }
+  return {
+    flag,
+    text: text(raw.text, "alarm text", 200),
+    ...(fights === undefined ? {} : { fights }),
   };
 }
 
@@ -3835,9 +4280,63 @@ function wandering(
   }
   const raw = exactKeys(value, ["encounterId", "chance"], "wanderingEncounter");
   const encounterId = id(raw.encounterId, "wanderingEncounter encounterId");
+  wanderer(encounterId, encounters, rooms, "wanderingEncounter");
+  return {
+    encounterId,
+    chance: integer(raw.chance, "wanderingEncounter chance", 1, 100),
+  };
+}
+
+/**
+ * A region's wandering encounter table (#403), its shape validated: a
+ * chance of 1–100, at least one for each entry so each can come; `every`,
+ * if given, 1–`MAX_WANDERING_EVERY` moves; and 1–`MAX_WANDERING_ENTRIES`
+ * entries, each an omen's words, with the encounter it names until its
+ * fight has come. The encounters are checked once the rooms are read.
+ */
+function wanderingTable(value: unknown, regionId: string): WanderingTable {
+  const where = `region ${regionId}'s wandering table`;
+  const raw = knownKeys(value, ["chance", "entries"], ["every"], where);
+  const entries = list(raw.entries, `${where} entries`, MAX_WANDERING_ENTRIES);
+  const chance = integer(raw.chance, `${where} chance`, 1, 100);
+  if (chance < entries.length) {
+    fail(
+      `${where} has ${entries.length} entries but a chance of ${chance}: each entry needs at least 1 of the d100.`,
+    );
+  }
+  return {
+    chance,
+    ...(raw.every === undefined
+      ? {}
+      : {
+          every: integer(raw.every, `${where} every`, 1, MAX_WANDERING_EVERY),
+        }),
+    entries: entries.map((entry, index) => {
+      const on = `${where} entry ${index + 1}`;
+      const read = knownKeys(entry, ["omen"], ["encounterId"], on);
+      const omen = text(read.omen, `${on} omen`, 200);
+      return read.encounterId === undefined
+        ? { omen }
+        : { encounterId: id(read.encounterId, `${on} encounterId`), omen };
+    }),
+  };
+}
+
+/**
+ * Checks that encounter `encounterId`, named by `by`, can wander (#335,
+ * #403): it is in no room, its fight can't end the adventure in victory,
+ * no one sneaks past or up on it, it never lies in wait or reacts, it
+ * never appears, vanishes or moves, and its opponents never surrender.
+ */
+function wanderer(
+  encounterId: string,
+  encounters: readonly FifthEncounter[],
+  rooms: readonly FifthRoom[],
+  by: string,
+): void {
   const fight = encounters.find(({ id: entry }) => entry === encounterId);
   if (fight === undefined) {
-    fail(`wanderingEncounter names unknown encounter ${encounterId}.`);
+    fail(`${by} names unknown encounter ${encounterId}.`);
   }
   const where = `wandering encounter ${encounterId}`;
   const placedIn = rooms.find((entry) => entry.encounterId === encounterId);
@@ -3871,10 +4370,6 @@ function wandering(
       );
     }
   }
-  return {
-    encounterId,
-    chance: integer(raw.chance, "wanderingEncounter chance", 1, 100),
-  };
 }
 
 /** A digest of the validated module, so a session can tell if it changed. */

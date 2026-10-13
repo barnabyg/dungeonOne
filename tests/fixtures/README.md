@@ -191,6 +191,48 @@ seeded playthroughs, so the bar tests see a use; `adventures/eval/snake-door.jso
 is the same module for the AI DM's item cases. `tests/issue-400.test.mjs` and
 `tests/issue-400-browser.test.mjs` play it.
 
+## Fight actions (issue 402)
+
+`statueCellar` (_The Statue Cellar_, from `statueCellarFile`) puts a second
+Giant Rat, the Scarred Rat carrying a Silver Chain, in the rat cellar, and a
+Leaning Statue there whose fight action (once per adventure; Athletics DC 12
+or Dexterity DC 14) rocks on a failure, deals 2d6 bludgeoning and knocks the
+rat prone on a success, and buries it out of the fight on a success by 5. It
+is in the seeded playthroughs, so the bar tests see a fight action;
+`adventures/eval/statue-cellar.json` is the same module for the AI DM's fight
+action cases. `tests/issue-402.test.mjs` and `tests/issue-402-browser.test.mjs`
+play it.
+
+## Alarms (issue 401)
+
+`alarmTunnels` (_The Alarmed Tunnels_, from `alarmTunnelsFile`) is the
+two-level tunnels with an alarm, the flag `alarm`. Stacked Crates at the foot
+of the stair crash down on a Dexterity check (DC 15) failed by 5 or more, a
+noisy band, and a fight in the Lower Tunnels going on past round 2 is noise
+too, as are a sneak failed by 5 or more and an opponent that flees and lives.
+Once it is raised an iron grate closes the passage down from the stair (a
+crawl from the alcove still leads to the cellar), and a goblin lookout leaves
+its guard post for the landing between the cellar and the den, where the
+required path meets it. It is in the seeded playthroughs;
+`adventures/eval/alarm-tunnels.json` is the same module for the AI DM's alarm
+cases. `tests/issue-401.test.mjs` and `tests/issue-401-browser.test.mjs` play
+it.
+
+## Wandering encounter tables (issue 403)
+
+`wanderingTunnels` (_The Wandering Tunnels_, from `wanderingTunnelsFile`) is
+the two-level tunnels with a quiet Landing between the cellar and the den and
+a wandering encounter table in each region, each rolled on every move there
+at chance 100. The Upper Tunnels' one entry is an omen (a chain clinking far
+above), and the alcove is a rest site, where rests roll it too; the Lower
+Tunnels' brings a Prowling Rat on 1–50 (once, then claws skittering in the
+dark) and dripping water on 51–100. Moves that meet the cellar's or the den's
+fight lose their roll, so the rat comes, if at all, on the Landing, on seeded
+and always-fail runs alike. It is in the seeded playthroughs;
+`adventures/eval/wandering-tunnels.json` is the same module for the AI DM's
+wandering cases. `tests/issue-403.test.mjs` and
+`tests/issue-403-browser.test.mjs` play it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

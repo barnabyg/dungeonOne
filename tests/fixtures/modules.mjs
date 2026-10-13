@@ -817,6 +817,246 @@ export const snakeDoorFile = (() => {
 })();
 export const snakeDoor = validateModule(structuredClone(snakeDoorFile));
 
+/**
+ * A fight action (#402): the rat tunnels as _The Statue Cellar_. The
+ * cellar's fight is two Giant Rats, the second, the Scarred Rat, carrying a
+ * Silver Chain. A Leaning Statue there may be used once in the adventure
+ * against one of them, by Athletics (DC 12) to topple it or Dexterity (DC
+ * 14) to cut the rope that holds it: a failure only rocks it; a success
+ * deals 2d6 bludgeoning damage and knocks the rat prone; a success by 5 or
+ * more buries it, out of the fight.
+ */
+export const statueCellarFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "statue-cellar";
+  module.title = "The Statue Cellar";
+  const fight = module.encounters.find(({ id }) => id === "cellar-rat");
+  fight.opponents.push({
+    ...structuredClone(fight.opponents[0]),
+    id: "scarred-rat",
+    name: "Scarred Rat",
+    description: "A second rat, its hide criss-crossed with old scars.",
+  });
+  room(module, "rat-cellar").items.push({
+    id: "silver-chain",
+    name: "Silver Chain",
+    description: "A tarnished silver chain caught round the rat's neck.",
+    kind: "treasure",
+    treasure: "art-25gp",
+    hiddenIn: "scarred-rat",
+  });
+  room(module, "rat-cellar").features.push({
+    id: "leaning-statue",
+    name: "Leaning Statue",
+    description:
+      "A stone statue of a smuggler leans out from the wall, held up by a frayed rope.",
+    fightAction: {
+      once: "adventure",
+      check: {
+        approaches: [
+          { skill: "athletics", dc: 12 },
+          { ability: "dexterity", dc: 14 },
+        ],
+      },
+      bands: {
+        failure: { text: "The statue rocks, but stays up." },
+        success: {
+          text: "The statue topples onto the rat.",
+          effects: [
+            {
+              type: "damage",
+              dice: 2,
+              sides: 6,
+              modifier: 0,
+              damageType: "bludgeoning",
+            },
+            { type: "condition", condition: "prone", turns: 1 },
+          ],
+        },
+        "success-by-5": {
+          text: "The statue crashes down and buries the rat.",
+          effects: [{ type: "remove" }],
+        },
+      },
+    },
+  });
+  return module;
+})();
+export const statueCellar = validateModule(structuredClone(statueCellarFile));
+
+/**
+ * An alarm (#401): the two-level tunnels as _The Alarmed Tunnels_, level 1,
+ * hard. Stacked Crates at the foot of the stair crash down on a Dexterity
+ * check (DC 15) failed by 5 or more, and a fight in the Lower Tunnels going
+ * on past round 2 makes noise too, as do a sneak failed by 5 or more and a
+ * rat or goblin that flees and lives: any of them raises the alarm. Then an
+ * iron grate drops across the passage down from the stair (the crawl from
+ * the alcove still goes down), and the goblin lookout leaves its guard
+ * post for the landing between the cellar and the den.
+ */
+export const alarmTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "alarm-tunnels";
+  module.title = "The Alarmed Tunnels";
+  module.flags = ["alarm"];
+  module.alarm = {
+    flag: "alarm",
+    text: "A gong booms below, and goblin voices shout. The tunnels are roused.",
+    fights: [{ region: "lower", round: 2 }],
+  };
+  room(module, "stair-foot").features.push({
+    id: "stacked-crates",
+    name: "Stacked Crates",
+    description: "Empty crates are stacked high and crooked against the wall.",
+    check: {
+      ability: "dexterity",
+      dc: 15,
+      bands: {
+        "failure-by-5": {
+          text: "The stack topples with a crash that rings down the passage.",
+          noisy: true,
+        },
+        success: { text: "You ease the crates apart. They hold only straw." },
+      },
+    },
+  });
+  module.rooms.push(
+    {
+      id: "landing",
+      name: "Landing",
+      description: "A wide step in the tunnel, worn smooth by many feet.",
+      region: "lower",
+      features: [],
+      items: [],
+    },
+    {
+      id: "guard-post",
+      name: "Guard Post",
+      description: "A niche with a stool, a gong and a view of the landing.",
+      region: "lower",
+      encounterId: "lookout",
+      features: [],
+      items: [],
+    },
+  );
+  const down = module.passages.find(({ id }) => id === "stair-to-cellar");
+  down.description = "The passage, sloping down under an iron grate.";
+  down.closeWhen = "alarm";
+  module.passages = module.passages.filter(({ id }) => id !== "cellar-to-den");
+  module.passages.push(
+    {
+      id: "alcove-to-cellar",
+      between: ["alcove", "rat-cellar"],
+      description: "A tight crawl down through the rock.",
+    },
+    {
+      id: "cellar-to-landing",
+      between: ["rat-cellar", "landing"],
+      description: "A sagging wooden door, ajar.",
+    },
+    {
+      id: "landing-to-den",
+      between: ["landing", "den"],
+      description: "An archway hung with a ragged curtain.",
+    },
+    {
+      id: "landing-to-guard-post",
+      between: ["landing", "guard-post"],
+      description: "A step up into a niche.",
+    },
+  );
+  const goblin = module.encounters.find(({ id }) => id === "den-goblin");
+  module.encounters.push({
+    id: "lookout",
+    opponents: [
+      {
+        ...structuredClone(goblin.opponents[0]),
+        id: "lookout-goblin",
+        name: "Goblin Lookout",
+        description: "A goblin lookout snatches up a spear.",
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+    movesTo: { roomId: "landing", when: "alarm" },
+  });
+  return module;
+})();
+export const alarmTunnels = validateModule(structuredClone(alarmTunnelsFile));
+
+/**
+ * Wandering encounter tables by region (#403): the two-level tunnels as
+ * _The Wandering Tunnels_, level 1, hard, with a quiet Landing between the
+ * cellar and the den. The Upper Tunnels' table rolls on every move there
+ * (chance 100), and its one entry is an omen, a chain clinking far above;
+ * the alcove is a rest site, where rests roll it too. The Lower Tunnels'
+ * table rolls on every move there (chance 100): 1–50 a Prowling Rat (a
+ * Giant Rat, 25 XP), which comes once and is then claws skittering in the
+ * dark, and 51–100 water dripping. A move that meets the cellar's or the
+ * den's fight loses its roll, so the rat comes, if at all, on the Landing.
+ */
+export const wanderingTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "wandering-tunnels";
+  module.title = "The Wandering Tunnels";
+  module.regions[0].wandering = {
+    chance: 100,
+    every: 1,
+    entries: [
+      { omen: "Far above, a chain clinks against stone, then is still." },
+    ],
+  };
+  module.regions[1].wandering = {
+    chance: 100,
+    every: 1,
+    entries: [
+      {
+        encounterId: "prowling-rat",
+        omen: "Claws skitter somewhere in the dark, then fade.",
+      },
+      { omen: "Water drips steadily from the vaulted ceiling." },
+    ],
+  };
+  room(module, "alcove").restSite = true;
+  module.rooms.push({
+    id: "landing",
+    name: "Landing",
+    description: "A wide step in the tunnel, worn smooth by many feet.",
+    region: "lower",
+    features: [],
+    items: [],
+  });
+  module.passages = module.passages.filter(({ id }) => id !== "cellar-to-den");
+  module.passages.push(
+    {
+      id: "cellar-to-landing",
+      between: ["rat-cellar", "landing"],
+      description: "A sagging wooden door, ajar.",
+    },
+    {
+      id: "landing-to-den",
+      between: ["landing", "den"],
+      description: "An archway hung with a ragged curtain.",
+    },
+  );
+  const rat = module.encounters[0].opponents[0];
+  module.encounters.push({
+    id: "prowling-rat",
+    opponents: [
+      {
+        ...structuredClone(rat),
+        id: "prowler",
+        name: "Prowling Rat",
+        description: "A rat the size of a dog noses out of the dark.",
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+  });
+  return module;
+})();
+export const wanderingTunnels = validateModule(
+  structuredClone(wanderingTunnelsFile),
+);
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

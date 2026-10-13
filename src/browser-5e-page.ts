@@ -170,6 +170,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><h3 id="room-title"></h3>
 <p id="room-description"></p>
+<p id="room-alarm" class="alarm" role="status" hidden></p>
 <div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
 <div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
 <div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
@@ -245,7 +246,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status p{margin:0}
 #gear-numbers{flex-basis:100%}#session-status{grid-area:status;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
@@ -1423,7 +1424,7 @@ function compactRoll(group) {
       node.append(group.roller + " ", ...diceChips(group), " off");
       break;
     case "wandering":
-      // A rest's d100 against the wandering encounter's chance (#335).
+      // A d100 against a wandering encounter table's chance (#335, #403).
       node.append(...diceChips(group), " vs " + group.dc + " or less");
       break;
     case "duplicates":
@@ -1461,9 +1462,9 @@ function compactLine(line) {
     const reaction = line.rolls[0];
     node.append(who(reaction.roller), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
   } else if (line.rolls[0].purpose === "wandering") {
-    // A rest's d100 (#335): whether the wandering encounter came.
+    // A wandering encounter table's d100 (#335, #403): whether a fight came.
     const watch = line.rolls[0];
-    node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Interrupted" : "Undisturbed", "tag " + watch.outcome), " ", compactRoll(watch));
+    node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Comes" : "Stays away", "tag " + watch.outcome), " ", compactRoll(watch));
   } else if (line.rolls[0].purpose === "damage") {
     node.append(who(line.rolls[0].roller, line.rolls[0].target), " ", compactRoll(line.rolls[0]));
   } else {
@@ -1634,6 +1635,9 @@ function renderRoom(room) {
   element("room-region").hidden = room.region === undefined;
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
+  // Once raised, the module's alarm (#401) shows in its own words.
+  element("room-alarm").textContent = room.alarm ?? "";
+  element("room-alarm").hidden = room.alarm === undefined;
   for (const list of ROOM_LISTS) {
     const entries = list.key === "inventory" ? [...gearEntries(room.gear), ...room.inventory] : room[list.key];
     element(list.id + "-group").hidden = entries.length === 0;
@@ -1797,6 +1801,8 @@ const ACTIONS = {
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   // Using a carried item on a feature (#400), in the feature's row by the item's name.
   "use-on": { label: "Use ", short: "Use", busy: "Using ", busyLabel: "Using…" },
+  // A fight action (#402): a feature used against an opponent, in the Use the room row.
+  "use-feature": { label: "Use ", busy: "Using ", busyLabel: "Using…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
   pick: { label: "Pick ", short: "Pick", busy: "Picking ", busyLabel: "Picking…" },
   break: { label: "Break ", short: "Break", busy: "Breaking ", busyLabel: "Breaking…" },
@@ -1865,7 +1871,8 @@ const fightingNow = () => Boolean(session.encounter && session.encounter.current
 const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : fightingNow() && FIGHT_GEAR[action] ? FIGHT_GEAR[action] : ACTIONS[action];
 // Leave names the adventure, not the room it is taken from.
 // An item's use (#400) names the item, then the feature.
-const named = (action, target, item) => item ? item.name + " on " + target.name : target && action !== "leave" ? target.name : "";
+// A fight action (#402) names the feature, then its opponent.
+const named = (action, target, item, feature) => feature ? feature.name + " against " + target.name : item ? item.name + " on " + target.name : target && action !== "leave" ? target.name : "";
 // An attack names the weapon it is made with (#392).
 const weaponOf = (action) => {
   const { gear } = session.room;
@@ -1879,7 +1886,7 @@ const heldNames = (held) => {
   for (const { name } of held) counts.set(name, (counts.get(name) ?? 0) + 1);
   return [...counts].map(([name, count]) => (count === 1 ? name : name + " (" + count + ")")).join(" and ");
 };
-const busyName = ({ action, target, item }) => wordsOf(action).busy + named(action, target, item) + withWeapon(action) + "…";
+const busyName = ({ action, target, item, feature }) => wordsOf(action).busy + named(action, target, item, feature) + withWeapon(action) + "…";
 // The attacks on one of several foes, beside its name (#392): their words
 // without it.
 const FOE_WORDS = { attack: "Attack", "light-attack": "Extra attack", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
@@ -1901,9 +1908,9 @@ const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASON
 // row has none. "answer" holds the answers to a hit waiting for a reaction,
 // reaction spells such as Shield among them; "other" any fight action
 // FIGHT_ROW doesn't place.
-const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
+const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["room", "Use the room"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
 // The row each of the fight's actions goes in.
-const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
+const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
 // What End turn would leave unused (#392), by the engine's option kinds.
 const UNUSED_NAMES = { attack: "Attack", "light-attack": "Extra attack", "second-wind": "Second Wind", "action-surge": "Action Surge", hide: "Hide", "steady-aim": "Steady Aim", "drink-potion": "Drink", cast: "Cast a spell", "divine-spark": "Divine Spark", "turn-undead": "Turn Undead", "preserve-life": "Preserve Life", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
 // Whom a Channel Divinity action that takes no choice reaches (#392).
@@ -1987,7 +1994,7 @@ function renderActions() {
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
     // Channel Divinity's uses show once, on its row (#392).
-    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target, option.item) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
+    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target, option.item, option.feature) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -2008,6 +2015,7 @@ function renderActions() {
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     if (option.item) button.dataset.item = option.item.id;
+    if (option.feature) button.dataset.feature = option.feature.id;
     if (option.approach) button.dataset.approach = option.approach.id;
     if (option.retry) button.dataset.retry = "true";
     // An attack the chosen Cunning Strike can't go with (#308).
@@ -2630,11 +2638,11 @@ function strikeChoice(effects) {
   return wrap;
 }
 
-async function perform({ action, target, item, approach, retry, cunningStrike: effect }) {
+async function perform({ action, target, item, feature, approach, retry, cunningStrike: effect }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
-  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (item ? "[data-item=" + JSON.stringify(item.id) + "]" : "") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
-  const busy = busyName({ action, target, item });
+  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (item ? "[data-item=" + JSON.stringify(item.id) + "]" : "") + (feature ? "[data-feature=" + JSON.stringify(feature.id) + "]" : "") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
+  const busy = busyName({ action, target, item, feature });
   // The chosen Cunning Strike (#308) goes with this attack only.
   if (action === "attack" || action === "light-attack") {
     cunningStrike = "";
@@ -2642,7 +2650,8 @@ async function perform({ action, target, item, approach, retry, cunningStrike: e
   } else if (action === "spectral-attack" || action === "drain-attack") await act("/api/5e/session/" + action, { targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
   // An item's use (#400) sends its feature and item as one target.
-  else await act("/api/5e/session/explore", { action, target: item ? targetId + ":" + item.id : targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
+  // A fight action (#402) sends its feature and opponent as one target.
+  else await act("/api/5e/session/explore", { action, target: feature ? feature.id + ":" + targetId : item ? targetId + ":" + item.id : targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
 

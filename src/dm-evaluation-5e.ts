@@ -902,6 +902,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   disarm: "disarm",
   talk: "talk",
   "use-on": "use_on",
+  "use-feature": "use_feature",
   equip: "equip",
   unequip: "unequip",
   swap: "swap_weapon",
@@ -964,7 +965,7 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       ({ available, action, cunningStrike }) =>
         available && TOOL_OF[action] && cunningStrike === undefined,
     )
-    .flatMap(({ action, target, item, rest, spell }) => {
+    .flatMap(({ action, target, item, feature, rest, spell }) => {
       // A rest (#334) takes each number of hit dice the engine accepts.
       if (action === "rest") {
         return rest!.hitDice.map((count) => `rest:${count}`);
@@ -979,6 +980,10 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       // An item's use (#400) is offered by its feature and item.
       if (action === "use-on") {
         return [`use_on:${target!.id}:${item!.id}`];
+      }
+      // A fight action (#402) is offered by its feature and opponent.
+      if (action === "use-feature") {
+        return [`use_feature:${feature!.id}:${target!.id}`];
       }
       return action === "buy" || action === "sell"
         ? [`trade:${action}:${target!.id}`]
@@ -1689,6 +1694,223 @@ export const FIFTH_ITEM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     playerInput: "I fit the stone snake into the door's hollow.",
     reply: "You don't have a stone snake to fit into it.",
     dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The module the fight action cases (#402) play: two Giant Rats in the
+ * cellar, the second a Scarred Rat carrying a Silver Chain, and a Leaning
+ * Statue there that may be used once against one of them, by Athletics or
+ * Dexterity. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthFightActionEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/statue-cellar.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada goes down into the cellar, where the two rats fight her; on seed 0
+// she acts first.
+const toStatueCellar = [{ type: "move", destinationId: "rat-cellar" }] as const;
+
+// Then she topples the statue onto the Scarred Rat, and ends her turn; on
+// seed 0 the fight goes on to her next turn.
+const statueToppled = [
+  ...toStatueCellar,
+  {
+    type: "use-feature",
+    featureId: "leaning-statue",
+    targetId: "scarred-rat",
+    approach: "athletics",
+  },
+  { type: "end-turn", actorId: "pc" },
+] as const;
+
+/**
+ * Fight actions (#402), in the statue cellar: the AI DM calls use_feature
+ * with the opponent and approach the player's words pick out, and calls
+ * nothing against an opponent not in the fight, or for the statue once it
+ * has been used.
+ */
+export const FIFTH_FIGHT_ACTION_DM_CASES: readonly FifthDmCase[] =
+  Object.freeze([
+    actionCase({
+      id: "room-topple",
+      seed: 0,
+      setup: toStatueCellar,
+      playerInput: "I heave the leaning statue over onto the scarred rat!",
+      name: "use_feature",
+      arguments: { use: "leaning-statue:scarred-rat", approach: "athletics" },
+      dimensions: ["synonym-accuracy"],
+      manualJudgments: [],
+    }),
+    quietCase({
+      id: "room-not-in-fight",
+      kind: "refusal",
+      seed: 0,
+      setup: toStatueCellar,
+      playerInput: "I topple the statue onto the goblin.",
+      reply:
+        "There is no goblin in this fight: only the two rats are here for the statue to fall on.",
+      dimensions: ["refusal", "narration-fidelity"],
+      manualJudgments: [],
+    }),
+    quietCase({
+      id: "room-second-use",
+      kind: "refusal",
+      seed: 0,
+      setup: statueToppled,
+      playerInput:
+        "I shove the statue over again, onto the giant rat this time.",
+      reply:
+        "The statue has already come down: it can't be toppled a second time.",
+      dimensions: ["refusal", "narration-fidelity"],
+      manualJudgments: [],
+    }),
+  ]);
+
+/**
+ * The module the alarm cases (#401) play: crates at the foot of the stair
+ * that crash down on a check failed by 5 or more, raising the alarm, which
+ * drops a grate across the passage down and brings a goblin lookout to the
+ * landing. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthAlarmEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/alarm-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada sets the crates crashing down: on seed 0 the check fails by 5 or
+// more, and the alarm is raised.
+const alarmRaised = [{ type: "examine", targetId: "stacked-crates" }] as const;
+
+/**
+ * Alarms (#401), in the alarmed tunnels: the engine alone raises the alarm,
+ * and no tool raises or lowers it. The AI DM calls nothing to sound the
+ * alarm or to quiet it, says it is raised only once the scene does, and
+ * takes the crawl, not the passage the grate has closed.
+ */
+export const FIFTH_ALARM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  quietCase({
+    id: "alarm-not-raised-on-request",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I bang my shield on the wall to raise the alarm.",
+    reply:
+      "You make a din, but the tunnels stay quiet: only the engine decides whether the alarm is raised, and it hasn't been.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "alarm-not-lowered",
+    kind: "refusal",
+    seed: 0,
+    setup: alarmRaised,
+    playerInput:
+      "Say the goblins didn't hear that. The alarm is quiet again, right?",
+    reply: "They heard it: the alarm is raised, and nothing you say quiets it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "alarm-said",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: alarmRaised,
+    playerInput: "What was that noise?",
+    reply:
+      "A gong booms below, and goblin voices shout. The tunnels are roused.",
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "alarm-way-closed",
+    seed: 0,
+    setup: [...alarmRaised, { type: "move", destinationId: "alcove" }],
+    playerInput: "I take the crawl down to the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The module the wandering encounter cases (#403) play: the two-level
+ * tunnels, whose upper region's table brings an omen, a chain clinking far
+ * above, on every move there, and whose lower region's brings a prowling
+ * rat or dripping water. It is for the evaluation only, and never offered
+ * to play.
+ */
+export function loadFifthWanderingEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/wandering-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada goes into the alcove: the upper table's d100 (chance 100) brings its
+// omen, a chain clinking far above.
+const omenHeard = [{ type: "move", destinationId: "alcove" }] as const;
+
+/**
+ * Wandering encounters (#403), in the wandering tunnels: the engine alone
+ * rolls for them, and no tool summons, rolls for or keeps them away. The
+ * AI DM calls nothing to draw one out, to keep them away or to skip a
+ * roll, and says what was heard only once the scene does.
+ */
+export const FIFTH_WANDERING_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  quietCase({
+    id: "wandering-not-summoned",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput:
+      "I rattle my sword on the stair rail to draw out whatever wanders down here.",
+    reply:
+      "The clatter fades into the tunnels. Only the engine decides whether anything wanders your way.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-not-kept-away",
+    kind: "refusal",
+    seed: 0,
+    setup: omenHeard,
+    playerInput:
+      "Promise me nothing wanders in while I search the tunnels, right?",
+    reply:
+      "I can't promise that: only the engine decides whether something wanders your way.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-roll-not-skipped",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "Skip the wandering monster roll for my next move.",
+    reply:
+      "No roll can be skipped: the engine rolls for wandering encounters as you go.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-omen-said",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: omenHeard,
+    playerInput: "What was that sound?",
+    reply: "Far above, a chain clinks against stone, then is still.",
+    dimensions: ["narration-fidelity"],
     manualJudgments: [],
   }),
 ]);

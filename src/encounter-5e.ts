@@ -995,6 +995,27 @@ export const TURN_UNDEAD_ID = "turn-undead";
 /** The answers to a hit that Uncanny Dodge could halve (#308). */
 export type ReactionAnswer = "uncanny-dodge" | "take-hit";
 
+/**
+ * What a fight action (#402) does to its opponent: damage of a type, a
+ * condition for a number of its turns (prone, poisoned or paralysed), or
+ * removal from the fight, which defeats it without a body to search.
+ */
+export type FeatureEffect = Readonly<
+  | {
+      type: "damage";
+      dice: number;
+      sides: number;
+      modifier: number;
+      damageType: DamageType;
+    }
+  | {
+      type: "condition";
+      condition: "prone" | "poisoned" | "paralysed";
+      turns: number;
+    }
+  | { type: "remove" }
+>;
+
 export type EncounterAction =
   | Readonly<{
       type: "attack" | "light-attack";
@@ -1021,6 +1042,19 @@ export type EncounterAction =
    * `escape` and never reads.
    */
   | Readonly<{ type: "flee"; actorId: string; to: string }>
+  /**
+   * A fight action (#402): a feature of the room used against `targetId`
+   * with the action. The runtime makes its check; `effects` are its band's,
+   * none when the band does nothing to the opponent. `source` names the
+   * feature.
+   */
+  | Readonly<{
+      type: "use-feature";
+      actorId: string;
+      targetId: string;
+      source: string;
+      effects: readonly FeatureEffect[];
+    }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
   /** Divine Spark (#341) at its target. */
   | Readonly<{
@@ -1717,9 +1751,29 @@ export type EncounterEvent =
   | EffectEvent
   | EffectEndedEvent
   | ConcentrationEvent
+  | FeatureDamageEvent
+  /**
+   * A fight action (#402) took the opponent out of the fight: it counts as
+   * defeated, and leaves no body.
+   */
+  | Readonly<{ type: "removed"; combatantId: string; source: string }>
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
   | Readonly<{ type: "ended"; outcome: "victory" | "defeat" }>;
+
+/** A fight action's damage (#402), rolled and dealt to its opponent. */
+export type FeatureDamageEvent = Readonly<{
+  type: "feature-damage";
+  actorId: string;
+  targetId: string;
+  source: string;
+  damageRolls: readonly number[];
+  damageModifier: number;
+  damageType: DamageType;
+  damage: number;
+  damageAdjustment?: DamageAdjustment;
+  hpAfter: number;
+}>;
 
 /** A potion drunk, in or out of a fight. */
 export type PotionEvent = Readonly<{
@@ -2153,6 +2207,136 @@ function fleeRefusal(state: EncounterState): EncounterRejection | undefined {
         "action-used",
         "Fleeing takes your action, and you have already used it this turn.",
       );
+}
+
+/**
+ * Why `actorId` can't use a fight action (#402) against `targetId` now, or
+ * undefined when it can: as for an attack, it must be its turn, able to act,
+ * with its action left and the target an opponent still in the fight. The
+ * runtime asks before it rolls the action's check.
+ */
+export function featureRefusal(
+  state: EncounterState,
+  actorId: string,
+  targetId: string,
+): EncounterRejection | undefined {
+  if (state.outcome !== "ongoing") {
+    return refused("fight-over", "The fight is over.");
+  }
+  const actor = state.combatants.find(({ id }) => id === actorId);
+  if (actor === undefined) {
+    return refused("no-combatant", "There is no such combatant in this fight.");
+  }
+  if (state.pendingReaction !== undefined) {
+    return refused(
+      "reaction-pending",
+      pendingText(state, state.pendingReaction),
+    );
+  }
+  const current = currentCombatant(state)!;
+  if (actor.id !== current.id) {
+    return refused(
+      "not-your-turn",
+      `It is ${current.name}'s turn, not ${actor.name}'s.`,
+    );
+  }
+  const holding = incapacitatedBy(state, actor.id);
+  if (holding !== undefined) {
+    return refused(
+      "paralysed",
+      `You are ${holding} and can't act until it ends; you can only wait.`,
+    );
+  }
+  const target = opponentOf(state, actor, targetId);
+  if ("code" in target) {
+    return target;
+  }
+  return state.economy.actions > 0
+    ? undefined
+    : refused(
+        "action-used",
+        "Using the room takes your action, and you have already used it this turn.",
+      );
+}
+
+/**
+ * A fight action's effects (#402) on its target, in order: damage rolled
+ * and dealt as a spell's is (its defences, Undead Fortitude, its fall), a
+ * condition given with no save, or removal from the fight. Nothing more
+ * lands once the target is out.
+ */
+function featureEffects(
+  state: EncounterState,
+  actor: Combatant,
+  targetId: string,
+  source: string,
+  effects: readonly FeatureEffect[],
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  for (const effect of effects) {
+    const target = combatant(next, targetId);
+    if (next.outcome !== "ongoing" || isOut(next, target)) {
+      break;
+    }
+    switch (effect.type) {
+      case "damage": {
+        const damageRolls = rollDice(random, effect.dice, effect.sides);
+        next = spellDamage(
+          next,
+          actor,
+          target,
+          Math.max(0, sum(damageRolls) + effect.modifier),
+          effect.damageType,
+          random,
+          events,
+          ({ damage, damageAdjustment, hpAfter }) => ({
+            type: "feature-damage",
+            actorId: actor.id,
+            targetId,
+            source,
+            damageRolls,
+            damageModifier: effect.modifier,
+            damageType: effect.damageType,
+            damage,
+            ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
+            hpAfter,
+          }),
+          { spell: false },
+        );
+        break;
+      }
+      case "condition":
+        next = applyCondition(
+          next,
+          actor,
+          target,
+          { kind: effect.condition, turns: effect.turns },
+          source,
+          random,
+          events,
+        );
+        break;
+      case "remove":
+        events.push({ type: "removed", combatantId: targetId, source });
+        next = fall(
+          {
+            ...next,
+            combatants: next.combatants.map((candidate) =>
+              candidate.id === targetId ? { ...candidate, hp: 0 } : candidate,
+            ),
+            engaged: engage(next, actor, target),
+          },
+          target,
+          random,
+          events,
+          true,
+        );
+        break;
+    }
+  }
+  return concludeIfOver(next, events);
 }
 
 /**
@@ -3454,6 +3638,17 @@ function conditionSources(
 }
 
 /**
+ * The names of `entrantId`'s conditions that give its ability checks
+ * disadvantage (#402: a fight action's check), such as Poisoned.
+ */
+export function checkDisadvantages(
+  state: EncounterState,
+  entrantId: string,
+): readonly string[] {
+  return conditionSources(state, entrantId, "checks");
+}
+
+/**
  * `entrant`'s saving throw against `save` (#336), in a fight: d20 + its
  * save bonus, with disadvantage from its ability's disadvantages, or failed
  * without a roll when one of its conditions (paralysed) fails saves of that
@@ -4385,8 +4580,12 @@ function fall(
   target: Combatant,
   random: Roller,
   events: EncounterEvent[],
+  /** Its own event, unless something else said it went (#402's removal). */
+  announced = false,
 ): EncounterState {
-  events.push({ type: "defeated", combatantId: target.id });
+  if (!announced) {
+    events.push({ type: "defeated", combatantId: target.id });
+  }
   // A fallen caster's concentration ends (#337), and the turning it gave
   // (#341).
   const fallen = endEffects(
@@ -7231,6 +7430,27 @@ export function act(
         ),
         events,
       };
+    }
+    case "use-feature": {
+      const refusal = featureRefusal(state, actor.id, action.targetId);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      // It ends a turned target's turning (#341, D13), as an attack does.
+      const stirred = stirTurned(state, [action.targetId], events);
+      next = featureEffects(
+        {
+          ...stirred,
+          economy: { ...stirred.economy, actions: stirred.economy.actions - 1 },
+        },
+        actor,
+        action.targetId,
+        action.source,
+        action.effects,
+        random,
+        events,
+      );
+      break;
     }
     case "drink-potion": {
       const refusal = potionRefusal(state, actor, action.itemId);

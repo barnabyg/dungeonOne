@@ -107,6 +107,7 @@ import {
   type FifthMerchant,
   type FifthEnding,
   type FeatureUse,
+  fightActionBand,
   type FifthFeature,
   type FifthItem,
   type FlagOutcome,
@@ -168,6 +169,8 @@ import {
   TURN_UNDEAD,
   DIVINE_SPARK_MODES,
   everyFoeTurned,
+  checkDisadvantages,
+  featureRefusal,
   fleeAttackers,
   type DivineSparkMode,
   itemCastLevels,
@@ -320,7 +323,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v37";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v40";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -398,6 +401,19 @@ export function restsText(kind: RestKind, { left, max }: RestsView): string {
 export function hitDiceText({ available, total, sides }: HitDiceView): string {
   return `Hit dice: ${available} of ${total} d${sides} left`;
 }
+
+/**
+ * The noise that raised a module's alarm (#401): a sneak into a fight that
+ * failed by 5 or more, a fight in an alarm region that went on past its
+ * round, a check that landed in a noisy band, or an opponent that fled a
+ * fight and survived it.
+ */
+export type AlarmCause = Readonly<
+  | { by: "sneak"; encounterId: string; roomId: string }
+  | { by: "fight"; encounterId: string; roomId: string; round: number }
+  | { by: "check"; checkId: string; band: Band }
+  | { by: "fled"; encounterId: string; opponentId: string; roomId: string }
+>;
 
 /** An opponent that fled or surrendered in a won fight (#237, #238). */
 export type LeftFight = Readonly<{
@@ -558,25 +574,87 @@ export type FifthState = Readonly<{
    */
   featureUses?: readonly Readonly<{ featureId: string; itemId: string }>[];
   /**
-   * The fight under way or just won here is the module's wandering
-   * encounter's (#335), which interrupted a rest; moving on clears it.
+   * Each fight action used (#402), in order: the feature, the fight it was
+   * used in, its opponent and the band whose outcome applied. Each is used
+   * once per fight or once per adventure, as its module authors, and its
+   * check is never rerolled. Left out while there is none.
    */
-  wandering?: true;
+  fightActions?: readonly Readonly<{
+    featureId: string;
+    encounterId: string;
+    targetId: string;
+    band: Band;
+  }>[];
+  /**
+   * The opponents a fight action removed from their fight (#402): defeated
+   * for XP, they leave no body, and what they carried is lost. Left out
+   * while there is none.
+   */
+  removedOpponents?: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+  }>[];
+  /**
+   * What raised the module's alarm (#401), once noise has: its flag is in
+   * `flags` from then on. Left out while the alarm is quiet.
+   */
+  alarm?: AlarmCause;
+  /**
+   * The moves within each region whose wandering table rolls every so many
+   * moves (#403), by region id. Left out while there is none.
+   */
+  regionMoves?: Readonly<Record<string, number>>;
+  /**
+   * The wandering encounters whose fights have come (#335, #403), in
+   * order: each comes once, and is an omen from then on. Left out while
+   * none has.
+   */
+  wanderersCome?: readonly string[];
+  /**
+   * The region whose wandering table the raised alarm rolls (#403), while
+   * the roll waits for the character to be out of a fight. Left out
+   * otherwise.
+   */
+  wanderingDue?: string;
+  /**
+   * The fight under way or just won here is this wandering encounter's
+   * (#335, #403), which came upon the character in a room not its own;
+   * moving on clears it.
+   */
+  wandering?: string;
+  /** The omen just heard here (#403); moving on clears it. */
+  omen?: string;
   /** The fight in this room, under way or just won. */
   encounter?: EncounterState;
   endingId?: string;
+}>;
+
+/**
+ * A wandering encounter table as the engine rolls it (#403): a region's,
+ * or the module's one wandering encounter (#335), rolled only on rests.
+ */
+type WatchTable = Readonly<{
+  chance: number;
+  every?: number;
+  entries: readonly Readonly<{ encounterId?: string; omen?: string }>[];
+}>;
+
+/** A table's roll (#403): its event, and the fight that came, if one did. */
+type WanderingRoll = Readonly<{
+  event: Extract<FifthEvent, Readonly<{ type: "wandering-roll" }>>;
+  comer?: FifthEncounter;
 }>;
 
 /** Who is surprised as a fight begins (#301, #303). */
 type Surprise = Readonly<{ opponents?: boolean; character?: boolean }>;
 
 /**
- * The state without its `unseenBy`, `reactingTo`, `tacticalMind` or
- * `wandering` mark.
+ * The state without its `unseenBy`, `reactingTo`, `tacticalMind`,
+ * `wandering` or `omen` mark.
  */
 function cleared(
   state: FifthState,
-  mark: "unseenBy" | "reactingTo" | "tacticalMind" | "wandering",
+  mark: "unseenBy" | "reactingTo" | "tacticalMind" | "wandering" | "omen",
 ): FifthState {
   const { [mark]: gone, ...rest } = state;
   void gone;
@@ -621,6 +699,17 @@ export type FifthAction =
   | Readonly<{ type: "move"; destinationId: string }>
   /** Using a carried item on a feature here (#400), as the module allows. */
   | Readonly<{ type: "use-on"; featureId: string; itemId: string }>
+  /**
+   * A fight action (#402): using a feature here against opponent
+   * `targetId`, with the action, by `approach` when its check offers
+   * several.
+   */
+  | Readonly<{
+      type: "use-feature";
+      featureId: string;
+      targetId: string;
+      approach?: string;
+    }>
   /**
    * Fleeing the fight here (#396) through the exit to `destinationId`, with
    * the action: each opponent able to act first makes one attack, unless
@@ -830,6 +919,8 @@ const APPROACH_TOOLS: readonly string[] = [
   "break_door",
   "disarm",
   "talk",
+  // A fight action (#402), never retried.
+  "use_feature",
 ];
 
 /** The AI DM's tools that take one id, with the argument and action. */
@@ -988,6 +1079,19 @@ const TARGET_TOOLS = {
       return { type: "use-on", featureId, itemId };
     },
   },
+  // A fight action (#402): `featureId:targetId`, by an approach.
+  use_feature: {
+    parameter: "use",
+    action: (use: string, approach?: string): FifthAction => {
+      const [featureId = "", targetId = ""] = use.split(":", 2);
+      return {
+        type: "use-feature",
+        featureId,
+        targetId,
+        ...(approach === undefined ? {} : { approach }),
+      };
+    },
+  },
   talk: {
     parameter: "topic",
     action: (
@@ -1081,6 +1185,22 @@ export type FifthEvent =
       item: string;
       text: string;
     }>
+  /**
+   * A fight action (#402): the character uses a feature against an
+   * opponent; its check, its band's words and its effects follow.
+   */
+  | Readonly<{
+      type: "used-feature";
+      featureId: string;
+      feature: string;
+      targetId: string;
+      target: string;
+    }>
+  /**
+   * The module's alarm is raised (#401): its words, and what raised it, as
+   * the card names it. A rule that answers the alarm (#403) reads this.
+   */
+  | Readonly<{ type: "alarm"; text: string; cause: string }>
   /**
    * Opponents a flag just placed in the character's room (#398) come into
    * it: their fight begins, or they react.
@@ -1239,17 +1359,21 @@ export type FifthEvent =
       max: number;
     }>
   /**
-   * The d100 a rest rolls against the module's wandering encounter (#335):
-   * at `chance` or less it is interrupted, and the opponents named come
-   * upon the character.
+   * The d100 rolled against a wandering encounter table (#335, #403): on a
+   * `rest`, or on the region's count of `moves` or the `alarm`
+   * (`trigger`). At `chance` or less an entry comes: the opponents named
+   * come upon the character (`interrupted`: a rest restores nothing), or
+   * an omen is heard.
    */
   | Readonly<{
       type: "wandering-roll";
-      rest: RestKind;
+      rest?: RestKind;
+      trigger?: "moves" | "alarm";
       roll: number;
       chance: number;
       interrupted: boolean;
       opponents?: readonly string[];
+      omen?: string;
     }>
   /**
    * Memorize Spell (#344): on a short rest, `learned` prepared in place of
@@ -1648,7 +1772,7 @@ Right after the character fails an ability check, a character with Tactical Mind
 
 Outside a fight, in a room with no foes left to face, the character may take a short rest, at most two short rests in an adventure: rest is offered only then. Call rest only when the player asks to rest, take a breather, bind their wounds or recover, with hit_dice the number of hit dice the player asks to spend, or the most rest lists when they name none. The engine rolls each hit die, adds the Constitution modifier, stops spending once the character is at full health, and restores the feature uses a short rest brings back. If rest is not offered, say why (a fight, foes here, both short rests taken, or nothing to recover) without calling a tool. Never heal, restore a use, or grant a rest in your words.
 
-Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
+Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
 A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the spell's own casting time (an action, or a bonus action for a bonus-action spell) and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; otherwise a character leaves a fight only by fleeing. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
@@ -1659,6 +1783,12 @@ The character's own gear (its catalogue weapons, armour and shield) is named by 
 A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 On its turn, with its action, the character may flee the fight through an exit it could otherwise go through: flee is offered then, listing only those exits, and says which opponents will attack as it goes. Call flee with the exit the player's words pick out when they run, flee, retreat or make a break for it ("I run for the door"); if they name no exit and more than one is listed, ask which, without calling a tool. Before the character goes, each opponent able to act makes one attack against it: the engine rolls them, and the character may fall before it gets away. Nothing spares those attacks but Disengage: a character with Cunning Action may first disengage with its bonus action (call disengage when the player asks to disengage, slip away or get clear), and then fleeing this turn draws none. A player cannot flee unharmed by asking; never promise it. If flee is not offered, or doesn't list the way the player names (a shut door, a closed way or a way not yet found), say they can't flee that way now, without calling a tool. The fight stays where it was: its fallen stay fallen, its standing foes keep their wounds and wait there, and they never follow.
+
+A room may offer a fight action: a feature the character can use against one opponent with its action (toppling a statue onto it, cutting a chain, pushing it into a chasm). use_feature is offered then, listing each feature and opponent as feature:opponent, with the approaches each offers, and only while the engine would accept it: on the character's turn, with its action left, against an opponent still in the fight, and only until it has been used, once per fight or once per adventure as the room allows. Call use_feature only when the player asks to use the feature against an opponent, with the pair and the approach the player's words pick out (heaving or shoving is Athletics; a deft cut or a quick tug is Dexterity or Sleight of Hand); if they name no opponent and more than one is listed, or their words fit none of the approaches or more than one, ask which, without calling a tool. The engine rolls the check once and decides what it does to the opponent: damage, a condition, or taking it out of the fight, which counts as defeating it and loses whatever it carried. Narrate only that. If use_feature is not offered, or doesn't list the opponent the player names (one fallen, fled or not in this fight), or the feature was already used, say it can't be done now, without calling a tool; never describe the feature's effect yourself.
+
+An adventure may have an alarm. The engine alone raises it, from noise the character makes (a sneak that fails badly, a long fight, a noisy check, an opponent that flees and lives), and once raised it stays raised: the scene's alarm says so, in the adventure's words. No tool raises or lowers the alarm. Never raise it, quiet it, or say it is raised or quiet in your words; if the player asks you to sound it, calm it or undo it, say only the engine decides that, without calling a tool.
+
+Wandering encounters are the engine's alone. It rolls for them every so many moves in a part of the adventure, on each rest and when the alarm is raised, and what comes is in the events: an omen (words only, such as a distant chain), or opponents that come upon the character and start a fight. The scene's wandering says what came last in this room. No tool summons, rolls for, delays or keeps away a wandering encounter. Never bring one on, promise one won't come, or invent an omen in your words; if the player asks you to draw one out, roll for one, skip the roll or keep them away, say only the engine decides that, without calling a tool.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -3113,6 +3243,17 @@ export function renderFifthEvent(
     case "effect-ended":
     case "concentration":
       return effectText(event, name);
+    case "used-feature":
+      return `You use the ${event.feature} against ${event.target}.`;
+    case "feature-damage": {
+      const target = name(event.targetId);
+      const rolled =
+        event.damageRolls.reduce((sum, value) => sum + value, 0) +
+        event.damageModifier;
+      return `The ${event.source} hits ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${combatant(state.encounter!, event.targetId).maxHp} HP.`;
+    }
+    case "removed":
+      return `${name(event.combatantId)} is out of the fight, defeated, and whatever it carried is lost with it.`;
     case "turn-ended":
       return `${name(event.combatantId)} ends the turn.`;
     case "defeated":
@@ -3215,6 +3356,8 @@ export function renderFifthEvent(
       );
     case "used-on":
       return `You use the ${event.item} on the ${event.feature}. ${event.text}`;
+    case "alarm":
+      return `The alarm is raised by ${event.cause}. ${event.text}`;
     case "examined":
       return [
         `${event.name}: ${event.description}`,
@@ -3287,13 +3430,29 @@ export function renderFifthEvent(
         event.rolls.reduce((sum, roll) => sum + roll, 0) + event.modifier;
       return `The ${event.name} regains charges: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; it gains ${event.regained} and has ${event.charges} of ${event.max}.`;
     }
-    case "wandering-roll":
-      return event.interrupted
-        ? `You keep watch as you rest: d100 ${event.roll}, ${event.chance} or less: ${listed(
-            (event.opponents ?? []).map((opponent) => `the ${opponent}`),
-            "and",
-          )} ${(event.opponents ?? []).length === 1 ? "comes" : "come"} upon you. Your ${event.rest} rest is interrupted and restores nothing.`
-        : `You keep watch as you rest: d100 ${event.roll}, over ${event.chance}: nothing disturbs you.`;
+    case "wandering-roll": {
+      const watch =
+        event.rest !== undefined
+          ? "You keep watch as you rest"
+          : event.trigger === "alarm"
+            ? "The alarm carries through the dark"
+            : "You listen as you go";
+      const comers = event.opponents ?? [];
+      if (event.interrupted) {
+        const come = `${watch}: d100 ${event.roll}, ${event.chance} or less: ${listed(
+          comers.map((opponent) => `the ${opponent}`),
+          "and",
+        )} ${comers.length === 1 ? "comes" : "come"} upon you.`;
+        return event.rest === undefined
+          ? come
+          : `${come} Your ${event.rest} rest is interrupted and restores nothing.`;
+      }
+      return event.omen !== undefined
+        ? `${watch}: d100 ${event.roll}, ${event.chance} or less: ${event.omen}`
+        : event.rest !== undefined
+          ? `${watch}: d100 ${event.roll}, over ${event.chance}: nothing disturbs you.`
+          : `${watch}: d100 ${event.roll}, over ${event.chance}: nothing stirs.`;
+    }
     case "memorized":
       return `Memorize Spell: you study your spellbook and prepare ${SPELLS[event.learned].name} in place of ${SPELLS[event.forgot].name} until the adventure ends.`;
     case "arcane-recovery":
@@ -3458,7 +3617,7 @@ export const ROLL_PURPOSES = [
   "check",
   "save",
   "reaction",
-  /** A rest's d100 against the wandering encounter (#335). */
+  /** A d100 against a wandering encounter table (#335, #403). */
   "wandering",
   /** Resistance's die off damage (#339). */
   "reduction",
@@ -4209,7 +4368,7 @@ export function describeFifthResult(
         ];
       }
       case "wandering-roll":
-        // A rest's d100 against the wandering encounter (#335).
+        // A d100 against a wandering encounter table (#335, #403).
         return [
           {
             purpose: "wandering",
@@ -4295,6 +4454,24 @@ export function describeFifthResult(
             ];
       case "spell-damage":
         return [spellDamageGroup(event), ...curseGroups(event)];
+      case "feature-damage":
+        // A fight action's damage (#402), dealt by its feature.
+        return [
+          {
+            purpose: "damage",
+            roller: event.source,
+            target: name(event.targetId),
+            dice: take(event.damageRolls),
+            modifier: event.damageModifier,
+            total: event.damage,
+            damageType: event.damageType,
+            ...(event.damageAdjustment === undefined
+              ? {}
+              : { adjustment: event.damageAdjustment.by }),
+            hpAfter: event.hpAfter,
+            maxHp: combatant(state.encounter!, event.targetId).maxHp,
+          },
+        ];
       case "spell-healing":
         return [
           {
@@ -4426,6 +4603,8 @@ export type RoomView = Readonly<{
   restSite?: true;
   /** The name of the region the room belongs to (#395), if it has one. */
   region?: string;
+  /** The module's words for its alarm (#401), once it has been raised. */
+  alarm?: string;
   /**
    * Each exit, with its door (if any) and its trap once found or sprung. A
    * trap the character has not found stays hidden, and so does a hidden
@@ -4538,6 +4717,8 @@ export type ActionKind =
   | "take"
   /** Using an item on a feature (#400). */
   | "use-on"
+  /** A fight action (#402): a feature used against an opponent. */
+  | "use-feature"
   | DoorApproach
   | "search"
   | "disarm"
@@ -4584,6 +4765,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   examine: true,
   take: true,
   "use-on": true,
+  "use-feature": true,
   force: true,
   pick: true,
   break: true,
@@ -4623,6 +4805,8 @@ export type ActionView = Readonly<{
   target?: Readonly<{ id: string; name: string }>;
   /** The carried item an item's use (#400) uses on its target, a feature. */
   item?: Readonly<{ id: string; name: string }>;
+  /** The feature a fight action (#402) uses against its target, an opponent. */
+  feature?: Readonly<{ id: string; name: string }>;
   /**
    * How a check with several approaches is tried (#283), such as
    * Athletics: one entry per approach while the check is unmade. A
@@ -5287,6 +5471,32 @@ export function createFifthRuntime(
     const region = adventure.regions?.find(({ id }) => id === of.region);
     return region === undefined ? {} : { region: region.name };
   };
+  /** The module's words for its alarm (#401), once it is raised. */
+  const alarmOf = (state: FifthState): Readonly<{ alarm?: string }> =>
+    adventure.alarm === undefined || !state.flags.includes(adventure.alarm.flag)
+      ? {}
+      : { alarm: adventure.alarm.text };
+  /**
+   * What last wandered into the character's room (#403), for the AI DM's
+   * scene: the wandering encounter that came upon it, or the omen heard.
+   */
+  const wanderingOf = (state: FifthState): Readonly<{ wandering?: string }> => {
+    const comer =
+      state.wandering === undefined
+        ? undefined
+        : encounterById.get(state.wandering);
+    if (comer !== undefined) {
+      return {
+        wandering: `A wandering encounter came upon you here: ${listed(
+          comer.opponents.map(({ name }) => `the ${name}`),
+          "and",
+        )}.`,
+      };
+    }
+    return state.omen === undefined
+      ? {}
+      : { wandering: `An omen, heard here: ${state.omen}` };
+  };
   /** The rooms each encounter may be in (#398). */
   const placements = encounterPlacements(adventure);
   const roomPlacements = placementsByRoom(placements);
@@ -5317,16 +5527,14 @@ export function createFifthRuntime(
   /** The encounter placed in the character's room, if any. */
   const placedEncounterOf = (state: FifthState) =>
     encounterIn(state, state.roomId);
-  /** The module's wandering encounter (#335), if it has one. */
-  const wanderer = adventure.encounters.find(
-    ({ id }) => id === adventure.wanderingEncounter?.encounterId,
-  );
   /**
-   * The fight in the character's room: the wandering encounter's while it
-   * interrupted a rest here (#335), or else the room's own.
+   * The fight in the character's room: a wandering encounter's while it
+   * came upon the character here (#335, #403), or else the room's own.
    */
   const encounterOf = (state: FifthState) =>
-    state.wandering === true ? wanderer : placedEncounterOf(state);
+    state.wandering !== undefined
+      ? encounterById.get(state.wandering)
+      : placedEncounterOf(state);
   const items = new Map(
     adventure.rooms.flatMap(({ items: placed }) =>
       placed.map((item) => [item.id, item] as const),
@@ -5361,6 +5569,10 @@ export function createFifthRuntime(
   /** Each authored check, by the id its outcome is remembered under (#281). */
   const siteChecks = new Map(
     authoredChecks(adventure).map((site) => [checkSiteId(site), site.check]),
+  );
+  /** Each authored check's site, by the same id (#401). */
+  const authoredSites = new Map(
+    authoredChecks(adventure).map((site) => [checkSiteId(site), site]),
   );
   /**
    * What the bands of the checks made so far revealed and changed: the
@@ -5544,6 +5756,20 @@ export function createFifthRuntime(
           ...(fight === undefined ? [] : carriedBy.get(fight.id)!),
         ];
   };
+  /**
+   * Whether a fight action took the opponent out of the encounter's fight
+   * (#402): it left no body.
+   */
+  const removedFrom = (
+    state: FifthState,
+    encounterId: string,
+    opponentId: string,
+  ) =>
+    (state.removedOpponents ?? []).some(
+      (removed) =>
+        removed.encounterId === encounterId &&
+        removed.opponentId === opponentId,
+    );
   /** Whether the opponent fell: it neither fled nor surrendered. */
   const fellIn = (state: FifthState, encounterId: string, opponentId: string) =>
     !fledFrom(state, encounterId, opponentId) &&
@@ -5583,7 +5809,10 @@ export function createFifthRuntime(
       !state.clearedEncounterIds.includes(fight.id)
       ? []
       : fight.opponents
-          .filter(({ id }) => fellIn(state, fight.id, id))
+          .filter(
+            ({ id }) =>
+              fellIn(state, fight.id, id) && !removedFrom(state, fight.id, id),
+          )
           .map(({ id, name }) => ({
             id,
             name: `${name}'s body`,
@@ -7265,10 +7494,127 @@ export function createFifthRuntime(
   };
 
   /**
-   * A rest the engine has accepted (#335): it first rolls a d100 against
-   * the module's wandering encounter, unless there is none or it has come.
-   * At its chance or less the rest restores nothing and the encounter's
-   * fight begins here; otherwise `rest` takes its course.
+   * The wandering encounter table rolled in room `roomId` (#403): its
+   * region's, or else the module's one wandering encounter (#335) as a
+   * one-entry table rolled only on rests. None without either.
+   */
+  const tableIn = (roomId: string): WatchTable | undefined => {
+    const regionId = roomById(roomId).region;
+    const table = adventure.regions?.find(
+      ({ id }) => id === regionId,
+    )?.wandering;
+    if (table !== undefined) {
+      return table;
+    }
+    const one = adventure.wanderingEncounter;
+    return one === undefined
+      ? undefined
+      : { chance: one.chance, entries: [{ encounterId: one.encounterId }] };
+  };
+  /** Whether wandering encounter `id` has come (#335, #403): it comes once. */
+  const come = (state: FifthState, id: string) =>
+    state.wanderersCome?.includes(id) === true || settled(state, id);
+  /**
+   * Whether a table's roll can bring anything (#403): an omen, or a fight
+   * that has not come. The module's one wandering encounter, once come,
+   * has no words, so its table rolls no more, as before (#335).
+   */
+  const drawable = (state: FifthState, table: WatchTable) =>
+    table.entries.some(
+      ({ encounterId, omen }) =>
+        omen !== undefined ||
+        (encounterId !== undefined && !come(state, encounterId)),
+    );
+
+  /**
+   * Rolls wandering encounter `table` (#335, #403): a d100, and at its
+   * chance or less the entry whose share of the chance the roll is in. A
+   * fight that has not come comes upon the character; one that has come
+   * is its omen; an omen is heard. `on` says what rolled it: a rest, or
+   * the region's moves or the alarm. Undefined when the table can bring
+   * nothing, so no die is drawn.
+   */
+  const rollTable = (
+    state: FifthState,
+    table: WatchTable,
+    on: Readonly<{ rest: RestKind } | { trigger: "moves" | "alarm" }>,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): WanderingRoll | undefined => {
+    if (!drawable(state, table)) {
+      return undefined;
+    }
+    const roll = need(random, "A wandering encounter roll").roll(100);
+    const base = {
+      type: "wandering-roll" as const,
+      ...on,
+      roll,
+      chance: table.chance,
+    };
+    if (roll > table.chance) {
+      return { event: { ...base, interrupted: false } };
+    }
+    const entry =
+      table.entries[
+        Math.floor(((roll - 1) * table.entries.length) / table.chance)
+      ]!;
+    const comer =
+      entry.encounterId === undefined || come(state, entry.encounterId)
+        ? undefined
+        : encounterById.get(entry.encounterId);
+    if (comer !== undefined) {
+      return {
+        event: {
+          ...base,
+          interrupted: true,
+          opponents: comer.opponents.map(({ name }) => name),
+        },
+        comer,
+      };
+    }
+    return {
+      event: {
+        ...base,
+        interrupted: false,
+        ...(entry.omen === undefined ? {} : { omen: entry.omen }),
+      },
+    };
+  };
+
+  /**
+   * `state` with what a table's roll brought (#403): a wandering
+   * encounter's fight begun here, or the omen heard.
+   */
+  const wandered = (
+    state: FifthState,
+    rolled: WanderingRoll,
+    random: Pick<RandomSource, "roll"> | undefined,
+    events: readonly FifthEvent[],
+  ): FifthResult => {
+    const { event, comer } = rolled;
+    if (comer === undefined) {
+      return {
+        state:
+          event.omen === undefined ? state : { ...state, omen: event.omen },
+        events: [...events, event],
+      };
+    }
+    return enter(
+      {
+        ...cleared(state, "omen"),
+        wandering: comer.id,
+        wanderersCome: [...(state.wanderersCome ?? []), comer.id],
+      },
+      random,
+      [...events, event],
+    );
+  };
+
+  /**
+   * A rest the engine has accepted (#335, #403): it first rolls the
+   * wandering encounter table of the room's region, or the module's one
+   * wandering encounter, unless it can bring nothing. A fight that comes
+   * interrupts the rest, which restores nothing, and begins here; an omen,
+   * or nothing, lets `rest` take its course.
    */
   const watchedRest = (
     state: FifthState,
@@ -7276,31 +7622,108 @@ export function createFifthRuntime(
     random: Pick<RandomSource, "roll"> | undefined,
     rest: () => FifthResult,
   ): FifthResult => {
-    const watch = adventure.wanderingEncounter;
-    if (
-      watch === undefined ||
-      wanderer === undefined ||
-      settled(state, wanderer.id)
-    ) {
+    const table = tableIn(state.roomId);
+    const rolled =
+      table === undefined
+        ? undefined
+        : rollTable(state, table, { rest: kind }, random);
+    if (rolled === undefined) {
       return rest();
     }
-    const roll = need(random, "A rest").roll(100);
-    const interrupted = roll <= watch.chance;
-    const event: FifthEvent = {
-      type: "wandering-roll",
-      rest: kind,
-      roll,
-      chance: watch.chance,
-      interrupted,
-      ...(interrupted
-        ? { opponents: wanderer.opponents.map(({ name }) => name) }
-        : {}),
-    };
-    if (!interrupted) {
+    if (rolled.comer === undefined) {
       const rested = rest();
-      return { state: rested.state, events: [event, ...(rested.events ?? [])] };
+      return {
+        state:
+          rolled.event.omen === undefined
+            ? rested.state
+            : { ...rested.state, omen: rolled.event.omen },
+        events: [rolled.event, ...(rested.events ?? [])],
+      };
     }
-    return enter({ ...state, wandering: true }, random, [event]);
+    return wandered(state, rolled, random, []);
+  };
+
+  /**
+   * Whether a wandering encounter could come upon the character now
+   * (#403): the adventure goes on, no fight is under way here, no foe is
+   * unseen by it or reacting to it, and no Tactical Mind offer waits.
+   */
+  const quiet = (state: FifthState) =>
+    state.status === "playing" &&
+    !fighting(state) &&
+    state.unseenBy === undefined &&
+    state.reactingTo === undefined &&
+    state.tacticalMind === undefined;
+
+  /**
+   * The result with the wandering rolls its action brought (#403). A move
+   * into a region whose table rolls every so many moves counts there, and
+   * on each `every`th the table is rolled, unless the character has met a
+   * fight (or a foe unseen or reacting): that roll is lost. The alarm,
+   * once raised, rolls the table of the region the character is in as it
+   * is raised, as soon as the character is out of any fight. The module's
+   * one wandering encounter (#335) rolls only on rests.
+   */
+  const wander = (
+    before: FifthState,
+    result: FifthResult,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    if (result.rejection !== undefined || result.state.status !== "playing") {
+      return result;
+    }
+    let state = result.state;
+    let events: readonly FifthEvent[] = result.events;
+    const regionTable = (regionId: string | undefined) =>
+      adventure.regions?.find(({ id }) => id === regionId)?.wandering;
+    const regionId = room(state).region;
+    if (
+      before.alarm === undefined &&
+      state.alarm !== undefined &&
+      regionId !== undefined &&
+      regionTable(regionId) !== undefined
+    ) {
+      state = { ...state, wanderingDue: regionId };
+    }
+    const table = regionTable(regionId);
+    if (
+      state.moves > before.moves &&
+      regionId !== undefined &&
+      table?.every !== undefined
+    ) {
+      const count = (state.regionMoves?.[regionId] ?? 0) + 1;
+      state = {
+        ...state,
+        regionMoves: { ...state.regionMoves, [regionId]: count },
+      };
+      const rolled =
+        count % table.every === 0 && quiet(state)
+          ? rollTable(state, table, { trigger: "moves" }, random)
+          : undefined;
+      if (rolled !== undefined) {
+        const next = wandered(state, rolled, random, events);
+        state = next.state;
+        events = next.events ?? events;
+      }
+    }
+    const due = state.wanderingDue;
+    if (due !== undefined && quiet(state)) {
+      const { wanderingDue: done, ...rest } = state;
+      void done;
+      state = rest;
+      const rolled = rollTable(
+        state,
+        regionTable(due)!,
+        { trigger: "alarm" },
+        random,
+      );
+      if (rolled !== undefined) {
+        const next = wandered(state, rolled, random, events);
+        state = next.state;
+        events = next.events ?? events;
+      }
+    }
+    return state === result.state ? result : { state, events };
   };
 
   /**
@@ -7980,6 +8403,21 @@ export function createFifthRuntime(
           ? undefined
           : { type: "use-on", featureId, itemId };
       }
+      case "use-feature": {
+        const featureId = field("featureId");
+        const targetId = field("targetId");
+        return featureId === undefined ||
+          targetId === undefined ||
+          !approachOk ||
+          action.retry !== undefined
+          ? undefined
+          : {
+              type: "use-feature",
+              featureId,
+              targetId,
+              ...(approach === undefined ? {} : { approach }),
+            };
+      }
       case "force":
       case "pick":
       case "break":
@@ -8294,8 +8732,11 @@ export function createFifthRuntime(
       return { state: sprung.state, events: [...before, ...sprung.events] };
     }
     // The fight stays behind: an ended adventure cannot move. A wandering
-    // encounter's (#335) stays behind with it.
-    const { encounter: left, ...kept } = cleared(sprung.state, "wandering");
+    // encounter's (#335) stays behind with it, and so does an omen (#403).
+    const { encounter: left, ...kept } = cleared(
+      cleared(sprung.state, "wandering"),
+      "omen",
+    );
     void left;
     const arrived: FifthState = {
       ...kept,
@@ -8441,10 +8882,15 @@ export function createFifthRuntime(
     // A flight (#396), or a hit's answer that ends one, goes on through
     // the exit once the character has got away; then whatever it did sets
     // its flags (#397), which may bring a fight into the room (#398).
-    const result = arrive(
-      withFlags(
-        state,
-        withMet(getAway(perform(state, requested, random), random)),
+    // Then wandering encounters (#403) roll on its moves or its alarm.
+    const result = wander(
+      state,
+      arrive(
+        withFlags(
+          state,
+          withMet(getAway(perform(state, requested, random), random)),
+        ),
+        random,
       ),
       random,
     );
@@ -8476,7 +8922,7 @@ export function createFifthRuntime(
     state.unseenBy === id ||
     state.reactingTo === id ||
     (state.encounter !== undefined &&
-      state.wandering !== true &&
+      state.wandering === undefined &&
       placedEncounterOf(state)?.id === id);
 
   /**
@@ -8528,7 +8974,7 @@ export function createFifthRuntime(
       fighting(state) ||
       state.unseenBy !== undefined ||
       state.reactingTo !== undefined ||
-      state.wandering === true
+      state.wandering !== undefined
     ) {
       return result;
     }
@@ -8555,6 +9001,137 @@ export function createFifthRuntime(
         },
       ]),
     );
+  };
+
+  /**
+   * The noise an action made (#401) that raises the module's alarm, worked
+   * out from what changed since `before`: a sneak that failed by 5 or more,
+   * a check that landed in a noisy band, a fight in one of the alarm's
+   * regions gone on past its round, or an opponent that fled a fight and
+   * survived it, in that order when one action makes more than one. None
+   * once the alarm is raised, or once the adventure is over.
+   */
+  const noiseOf = (
+    before: FifthState,
+    after: FifthState,
+  ): AlarmCause | undefined => {
+    const alarm = adventure.alarm;
+    if (
+      alarm === undefined ||
+      after.status !== "playing" ||
+      after.flags.includes(alarm.flag)
+    ) {
+      return undefined;
+    }
+    const sneak = after.sneaks.find(
+      (record) =>
+        !before.sneaks.includes(record) &&
+        bandOf(record.roll) === "failure-by-5",
+    );
+    if (sneak !== undefined) {
+      return {
+        by: "sneak",
+        encounterId: sneak.encounterId,
+        roomId: after.roomId,
+      };
+    }
+    const check = after.checks.find(
+      (made, index) =>
+        made !== before.checks[index] &&
+        siteChecks.get(made.id)?.bands?.[made.band]?.noisy === true,
+    );
+    if (check !== undefined) {
+      return { by: "check", checkId: check.id, band: check.band };
+    }
+    const loud = alarm.fights?.find(
+      ({ region }) => region === room(after).region,
+    );
+    const fight = encounterOf(after);
+    if (
+      loud !== undefined &&
+      fight !== undefined &&
+      after.encounter !== undefined &&
+      after.encounter.round > loud.round
+    ) {
+      return {
+        by: "fight",
+        encounterId: fight.id,
+        roomId: after.roomId,
+        round: loud.round,
+      };
+    }
+    const fled = after.fledOpponents.find(
+      (record) => !before.fledOpponents.includes(record),
+    );
+    return fled === undefined
+      ? undefined
+      : {
+          by: "fled",
+          encounterId: fled.encounterId,
+          opponentId: fled.opponentId,
+          roomId: before.roomId,
+        };
+  };
+
+  /** What raised the alarm (#401), as its card names it. */
+  const causeText = (cause: AlarmCause): string => {
+    switch (cause.by) {
+      case "sneak":
+        return `a sneak into the ${roomById(cause.roomId).name} that failed by 5 or more`;
+      case "fight":
+        return `the fight in the ${roomById(cause.roomId).name} going on past round ${cause.round}`;
+      case "check":
+        return `${checkSiteText(cause.checkId)} (${BAND_NAMES[cause.band].toLowerCase()})`;
+      case "fled": {
+        const opponent = encounterById
+          .get(cause.encounterId)
+          ?.opponents.find(({ id }) => id === cause.opponentId);
+        return `the ${opponent?.name ?? "opponent"} that fled the fight in the ${roomById(cause.roomId).name} and lived`;
+      }
+    }
+  };
+
+  /**
+   * A check made, as the alarm's card names it (#401), by its authored
+   * site's own kind: only an authored check's band may be noisy, so a
+   * search (never authored) never raises the alarm.
+   */
+  const checkSiteText = (checkId: string): string => {
+    const site = authoredSites.get(checkId);
+    if (site === undefined) {
+      return checkId;
+    }
+    const { kind, id } = site;
+    const door = () =>
+      adventure.passages.find(({ door: shut }) => shut?.id === id)?.door
+        ?.name ?? id;
+    switch (kind) {
+      case "examine":
+        return `examining the ${featureById.get(id)?.name ?? id}`;
+      case "talk": {
+        const topic = [
+          ...adventure.rooms.flatMap(({ creatures }) =>
+            creatures.flatMap(({ topics }) => topics),
+          ),
+          ...adventure.encounters.flatMap(({ opponents }) =>
+            opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
+          ),
+        ].find((entry) => entry.id === id);
+        return `asking about ${topic?.name ?? id}`;
+      }
+      case "force":
+        return `forcing the ${door()}`;
+      case "pick":
+        return `picking the lock of the ${door()}`;
+      case "break":
+        return `breaking down the ${door()}`;
+      case "disarm": {
+        const trap = adventure.passages.find(
+          ({ trap: armed }) => armed?.id === id,
+        )?.trap;
+        return `disarming the ${trap?.name ?? id}`;
+      }
+    }
   };
 
   /** The flag `sets` names, as a list: none when it names none (#397). */
@@ -8589,6 +9166,7 @@ export function createFifthRuntime(
         ),
       );
     const events = "events" in result ? result.events : [];
+    const noise = noiseOf(before, after);
     const set = [
       ...(after.roomId === before.roomId
         ? []
@@ -8631,6 +9209,8 @@ export function createFifthRuntime(
         .flatMap(({ id, band }) =>
           flagsSetBy(siteChecks.get(id)?.bands?.[band]),
         ),
+      // Noise raises the alarm (#401).
+      ...(noise === undefined ? [] : [adventure.alarm!.flag]),
     ];
     const fresh = [...new Set(set)].filter(
       (flag) => !after.flags.includes(flag),
@@ -8638,7 +9218,21 @@ export function createFifthRuntime(
     if (fresh.length === 0) {
       return result;
     }
-    const flagged: FifthState = { ...after, flags: [...after.flags, ...fresh] };
+    const flagged: FifthState = {
+      ...after,
+      flags: [...after.flags, ...fresh],
+      ...(noise === undefined ? {} : { alarm: noise }),
+    };
+    const raised: FifthEvent[] =
+      noise === undefined
+        ? []
+        : [
+            {
+              type: "alarm",
+              text: adventure.alarm!.text,
+              cause: causeText(noise),
+            },
+          ];
     const changed: FifthEvent[] =
       flagged.status !== "playing"
         ? []
@@ -8668,7 +9262,11 @@ export function createFifthRuntime(
               },
             ];
           });
-    return { ...result, state: flagged, events: [...events, ...changed] };
+    return {
+      ...result,
+      state: flagged,
+      events: [...events, ...raised, ...changed],
+    };
   };
 
   /** `handleAction` before an earlier Tactical Mind offer is taken away. */
@@ -9392,6 +9990,119 @@ export function createFifthRuntime(
         return {
           state: next,
           events: [...paid.events, ...around([words(success)])],
+        };
+      }
+      case "use-feature": {
+        if (!fighting(state)) {
+          return reject(
+            "no-fight",
+            "There is no fight here to use anything in.",
+          );
+        }
+        const feature = room(state).features.find(
+          ({ id }) => id === action.featureId,
+        );
+        const usable = feature?.fightAction;
+        if (feature === undefined || usable === undefined) {
+          return reject(
+            "no-feature",
+            "There is nothing like that here to use in this fight.",
+          );
+        }
+        const fight = encounterOf(state)!;
+        if (
+          (state.fightActions ?? []).some(
+            ({ featureId, encounterId }) =>
+              featureId === feature.id &&
+              (usable.once === "adventure" || encounterId === fight.id),
+          )
+        ) {
+          return reject(
+            "already-used",
+            `You already used the ${feature.name} ${usable.once === "fight" ? "in this fight" : "in this adventure"}.`,
+          );
+        }
+        const refused = featureRefusal(
+          state.encounter!,
+          PLAYER_ID,
+          action.targetId,
+        );
+        if (refused !== undefined) {
+          return { state, rejection: refused };
+        }
+        const choice = chooseApproach(state, usable.check, action.approach);
+        if (choice.refused !== undefined) {
+          return { state, rejection: choice.refused };
+        }
+        // The check, rolled once from the seeded stream and remembered with
+        // the band whose outcome applied; the character's own conditions
+        // (poisoned) give it disadvantage.
+        const dice = need(random, "A fight action");
+        const spec = choice.spec!;
+        const roll = policyRoll(
+          abilityCheck(sheetOf(state), spec, dice, {
+            advantage: [],
+            disadvantage: checkDisadvantages(state.encounter!, PLAYER_ID),
+          }),
+          spec,
+        );
+        const band = fightActionBand(usable, bandOf(roll));
+        const outcome = usable.bands[band];
+        const target = combatant(state.encounter!, action.targetId);
+        const result = fightAction(
+          {
+            ...state,
+            fightActions: [
+              ...(state.fightActions ?? []),
+              {
+                featureId: feature.id,
+                encounterId: fight.id,
+                targetId: target.id,
+                band,
+              },
+            ],
+          },
+          {
+            type: "use-feature",
+            actorId: PLAYER_ID,
+            targetId: target.id,
+            source: feature.name,
+            effects: outcome?.effects ?? [],
+          },
+          dice,
+          reject,
+        );
+        if (result.rejection !== undefined) {
+          return result;
+        }
+        const removed = result.events.some(
+          (event) =>
+            event.type === "removed" && event.combatantId === target.id,
+        );
+        return {
+          state: removed
+            ? {
+                ...result.state,
+                removedOpponents: [
+                  ...(result.state.removedOpponents ?? []),
+                  { encounterId: fight.id, opponentId: target.id },
+                ],
+              }
+            : result.state,
+          events: [
+            {
+              type: "used-feature",
+              featureId: feature.id,
+              feature: feature.name,
+              targetId: target.id,
+              target: target.name,
+            },
+            { type: "check", roll, band },
+            ...(outcome?.text === undefined
+              ? []
+              : [{ type: "outcome" as const, text: outcome.text }]),
+            ...result.events,
+          ],
         };
       }
       case "use-on": {
@@ -10126,6 +10837,13 @@ export function createFifthRuntime(
       if (target !== undefined) {
         entry.target = { id: target.id, name: target.name };
       }
+      // The feature a fight action uses (#402).
+      if (action.type === "use-feature") {
+        entry.feature = {
+          id: action.featureId,
+          name: featureById.get(action.featureId)!.name,
+        };
+      }
       // The item an item's use names (#400).
       if (action.type === "use-on") {
         entry.item = {
@@ -10675,6 +11393,28 @@ export function createFifthRuntime(
         ...exits(state).map((exit) =>
           view("flee", { type: "flee", destinationId: exit.id }, exit),
         ),
+        // Each fight action here (#402), at each opponent, by each approach.
+        ...room(state).features.flatMap(({ id: featureId, fightAction }) => {
+          if (fightAction === undefined) {
+            return [];
+          }
+          const specs = approachesOf(fightAction.check);
+          return targets.flatMap((target) =>
+            specs.map((spec) =>
+              view(
+                "use-feature",
+                {
+                  type: "use-feature",
+                  featureId,
+                  targetId: target.id,
+                  ...(specs.length > 1 ? { approach: approachId(spec) } : {}),
+                },
+                target,
+                spec,
+              ),
+            ),
+          );
+        }),
         feature("end-turn"),
       ];
     }
@@ -10944,6 +11684,12 @@ export function createFifthRuntime(
       title: adventure.title,
       objective: adventure.objective,
       outcome: state.status,
+      // Once raised, the alarm stays raised (#401).
+      ...(alarmOf(state).alarm === undefined
+        ? {}
+        : { alarm: `The alarm is raised: ${alarmOf(state).alarm!}` }),
+      // What last wandered here (#403), until the character moves on.
+      ...wanderingOf(state),
       room: {
         id: current.id,
         name: current.name,
@@ -11189,6 +11935,7 @@ export function createFifthRuntime(
       description: current.description,
       ...(current.restSite === true ? { restSite: true as const } : {}),
       ...regionOf(current),
+      ...alarmOf(state),
       exits: ways(state).map(
         ({
           passage,
@@ -11551,6 +12298,46 @@ export function createFifthRuntime(
         `Only when the player asks to run, flee, retreat or make a break for an exit in the middle of the fight: the character flees through the exit with its action, leaving the fight unresolved; its standing opponents keep their wounds and are met again on coming back, and they don't follow. ${fleeTargets(state)} Exits it can flee through:`,
         choices("flee"),
         "The id of the room to flee into.",
+      ),
+      ...targetTool(
+        "use_feature",
+        "Only when the player asks to use a feature of the room against an opponent in the fight (topple it onto them, cut it loose over them, push them into it): the character uses it with its action, and the engine rolls the check once and decides what it does to that opponent. Each feature and opponent, as feature:opponent:",
+        actions
+          .flatMap(({ action, target, feature, available }) =>
+            action === "use-feature" && available
+              ? [
+                  {
+                    id: `${feature!.id}:${target!.id}`,
+                    name: `the ${feature!.name} against ${target!.name}`,
+                  },
+                ]
+              : [],
+          )
+          .filter(
+            ({ id }, index, all) =>
+              all.findIndex((entry) => entry.id === id) === index,
+          ),
+        "The feature's id and the opponent's id, as listed.",
+        [
+          ...actions
+            .reduce(
+              (byPair, { action, target, feature, approach, available }) => {
+                if (
+                  action === "use-feature" &&
+                  available &&
+                  approach !== undefined &&
+                  approachesOf(featureById.get(feature!.id)!.fightAction!.check)
+                    .length > 1
+                ) {
+                  const pair = `${feature!.id}:${target!.id}`;
+                  byPair.set(pair, [...(byPair.get(pair) ?? []), approach]);
+                }
+                return byPair;
+              },
+              new Map<string, Readonly<{ id: string; name: string }>[]>(),
+            )
+            .entries(),
+        ].map(([target, offered]) => ({ target, approaches: offered })),
       ),
       ...targetTool(
         "sneak",
@@ -12104,7 +12891,8 @@ export function createFifthRuntime(
           (approach === null || typeof approach === "string")) ||
           (key === "retry" &&
             typeof retry === "boolean" &&
-            call.name !== "react")));
+            call.name !== "react" &&
+            call.name !== "use_feature")));
     // The rest tool (#334) takes only its whole number of hit dice, and
     // Memorize Spell's two spells (#344), both or neither, while offered.
     const isRest = call.name === "rest";
