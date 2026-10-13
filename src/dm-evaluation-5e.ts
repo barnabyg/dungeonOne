@@ -277,11 +277,12 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["synonym-accuracy"],
     manualJudgments: [],
   }),
+  // The test Fighter wields a mace: "my sword" drew corrections (#425).
   actionCase({
     id: "clear-attack",
     seed: 0,
     setup: toZombie,
-    playerInput: "Attack the zombie with my sword.",
+    playerInput: "Attack the zombie with my mace.",
     name: "attack",
     arguments: { target: "zombie" },
     dimensions: ["clear-accuracy"],
