@@ -303,6 +303,14 @@ _Avoid_: Clear, Full run, Exploration
 A long module's room marked `avoidable` (#408): left out of its region's sweep, so the gate never makes the character go there. It lies off every declared route.
 _Avoid_: Optional room (every room off the required path is optional), Secret room
 
+**Release run**:
+A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written for the shipped modules that have one.
+_Avoid_: Route (a module's declared route), Playthrough (the harness's), Handoff run
+
+**Generated release run**:
+A release run whose steps are taken from the balance harness's cautious run on a fixed seed and class (#409): each action it took outside a fight, with words a player would type for it. Its turn cap is 40 turns a room. Used for a module without hand-written steps, such as a long one.
+_Avoid_: Generated route, Auto route
+
 **Move count**:
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time

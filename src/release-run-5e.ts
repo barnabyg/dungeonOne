@@ -16,12 +16,29 @@
  * last step is a button press. Fights pick from the action bar each turn:
  * heal at half HP or less, otherwise attack the first opponent offered, then
  * make the extra attack with a second light weapon.
+ *
+ * A route is hand-written or generated (#409). A hand-written route
+ * (`DELVE_FULL_ROUTE` and the rest) is for a shipped module whose release
+ * run checks particular moments: a trade, a parley, a surrender, a retry,
+ * with phrasing chosen to test the AI DM. Those routes stay as they are,
+ * capped at 400 turns. `generateReleaseRun` builds a route from the balance
+ * harness's cautious run on a fixed seed and class instead, with plain
+ * generated words for each step and a turn cap of 40 turns a room. Use it
+ * for a module too long to write a route for by hand, or one whose content
+ * is still changing; its steps follow wherever the harness went, so it
+ * proves the module can be played through the AI DM, not that particular
+ * moments happen.
  */
+import type { FifthAdventure } from "./adventure-5e.js";
+import { GATE_STYLE, playAdventure, type PlayStyle } from "./balance-5e.js";
+import type { CharacterSheet } from "./character-5e.js";
 import { postToServer } from "./dm-evaluation-5e.js";
 import {
   PLAYER_ID,
+  createFifthRuntime,
   type ActionKind,
   type ActionView,
+  type FifthRuntime,
   type RoomView,
 } from "./runtime-5e.js";
 
@@ -33,6 +50,8 @@ export type ReleaseStep = Readonly<{
   approach?: string;
   /** Another try at a check already made (#284). */
   retry?: true;
+  /** The carried item a use on a feature uses (#400). */
+  item?: string;
   /** Undefined for a button-only action (Leave). */
   say?: string;
 }>;
@@ -663,6 +682,134 @@ export const COUNTING_HOUSE_ROUTE: readonly ReleaseStep[] = Object.freeze([
   { action: "leave", target: "quay-steps" },
 ]);
 
+/**
+ * A generated release run's turn cap, per room of its module (#409): the
+ * hand-written runs' 400 turns for the Delve's ten rooms.
+ */
+export const RELEASE_TURNS_PER_ROOM = 40;
+
+/** The turn cap of a generated release run of `adventure` (#409). */
+export const releaseTurnCap = (adventure: FifthAdventure): number =>
+  RELEASE_TURNS_PER_ROOM * adventure.rooms.length;
+
+/**
+ * What a player types for each exploring action the harness takes (#409),
+ * given its action-bar entry and its target's name. Leave is a button
+ * press, so it has none.
+ */
+const EXPLORE_WORDS: Readonly<
+  Partial<Record<ActionKind, (view: ActionView, name: string) => string>>
+> = {
+  move: (_, name) => `Go to the ${name}.`,
+  sneak: (_, name) => `Sneak into the ${name}.`,
+  ambush: () => "Ambush them before they see me.",
+  react: ({ target, approach }) =>
+    target?.id === "attack"
+      ? "Attack them."
+      : target?.id === "let-pass"
+        ? "Let's go our separate ways peacefully."
+        : target?.id === "toll"
+          ? "Fine, I'll pay the toll."
+          : `Let's talk this over${approach === undefined ? "" : `, using ${approach.name}`}.`,
+  examine: (_, name) => `Examine the ${name}.`,
+  take: (_, name) => `Take the ${name}.`,
+  use: (_, name) => `Drink the ${name}.`,
+  "use-on": ({ item }, name) =>
+    `Use the ${item?.name ?? "item"} on the ${name}.`,
+  force: (_, name) => `Force the ${name}.`,
+  pick: (_, name) => `Pick the lock on the ${name}.`,
+  break: (_, name) => `Break down the ${name}.`,
+  unlock: (_, name) => `Unlock the ${name}.`,
+  search: () => "Search this place for traps.",
+  disarm: (_, name) => `Disarm the ${name}.`,
+  talk: (_, name) => `Ask ${name}.`,
+  equip: (_, name) => `Equip the ${name}.`,
+  unequip: (_, name) => `Take off the ${name}.`,
+  swap: (_, name) => `Draw the ${name}.`,
+  drop: (_, name) => `Drop the ${name}.`,
+  buy: (_, name) => `Buy the ${name}.`,
+  sell: (_, name) => `Sell the ${name}.`,
+  "sell-equipped": (_, name) => `Sell the ${name} I'm using.`,
+  "sell-treasure": (_, name) => `Sell the ${name}.`,
+  "tactical-mind": () => "Use Tactical Mind on that check.",
+};
+
+/**
+ * The release step a player would take for the harness's choice `view`:
+ * its ids and words for it (none for Leave, a button press). Nothing for an
+ * action the release run has no button for: a rest or a cast outside a
+ * fight.
+ */
+function generatedStep(view: ActionView): ReleaseStep | undefined {
+  const { action, target, approach, retry, item } = view;
+  const ids: ReleaseStep = {
+    action,
+    ...(target === undefined ? {} : { target: target.id }),
+    ...(approach === undefined ? {} : { approach: approach.id }),
+    ...(retry === undefined ? {} : { retry: true }),
+    ...(item === undefined ? {} : { item: item.id }),
+  };
+  if (action === "leave") {
+    return ids;
+  }
+  // "the The Vault" reads as "the Vault".
+  const name = (target?.name ?? "").replace(/^The /u, "");
+  const words = EXPLORE_WORDS[action]?.(view, name);
+  if (words === undefined) {
+    return undefined;
+  }
+  const say =
+    retry !== undefined
+      ? `Try again: ${words.charAt(0).toLowerCase()}${words.slice(1)}`
+      : approach !== undefined && action !== "react"
+        ? `${words.slice(0, -1)}, using ${approach.name}.`
+        : words;
+  return { ...ids, say };
+}
+
+/**
+ * A release run whose route is generated (#409): the exploring actions of
+ * the harness's run of `adventure` with `sheet` on dice from `seed`, in
+ * `style` (the gate's cautious style by default), each with words a player
+ * would type for it, and a turn cap of `RELEASE_TURNS_PER_ROOM` a room.
+ * Fight actions are left out, as `playReleaseRun` fights each fight itself,
+ * and so are rests and casts outside a fight, which it has no button for.
+ * Spread it into `playReleaseRun`'s options. Throws what `playAdventure`
+ * throws when the harness's run fails.
+ */
+export function generateReleaseRun(
+  adventure: FifthAdventure,
+  sheet: CharacterSheet,
+  { seed, style = GATE_STYLE }: Readonly<{ seed: number; style?: PlayStyle }>,
+): Readonly<{ route: readonly ReleaseStep[]; maxTurns: number }> {
+  const runtime = createFifthRuntime(adventure, sheet);
+  const route: ReleaseStep[] = [];
+  // The harness takes each action from its action-bar entry (`actionOf`)
+  // and hands it straight to `handleAction`: each entry taken outside a
+  // fight becomes a step.
+  let chosen: ActionView | undefined;
+  const recording: FifthRuntime = {
+    ...runtime,
+    actionOf: (view) => {
+      chosen = view;
+      return runtime.actionOf(view);
+    },
+    handleAction: (state, action, random) => {
+      const step =
+        chosen === undefined || state.encounter?.outcome === "ongoing"
+          ? undefined
+          : generatedStep(chosen);
+      if (step !== undefined) {
+        route.push(step);
+      }
+      chosen = undefined;
+      return runtime.handleAction(state, action, random);
+    },
+  };
+  playAdventure(recording, style, seed);
+  return { route, maxTurns: releaseTurnCap(adventure) };
+}
+
 /** Whether the action bar is a fight's: it always offers End turn. */
 const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
@@ -724,10 +871,11 @@ const newestCards = (view: ReleaseSessionView): ReleaseTurn["cards"] =>
 
 const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   view.actions.find(
-    ({ action, target, approach, retry }) =>
+    ({ action, target, approach, retry, item }) =>
       action === step.action &&
       target?.id === step.target &&
       approach?.id === step.approach &&
+      item?.id === step.item &&
       (retry !== undefined) === (step.retry === true),
   );
 
@@ -790,7 +938,11 @@ async function click(
             {
               ...base,
               action: step.action,
-              target: step.target,
+              // A use on a feature (#400) names the feature and the item.
+              target:
+                step.item === undefined
+                  ? step.target
+                  : `${step.target}:${step.item}`,
               ...(step.approach === undefined
                 ? {}
                 : { approach: step.approach }),

@@ -167,6 +167,15 @@ Lair Guardian waits whose bite always kills. The fewest-fights route never
 goes there, but the Upper Tunnels' sweep does unless `avoidable` marks the
 Lair. `tests/issue-408.test.mjs` gates it both ways.
 
+## Generated release runs (issue 409)
+
+`windingTunnels` (_The Winding Tunnels_, from `windingTunnelsFile`) is the
+long tunnels with three more rooms, eight in all: a Collapsed Store off the
+stair foot with a pouch of coins, a Well Shaft off the alcove with a
+tarnished locket, and a Drain Tunnel off the cistern. It is not in
+`FIXTURE_MODULES`. `tests/issue-409.test.mjs` plays its release run on a
+route generated from the harness.
+
 ## Fleeing a fight (issue 396)
 
 `modules.mjs` also builds `fleeingCellar` (_The Bolt-Hole Cellar_), which is

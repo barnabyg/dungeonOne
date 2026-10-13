@@ -119,7 +119,7 @@ Mostly limits and rules decisions.
 - **Coverage, not CPU.** The gate plays one deterministic, fight-avoiding route to the objective (`balance-5e.ts`). In a large branching module, most fights would be optional and never judged for deadliness, and other routes are never compared. It needs to judge per route or per region.
 - **Proof gets harder.** Every new state feature must also satisfy the validator's reachability rules and be playable by the harness. Flags multiply the states to prove. This is where the real cost of the state work lies.
 - **CPU.** A 40-room module would add an estimated 60–150 s, against a 180 s cap of which CI already uses about 155 s. It needs a budget per module or fewer seeds.
-- **Release runs** are hand-scripted step lists capped at 400 turns (`release-run-5e.ts`). A large module needs a generated route.
+- **Release runs** are hand-scripted step lists capped at 400 turns (`release-run-5e.ts`). A large module needs a generated route. (Done in #409: `generateReleaseRun` takes the steps from the harness's cautious run, capped at 40 turns a room.)
 - **Talk.** The gate never talks, so content reachable only by talking fails as unreachable. Faction play leans on talk.
 
 ### Browser, AI DM and saves

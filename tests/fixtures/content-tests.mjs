@@ -104,4 +104,8 @@ export const CONTENT_TESTS = new Map([
     "tests/issue-311-browser.test.mjs",
     "the increment 15 handoff runs through the browser",
   ],
+  [
+    "tests/issue-409-live.test.mjs",
+    "the live release script's generated route (#409) through the Hollow Chantry",
+  ],
 ]);

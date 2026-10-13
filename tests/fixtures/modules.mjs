@@ -649,6 +649,112 @@ export const lairTunnelsFile = ({ avoidable = false, routes } = {}) => {
 export const lairTunnels = validateModule(lairTunnelsFile());
 
 /**
+ * A generated release run (#409): the long tunnels as _The Winding
+ * Tunnels_, eight rooms. A Collapsed Store off the stair foot hides a pouch
+ * of coins, a Well Shaft off the alcove a tarnished locket, and a Drain
+ * Tunnel off the cistern an old grate to look at.
+ */
+export const windingTunnelsFile = (() => {
+  const module = structuredClone(longTunnelsFile);
+  module.id = "winding-tunnels";
+  module.title = "The Winding Tunnels";
+  // The stair foot is an exit (#408): coin may be carried out by it.
+  module.endings.push({
+    id: "climbed-out-rich",
+    kind: "escape-with-loot",
+    title: "Up the stair with your finds",
+    text: "You climb out into the daylight with what you found below.",
+  });
+  module.rooms.push(
+    {
+      id: "collapsed-store",
+      name: "Collapsed Store",
+      description: "Half the roof lies on the floor among split crates.",
+      region: "upper",
+      features: [
+        {
+          id: "split-crates",
+          name: "Split Crates",
+          description: "Crates crushed under the fallen roof.",
+          discovery: "Wedged between two crates is a greasy leather pouch.",
+        },
+      ],
+      items: [
+        {
+          id: "store-pouch",
+          name: "Pouch of Old Coins",
+          description: "A greasy leather pouch of tarnished coins.",
+          kind: "coin",
+          coins: { gp: 4, sp: 5 },
+          hiddenIn: "split-crates",
+        },
+      ],
+    },
+    {
+      id: "well-shaft",
+      name: "Well Shaft",
+      description: "A round shaft drops away beside a crumbling well-head.",
+      region: "upper",
+      features: [
+        {
+          id: "well-head",
+          name: "Crumbling Well-Head",
+          description: "Loose stones ring the mouth of the shaft.",
+          discovery: "A locket on a broken chain hangs from a loose stone.",
+        },
+      ],
+      items: [
+        {
+          id: "well-locket",
+          name: "Tarnished Locket",
+          description: "A silver locket, black with tarnish.",
+          kind: "treasure",
+          treasure: "art-25gp",
+          hiddenIn: "well-head",
+        },
+      ],
+    },
+    {
+      id: "drain-tunnel",
+      name: "Drain Tunnel",
+      description:
+        "A low brick tunnel that once carried water from the cistern.",
+      region: "lower",
+      features: [
+        {
+          id: "rusted-grate",
+          name: "Rusted Grate",
+          description: "A grate rusted solid across the far end.",
+          discovery: "Beyond the grate the tunnel is choked with silt.",
+        },
+      ],
+      items: [],
+    },
+  );
+  module.passages.push(
+    {
+      id: "stair-to-store",
+      between: ["stair-foot", "collapsed-store"],
+      description: "A doorway half blocked by rubble.",
+    },
+    {
+      id: "alcove-to-well",
+      between: ["alcove", "well-shaft"],
+      description: "A narrow cleft in the alcove's back wall.",
+    },
+    {
+      id: "cistern-to-drain",
+      between: ["cistern", "drain-tunnel"],
+      description: "A brick arch at the cistern's floor.",
+    },
+  );
+  return module;
+})();
+export const windingTunnels = validateModule(
+  structuredClone(windingTunnelsFile),
+);
+
+/**
  * Fleeing a fight (#396): the rat tunnels as _The Bolt-Hole Cellar_. The
  * cellar's fight is a Giant Rat and a Zombie; the stair foot is an exit
  * room. Out of the cellar run the passage back to the stair foot, the way
