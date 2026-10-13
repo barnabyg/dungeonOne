@@ -203,6 +203,21 @@ is in the seeded playthroughs, so the bar tests see a fight action;
 action cases. `tests/issue-402.test.mjs` and `tests/issue-402-browser.test.mjs`
 play it.
 
+## Alarms (issue 401)
+
+`alarmTunnels` (_The Alarmed Tunnels_, from `alarmTunnelsFile`) is the
+two-level tunnels with an alarm, the flag `alarm`. Stacked Crates at the foot
+of the stair crash down on a Dexterity check (DC 15) failed by 5 or more, a
+noisy band, and a fight in the Lower Tunnels going on past round 2 is noise
+too, as are a sneak failed by 5 or more and an opponent that flees and lives.
+Once it is raised an iron grate closes the passage down from the stair (a
+crawl from the alcove still leads to the cellar), and a goblin lookout leaves
+its guard post for the landing between the cellar and the den, where the
+required path meets it. It is in the seeded playthroughs;
+`adventures/eval/alarm-tunnels.json` is the same module for the AI DM's alarm
+cases. `tests/issue-401.test.mjs` and `tests/issue-401-browser.test.mjs` play
+it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

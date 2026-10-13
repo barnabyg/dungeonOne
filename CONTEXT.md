@@ -291,6 +291,14 @@ _Avoid_: Turns, Steps, Time
 A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.
 _Avoid_: Switch, Variable, Trigger, Quest state
 
+**Alarm**:
+A flag of an adventure module that only noise sets (#401): once the character makes noise, the alarm is raised for the rest of the session, and what it changes (defenders gathered, an ambush laid, a gate barred, a creature that will no longer talk) is authored with flag conditions. The engine remembers what raised it; the room panel shows the module's words for it, and the card of the action that raised it names the noise. The AI DM cannot raise or lower it.
+_Avoid_: Alert, Alarm level, Awareness
+
+**Noise**:
+What raises a module's alarm (#401): a sneak that fails by 5 or more, a fight in one of the alarm's regions going on past its authored round, a check that lands in a band marked noisy (the dropped tray, the stuck door forced), or an opponent that flees a fight and survives it.
+_Avoid_: Sound, Disturbance
+
 **Feature**:
 Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
