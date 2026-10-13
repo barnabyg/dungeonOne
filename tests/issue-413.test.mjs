@@ -13,9 +13,9 @@ import test from "node:test";
 
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
-  FIFTH_RELEASE_DM_CASES,
-  FIFTH_RELEASE_DM_CHARACTER,
-  loadFifthReleaseEvaluationAdventure,
+  FIFTH_WEIRGATE_DM_CASES,
+  FIFTH_WEIRGATE_DM_CHARACTER,
+  loadFifthWeirgateEvaluationAdventure,
   offeredToolsMatchActions,
   runFifthDmEvaluation,
   setUpCase,
@@ -26,7 +26,7 @@ import {
 } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 
-const byId = (id) => FIFTH_RELEASE_DM_CASES.find((sample) => sample.id === id);
+const byId = (id) => FIFTH_WEIRGATE_DM_CASES.find((sample) => sample.id === id);
 
 test("the prompt changes: a wrong item, or fleeing untouched, calls no tool", () => {
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v42");
@@ -41,19 +41,20 @@ test("the prompt changes: a wrong item, or fleeing untouched, calls no tool", ()
 });
 
 test("the release cases play the shipped Weirgate with Ada at level 3", async () => {
-  const adventure = await loadFifthReleaseEvaluationAdventure();
+  const adventure = await loadFifthWeirgateEvaluationAdventure();
   const shipped = (await loadBuiltInFifthAdventures()).find(
     ({ id }) => id === "coldwater-weirgate",
   );
   assert.deepEqual(adventure, shipped);
-  assert.deepEqual(FIFTH_RELEASE_DM_CHARACTER, testFighterAt(3));
+  assert.deepEqual(FIFTH_WEIRGATE_DM_CHARACTER, testFighterAt(3));
   assert.deepEqual(
-    FIFTH_RELEASE_DM_CASES.map(({ id }) => id),
+    FIFTH_WEIRGATE_DM_CASES.map(({ id }) => id),
     [
       "weirgate-flee",
       "weirgate-flee-not-free",
       "weirgate-crank-right",
       "weirgate-mace-wrong",
+      "weirgate-grate-broken",
       "weirgate-alarm-said",
       "weirgate-alarm-not-quieted",
       "weirgate-counterweight-strength",
@@ -64,8 +65,8 @@ test("the release cases play the shipped Weirgate with Ada at level 3", async ()
       "weirgate-way-back",
     ],
   );
-  for (const sample of FIFTH_RELEASE_DM_CASES) {
-    const session = setUpCase(sample, adventure, FIFTH_RELEASE_DM_CHARACTER);
+  for (const sample of FIFTH_WEIRGATE_DM_CASES) {
+    const session = setUpCase(sample, adventure, FIFTH_WEIRGATE_DM_CHARACTER);
     assert.equal(session.character.level, 3, sample.id);
     assert.equal(session.state.status, "playing", sample.id);
     assert.ok(offeredToolsMatchActions(session), sample.id);
@@ -73,9 +74,9 @@ test("the release cases play the shipped Weirgate with Ada at level 3", async ()
 });
 
 test("each case's setup holds the mechanic it is about", async () => {
-  const adventure = await loadFifthReleaseEvaluationAdventure();
+  const adventure = await loadFifthWeirgateEvaluationAdventure();
   const set = (id) =>
-    setUpCase(byId(id), adventure, FIFTH_RELEASE_DM_CHARACTER);
+    setUpCase(byId(id), adventure, FIFTH_WEIRGATE_DM_CHARACTER);
   const scene = (id) => {
     const session = set(id);
     return session.runtime.projectDmScene(session.state);
@@ -98,6 +99,16 @@ test("each case's setup holds the mechanic it is about", async () => {
   // The drain gear takes the crank, and nothing else Ada carries.
   assert.match(tools("weirgate-crank-right"), /drain-gear:windlass-crank/u);
   assert.doesNotMatch(tools("weirgate-mace-wrong"), /drain-gear:mace/u);
+
+  // Breaking the grate, as the AI DM is asked to, rings the weir bell.
+  const breaking = set("weirgate-grate-broken");
+  assert.match(tools("weirgate-grate-broken"), /iron-grate/u);
+  assert.equal(
+    breaking.act({ type: "break", doorId: "iron-grate" }, "click").result
+      .rejection,
+    undefined,
+  );
+  assert.ok(breaking.state.flags.includes("bell-rung"));
 
   // The weir bell rang when the grate broke noisily.
   const alarmed = set("weirgate-alarm-said");
@@ -135,13 +146,13 @@ test("each case's setup holds the mechanic it is about", async () => {
 });
 
 test("the release cases pass with a scripted DM", async () => {
-  const adventure = await loadFifthReleaseEvaluationAdventure();
+  const adventure = await loadFifthWeirgateEvaluationAdventure();
   const report = await runFifthDmEvaluation({
     requestedModel: "scripted",
     repetitions: 1,
-    cases: FIFTH_RELEASE_DM_CASES,
+    cases: FIFTH_WEIRGATE_DM_CASES,
     adventure,
-    character: FIFTH_RELEASE_DM_CHARACTER,
+    character: FIFTH_WEIRGATE_DM_CHARACTER,
     createModel: (sample) => {
       let next = 0;
       return {
@@ -151,7 +162,7 @@ test("the release cases pass with a scripted DM", async () => {
       };
     },
     manualJudgments: Object.fromEntries(
-      FIFTH_RELEASE_DM_CASES.map((sample) => [
+      FIFTH_WEIRGATE_DM_CASES.map((sample) => [
         sample.id,
         {
           1: Object.fromEntries(sample.manualJudgments.map((id) => [id, true])),
@@ -168,14 +179,14 @@ test("the release cases pass with a scripted DM", async () => {
 });
 
 test("a DM that uses the wrong item on the drain gear fails the case", async () => {
-  const adventure = await loadFifthReleaseEvaluationAdventure();
+  const adventure = await loadFifthWeirgateEvaluationAdventure();
   const sample = byId("weirgate-mace-wrong");
   const report = await runFifthDmEvaluation({
     requestedModel: "scripted",
     repetitions: 1,
     cases: [sample],
     adventure,
-    character: FIFTH_RELEASE_DM_CHARACTER,
+    character: FIFTH_WEIRGATE_DM_CHARACTER,
     createModel: () => {
       let next = 0;
       const responses = [

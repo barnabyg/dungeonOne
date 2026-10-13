@@ -32,6 +32,7 @@ import {
   type FifthAdventure,
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
+import { type CharacterSheet } from "./character-5e.js";
 import { startFifthBrowserServer } from "./browser-5e-server.js";
 import {
   createDmCallBudget,
@@ -47,7 +48,6 @@ import {
   type FifthAction,
 } from "./runtime-5e.js";
 import { FifthSession } from "./session-5e.js";
-import { type CharacterSheet } from "./character-5e.js";
 import {
   TEST_FIGHTER,
   TEST_FIGHTER_CHOICES,
@@ -2009,10 +2009,10 @@ export const FIFTH_MEMORY_DM_CASES: readonly FifthDmCase[] = Object.freeze([
 ]);
 
 /**
- * The release module the release cases (#413) play: The Coldwater
- * Weirgate, as it ships.
+ * The module the Weirgate cases (#413) play: The Coldwater Weirgate, the
+ * increment 17 release module, as it ships.
  */
-export function loadFifthReleaseEvaluationAdventure(): Promise<FifthAdventure> {
+export function loadFifthWeirgateEvaluationAdventure(): Promise<FifthAdventure> {
   return loadFifthAdventure(
     fileURLToPath(
       new URL("../adventures/5e/coldwater-weirgate.json", import.meta.url),
@@ -2021,7 +2021,7 @@ export function loadFifthReleaseEvaluationAdventure(): Promise<FifthAdventure> {
 }
 
 /** Ada at level 3, the Weirgate's only level (D7). */
-export const FIFTH_RELEASE_DM_CHARACTER: CharacterSheet = testFighterAt(3);
+export const FIFTH_WEIRGATE_DM_CHARACTER: CharacterSheet = testFighterAt(3);
 
 // Setups, all with level-3 Ada from the Towpath Gate. Seed 0: she walks
 // into Brindle's larder, and the wolf's fight is on.
@@ -2058,10 +2058,13 @@ const toGrisk = [
 // Seed 266: Larrow is friendly and lets her pass; at the Stair Head her
 // try to break the grate fails by 5 or more, and the weir bell rings. She
 // looks at the bell-line, which lets her Tactical Mind offer go.
-const bellRung = [
+const toGrate = [
   { type: "move", destinationId: "toll-hall" },
   { type: "react", option: "let-pass" },
   { type: "move", destinationId: "stair-head" },
+] as const;
+const bellRung = [
+  ...toGrate,
   { type: "break", doorId: "iron-grate" },
   { type: "examine", targetId: "bell-line" },
 ] as const;
@@ -2069,14 +2072,15 @@ const bellRung = [
 /**
  * The release module (#413), The Coldwater Weirgate, played by Ada at level
  * 3: the AI DM flees a fight by a way out, never without the attacks it
- * draws, turns the drain gear with the crank and with nothing else, says
- * the weir bell's alarm only as the scene does and never quiets it, drops
- * the counterweight on Grisk by the approach the player's words pick out
- * but uses no feature from another room, says the omen heard, and from the
- * Culverts recalls what the keeper's ledger in the Keep said and heads back
- * there by the right way.
+ * draws, turns the drain gear with the crank and with nothing else, breaks
+ * the grate when asked (which, on its seed, rings the weir bell), says the
+ * alarm only as the scene does and never quiets it, drops the counterweight
+ * on Grisk by the approach the player's words pick out but uses no feature
+ * from another room, says the omen heard, and from the Culverts recalls
+ * what the keeper's ledger in the Keep said and heads back there by the
+ * right way.
  */
-export const FIFTH_RELEASE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+export const FIFTH_WEIRGATE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   actionCase({
     id: "weirgate-flee",
     seed: 0,
@@ -2087,8 +2091,9 @@ export const FIFTH_RELEASE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["synonym-accuracy"],
     manualJudgments: [],
   }),
-  // Not a way that isn't there: the Towpath Gate is a known room one step
-  // past the yard, so fleeing to the yard toward it is right (#406).
+  // Fleeing draws the wolf's attack (D1). Not "flee to the Towpath Gate":
+  // it is a known room one step past the yard, so fleeing to the yard
+  // toward it is right (#406), not a refusal.
   quietCase({
     id: "weirgate-flee-not-free",
     kind: "refusal",
@@ -2119,9 +2124,18 @@ export const FIFTH_RELEASE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     setup: toSluiceWithCrank,
     playerInput:
       "I jam the haft of my mace into the gear's socket and lever it round.",
-    reply:
-      "The mace's haft doesn't fit the square socket: it was made for a crank.",
+    reply: "Jamming the mace in does nothing now: the gear doesn't turn.",
     dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-grate-broken",
+    seed: 266,
+    setup: toGrate,
+    playerInput: "I throw my weight against the grate and smash it open.",
+    name: "break_door",
+    arguments: { door: "iron-grate" },
+    dimensions: ["clear-accuracy"],
     manualJudgments: [],
   }),
   quietCase({

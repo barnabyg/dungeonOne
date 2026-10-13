@@ -20,9 +20,9 @@ import {
   loadFifthWanderingEvaluationAdventure,
   FIFTH_MEMORY_DM_CASES,
   loadFifthMemoryEvaluationAdventure,
-  FIFTH_RELEASE_DM_CASES,
-  FIFTH_RELEASE_DM_CHARACTER,
-  loadFifthReleaseEvaluationAdventure,
+  FIFTH_WEIRGATE_DM_CASES,
+  FIFTH_WEIRGATE_DM_CHARACTER,
+  loadFifthWeirgateEvaluationAdventure,
   loadFifthParleyEvaluationAdventure,
   loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
@@ -227,9 +227,9 @@ try {
     },
     // The release module (#413) is for level 3 only.
     weirgate: {
-      cases: FIFTH_RELEASE_DM_CASES,
-      load: loadFifthReleaseEvaluationAdventure,
-      character: FIFTH_RELEASE_DM_CHARACTER,
+      cases: FIFTH_WEIRGATE_DM_CASES,
+      load: loadFifthWeirgateEvaluationAdventure,
+      character: FIFTH_WEIRGATE_DM_CHARACTER,
     },
   };
   const suite = suites[configuration.suite];
