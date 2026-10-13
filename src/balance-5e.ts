@@ -811,6 +811,8 @@ export type BalanceFailureCode =
   | "unfollowable-route"
   /** A region sweep (#408) that can't reach one of its rooms. */
   | "unsweepable-region"
+  /** A route (#408) whose required path passes an avoidable room. */
+  | "avoidable-on-route"
   | "unsupported-action"
   | "step-limit"
   | "stranded"
@@ -3992,6 +3994,27 @@ export function gateAdventure(
     const offFewest = (along: FifthRoute | RegionSweep) =>
       JSON.stringify(requiredPath(adventure, along).roomIds) !== fewest;
     const routes = adventure.routes ?? [];
+    // D8 (#408): an avoidable room lies off every route's required path,
+    // the rooms between those it names too, or off the fewest-fights
+    // route's when it declares none.
+    const avoidable = new Set(
+      adventure.rooms.flatMap(({ id, avoidable: off }) =>
+        off === true ? [id] : [],
+      ),
+    );
+    if (avoidable.size > 0) {
+      for (const route of routes.length === 0 ? [undefined] : routes) {
+        const passed = requiredPath(adventure, route).roomIds.find((roomId) =>
+          avoidable.has(roomId),
+        );
+        if (passed !== undefined) {
+          throw new BalanceError(
+            "avoidable-on-route",
+            `${adventure.id}: room ${passed} is avoidable, but ${route === undefined ? "the fewest-fights route" : `route ${route.id} (${route.name})`} passes it: an avoidable room must lie off every declared route.`,
+          );
+        }
+      }
+    }
     const sweeps = regionSweeps(adventure);
     const ways = [
       ...routes.map((route) => ({ along: { route }, off: offFewest(route) })),

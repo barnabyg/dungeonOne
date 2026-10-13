@@ -246,3 +246,44 @@ test("modules without regions, or not long, are not swept", () => {
     assert.doesNotMatch(renderGateResult(module, result), /Sweep of/u);
   }
 });
+
+test("the gate fails a module whose route passes an avoidable room on its way", () => {
+  // A route to a Bone Pit beyond the lair names only the pit, but must
+  // pass the lair to get there.
+  const module = lairTunnelsFile({
+    avoidable: true,
+    routes: [{ id: "pit", name: "by the bone pit", rooms: ["bone-pit"] }],
+  });
+  module.rooms.push({
+    id: "bone-pit",
+    name: "Bone Pit",
+    description: "A pit heaped with old bones.",
+    region: "upper",
+    features: [],
+    items: [],
+  });
+  module.passages.push({
+    id: "lair-to-pit",
+    between: ["lair", "bone-pit"],
+    description: "A drop at the back of the lair.",
+  });
+  assert.deepEqual(
+    gateAdventure(validateModule(module), GATE_OPTIONS).failure,
+    {
+      code: "avoidable-on-route",
+      message:
+        "lair-tunnels: room lair is avoidable, but route pit (by the bone pit) passes it: an avoidable room must lie off every declared route.",
+    },
+  );
+  // Without declared routes, the fewest-fights route is the one judged.
+  const cellar = structuredClone(longTunnelsFile);
+  room(cellar, "rat-cellar").avoidable = true;
+  assert.deepEqual(
+    gateAdventure(validateModule(cellar), GATE_OPTIONS).failure,
+    {
+      code: "avoidable-on-route",
+      message:
+        "long-tunnels: room rat-cellar is avoidable, but the fewest-fights route passes it: an avoidable room must lie off every declared route.",
+    },
+  );
+});
