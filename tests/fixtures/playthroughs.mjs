@@ -25,6 +25,7 @@ import { gemMarket } from "./gem-market.mjs";
 import { vela } from "./level-5-wizard.mjs";
 import {
   alarmTunnels,
+  wanderingTunnels,
   FIXTURE_MODULES,
   goblinBand,
   goblinTrio,
@@ -308,7 +309,8 @@ const AREAS = {
  * Slow (#344), against the trio and the band (#348); then the snake door,
  * whose stone snake fits a door (#400); then the statue cellar, whose
  * statue may be toppled onto a rat (#402); then the alarmed tunnels, whose
- * noise raises an alarm (#401).
+ * noise raises an alarm (#401); then the wandering tunnels, whose regions
+ * roll wandering encounter tables (#403).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -334,6 +336,7 @@ const PLAYTHROUGHS = [
   { adventure: snakeDoor, fighters: [ada] },
   { adventure: statueCellar, fighters: [ada] },
   { adventure: alarmTunnels, fighters: [ada] },
+  { adventure: wanderingTunnels, fighters: [ada] },
 ];
 
 /**

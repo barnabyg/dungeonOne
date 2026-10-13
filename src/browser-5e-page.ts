@@ -1424,7 +1424,7 @@ function compactRoll(group) {
       node.append(group.roller + " ", ...diceChips(group), " off");
       break;
     case "wandering":
-      // A rest's d100 against the wandering encounter's chance (#335).
+      // A d100 against a wandering encounter table's chance (#335, #403).
       node.append(...diceChips(group), " vs " + group.dc + " or less");
       break;
     case "duplicates":
@@ -1462,9 +1462,9 @@ function compactLine(line) {
     const reaction = line.rolls[0];
     node.append(who(reaction.roller), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
   } else if (line.rolls[0].purpose === "wandering") {
-    // A rest's d100 (#335): whether the wandering encounter came.
+    // A wandering encounter table's d100 (#335, #403): whether a fight came.
     const watch = line.rolls[0];
-    node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Interrupted" : "Undisturbed", "tag " + watch.outcome), " ", compactRoll(watch));
+    node.append(make("span", watch.label, "roll-label"), " ", make("span", watch.outcome === "success" ? "Comes" : "Stays away", "tag " + watch.outcome), " ", compactRoll(watch));
   } else if (line.rolls[0].purpose === "damage") {
     node.append(who(line.rolls[0].roller, line.rolls[0].target), " ", compactRoll(line.rolls[0]));
   } else {

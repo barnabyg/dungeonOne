@@ -983,6 +983,80 @@ export const alarmTunnelsFile = (() => {
 })();
 export const alarmTunnels = validateModule(structuredClone(alarmTunnelsFile));
 
+/**
+ * Wandering encounter tables by region (#403): the two-level tunnels as
+ * _The Wandering Tunnels_, level 1, hard, with a quiet Landing between the
+ * cellar and the den. The Upper Tunnels' table rolls on every move there
+ * (chance 100), and its one entry is an omen, a chain clinking far above;
+ * the alcove is a rest site, where rests roll it too. The Lower Tunnels'
+ * table rolls on every move there (chance 100): 1–50 a Prowling Rat (a
+ * Giant Rat, 25 XP), which comes once and is then claws skittering in the
+ * dark, and 51–100 water dripping. A move that meets the cellar's or the
+ * den's fight loses its roll, so the rat comes, if at all, on the Landing.
+ */
+export const wanderingTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "wandering-tunnels";
+  module.title = "The Wandering Tunnels";
+  module.regions[0].wandering = {
+    chance: 100,
+    every: 1,
+    entries: [
+      { omen: "Far above, a chain clinks against stone, then is still." },
+    ],
+  };
+  module.regions[1].wandering = {
+    chance: 100,
+    every: 1,
+    entries: [
+      {
+        encounterId: "prowling-rat",
+        omen: "Claws skitter somewhere in the dark, then fade.",
+      },
+      { omen: "Water drips steadily from the vaulted ceiling." },
+    ],
+  };
+  room(module, "alcove").restSite = true;
+  module.rooms.push({
+    id: "landing",
+    name: "Landing",
+    description: "A wide step in the tunnel, worn smooth by many feet.",
+    region: "lower",
+    features: [],
+    items: [],
+  });
+  module.passages = module.passages.filter(({ id }) => id !== "cellar-to-den");
+  module.passages.push(
+    {
+      id: "cellar-to-landing",
+      between: ["rat-cellar", "landing"],
+      description: "A sagging wooden door, ajar.",
+    },
+    {
+      id: "landing-to-den",
+      between: ["landing", "den"],
+      description: "An archway hung with a ragged curtain.",
+    },
+  );
+  const rat = module.encounters[0].opponents[0];
+  module.encounters.push({
+    id: "prowling-rat",
+    opponents: [
+      {
+        ...structuredClone(rat),
+        id: "prowler",
+        name: "Prowling Rat",
+        description: "A rat the size of a dog noses out of the dark.",
+      },
+    ],
+    defeatEndingId: "fallen-in-the-cellar",
+  });
+  return module;
+})();
+export const wanderingTunnels = validateModule(
+  structuredClone(wanderingTunnelsFile),
+);
+
 export const FIXTURE_MODULES = [
   loneGoblin,
   goblinBand,

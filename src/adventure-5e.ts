@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 38) and its validator.
+ * The 5e adventure module format (format version 39) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -106,6 +106,14 @@
  * changes is authored with flag conditions, and its `text` is how the room
  * panel says it has been raised. Nothing else may set its flag, and
  * reachability never counts it as set for sure.
+ *
+ * A region may have a wandering encounter table (#403) of up to six
+ * entries, each an encounter in no room or an omen (words only). Every
+ * `every` moves within the region, on each rest there and when the alarm
+ * is raised there, the engine rolls its chance. A module's single
+ * `wanderingEncounter` (#335) is a one-entry table rolled only on rests; a
+ * module has that or region tables, never both. Wandering encounters count
+ * against the module's 30 encounters.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -221,12 +229,18 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 38;
+export const FIFTH_ADVENTURE_FORMAT = 39;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
 /** The most regions one module may declare (#395). */
 const MAX_REGIONS = 10;
+/** The most encounters one module may have, wandering ones included (D5). */
+export const MAX_ENCOUNTERS = 30;
+/** The most entries a region's wandering encounter table may have (#403). */
+export const MAX_WANDERING_ENTRIES = 6;
+/** The most moves within a region between its table's rolls (#403). */
+export const MAX_WANDERING_EVERY = 20;
 /** The most flags one module may declare (#397). */
 const MAX_FLAGS = 30;
 /** The encounter outcomes that may set a flag (#397). */
@@ -1006,7 +1020,34 @@ export type FifthRoom = Readonly<{
  * rooms, not a place on a map. In a module with regions every room belongs
  * to one, and every region has a room.
  */
-export type FifthRegion = Readonly<{ id: string; name: string }>;
+export type FifthRegion = Readonly<{
+  id: string;
+  name: string;
+  /** Its wandering encounter table (#403), if it has one. */
+  wandering?: WanderingTable;
+}>;
+
+/**
+ * A region's wandering encounter table (#403). Every `every` moves within
+ * the region (never, without it), on each rest in it and when the alarm is
+ * raised in it, a d100 is rolled: at `chance` or less one entry comes, the
+ * entries sharing the chance equally in order (with chance 30 and three
+ * entries, 1–10 the first, 11–20 the second, 21–30 the third).
+ */
+export type WanderingTable = Readonly<{
+  chance: number;
+  every?: number;
+  entries: readonly WanderingEntry[];
+}>;
+
+/**
+ * An entry of a wandering encounter table (#403): an encounter in no room,
+ * whose fight comes at most once and is then the omen its words say; or
+ * an omen alone, words that may come again and again.
+ */
+export type WanderingEntry = Readonly<
+  { encounterId: string; omen: string } | { omen: string }
+>;
 
 /**
  * A shut door in a passage. A stuck door is forced open; a locked one opens
@@ -1106,7 +1147,8 @@ export type FifthAdventure = Readonly<{
    * The one encounter that can interrupt a rest (#335): each short or long
    * rest rolls a d100, and on `chance` or less the rest restores nothing and
    * this encounter's fight begins where the character rests. It fires at
-   * most once. It is in no room. Without one, no rest is interrupted.
+   * most once. It is in no room. It is a one-entry wandering table rolled
+   * only on rests (#403), and a module with it has no region tables.
    */
   wanderingEncounter?: WanderingEncounter;
 }>;
@@ -2230,7 +2272,7 @@ function validateModule(
   };
   /** The treasure type of each opponent that names a bestiary monster. */
   const treasureTypes = new Map<FifthOpponent, TreasureTypeId>();
-  const encounters = list(module.encounters, "encounters", 20).map(
+  const encounters = list(module.encounters, "encounters", MAX_ENCOUNTERS).map(
     (entry, index) => {
       const where = `encounter ${index + 1}`;
       const encounter = knownKeys(
@@ -2485,10 +2527,14 @@ function validateModule(
       ? undefined
       : list(module.regions, "regions", MAX_REGIONS).map((entry, index) => {
           const where = `region ${index + 1}`;
-          const region = exactKeys(entry, ["id", "name"], where);
+          const region = knownKeys(entry, ["id", "name"], ["wandering"], where);
+          const regionId = id(region.id, `${where} id`);
           return {
-            id: id(region.id, `${where} id`),
+            id: regionId,
             name: text(region.name, `${where} name`, 60),
+            ...(region.wandering === undefined
+              ? {}
+              : { wandering: wanderingTable(region.wandering, regionId) }),
           };
         });
   const regionIds = unique(regions ?? [], "region");
@@ -2870,11 +2916,45 @@ function validateModule(
     encounters,
     rooms,
   );
+  // Region tables (#403): each fight entry names a wandering encounter as
+  // the module's one does, and each wandering encounter is in one table.
+  const tabled = (regions ?? []).flatMap(({ id: regionId, wandering: table }) =>
+    (table?.entries ?? []).flatMap((entry) =>
+      "encounterId" in entry
+        ? [{ regionId, encounterId: entry.encounterId }]
+        : [],
+    ),
+  );
+  if (
+    wanderingEncounter !== undefined &&
+    (regions ?? []).some(({ wandering: table }) => table !== undefined)
+  ) {
+    fail(
+      "a module has a wanderingEncounter or regions with wandering tables, not both.",
+    );
+  }
+  for (const { regionId, encounterId } of tabled) {
+    wanderer(
+      encounterId,
+      encounters,
+      rooms,
+      `region ${regionId}'s wandering table`,
+    );
+  }
+  distinct(
+    tabled,
+    ({ encounterId }) => encounterId,
+    ({ encounterId }) =>
+      `wandering encounter ${encounterId} is in more than one wandering table entry.`,
+  );
+  const wanderers = new Set([
+    ...(wanderingEncounter === undefined
+      ? []
+      : [wanderingEncounter.encounterId]),
+    ...tabled.map(({ encounterId }) => encounterId),
+  ]);
   for (const { id: encounterId } of encounters) {
-    if (
-      !placed.includes(encounterId) &&
-      encounterId !== wanderingEncounter?.encounterId
-    ) {
+    if (!placed.includes(encounterId) && !wanderers.has(encounterId)) {
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
@@ -3419,7 +3499,13 @@ function validateModule(
       ({ id: fightId, movesTo }) =>
         fightId === encounterId ||
         movesTo?.roomId === roomId ||
-        (restSite === true && fightId === wanderingEncounter?.encounterId),
+        (restSite === true && fightId === wanderingEncounter?.encounterId) ||
+        // A region's wandering encounters (#403) may come anywhere in it.
+        tabled.some(
+          (entry) =>
+            entry.encounterId === fightId &&
+            entry.regionId === rooms.find(({ id }) => id === roomId)?.region,
+        ),
     );
     for (const { id: featureId, fightAction } of features) {
       if (fightAction === undefined) {
@@ -4168,9 +4254,63 @@ function wandering(
   }
   const raw = exactKeys(value, ["encounterId", "chance"], "wanderingEncounter");
   const encounterId = id(raw.encounterId, "wanderingEncounter encounterId");
+  wanderer(encounterId, encounters, rooms, "wanderingEncounter");
+  return {
+    encounterId,
+    chance: integer(raw.chance, "wanderingEncounter chance", 1, 100),
+  };
+}
+
+/**
+ * A region's wandering encounter table (#403), its shape validated: a
+ * chance of 1–100, at least one for each entry so each can come; `every`,
+ * if given, 1–`MAX_WANDERING_EVERY` moves; and 1–`MAX_WANDERING_ENTRIES`
+ * entries, each an omen's words, with the encounter it names until its
+ * fight has come. The encounters are checked once the rooms are read.
+ */
+function wanderingTable(value: unknown, regionId: string): WanderingTable {
+  const where = `region ${regionId}'s wandering table`;
+  const raw = knownKeys(value, ["chance", "entries"], ["every"], where);
+  const entries = list(raw.entries, `${where} entries`, MAX_WANDERING_ENTRIES);
+  const chance = integer(raw.chance, `${where} chance`, 1, 100);
+  if (chance < entries.length) {
+    fail(
+      `${where} has ${entries.length} entries but a chance of ${chance}: each entry needs at least 1 of the d100.`,
+    );
+  }
+  return {
+    chance,
+    ...(raw.every === undefined
+      ? {}
+      : {
+          every: integer(raw.every, `${where} every`, 1, MAX_WANDERING_EVERY),
+        }),
+    entries: entries.map((entry, index) => {
+      const on = `${where} entry ${index + 1}`;
+      const read = knownKeys(entry, ["omen"], ["encounterId"], on);
+      const omen = text(read.omen, `${on} omen`, 200);
+      return read.encounterId === undefined
+        ? { omen }
+        : { encounterId: id(read.encounterId, `${on} encounterId`), omen };
+    }),
+  };
+}
+
+/**
+ * Checks that encounter `encounterId`, named by `by`, can wander (#335,
+ * #403): it is in no room, its fight can't end the adventure in victory,
+ * no one sneaks past or up on it, it never lies in wait or reacts, it
+ * never appears, vanishes or moves, and its opponents never surrender.
+ */
+function wanderer(
+  encounterId: string,
+  encounters: readonly FifthEncounter[],
+  rooms: readonly FifthRoom[],
+  by: string,
+): void {
   const fight = encounters.find(({ id: entry }) => entry === encounterId);
   if (fight === undefined) {
-    fail(`wanderingEncounter names unknown encounter ${encounterId}.`);
+    fail(`${by} names unknown encounter ${encounterId}.`);
   }
   const where = `wandering encounter ${encounterId}`;
   const placedIn = rooms.find((entry) => entry.encounterId === encounterId);
@@ -4204,10 +4344,6 @@ function wandering(
       );
     }
   }
-  return {
-    encounterId,
-    chance: integer(raw.chance, "wanderingEncounter chance", 1, 100),
-  };
 }
 
 /** A digest of the validated module, so a session can tell if it changed. */

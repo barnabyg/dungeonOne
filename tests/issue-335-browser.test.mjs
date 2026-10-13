@@ -191,7 +191,7 @@ test(
       assert.ok(interrupted.state.character.hp <= before);
       assert.equal(interrupted.state.shortRests, 0);
       assert.equal(interrupted.state.character.hitDice, 1);
-      assert.equal(interrupted.state.wandering, true);
+      assert.equal(interrupted.state.wandering, "prowling-rat");
       assert.deepEqual(interrupted.transitions.at(-1).action, {
         type: "rest",
         hitDice: 1,

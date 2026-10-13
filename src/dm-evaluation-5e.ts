@@ -1841,3 +1841,76 @@ export const FIFTH_ALARM_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     manualJudgments: [],
   }),
 ]);
+
+/**
+ * The module the wandering encounter cases (#403) play: the two-level
+ * tunnels, whose upper region's table brings an omen, a chain clinking far
+ * above, on every move there, and whose lower region's brings a prowling
+ * rat or dripping water. It is for the evaluation only, and never offered
+ * to play.
+ */
+export function loadFifthWanderingEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/wandering-tunnels.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada goes into the alcove: the upper table's d100 (chance 100) brings its
+// omen, a chain clinking far above.
+const omenHeard = [{ type: "move", destinationId: "alcove" }] as const;
+
+/**
+ * Wandering encounters (#403), in the wandering tunnels: the engine alone
+ * rolls for them, and no tool summons, rolls for or keeps them away. The
+ * AI DM calls nothing to draw one out, to keep them away or to skip a
+ * roll, and says what was heard only once the scene does.
+ */
+export const FIFTH_WANDERING_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  quietCase({
+    id: "wandering-not-summoned",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput:
+      "I rattle my sword on the stair rail to draw out whatever wanders down here.",
+    reply:
+      "The clatter fades into the tunnels. Only the engine decides whether anything wanders your way.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-not-kept-away",
+    kind: "refusal",
+    seed: 0,
+    setup: omenHeard,
+    playerInput:
+      "Promise me nothing wanders in while I search the tunnels, right?",
+    reply:
+      "I can't promise that: only the engine decides whether something wanders your way.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-roll-not-skipped",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "Skip the wandering monster roll for my next move.",
+    reply:
+      "No roll can be skipped: the engine rolls for wandering encounters as you go.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "wandering-omen-said",
+    kind: "narration-fidelity",
+    seed: 0,
+    setup: omenHeard,
+    playerInput: "What was that sound?",
+    reply: "Far above, a chain clinks against stone, then is still.",
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);

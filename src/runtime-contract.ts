@@ -44,6 +44,11 @@ export type DmScene = Readonly<{
   outcome: RuntimeStatus;
   /** For a runtime with alarms: that the alarm is raised, in the adventure's words. */
   alarm?: string;
+  /**
+   * For a runtime with wandering encounters: what last wandered into the
+   * room, a fight that came or an omen heard, until the character moves on.
+   */
+  wandering?: string;
   room: Readonly<{
     id: string;
     name: string;
