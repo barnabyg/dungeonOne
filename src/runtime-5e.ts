@@ -11294,7 +11294,8 @@ export function createFifthRuntime(
       check: AuthoredCheck | undefined,
       site: CheckSite,
     ): readonly ActionView[] => {
-      // A check only thieves' tools can make isn't offered without them (#309).
+      // Nothing for a kind not asked for or a site not aimed at (#410); and a
+      // check only thieves' tools can make isn't offered without them (#309).
       if (
         !asked(kind) ||
         (targets !== undefined && !targets.has(target.id)) ||

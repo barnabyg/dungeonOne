@@ -1276,7 +1276,9 @@ function routePlanner(
   adventure: FifthAdventure,
   talking = false,
 ): ReturnType<typeof newRoutePlanner> {
-  const planners = ROUTE_PLANNERS.get(adventure) ?? new Map();
+  const planners =
+    ROUTE_PLANNERS.get(adventure) ??
+    new Map<boolean, ReturnType<typeof newRoutePlanner>>();
   ROUTE_PLANNERS.set(adventure, planners);
   let planner = planners.get(talking);
   if (planner === undefined) {
@@ -1373,7 +1375,9 @@ function requiredRooms(
   adventure: FifthAdventure,
   along: FifthRoute | RegionSweep | undefined,
 ): ReadonlySet<string> {
-  const paths = REQUIRED_ROOMS.get(adventure) ?? new Map();
+  const paths =
+    REQUIRED_ROOMS.get(adventure) ??
+    new Map<FifthRoute | RegionSweep | undefined, ReadonlySet<string>>();
   REQUIRED_ROOMS.set(adventure, paths);
   let rooms = paths.get(along);
   if (rooms === undefined) {

@@ -47,23 +47,20 @@ test("a projection of chosen kinds is the full projection's entries of those kin
     new Set(["sneak", "rest", "long-rest", "force", "talk", "buy", "equip"]),
   ];
   let checked = 0;
-  for (const [index, { runtime, state }] of [
-    ...playthroughStates(),
-  ].entries()) {
-    const kinds = kindSets[index % kindSets.length];
+  for (const { runtime, state } of playthroughStates()) {
     // A fresh copy, so neither projection reuses the other's cache.
     const full = runtime.projectActions({ ...state });
-    const chosen = runtime.projectActions({ ...state }, kinds);
-    assert.deepEqual(
-      chosen,
-      full.filter(({ action }) => kinds.has(action)),
-    );
-    // The chosen entries stand for the same engine actions.
-    for (const [i, entry] of chosen.entries()) {
-      assert.deepEqual(
-        runtime.actionOf(entry),
-        runtime.actionOf(full.filter(({ action }) => kinds.has(action))[i]),
-      );
+    for (const kinds of kindSets) {
+      const chosen = runtime.projectActions({ ...state }, kinds);
+      const expected = full.filter(({ action }) => kinds.has(action));
+      assert.deepEqual(chosen, expected);
+      // The chosen entries stand for the same engine actions.
+      for (const [i, entry] of chosen.entries()) {
+        assert.deepEqual(
+          runtime.actionOf(entry),
+          runtime.actionOf(expected[i]),
+        );
+      }
     }
     checked += 1;
   }
