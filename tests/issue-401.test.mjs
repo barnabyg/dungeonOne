@@ -519,6 +519,85 @@ test("a reload replays the alarm and what raised it, and a trace records it", as
   }
 });
 
+test("a noisy band names its own kind of check: forcing a door, disarming a trap", () => {
+  // A dead-end store room off the stair foot, behind a door and a trap.
+  const module = structuredClone(alarmTunnelsFile);
+  module.rooms.push({
+    id: "store",
+    name: "Store",
+    description: "A bare store cut into the rock.",
+    features: [],
+    items: [],
+    region: "upper",
+  });
+  const passage = {
+    id: "stair-to-store",
+    between: ["stair-foot", "store"],
+    description: "A narrow gap.",
+  };
+  module.passages.push(passage);
+  passage.door = {
+    id: "warped-door",
+    name: "Warped Door",
+    description: "A door swollen tight in its frame.",
+    state: "stuck",
+    force: {
+      skill: "athletics",
+      dc: 12,
+      bands: {
+        "failure-by-5": {
+          text: "The door shrieks on its hinges.",
+          noisy: true,
+        },
+      },
+    },
+  };
+  passage.trap = {
+    id: "tin-wire",
+    name: "Tin Wire",
+    description: "A wire strung with tin cups across the gap.",
+    find: { dc: 10 },
+    disarm: {
+      ability: "dexterity",
+      dc: 12,
+      bands: {
+        "failure-by-5": { text: "The cups clatter to the floor.", noisy: true },
+      },
+    },
+    trigger: "The wire snags your ankle and you fall.",
+    save: { ability: "dexterity", dc: 10 },
+    damage: { dice: 1, sides: 4, modifier: 0, type: "bludgeoning" },
+    defeatEndingId: "fallen-in-the-cellar",
+  };
+  const loud = createFifthRuntime(validateModule(module), TEST_FIGHTER);
+  const forced = accepted(
+    loud,
+    loud.createSession(),
+    { type: "force", doorId: "warped-door" },
+    steady(1),
+  );
+  assert.match(
+    renderFifthResult(forced),
+    /The alarm is raised by forcing the Warped Door \(failure by 5 or more\)\./u,
+  );
+  const searched = accepted(
+    loud,
+    loud.createSession(),
+    { type: "search", roomId: "stair-foot" },
+    steady(20, 20),
+  );
+  const disarmed = accepted(
+    loud,
+    searched.state,
+    { type: "disarm", trapId: "tin-wire" },
+    steady(1),
+  );
+  assert.match(
+    renderFifthResult(disarmed),
+    /The alarm is raised by disarming the Tin Wire \(failure by 5 or more\)\./u,
+  );
+});
+
 // The balance harness and the gate.
 
 test("every always-fail run raises the alarm at the crates, takes the crawl and meets the lookout", () => {

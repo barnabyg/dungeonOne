@@ -5570,6 +5570,10 @@ export function createFifthRuntime(
   const siteChecks = new Map(
     authoredChecks(adventure).map((site) => [checkSiteId(site), site.check]),
   );
+  /** Each authored check's site, by the same id (#401). */
+  const authoredSites = new Map(
+    authoredChecks(adventure).map((site) => [checkSiteId(site), site]),
+  );
   /**
    * What the bands of the checks made so far revealed and changed: the
    * features whose discovery they made, the items they revealed and the
@@ -9087,17 +9091,23 @@ export function createFifthRuntime(
     }
   };
 
-  /** A check made, as the alarm's card names it (#401). */
+  /**
+   * A check made, as the alarm's card names it (#401), by its authored
+   * site's own kind: only an authored check's band may be noisy, so a
+   * search (never authored) never raises the alarm.
+   */
   const checkSiteText = (checkId: string): string => {
-    const split = checkId.indexOf(":");
-    const kind = checkId.slice(0, split);
-    const siteId = checkId.slice(split + 1);
-    const door = adventure.passages.find(
-      ({ door: shut }) => shut?.id === siteId,
-    )?.door;
+    const site = authoredSites.get(checkId);
+    if (site === undefined) {
+      return checkId;
+    }
+    const { kind, id } = site;
+    const door = () =>
+      adventure.passages.find(({ door: shut }) => shut?.id === id)?.door
+        ?.name ?? id;
     switch (kind) {
       case "examine":
-        return `examining the ${featureById.get(siteId)?.name ?? siteId}`;
+        return `examining the ${featureById.get(id)?.name ?? id}`;
       case "talk": {
         const topic = [
           ...adventure.rooms.flatMap(({ creatures }) =>
@@ -9106,20 +9116,20 @@ export function createFifthRuntime(
           ...adventure.encounters.flatMap(({ opponents }) =>
             opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
           ),
-        ].find(({ id }) => id === siteId);
-        return `asking about ${topic?.name ?? siteId}`;
+        ].find((entry) => entry.id === id);
+        return `asking about ${topic?.name ?? id}`;
       }
       case "force":
-        return `forcing the ${door?.name ?? siteId}`;
+        return `forcing the ${door()}`;
       case "pick":
-        return `picking the lock of the ${door?.name ?? siteId}`;
+        return `picking the lock of the ${door()}`;
       case "break":
-        return `breaking down the ${door?.name ?? siteId}`;
-      default: {
+        return `breaking down the ${door()}`;
+      case "disarm": {
         const trap = adventure.passages.find(
-          ({ trap: armed }) => armed?.id === siteId,
+          ({ trap: armed }) => armed?.id === id,
         )?.trap;
-        return `disarming the ${trap?.name ?? siteId}`;
+        return `disarming the ${trap?.name ?? id}`;
       }
     }
   };
