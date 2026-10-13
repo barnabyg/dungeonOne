@@ -972,7 +972,7 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
  * passable once a use has opened it, and otherwise the plan fetches the
  * item and then goes to the feature, where the character uses it.
  */
-function routePlanner(adventure: FifthAdventure, talking = false) {
+function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
   const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
   // The hidden passages only a use opens (#400): no band of a check does.
   const bandOpened = new Set(
@@ -997,6 +997,23 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   const unused = (position: Position, passage: FifthPassage) =>
     useOnly.has(passage.id) && !position.usedOpen.includes(passage.id);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
+  /** Each room's passages, in the module's order, with where each leads. */
+  const passagesFrom = new Map<
+    string,
+    Readonly<{ passage: FifthPassage; next: string }>[]
+  >();
+  for (const passage of adventure.passages) {
+    const [a, b] = passage.between;
+    const add = (here: string, next: string) =>
+      passagesFrom.set(here, [
+        ...(passagesFrom.get(here) ?? []),
+        { passage, next },
+      ]);
+    add(a, b);
+    if (b !== a) {
+      add(b, a);
+    }
+  }
   const flagSetters = new Map(
     adventure.rooms.map((room) => [
       room.id,
@@ -1120,15 +1137,12 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
         return path;
       }
       done.add(here);
-      for (const passage of adventure.passages) {
-        const [a, b] = passage.between;
-        const next = a === here ? b : b === here ? a : undefined;
+      for (const { passage, next } of passagesFrom.get(here) ?? []) {
         const keyId = passage.door?.keyItemId;
         const locked =
           keyOnly(passage) &&
           (keyId === undefined || !position.inventory.includes(keyId));
         if (
-          next === undefined ||
           done.has(next) ||
           !enterable(next) ||
           talkOnly.has(passage.id) ||
@@ -1248,6 +1262,30 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   return { plan, roomById, fightIn, encounterAt, roomFlags, flagShut };
 }
 
+/** Each adventure's route planners, not talking and talking (#410). */
+const ROUTE_PLANNERS = new WeakMap<
+  FifthAdventure,
+  Map<boolean, ReturnType<typeof newRoutePlanner>>
+>();
+
+/**
+ * The adventure's route planner (`newRoutePlanner`): worked out once, as
+ * every run plays from the same one (#410).
+ */
+function routePlanner(
+  adventure: FifthAdventure,
+  talking = false,
+): ReturnType<typeof newRoutePlanner> {
+  const planners = ROUTE_PLANNERS.get(adventure) ?? new Map();
+  ROUTE_PLANNERS.set(adventure, planners);
+  let planner = planners.get(talking);
+  if (planner === undefined) {
+    planner = newRoutePlanner(adventure, talking);
+    planners.set(talking, planner);
+  }
+  return planner;
+}
+
 /**
  * A region's sweep (#408): every room of one region of a long module but
  * those marked `avoidable` and the victory room, which the objective
@@ -1319,6 +1357,30 @@ function objectiveOf(adventure: FifthAdventure): Objective {
     : lootRooms(adventure).size > 0
       ? "escape-with-loot"
       : "escape-without-loot";
+}
+
+/** Each adventure's required rooms, by the route or sweep followed (#410). */
+const REQUIRED_ROOMS = new WeakMap<
+  FifthAdventure,
+  Map<FifthRoute | RegionSweep | undefined, ReadonlySet<string>>
+>();
+
+/**
+ * The rooms of `requiredPath` along `along`: worked out once for every
+ * run that follows it (#410).
+ */
+function requiredRooms(
+  adventure: FifthAdventure,
+  along: FifthRoute | RegionSweep | undefined,
+): ReadonlySet<string> {
+  const paths = REQUIRED_ROOMS.get(adventure) ?? new Map();
+  REQUIRED_ROOMS.set(adventure, paths);
+  let rooms = paths.get(along);
+  if (rooms === undefined) {
+    rooms = new Set(requiredPath(adventure, along).roomIds);
+    paths.set(along, rooms);
+  }
+  return rooms;
 }
 
 /**
@@ -2072,7 +2134,7 @@ export function playAdventure(
     }
   }
   const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
-  const required = new Set(requiredPath(adventure, sweep ?? route).roomIds);
+  const required = requiredRooms(adventure, sweep ?? route);
   /** The route's rooms (#407), each passed in turn before the objective. */
   const waypoints = route?.rooms ?? [];
   let passed = 0;
