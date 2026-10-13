@@ -199,6 +199,16 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
+- _The Coldwater Weirgate_ (`adventures/5e/coldwater-weirgate.json`, level 3,
+  Medium): a long module of twenty rooms in two regions, a dead guild's
+  lock-keep and the culverts under it, with a rest site, an exit and
+  wandering monsters in each. River bandits toll the gate, and a goblin boss,
+  Grisk, holds the gear hall below. Go down the keeper's stair, past a locked
+  grate and a bell-wire deadfall, or find the keeper's crank and drain the
+  culvert. Off the way, kobolds will bargain, an ogre sleeps on the guild's
+  strongbox (lure it away with salt pork, flush it out with the lock paddles,
+  or leave it alone), a silted tunnel loops to a drowned vault, and a weir bell
+  rouses the keep if you make too much noise.
 - _The Counting-House on Mallow Quay_ (`adventures/5e/mallow-counting-house.json`,
   levels 3–4, Medium; Hard until #334): six rooms in a burned guild counting-house held by
   goblins. Snikk the Toll-Taker (a Goblin Boss) reacts at the arch: pay his

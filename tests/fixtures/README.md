@@ -185,9 +185,10 @@ locked gate whose key lies in the foreman's desk, two declared routes (by
 the shaft, down the chute), an avoidable room with a fight in each region,
 a rest site in each and a wandering table in the Deep Workings. It
 qualifies as medium for every class. It is not in `FIXTURE_MODULES`.
-`tests/shipped-modules.test.mjs` gates it beside the shipped modules, inside
-the gate's time budget, and pins its figures, until a shipped long module
-(#412) replaces it.
+`tests/shipped-modules.test.mjs` gated it beside the shipped modules, inside
+the gate's time budget, and pinned its figures until the first shipped long
+module, _The Coldwater Weirgate_ (#412), replaced it there.
+`tests/issue-410.test.mjs` still plays it to check the projection.
 
 ## Fleeing a fight (issue 396)
 
