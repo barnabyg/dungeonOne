@@ -218,6 +218,21 @@ required path meets it. It is in the seeded playthroughs;
 cases. `tests/issue-401.test.mjs` and `tests/issue-401-browser.test.mjs` play
 it.
 
+## Wandering encounter tables (issue 403)
+
+`wanderingTunnels` (_The Wandering Tunnels_, from `wanderingTunnelsFile`) is
+the two-level tunnels with a quiet Landing between the cellar and the den and
+a wandering encounter table in each region, each rolled on every move there
+at chance 100. The Upper Tunnels' one entry is an omen (a chain clinking far
+above), and the alcove is a rest site, where rests roll it too; the Lower
+Tunnels' brings a Prowling Rat on 1–50 (once, then claws skittering in the
+dark) and dripping water on 51–100. Moves that meet the cellar's or the den's
+fight lose their roll, so the rat comes, if at all, on the Landing, on seeded
+and always-fail runs alike. It is in the seeded playthroughs;
+`adventures/eval/wandering-tunnels.json` is the same module for the AI DM's
+wandering cases. `tests/issue-403.test.mjs` and
+`tests/issue-403-browser.test.mjs` play it.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

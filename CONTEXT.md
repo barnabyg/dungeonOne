@@ -124,8 +124,12 @@ A room a module marks as a safe place to rest, where a long rest may be taken.
 _Avoid_: Camp, Safe room
 
 **Wandering encounter**:
-The one encounter a module may author to interrupt rests (#335): each rest rolls a d100 against its chance, and on an interruption the rest restores nothing and its fight begins where the character rests. It comes at most once, and is in no room.
-_Avoid_: Random encounter, Ambush
+An encounter in no room that comes upon the character where it is (#335, #403). A region's **wandering encounter table** holds up to six entries, each a wandering encounter or an omen; every authored number of moves within the region, on each rest there and when the alarm is raised there, the engine rolls the table's chance on a d100, which also picks the entry. A wandering encounter's fight comes at most once and is its omen from then on. One that comes on a rest interrupts it, and the rest restores nothing. A module's single `wanderingEncounter` is a one-entry table rolled only on rests. Wandering encounters count against a module's 30 encounters. The AI DM cannot summon, roll for or keep one away.
+_Avoid_: Random encounter, Ambush, Random monster
+
+**Omen**:
+An entry of a wandering encounter table that is words only (#403): a distant chain, wet footsteps. It brings no fight and may come again and again; a wandering encounter that has come is its omen from then on. The card says it, and the AI DM's scene holds it until the character moves on.
+_Avoid_: Clue, Sign, Portent
 
 **Character library**:
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.
