@@ -26,6 +26,7 @@ import {
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
+  type FifthRoute,
   type FifthPassage,
   type MetEncounter,
   type StatBlock,
@@ -805,6 +806,8 @@ function watching(
 /** Why the harness can't qualify a module: a named reason, never a pass. */
 export type BalanceFailureCode =
   | "unreachable-objective"
+  /** A declared route (#407) no style can follow. */
+  | "unfollowable-route"
   | "unsupported-action"
   | "step-limit"
   | "stranded"
@@ -1219,7 +1222,25 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
     settersFrom(position)
       .get(roomId)!
       .map(({ flag }) => flag);
-  return { plan, roomById, fightIn, encounterAt, roomFlags };
+  /**
+   * The passage a flag keeps shut on the way to `targets` from `position`,
+   * when no plan gets there (#407): the first on the way that would be
+   * open with every flag set.
+   */
+  const flagShut = (
+    position: Position,
+    targets: ReadonlySet<string>,
+  ): FifthPassage | undefined => {
+    const keyed = route(position, targets, () => true, "any") ?? [];
+    for (let step = 1; step < keyed.length; step++) {
+      const passage = passageBetween(adventure, keyed[step - 1]!, keyed[step]!);
+      if (unflagged(position, passage)) {
+        return passage;
+      }
+    }
+    return undefined;
+  };
+  return { plan, roomById, fightIn, encounterAt, roomFlags, flagShut };
 }
 
 /** The rooms where winning the fight ends the adventure in victory. */
@@ -1268,19 +1289,30 @@ function objectiveOf(adventure: FifthAdventure): Objective {
  * through a hidden passage that only a topic's check opens (#297): the
  * path is the one a player who never talks must take. Every other room is optional, and
  * so is every fight in one.
+ *
+ * Given a declared `route` (#407), the path first passes the route's rooms
+ * in order, each by the fewest fights from the last, then goes on to the
+ * objective. A route no style can follow throws an `unfollowable-route`
+ * failure naming it and the room no way reaches.
  */
-export function requiredPath(adventure: FifthAdventure): Readonly<{
+export function requiredPath(
+  adventure: FifthAdventure,
+  route?: FifthRoute,
+): Readonly<{
   objective: Objective;
   roomIds: readonly string[];
 }> {
-  const { plan, roomById, encounterAt, roomFlags } = routePlanner(adventure);
+  const { plan, roomById, encounterAt, roomFlags, flagShut } =
+    routePlanner(adventure);
   const objective = objectiveOf(adventure);
-  const legs =
-    objective === "victory"
+  const legs = [
+    ...(route?.rooms ?? []).map((roomId) => new Set([roomId])),
+    ...(objective === "victory"
       ? [victoryRooms(adventure)]
       : objective === "escape-with-loot"
         ? [lootRooms(adventure), exitRooms(adventure)]
-        : [exitRooms(adventure)];
+        : [exitRooms(adventure)]),
+  ];
   const start: Position = {
     roomId: adventure.startRoomId,
     inventory: [],
@@ -1333,18 +1365,34 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     while (!targets.has(position.roomId)) {
       const path = plan(position, targets, () => true);
       if (path === undefined) {
-        // Name talking only when talking would have reached it.
+        // Name talking only when talking would have reached it, and a flag
+        // only when one keeps the way shut (#407).
         const byTalking = routePlanner(adventure, true).plan(
           position,
           targets,
           () => true,
         );
+        const shut = flagShut(position, targets);
+        const why =
+          byTalking !== undefined
+            ? `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}`
+            : shut !== undefined
+              ? `: passage ${shut.id} opens only once flag ${shut.openWhen!} is set, and nothing the character does sets it for sure`
+              : "";
+        if (route === undefined) {
+          throw new BalanceError(
+            "unreachable-objective",
+            `${adventure.id}: no route reaches its ${objective} objective${byTalking === undefined ? "" : why}.`,
+          );
+        }
+        const waypoint = targets.size === 1 ? [...targets][0]! : undefined;
         throw new BalanceError(
-          "unreachable-objective",
-          `${adventure.id}: no route reaches its ${objective} objective` +
-            (byTalking === undefined
-              ? "."
-              : `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}.`),
+          "unfollowable-route",
+          `${adventure.id}: route ${route.id} (${route.name}) can't be followed: ` +
+            (waypoint !== undefined && route.rooms.includes(waypoint)
+              ? `no way reaches room ${waypoint}`
+              : `no way on reaches its ${objective} objective`) +
+            `${why}.`,
         );
       }
       const arrived = roomById.get(path.at(-1)!)!;
@@ -1896,7 +1944,9 @@ function checksMade(
 /**
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
  * starting as a browser session does, with `begin`, answering reaction rolls
- * (#304) by `reactions`, `attack` by default. Throws a `BalanceError`
+ * (#304) by `reactions`, `attack` by default, and on a declared `route`
+ * (#407), passing its rooms in order before the objective, or else on the
+ * fewest-fights route. Throws a `BalanceError`
  * when an opponent has a trait the engine does not apply (the run would not
  * be the fight a player meets), the runtime offers an action no style can
  * play, the run takes more than `stepLimit` actions, or it is stranded:
@@ -1910,11 +1960,14 @@ export function playAdventure(
     stepLimit = 2000,
     reactions = "attack",
     casting = "conserve",
+    route,
   }: Readonly<{
     stepLimit?: number;
     reactions?: ReactionPolicy;
     /** How a caster spends its slots (#348): `conserve` by default. */
     casting?: CastingPolicy;
+    /** The declared route to follow (#407): the fewest-fights one if none. */
+    route?: FifthRoute;
   }> = {},
 ): RunRecord {
   const { adventure } = runtime;
@@ -1930,7 +1983,10 @@ export function playAdventure(
     }
   }
   const { plan, roomById, fightIn, encounterAt } = routePlanner(adventure);
-  const required = new Set(requiredPath(adventure).roomIds);
+  const required = new Set(requiredPath(adventure, route).roomIds);
+  /** The route's rooms (#407), each passed in turn before the objective. */
+  const waypoints = route?.rooms ?? [];
+  let passed = 0;
   const objective = objectiveOf(adventure);
   const winning = victoryRooms(adventure);
   const exits = exitRooms(adventure);
@@ -2023,6 +2079,9 @@ export function playAdventure(
     state = result.state;
     if (!roomIds.includes(state.roomId)) {
       roomIds.push(state.roomId);
+    }
+    if (state.roomId === waypoints[passed]) {
+      passed += 1;
     }
     for (const event of result.events) {
       switch (event.type) {
@@ -2741,7 +2800,12 @@ export function playAdventure(
         return careful;
       }
     }
-    const goal = retreating ? exits : objectiveRooms();
+    // A route's next room (#407) comes before the objective.
+    const goal = retreating
+      ? exits
+      : passed < waypoints.length
+        ? new Set([waypoints[passed]!])
+        : objectiveRooms();
     const lostKeyIds = lostKeys().map(({ id }) => id);
     for (;;) {
       const position: Position = {
@@ -3478,6 +3542,17 @@ export type XpCheck = Readonly<{
   levelLimit: number;
 }>;
 
+/**
+ * A declared route's survival checks (#407): the weakest character's
+ * cautious runs on the route, judged as the fewest-fights route's are.
+ */
+export type RouteCheck = Readonly<{
+  id: string;
+  name: string;
+  survival: SurvivalCheck;
+  alwaysFail: SurvivalCheck;
+}>;
+
 export type GateVerdict = Readonly<{
   adventureId: string;
   /** The class the verdict judges (#310). */
@@ -3488,6 +3563,11 @@ export type GateVerdict = Readonly<{
   survival: SurvivalCheck;
   /** The same check with every check in its worst band (#285). */
   alwaysFail: SurvivalCheck;
+  /**
+   * For a module that declares routes (#407): each route's checks, in the
+   * module's order. A module qualifies only if every route survives.
+   */
+  routes?: readonly RouteCheck[];
   oneHitKill: OneHitKillCheck;
   /** For a class with control at the module's maximum level (#348). */
   control?: ControlCheck;
@@ -3526,6 +3606,12 @@ export type GateMeasures = Readonly<{
   classId: ClassId;
   survival: Omit<SurvivalCheck, "ok" | "required">;
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
+  routes?: readonly Readonly<{
+    id: string;
+    name: string;
+    survival: Omit<SurvivalCheck, "ok" | "required">;
+    alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
+  }>[];
   oneHitKill: Omit<
     OneHitKillCheck,
     "ok" | "cap" | "overCap" | "bonusAction" | "spells"
@@ -3783,6 +3869,14 @@ export function gateAdventure(
       (_, index) => (min + index) as Level,
     );
     const limit = stepLimit === undefined ? {} : { stepLimit };
+    // Each declared route (#407), and whether it is other than the
+    // fewest-fights route, whose runs it shares if not. A route no style
+    // can follow fails the module here.
+    const fewest = JSON.stringify(requiredPath(adventure).roomIds);
+    const routes = (adventure.routes ?? []).map((route) => ({
+      route,
+      own: JSON.stringify(requiredPath(adventure, route).roomIds) !== fewest,
+    }));
     // In a module without fight actions the use-room style plays as the
     // judged one (#402), so its runs are the judged runs.
     const roomy = hasFightActions(adventure);
@@ -3866,7 +3960,35 @@ export function gateAdventure(
             spending: tried["spend-early"][index],
           };
         });
-        return { kit, level, runs, ...(spending ? { casting } : {}) };
+        // Each declared route of its own (#407), on seeded checks and with
+        // every check failing.
+        const routeRuns = routes.map(({ route, own }) =>
+          !own
+            ? runs
+            : seeds.map((seed) => {
+                const run = playAdventure(seeded, GATE_STYLE, seed, {
+                  ...policy,
+                  route,
+                });
+                return {
+                  seeded: run,
+                  failing:
+                    run.checks === 0
+                      ? run
+                      : playAdventure(failing, GATE_STYLE, seed, {
+                          ...policy,
+                          route,
+                        }),
+                };
+              }),
+        );
+        return {
+          kit,
+          level,
+          runs,
+          routeRuns,
+          ...(spending ? { casting } : {}),
+        };
       }),
     );
     /** A branch's runs: none for a branch not played. */
@@ -3879,7 +4001,7 @@ export function gateAdventure(
       | "peaceful"
       | "spending";
     const branchRuns = (
-      runs: (typeof played)[number]["runs"],
+      runs: readonly Readonly<Partial<Record<Branch, RunRecord | undefined>>>[],
       branch: Branch,
     ) => runs.flatMap((run) => run[branch] ?? []);
     /**
@@ -3895,13 +4017,21 @@ export function gateAdventure(
       branch: Branch,
       style: PlayStyle = GATE_STYLE,
       judging = true,
+      on?: number,
     ): GateMeasures["survival"] => {
-      const kits = played.map(({ kit, level, runs, casting }) => ({
-        kit,
-        level,
-        rate: rateOf(branchRuns(runs, branch)),
-        ...(casting === undefined || !judging ? {} : { casting }),
-        ...(casting !== undefined && judging && level < CASTER_JUDGED_LEVEL
+      // A declared route's runs (#407), or the fewest-fights route's.
+      const runsOf = (entry: (typeof played)[number]) =>
+        on === undefined ? entry.runs : entry.routeRuns[on]!;
+      const kits = played.map((entry) => ({
+        kit: entry.kit,
+        level: entry.level,
+        rate: rateOf(branchRuns(runsOf(entry), branch)),
+        ...(entry.casting === undefined || !judging
+          ? {}
+          : { casting: entry.casting }),
+        ...(entry.casting !== undefined &&
+        judging &&
+        entry.level < CASTER_JUDGED_LEVEL
           ? { reported: true as const }
           : {}),
       }));
@@ -3914,7 +4044,7 @@ export function gateAdventure(
         level: weakestKit.level,
         percentile: WEAKEST_PERCENTILE,
         style,
-        runs: branchRuns(played[0]!.runs, branch).length,
+        runs: branchRuns(runsOf(played[0]!), branch).length,
         rate: weakestKit.rate,
         kit: weakestKit.kit,
         kits,
@@ -3923,6 +4053,13 @@ export function gateAdventure(
     };
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
+    // Each declared route's checks (#407).
+    const routeChecks = routes.map(({ route: { id, name } }, on) => ({
+      id,
+      name,
+      survival: survivalOf("seeded", "seeded", GATE_STYLE, true, on),
+      alwaysFail: survivalOf("always-fail", "failing", GATE_STYLE, true, on),
+    }));
     const judgedRuns = played.flatMap(({ runs }) => branchRuns(runs, "seeded"));
     const rests: RestReport = {
       level: survival.level,
@@ -4296,6 +4433,7 @@ export function gateAdventure(
           classId,
           survival,
           alwaysFail,
+          ...(routeChecks.length === 0 ? {} : { routes: routeChecks }),
           oneHitKill,
           ...(control === undefined ? {} : { control }),
           xp,
@@ -4351,6 +4489,14 @@ export function gateVerdictAt(
   };
   const survival = judged(measures.survival);
   const alwaysFail = judged(measures.alwaysFail);
+  const routes = measures.routes?.map(
+    ({ id, name, survival: alive, alwaysFail: failing }) => ({
+      id,
+      name,
+      survival: judged(alive),
+      alwaysFail: judged(failing),
+    }),
+  );
   const { enemies } = measures.oneHitKill;
   const overCap = enemies.filter(
     ({ chance }) => chance > thresholds.oneHitKillCap,
@@ -4401,11 +4547,15 @@ export function gateVerdictAt(
     qualified:
       survival.ok &&
       alwaysFail.ok &&
+      (routes ?? []).every(
+        (route) => route.survival.ok && route.alwaysFail.ok,
+      ) &&
       oneHitKill.ok &&
       (control?.ok ?? true) &&
       measures.xp.ok,
     survival,
     alwaysFail,
+    ...(routes === undefined ? {} : { routes }),
     oneHitKill,
     ...(control === undefined ? {} : { control }),
     xp: measures.xp,
@@ -4524,6 +4674,14 @@ export function renderGateResult(
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty} for the ${who}.`,
     deadly(survival, "Too deadly"),
     deadly(alwaysFail, "Too deadly when every check fails"),
+    // Each declared route's (#407).
+    ...(verdict.routes ?? []).flatMap((route) => [
+      deadly(route.survival, `Route ${route.id} (${route.name}), too deadly`),
+      deadly(
+        route.alwaysFail,
+        `Route ${route.id} (${route.name}), too deadly when every check fails`,
+      ),
+    ]),
     `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`

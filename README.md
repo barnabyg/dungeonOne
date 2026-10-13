@@ -551,7 +551,7 @@ the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 40. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 41. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
@@ -579,7 +579,10 @@ the history stays readable, and reloading shows the same ending.
   comes once, and is an omen after. A module with two or more regions, each
   with a rest site, may declare itself long: the character may then take two
   short rests and one long rest in each region, and the room panel's rest
-  parts count the rests left in this region.
+  parts count the rests left in this region. A module may declare its routes
+  from the entrance to the objective, each by the rooms it must pass, and the
+  balance gate then judges every route, naming any too deadly for its
+  difficulty.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from

@@ -291,6 +291,10 @@ _Avoid_: Level (a character's), Area (an area spell's), Zone, Floor
 An adventure module with two or more regions that declares itself long (#404): its rests are counted per region, every region has a rest site, and it has twice the treasure budget and an XP limit one level higher.
 _Avoid_: Big module, Campaign
 
+**Route**:
+A way from an adventure module's entrance to its objective that the module declares (#407), such as "through the guard hall": the rooms it must pass, in order. The balance gate judges each declared route; a module that declares none is judged on its fewest-fights route.
+_Avoid_: Path (the required path is the gate's own), Branch, Track
+
 **Move count**:
 How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
 _Avoid_: Turns, Steps, Time

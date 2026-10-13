@@ -121,6 +121,10 @@
  * the treasure budget for its maximum level and an XP limit one level
  * higher (D6).
  *
+ * A module may declare its routes (#407): the ways from the entrance to
+ * the objective, each by the rooms it must pass in order, for the balance
+ * gate to judge each.
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -235,7 +239,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 40;
+export const FIFTH_ADVENTURE_FORMAT = 41;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -1151,6 +1155,12 @@ export type FifthAdventure = Readonly<{
   flags?: readonly string[];
   /** Its alarm (#401): a flag only noise sets. */
   alarm?: FifthAlarm;
+  /**
+   * Its declared routes (#407): the ways from the entrance to the
+   * objective the balance gate judges, each by the rooms it passes, in
+   * order. Without them, the gate judges the fewest-fights route.
+   */
+  routes?: readonly FifthRoute[];
   rooms: readonly FifthRoom[];
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
@@ -1164,6 +1174,20 @@ export type FifthAdventure = Readonly<{
    */
   wanderingEncounter?: WanderingEncounter;
 }>;
+
+/**
+ * A declared route (#407): a way from the entrance to the objective, such
+ * as "through the guard hall", given by the rooms it must pass, in order.
+ */
+export type FifthRoute = Readonly<{
+  id: string;
+  name: string;
+  rooms: readonly string[];
+}>;
+
+/** The most routes a module may declare (#407), and rooms one may name. */
+const MAX_ROUTES = 6;
+const MAX_ROUTE_ROOMS = 20;
 
 /**
  * A module's alarm (#401): the flag noise sets, the words the room panel
@@ -2184,7 +2208,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
-    ["long", "regions", "flags", "alarm", "wanderingEncounter"],
+    ["long", "regions", "flags", "alarm", "routes", "wanderingEncounter"],
     "the module",
   );
   if (module.long !== undefined && module.long !== true) {
@@ -2910,6 +2934,13 @@ function validateModule(
       }
     }
   }
+  const routes =
+    module.routes === undefined
+      ? undefined
+      : readRoutes(
+          module.routes,
+          new Set(rooms.map(({ id: roomId }) => roomId)),
+        );
   // D10 and D11 (#345): one magic item, from level 3, none needing
   // attunement; a wand (#346) is one.
   const [magicProblem] = magicItemProblems(
@@ -4247,12 +4278,43 @@ function validateModule(
     ...(regions === undefined ? {} : { regions }),
     ...(flags.length === 0 ? {} : { flags }),
     ...(alarm === undefined ? {} : { alarm }),
+    ...(routes === undefined ? {} : { routes }),
     rooms,
     passages,
     encounters,
     endings,
     ...(wanderingEncounter === undefined ? {} : { wanderingEncounter }),
   };
+}
+
+/**
+ * A module's declared routes (#407): 1 to `MAX_ROUTES` routes, each
+ * `{ id, name, rooms }`, its id unique and its rooms 1 to
+ * `MAX_ROUTE_ROOMS` of the module's rooms, each once.
+ */
+function readRoutes(
+  value: unknown,
+  roomIds: ReadonlySet<string>,
+): readonly FifthRoute[] {
+  const routes = list(value, "routes", MAX_ROUTES).map((entry, index) => {
+    const where = `route ${index + 1}`;
+    const raw = exactKeys(entry, ["id", "name", "rooms"], where);
+    const routeId = id(raw.id, `${where} id`);
+    const rooms = list(raw.rooms, `${where} rooms`, MAX_ROUTE_ROOMS).map(
+      (roomId, at) => id(roomId, `${where} room ${at + 1}`),
+    );
+    for (const [at, roomId] of rooms.entries()) {
+      if (!roomIds.has(roomId)) {
+        fail(`route ${routeId} names unknown room ${roomId}.`);
+      }
+      if (rooms.indexOf(roomId) !== at) {
+        fail(`route ${routeId} names room ${roomId} twice.`);
+      }
+    }
+    return { id: routeId, name: text(raw.name, `${where} name`, 80), rooms };
+  });
+  unique(routes, "route");
+  return routes;
 }
 
 /**
