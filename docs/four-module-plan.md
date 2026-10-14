@@ -6,16 +6,16 @@ Measured 2026-10-14 on `main` at `db28ea5`.
 
 ## The four slots
 
-| Slot      | Module                           | Rooms today → target | Regions    | Long         | Difficulty                         | Treasure budget | Magic item        | Ending award |
-| --------- | -------------------------------- | -------------------- | ---------- | ------------ | ---------------------------------- | --------------- | ----------------- | ------------ |
-| Level 1   | new (#439, #440)                 | — → 10–14            | 2          | yes          | Medium                             | 300 gp          | none (level 3+)   | 300 XP       |
-| Level 2   | the Abandoned Delve (#441, #442) | 10 → 14–20           | 2          | yes          | Medium                             | 600 gp          | none (level 3+)   | 600 XP       |
-| Level 3–4 | the Coldwater Weirgate (#443)    | 20 → 20              | 2 (as now) | yes (as now) | Medium, or Hard at level 4         | 1,200 gp        | its wand (as now) | 1,800 XP     |
-| Level 4–5 | the Thornwood Lodge (#444, #445) | 6 → 12–16            | 2          | yes          | Hard (as now), Medium if it clears | 1,500 gp        | a +1 weapon (new) | 3,800 XP     |
+| Slot      | Module                           | Rooms today → target | Regions    | Long         | Difficulty                         | Treasure budget | Magic item        | XP award (ending) |
+| --------- | -------------------------------- | -------------------- | ---------- | ------------ | ---------------------------------- | --------------- | ----------------- | ----------------- |
+| Level 1   | new (#439, #440)                 | — → 10–20            | 2          | yes          | Medium                             | 300 gp          | none (level 3+)   | 300 XP            |
+| Level 2   | the Abandoned Delve (#441, #442) | 10 → 14–20           | 2          | yes          | Medium                             | 600 gp          | none (level 3+)   | 600 XP            |
+| Level 3–4 | the Coldwater Weirgate (#443)    | 20 → 20              | 2 (as now) | yes (as now) | Medium or Hard (one label)         | 1,200 gp        | its wand (as now) | 1,800 XP          |
+| Level 4–5 | the Thornwood Lodge (#444, #445) | 6 → 12–16            | 2          | yes          | Hard (as now), Medium if it clears | 1,500 gp        | a +1 weapon (new) | 3,800 XP          |
 
 - **Long modules.** All four are long modules of two regions, each region with a rest site and an exit. That doubles the treasure budget (`LONG_MODULE_BUDGET_FACTOR`), raises the gate's XP ceiling by a level, and makes the gate sweep each region, judged one difficulty lower. #439 already asks this of the level-1 module, and #441 lists regions for the Delve. The Lodge needs it for the budget: today's Lodge (743 gp) and the Hillfort (586 gp) together exceed a normal level-5 module's 750 gp.
 - **Room counts.** The Weirgate is at the 20-room ceiling already, so what it takes over from the Counting-House goes into its existing rooms (or replaces a room) rather than adding rooms.
-- **Treasure.** Budgets are 150 gp × maximum level, doubled for a long module (`TREASURE_BUDGETS`). The shipped test asks for 75–100% of the budget and two treasure classes. The Weirgate's budget rises from 900 to 1,200 gp at maximum level 4, so its 867 gp (72%) falls below the floor: #443 adds about 35–330 gp. The Delve is exempt from the floor today (87%). The plan proposes ending that exemption once it is expanded.
+- **Treasure.** Budgets are 150 gp × maximum level, doubled for a long module (`TREASURE_BUDGETS`). The shipped test asks for 75–100% of the budget and two kinds of gem or art object. The Weirgate's budget rises from 900 to 1,200 gp at maximum level 4, so its 867 gp (72%) falls below the floor: #443 adds about 35–330 gp. The Delve is exempt from the floor today (87%). The plan proposes ending that exemption once it is expanded.
 - **Magic items.** At most one per module, and only from maximum level 3 (`MAGIC_ITEM_LIMITS`), so the level-1 and level-2 modules hold none. The Weirgate's one is its Wand of Magic Missiles. The Lodge takes the +1 weapon the Hollow Chantry retires with. A 1st-level scroll is common and counts inside the budget, so a module of any level may place one.
 - **Reuse.** The Delve keeps its #136 map as its core. The Weirgate keeps its whole map, regions, routes and flags. The Lodge keeps its six rooms and fights, and takes the Hillfort's portcullis (the crowbar lever for Remarkable Athlete), its rope bridge with the Knotted Rope, Wenna's track, and its level-4 fights (dire wolf, brown bear and the Bandit Captain boss; the wolf and bear share the Lodge's stat blocks).
 
@@ -25,27 +25,38 @@ The issue's "about 300, 600, 1,800 and 3,800 XP in turn" are per-module ending a
 
 That precision matters with only four modules. The career plays a module only once the character has reached its minimum level, and skips it otherwise (`src/career-5e.ts`). A career that comes out of one module short of the next level skips every module after it and stalls. So the ending award must carry the whole step on its own. Under the gate's cautious style the weakest character fights little: today it earns 250 of the Delve's 750 XP, about 210–230 above the ending in the Weirgate, and about 200 above the ending in the Lodge.
 
-| Module          | Award (main ending) | Other endings | Expected XP of a surviving weakest career (award + cautious fights) | Running total | Level after |
-| --------------- | ------------------- | ------------- | ------------------------------------------------------------------- | ------------- | ----------- |
-| Level 1 (new)   | 300                 | 0             | 300 + 0–100                                                         | ≥ 300         | 2           |
-| Delve           | 600 (was 200)       | 0             | 600 + ~50                                                           | ≥ 900         | 3           |
-| Weirgate        | 1,800 (was 500)     | 0             | 1,800 + ~210                                                        | ≥ 2,700       | 4           |
-| Thornwood Lodge | 3,800 (was 2,350)   | 0             | 3,800 + ~200                                                        | ≥ 6,500       | 5           |
+| Module          | Award (main ending) | Expected XP of a surviving weakest career (award + cautious fights) | Running total | Level after |
+| --------------- | ------------------- | ------------------------------------------------------------------- | ------------- | ----------- |
+| Level 1 (new)   | 300                 | 300 + 0–100                                                         | ≥ 300         | 2           |
+| Delve           | 600 (was 200)       | 600 + ~50                                                           | ≥ 900         | 3           |
+| Weirgate        | 1,800 (was 500)     | 1,800 + ~210                                                        | ≥ 2,700       | 4           |
+| Thornwood Lodge | 3,800 (was 2,350)   | 3,800 + ~200                                                        | ≥ 6,500       | 5           |
 
-"Main ending" means the ending kind the module is built around: escape-with-loot for the Delve and the Lodge, and victory for the Weirgate. A career that escapes empty-handed earns no award and stalls. The check only needs some career of each class to reach level 5, so a stalled career doesn't fail it.
+"Main ending" means the ending kind the module is built around: escape-with-loot for the Delve and the Lodge, and victory for the Weirgate. The other endings pay nothing, as they do today in all three kept modules. A career that escapes empty-handed earns no award and stalls. The check only needs some career of each class to reach level 5, so a stalled career doesn't fail it.
 
 **Against today's career simulation** (200 seeds, the weakest character of each class, cautious):
 
-| Class   | Reach level 5 today | XP before the Weirgate | XP before the Lodge | Final XP | Falls (most)                                       |
-| ------- | ------------------- | ---------------------- | ------------------- | -------- | -------------------------------------------------- |
-| Fighter | 57.5%               | 2,150–2,190            | ~6,000              | ~8,550   | Smugglers' Cellar 36, Robbers' Barrow 17           |
-| Rogue   | 68.5%               | as above               | ~6,000              | ~8,550   | Smugglers' Cellar 20, Lodge 16, Delve 10           |
-| Cleric  | 18.0%               | as above               | ~6,000              | ~8,450   | Robbers' Barrow 82, Smugglers' Cellar 50           |
-| Wizard  | 18.5%               | as above               | ~6,000              | ~8,400   | Smugglers' Cellar 55, Robbers' Barrow 40, Delve 26 |
+| Class | Reach level 5 today | XP before the Weirgate | XP before the Lodge | Final XP | Falls (most) |
+| ------- | ------------------- | ------------------- | -------- | -------------------------------------------------- |
+| Fighter | 57.5% | 2,150–2,190 | ~6,000 | ~8,550 | Smugglers' Cellar 36, Robbers' Barrow 17 |
+| Rogue | 68.5% | as above | ~6,000 | ~8,550 | Smugglers' Cellar 20, Lodge 16, Delve 10 |
+| Cleric | 18.0% | as above | ~6,000 | ~8,450 | Robbers' Barrow 82, Smugglers' Cellar 50 |
+| Wizard | 18.5% | as above | ~6,000 | ~8,400 | Smugglers' Cellar 55, Robbers' Barrow 40, Delve 26 |
 
-Today's sixteen modules overshoot: careers reach the Lodge with about 6,000 XP, near level 5 already, and finish around 8,500. On the new path a career enters the Weirgate at level 3 with about 950 XP and the Lodge at level 4 with about 2,950. Each module is then played at the bottom of its level band, which is the level the gate already judges it at. The level-1 falls are where careers end today, and three level-1 modules become one. Fewer careers should fall, the casters' especially, but the level-1 module's design decides that.
+Today's sixteen modules overshoot: careers reach the Lodge with about 6,000 XP, near level 5 already, and finish around 8,500. On the new path a career enters the Weirgate at level 3 with about 950 XP and the Lodge at level 4 with about 2,950. Each module is then played at the bottom of its level band, which is the level the gate already judges it at.
 
-**The gate's XP ceiling** (`balance-5e.ts`). The gate starts a character one XP short of its module's maximum level + 1, adds all the XP the module offers, and refuses the module if that carries the character past maximum level + 1 (+ 2 for a long module). The awards fit:
+**The path projected.** The career simulation was run over four scratch copies: the three kept modules with the plan's awards (the Weirgate's levels set to 3–4) and the Robbers' Barrow, its award raised to 300, standing in for the level-1 module. Every career that survived all four reached level 5, so no career stalled:
+
+| Class | Reach level 5 (today) | Falls: level 1 stand-in | Delve | Weirgate | Lodge |
+| ------- | --------------------- | ----- | -------- | ----- |
+| Fighter | 81.0% (57.5%) | 17 | 5 | 9 | 7 |
+| Rogue | 82.5% (68.5%) | 8 | 10 | 1 | 16 |
+| Cleric | 43.0% (18.0%) | 82 | 16 | 7 | 9 |
+| Wizard | 44.5% (18.5%) | 40 | 40 | 5 | 26 |
+
+Survivors gained 325, 650, about 2,010 and about 4,000 XP on average in the four. Falls still cluster where the casters are weakest: at level 1, and for the Wizard in the Delve. **Target for #439:** the level-1 module's falls should be no worse than the Barrow's (Cleric 82, Wizard 40 of 200), since it replaces the Barrow in the career. #441 and #445 should likewise keep each class's falls in the Delve and the Lodge no higher than above. The figures change as each module is rewritten; each content ticket re-runs the career check.
+
+**The gate's XP ceiling** (`src/balance-5e.ts`). The gate starts a character one XP short of its module's maximum level + 1, adds all the XP the module offers, and refuses the module if that carries the character past maximum level + 1 (+ 2 for a long module). The awards fit:
 
 | Module          | Ceiling on XP the module offers (long) | Offered after the plan                       |
 | --------------- | -------------------------------------- | -------------------------------------------- |
@@ -60,47 +71,47 @@ The career check (#440 onwards, every ticket) must pass at every step. While the
 
 Every mechanic the shipped modules exercise, against the four kept slots. ✓ marks a kept module that has it today; **+** marks one the plan assigns it to. "Retiring" lists the modules that have it today. Counted by a script over the validated modules.
 
-| Mechanic                                     | L1 (new) | Delve             | Weirgate | Lodge            | Retiring modules that have it                       | Fixture coverage                                 |
-| -------------------------------------------- | -------- | ----------------- | -------- | ---------------- | --------------------------------------------------- | ------------------------------------------------ |
-| Merchant and trade                           | +        |                   |          | ✓ **+** Wenna    | Tinker's Toll, Wolfstone Hillfort                   | `marketBarrow`, `gemMarket`, …                   |
-| Reaction rolls (let-pass, peaceful XP)       |          |                   | ✓        |                  | Counting-House                                      | `banditToll`, `waryTunnels`                      |
-| Parley (including surprise attack)           |          |                   | ✓        |                  | Counting-House                                      | `banditToll`                                     |
-| Tolls                                        |          |                   | ✓        |                  | Counting-House                                      | `banditToll`                                     |
-| **Reaction trade**                           |          |                   | **+**    |                  | Counting-House only                                 | `banditToll`                                     |
-| **Lurking monsters**                         |          |                   | **+**    |                  | Counting-House only                                 | `lurkingTunnels`                                 |
-| **Sneaking past (bypass XP, sneak again)**   |          |                   | **+**    |                  | Counting-House only (plain sneaking works anywhere) | `ratRun`; sneak again inline in `issue-302`      |
-| **Surrender (and `gives`)**                  | **+**    |                   |          |                  | Silvervein Mine only                                | `surrenderingGoblins`                            |
-| Morale and fleeing, fled carriers            |          | ✓                 | ✓        | ✓                | most                                                | `fleeingGoblins`                                 |
-| Monster loot (treasure types)                |          |                   | ✓        | ✓                | most                                                | `lintelBarrow`, `goblinBurrow`                   |
-| Key carried by an opponent                   |          |                   | ✓        |                  | Counting-House, Mine                                | —                                                |
-| Rest sites                                   | **+**    | **+**             | ✓        | **+**            | Hollow Chantry                                      | `restingTunnels`, `scrollBarrow`                 |
-| **Wandering encounter on a rest**            |          | **+**             |          |                  | Hollow Chantry only                                 | `restingTunnels`                                 |
-| Region wandering tables                      | **+**    | **+**             | ✓        | **+**            | —                                                   | `wanderingTunnels`, `longWorkings`               |
-| **Magic items (+1 gear)**                    |          |                   |          | **+**            | Hollow Chantry only                                 | `magicBarrow`                                    |
-| **Spell scrolls**                            |          | **+** (1st level) |          |                  | Hollow Chantry only                                 | `scrollBarrow`, `packedBarrow`                   |
-| Wands                                        |          |                   | ✓        |                  | —                                                   | `scrollBarrow`                                   |
-| Thieves'-tools locks and traps               |          | ✓                 | ✓        | ✓                | Chantry, Counting-House, Mine, Crypt                | `sealedCrypt`, `picklock-cellar`                 |
-| Stuck and locked doors, keys                 |          | ✓                 | ✓        | **+** portcullis | Chantry, Counting-House, Mine, Crypt, Hillfort      | `sealedCrypt`                                    |
-| Graded checks (by-5 bands)                   | **+**    |                   | ✓        | ✓                | Hillfort                                            | `gradedCellar`, `ropeCove`                       |
-| Several approaches to a check                | **+**    | ✓                 | ✓        | ✓                | Chantry, Counting-House, Crypt, Hillfort            | `obstacleYard`, `sealedCrypt`                    |
-| Retries (cost or circumstance)               |          |                   |          | ✓                | Counting-House, Hillfort                            | `ropeCove`                                       |
-| Circumstances (holds, discovered, won, flag) |          |                   | ✓        | ✓ **+** rope     | Hillfort                                            | `ropeCove`                                       |
-| Remarkable Athlete's lever                   |          |                   |          | **+**            | Hillfort only                                       | `checks-5e`, `issue-284` tests                   |
-| Talk-only passages                           |          |                   | ✓        | ✓                | Hillfort                                            | `tollYard`, `forkedTunnels`, `obstacleYard`      |
-| Hidden passages, open/close effects          |          |                   | ✓        | ✓                | Chantry, Hillfort                                   | `snakeDoor`, `shiftingOssuary`                   |
-| Flags                                        |          | **+**             | ✓        | **+**            | —                                                   | `forkedTunnels`, `winchTunnels`, `hermitTunnels` |
-| Alarms                                       |          | **+**             | ✓        |                  | —                                                   | `alarmTunnels`                                   |
-| Items used on features                       |          | **+**             | ✓        | **+**            | —                                                   | `snakeDoor`                                      |
-| Fight actions                                |          | **+**             | ✓        | **+**            | —                                                   | `statueCellar`                                   |
-| Routes and region sweeps                     | **+**    | **+**             | ✓        | **+**            | —                                                   | `longWorkings`, `forkedTunnels`                  |
-| Undead (Turn Undead targets)                 |          | ✓                 | ✓        |                  | Chapel, Gravedigger's, Chantry, Mine, Crypt         | `skeletonBarracks`, `sealedCrypt`                |
-| Victory ending on a fight                    |          |                   | ✓        |                  | Chantry, Smugglers', Crypt                          | many                                             |
+| Mechanic                                      | L1 (new) | Delve             | Weirgate | Lodge            | Retiring modules that have it                       | Fixture coverage                                 |
+| --------------------------------------------- | -------- | ----------------- | -------- | ---------------- | --------------------------------------------------- | ------------------------------------------------ |
+| Merchant and trade                            | +        |                   |          | ✓ **+** Wenna    | Tinker's Toll, Wolfstone Hillfort                   | `marketBarrow`, `gemMarket`, …                   |
+| Reaction rolls (let-pass, peaceful XP)        |          |                   | ✓        |                  | Counting-House                                      | `banditToll`, `waryTunnels`                      |
+| Parley (including surprise attack)            |          |                   | ✓        |                  | Counting-House                                      | `banditToll`                                     |
+| Tolls                                         |          |                   | ✓        |                  | Counting-House                                      | `banditToll`                                     |
+| **Reaction trade**                            |          |                   | **+**    |                  | Counting-House only                                 | `banditToll`                                     |
+| **Lurking encounters**                        |          |                   | **+**    |                  | Counting-House only                                 | `lurkingTunnels`                                 |
+| **Sneaking past (bypass XP, sneak again)**    |          |                   | **+**    |                  | Counting-House only (plain sneaking works anywhere) | `ratRun`; sneak again inline in `issue-302`      |
+| **Surrender (and `gives`)**                   | **+**    |                   |          |                  | Silvervein Mine only                                | `surrenderingGoblins`                            |
+| Morale and fleeing, fled carriers             |          | ✓                 | ✓        | ✓                | most                                                | `fleeingGoblins`                                 |
+| Monster loot (treasure types)                 |          |                   | ✓        | ✓                | most                                                | `lintelBarrow`, `goblinBurrow`                   |
+| Key carried by an opponent                    |          |                   | ✓        |                  | Counting-House, Mine                                | —                                                |
+| Rest sites                                    | **+**    | **+**             | ✓        | **+**            | Hollow Chantry                                      | `restingTunnels`, `scrollBarrow`                 |
+| **Wandering encounter on a rest (only)**      |          | **+**             |          |                  | Hollow Chantry only                                 | `restingTunnels`                                 |
+| Region wandering tables (also roll on a rest) |          |                   | ✓        | **+**            | —                                                   | `wanderingTunnels`, `longWorkings`               |
+| **Magic items (+1 gear)**                     |          |                   |          | **+**            | Hollow Chantry only                                 | `magicBarrow`                                    |
+| **Spell scrolls**                             |          | **+** (1st level) |          |                  | Hollow Chantry only                                 | `scrollBarrow`, `packedBarrow`                   |
+| Wands                                         |          |                   | ✓        |                  | —                                                   | `scrollBarrow`                                   |
+| Thieves'-tools locks and traps                |          | ✓                 | ✓        | ✓                | Chantry, Counting-House, Mine, Crypt                | `sealedCrypt`, `picklock-cellar`                 |
+| Stuck and locked doors, keys                  |          | ✓                 | ✓        | **+** portcullis | Chantry, Counting-House, Mine, Crypt, Hillfort      | `sealedCrypt`                                    |
+| Graded checks (by-5 bands)                    | **+**    |                   | ✓        | ✓                | Hillfort                                            | `gradedCellar`, `ropeCove`                       |
+| Several approaches to a check                 | **+**    | ✓                 | ✓        | ✓                | Chantry, Counting-House, Crypt, Hillfort            | `obstacleYard`, `sealedCrypt`                    |
+| Retries (cost or circumstance)                |          |                   |          | ✓                | Counting-House, Hillfort                            | `ropeCove`                                       |
+| Circumstances (holds, discovered, won, flag)  |          |                   | ✓        | ✓ **+** rope     | Hillfort                                            | `ropeCove`                                       |
+| Remarkable Athlete's lever                    |          |                   |          | **+**            | Hillfort only                                       | `checks-5e`, `issue-284` tests                   |
+| Talk-only passages                            |          |                   | ✓        | ✓                | Hillfort                                            | `tollYard`, `forkedTunnels`, `obstacleYard`      |
+| Hidden passages, open/close effects           |          |                   | ✓        | ✓                | Chantry, Hillfort                                   | `snakeDoor`, `shiftingOssuary`                   |
+| Flags                                         |          | **+**             | ✓        | **+**            | —                                                   | `forkedTunnels`, `winchTunnels`, `hermitTunnels` |
+| Alarms                                        |          | **+**             | ✓        |                  | —                                                   | `alarmTunnels`                                   |
+| Items used on features                        |          | **+**             | ✓        | **+**            | —                                                   | `snakeDoor`                                      |
+| Fight actions                                 |          | **+**             | ✓        | **+**            | —                                                   | `statueCellar`                                   |
+| Routes and region sweeps                      | **+**    | **+**             | ✓        | **+**            | —                                                   | `longWorkings`, `forkedTunnels`                  |
+| Undead (Turn Undead targets)                  |          | ✓                 | ✓        |                  | Chapel, Gravedigger's, Chantry, Mine, Crypt         | `skeletonBarracks`, `sealedCrypt`                |
+| Victory ending on a fight                     |          |                   | ✓        |                  | Chantry, Smugglers', Crypt                          | many                                             |
 
 Bold rows are the seven mechanics only retiring modules exercise. Each has a test fixture already, so #438 moves tests onto fixtures and invents no new builder. Each is also assigned to a kept module's design, so the shipped set keeps exercising it:
 
-- **The Counting-House's reaction trade, lurking monsters and authored sneaking (bypass XP, sneak again)** go to the Weirgate (#443), with its reaction, parley and toll, as #443 expects.
+- **The Counting-House's reaction trade, lurking encounters and authored sneaking (bypass XP, sneak again)** go to the Weirgate (#443), with its reaction, parley and toll, as #443 expects.
 - **Surrender** goes to the level-1 module (#439). A weak goblin or bandit who yields and hands over a key suits a module of avoidable fights.
-- **The wandering encounter on a rest** goes to the Delve (#441), at its rest site, with the region tables #441 already lists.
+- **The wandering encounter on a rest** (the module-wide `wanderingEncounter`) goes to the Delve (#441), at its rest site. The validator allows a module either that or region wandering tables, not both, so the Delve takes no region tables, although #441 lists them. Region tables, which roll on a rest too, stay in the Weirgate and come to the Lodge. The level-1 module takes neither, to keep its fights few.
 - **The +1 weapon** goes to the Lodge (#444). It is the only kept module that may take one: the Weirgate's wand is its one magic item.
 - **A 1st-level scroll** goes to the Delve (#441), at the shrine. It is common, so a level-2 module may place it inside its budget.
 - **Remarkable Athlete's lever** comes into the Lodge with the Hillfort's portcullis (#444).
@@ -111,7 +122,7 @@ After #446 several mechanics live in exactly one shipped module (the flag, alarm
 
 ## Test and script inventory
 
-What names a retiring module today, and where it goes. #438 does the moves that don't depend on new content. #446 does the deletions. Title words that match unrelated things ("warden", the Gnoll Ravager, a "Smugglers' Den" room, a "bothy" doc example) are false positives and stay.
+What names a retiring module today, and where it goes. #438 does the moves that don't depend on new content. #446 does the deletions. Title words that match unrelated things ("warden", the Gnoll Ravager, a "Smugglers' Den" room, a "bothy" doc example, the "Wolfstone Reaver" opponent name in `tests/issue-428.test.mjs`) are false positives and stay. #438's check should match module ids and full titles, not single words.
 
 ### Deleted with their module in #446
 
@@ -150,11 +161,11 @@ What names a retiring module today, and where it goes. #438 does the moves that 
 | `src/adventure-5e.ts` (`FIFTH_ADVENTURE_FILES`)                       | the new module is added (#440); the thirteen are removed (#446). This list drives the browser, gate, career, packaging and fixture separation                                                                                                                      |
 | `src/release-run-5e.ts`                                               | `TOLL_FULL_ROUTE`, `MINE_FULL_ROUTE` and `COUNTING_HOUSE_ROUTE` are deleted (#446); `DELVE_FULL_ROUTE` changes with the Delve (#442) or gives way to a generated route; `LODGE_ROUTE` likewise (#445)                                                              |
 | `scripts/qualify-release-live.mjs`                                    | the Toll (seed 0), Mine (47) and Counting-House (8) runs go (#446); the Delve's seed 1443 is re-found or generated (#442); the Lodge's seed 2 (#445); the new module runs generated (#440)                                                                         |
-| `tests/shipped-modules.test.mjs`                                      | the id list (16 → 4) and browser order; `QUOTED_FIGURES` and `TURN_UNDEAD_FIGURES` rows; the 75–100% hoard list (adding the Delve); the carried-loot list; the career test; the gate CPU budget (#447)                                                             |
+| `tests/shipped-modules.test.mjs`                                      | the id list (16 → 4) and browser order; `QUOTED_FIGURES` and `TURN_UNDEAD_FIGURES` rows; the 75–100% treasure list (adding the Delve); the carried-loot list; the career test; the gate CPU budget (#447)                                                          |
 | `tests/fixtures/content-tests.mjs`                                    | entries for every deleted test removed; the new module's test added                                                                                                                                                                                                |
 | `tests/abandoned-delve*.test.mjs`, `issue-137-browser`, `issue-140`   | follow the Delve's expansion (#442)                                                                                                                                                                                                                                |
 | `tests/coldwater-weirgate.test.mjs`, `issue-413`, `issue-414-browser` | follow the Weirgate's changes: its treasure pin (86,730 cp of `treasureBudget(3, true)`) becomes level 4's budget (#443)                                                                                                                                           |
-| `tests/thornwood-lodge.test.mjs`                                      | follows the Lodge's expansion; its career side-check (a career enters the Lodge about 4,100 XP short of 6,500) changes with the XP path (#445)                                                                                                                     |
+| `tests/thornwood-lodge.test.mjs`                                      | follows the Lodge's expansion; its career side-check (a career enters the Lodge with about 4,100 XP) changes with the XP path (#445)                                                                                                                               |
 | `README.md`                                                           | the module list (each entry in its module's ticket); the `qualify-release-live` usage (#446)                                                                                                                                                                       |
 | `docs/character-rules.md`                                             | treasure examples; the Hollow Chantry notes under magic items and scrolls; the bestiary rationale (the Goblin Boss's single attack and the monsters justified by the Mine, Tower and Hillfort); "sixteen modules"; the gate tables; the career report (#446, #447) |
 
@@ -175,7 +186,8 @@ What names a retiring module today, and where it goes. #438 does the moves that 
 
 1. **The XP path** as per-module ending awards of exactly 300, 600, 1,800 and 3,800, paid only on each module's main ending, with fight XP as slack.
 2. **All four as long modules of two regions**, the Lodge included (its treasure needs the long budget once the Hillfort joins it).
-3. **The seven retiring-only mechanics' homes:** the Counting-House's reaction trade, lurking and sneaking in the Weirgate; surrender at level 1; the wandering encounter on a rest and a 1st-level scroll in the Delve; the +1 weapon and Remarkable Athlete's lever in the Lodge.
+3. **The seven retiring-only mechanics' homes:** the Counting-House's reaction trade, lurking and sneaking in the Weirgate; surrender at level 1; the wandering encounter on a rest (instead of region tables) and a 1st-level scroll in the Delve; the +1 weapon and Remarkable Athlete's lever in the Lodge.
 4. **A merchant at level 1:** optional, for #439 to propose or not.
-5. **The Weirgate's treasure** rises to at least 75% of its new 1,200 gp budget (#443), and **the Delve loses its exemption** from the 75–100% rule once expanded.
-6. **Generated release routes** for all four modules, replacing the Delve's and the Lodge's hand-written ones as each changes.
+5. **The Weirgate's treasure** rises to at least 75% of its new 1,200 gp budget (#443). Beyond the issue: **the Delve loses its exemption** from the 75–100% rule once expanded.
+6. Beyond the issue: **generated release routes** for all four modules, replacing the Delve's and the Lodge's hand-written ones as each changes (#442 allows either).
+7. **Career targets:** each content ticket keeps each class's falls in its module no higher than the projection above.
