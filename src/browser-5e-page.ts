@@ -15,7 +15,8 @@
 //   keeps each roll in #initiative-breakdown; it collapses behind
 //   #initiative-toggle once the fight is over. After both, #known-rooms
 //   (#405) lists every room the character has visited or seen through an
-//   exit, a row per region, the current one marked; choosing one shows
+//   exit, a row per region, each marked (you are here), (visited) or
+//   (seen); choosing one shows
 //   its record in #known-room-record (choosing it again hides it) and
 //   never moves the character. Nothing is shown until a room is chosen:
 //   the room panel already shows the current room.
@@ -1643,7 +1644,8 @@ function renderKnownRooms() {
     }
     list.append(...rooms.map((room) => {
       const item = make("li");
-      const button = make("button", room.name + (room.current ? " (you are here)" : room.visited ? "" : " (seen)"), "secondary");
+      // Every room keeps a mark, so a room left behind never looks forgotten.
+      const button = make("button", room.name + (room.current ? " (you are here)" : room.visited ? " (visited)" : " (seen)"), "secondary");
       button.type = "button";
       button.dataset.room = room.id;
       button.setAttribute("aria-pressed", String(room === chosen));

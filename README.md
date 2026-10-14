@@ -332,7 +332,8 @@ order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
 
 **Known rooms**, below the room, lists every room you have been in or seen
-through an exit, grouped by region, with the room you are in marked. Choose a
+through an exit, grouped by region, each marked "(you are here)", "(visited)"
+or "(seen)" (seen through an exit, not yet entered). Choose a
 room to see what you learned there: the discoveries you made, the creatures
 you talked to and what they said, its doors, the traps you found and whether
 its fight was won, slipped past, fled from, ended peacefully or still waits.

@@ -254,12 +254,17 @@ test(
       assert.deepEqual(await knownRooms(page), [
         [
           "The Keep",
-          ["Towpath Gate", "Toll Hall", "Barge Yard (seen)", "Stair Head"],
+          [
+            "Towpath Gate (visited)",
+            "Toll Hall (visited)",
+            "Barge Yard (seen)",
+            "Stair Head (visited)",
+          ],
         ],
         [
           "The Culverts",
           [
-            "Stair Foot",
+            "Stair Foot (visited)",
             "Pump Room (you are here)",
             "Outfall (seen)",
             "Wheel Pit (seen)",
