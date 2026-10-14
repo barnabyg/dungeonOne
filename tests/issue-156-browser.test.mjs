@@ -175,10 +175,12 @@ test(
       await createAndStart(page, server.url, "rat-tunnels");
 
       // Exploring actions live in the action region, not the room panel;
-      // only the character's own gear is acted on there (#198, #209).
+      // only the character's own gear is acted on, from "You carry" in the
+      // character column (#198, #209, #432).
+      assert.equal(await page.locator("#room button").count(), 0);
       assert.deepEqual(
         await page
-          .locator("#room button")
+          .locator("#session-character button")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.getAttribute("aria-label")),
           ),

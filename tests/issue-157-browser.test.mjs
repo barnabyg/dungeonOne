@@ -106,11 +106,12 @@ const furnishedCellar = (() => {
 
 /** The adventure screen's regions, in their order in a fight (#386). */
 const REGIONS = [
-  "#session-status",
   "#encounter",
   "#room",
-  // The known rooms (#405) follow the room.
+  // The known rooms (#405) follow the room, then the character's column
+  // (#432), which the status strip heads.
   "#known-rooms",
+  "#session-status",
   "#session-actions",
   "#session-history",
   "#session-composer",
@@ -192,11 +193,13 @@ test(
         "There is nothing else here.",
       );
       assert.equal(await page.locator("#room-empty").isVisible(), true);
-      // Only what the character carries: its own gear (#209).
+      // No lists at all: what the character carries is in its own column
+      // (#432).
       assert.deepEqual(
         await page.locator("#room h4:visible").allTextContents(),
-        ["You carry"],
+        [],
       );
+      assert.equal(await page.locator("#inventory-group").isVisible(), true);
       // Re-rendering after an action keeps the room shown, below the fight.
       await clickNext(page);
       assert.equal(await page.locator("#room-description").isVisible(), true);
@@ -311,7 +314,7 @@ test(
       assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
       assert.match(await page.locator("#features").textContent(), /Ale Rack/);
 
-      // DOM and tab order: status, Fight, room, known rooms, actions,
+      // DOM and tab order: Fight, room, known rooms, status, actions,
       // history, composer.
       assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
       const tabbed = await tabRegions(page);

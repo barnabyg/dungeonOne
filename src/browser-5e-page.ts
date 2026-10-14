@@ -4,11 +4,6 @@
 //
 // Adventure session regions (#154). Later tickets fill these containers; keep
 // their ids and order so the layout holds:
-// - #session-status: the status strip (#155): HP with its bar and health,
-//   the round and whose turn it is (#turn), the character's conditions in a
-//   fight (#conditions, #232), and #resources, a pip for each
-//   turn resource and class feature use, and outside a fight's turns for
-//   each hit die (#333). It shows only what the session view projects.
 // - #session-scene: the room and the fight. The room lists only
 //   what is there (#157) and always shows its details; in a fight the Fight
 //   section (#encounter) moves above it, in the DOM and so in tab order (#386).
@@ -22,6 +17,16 @@
 //   its record in #known-room-record (choosing it again hides it) and
 //   never moves the character. Nothing is shown until a room is chosen:
 //   the room panel already shows the current room.
+// - #session-character (#432): the status strip, "You carry" and the rests.
+// - #session-status: the status strip (#155): HP with its bar and health,
+//   the round and whose turn it is (#turn), the character's conditions in a
+//   fight (#conditions, #232), and #resources, a pip for each
+//   turn resource and class feature use, and outside a fight's turns for
+//   each hit die (#333). It shows only what the session view projects.
+// - #inventory-group: "You carry" (#432), #inventory, in groups (worn and
+//   wielded, consumables, treasure, other), a line per entry with its verbs
+//   on the right and its description behind its name; then the purse and
+//   what the character is carrying.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Tactical Mind right after a failed
 //   check, #315; a reaction's options, #304) and, in a fight, the turn's
@@ -40,12 +45,12 @@
 //   just after the bar, in place of the button, never in a browser dialog. It
 //   shows every action the session view projects, an unavailable one disabled
 //   with its reason as visible text linked by aria-describedby. Outside a
-//   fight, what the character carries is acted on from the room panel's
+//   fight, what the character carries is acted on from
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
 //   on its entry, a spell scroll's Read too (#346; in a fight a scroll or
 //   wand is cast from the Cast choice), and the character's own gear heads
 //   the list with its Unequip, Wield, Equip and Drop (#209). A short
-//   rest (#334) sits in the room panel's #rest-group, never the bar: the
+//   rest (#334) sits in the character column's #rest-group, never the bar: the
 //   short rests and hit dice left, a choice of how many hit dice to spend
 //   (#rest-dice) and its Rest button, disabled with its reason when the
 //   engine would refuse it. Rest and its choice show only while a rest would
@@ -83,11 +88,14 @@
 //   is off (#161); once the adventure is over #composer-reason says why
 //   (#158). renderComposer() alone decides whether it is enabled.
 // Actions, history and composer share #session-dock. DOM order (and so tab
-// order) is status, scene, actions, history, composer; the dock shows history
-// above actions and composer. The session fills the window in two columns
-// (status and scene left, the dock right, each scrolling on its own). The page
-// is for desktop windows (#381): below 900 x 560 px it keeps that size and the
-// window scrolls. The footer's icon credits (#377) show on every screen.
+// order) is scene, character, actions, history, composer (#432); the dock
+// shows history above actions and composer. The session fills the window.
+// From 1500 px wide it is up to 1880 px wide, in three columns (scene,
+// character, dock), each scrolling on its own. Narrower, it is up to 1240 px
+// wide, in two: #session-main on the left scrolls the scene with "You carry"
+// and the rests under it and the status strip held at its top, and the dock
+// on the right. The page is for desktop windows (#381): below 900 x 560 px it
+// keeps that size and the window scrolls. The footer's icon credits (#377) show on every screen.
 //
 // A level-4 character's sheet (#286) leads with #level-choice, the level-up
 // card that asks for its Ability Score Improvement (#asi-mode-two or
@@ -171,7 +179,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" class="visually-hidden" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
-<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
+<div id="session-main">
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><h3 id="room-title"></h3>
 <p id="room-description"></p>
@@ -181,8 +189,6 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
-<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p><p id="carrying"></p></div>
-<div id="rest-group" hidden><h4 id="rest-title">Short rest</h4><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls rest-panel"></div><div id="long-rest" hidden><h4 id="long-rest-title">Long rest</h4><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls rest-panel"></div></div></div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
 <button id="initiative-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="initiative-panel" hidden>Initiative order</button>
@@ -190,6 +196,12 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
 </section>
 <section id="known-rooms" aria-labelledby="known-rooms-title"><h3 id="known-rooms-title">Known rooms</h3><div id="known-room-list"></div><div id="known-room-record" aria-live="polite" hidden></div></section>
+</div>
+<section id="session-character" aria-label="Character">
+<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
+<div id="inventory-group"><h3 id="inventory-title">You carry</h3><div id="inventory"></div><p id="purse"></p><p id="carrying"></p></div>
+<div id="rest-group" hidden><h3 id="rest-title">Short rest</h3><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls rest-panel"></div><div id="long-rest" hidden><h3 id="long-rest-title">Long rest</h3><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls rest-panel"></div></div></div>
+</section>
 </div>
 <div id="session-dock">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div><div id="leave-controls" class="controls"></div></div><div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><div class="controls"><button id="confirm-leave" type="button" class="primary">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div></section>
@@ -251,18 +263,20 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}#known-rooms h3{margin-bottom:6px}.known-region{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:4px}.known-region h4{margin:0}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px}.known-list button{padding:2px 8px;font-size:var(--text-sm)}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record h4{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}#known-rooms h3{margin-bottom:6px}.known-region{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:4px}.known-region h4{margin:0}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px}.known-list button{padding:2px 8px;font-size:var(--text-sm)}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record h4{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
-#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status p{margin:0}
-#gear-numbers{flex-basis:100%}#session-status{grid-area:status;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
-.resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{grid-area:scene;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-scene>section:first-child h3{margin-top:0}
-#session-dock{grid-area:dock;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
+#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
+@media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
+#session-character h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}#inventory{display:grid;gap:var(--space-2)}.carry-title{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin:0 0 2px}summary.carry-title{cursor:pointer;padding:2px 0}.carry-list{list-style:none;padding:0;margin:0;font:var(--text-sm) var(--font-sans)}.carry-list li{display:grid;grid-template-columns:minmax(min(10em,50%),1fr) auto;align-items:center;gap:2px var(--space-2);padding:3px 0;border-top:1px solid var(--color-line)}.carry-list li:first-child{border-top:0}.carry-line,.carry-more>summary{margin:0;line-height:1.4;overflow-wrap:anywhere}.carry-line{padding-left:1.1em}.carry-more>summary{cursor:pointer;list-style:none}.carry-more>summary::-webkit-details-marker{display:none}.carry-more>summary::before{content:"▸"/"";display:inline-block;width:1.1em;color:var(--color-text-muted)}.carry-more[open]>summary::before{content:"▾"/""}.carry-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.carry-text{margin:2px 0 0 1.1em;font-size:var(--text-xs);color:var(--color-text-muted)}.carry-list .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-1);margin:0}.carry-list .controls[hidden]{display:none}.carry-list .controls:has(.confirm){grid-column:1/-1}.carry-list .action{flex-direction:row-reverse;align-items:center;gap:var(--space-1)}#inventory button{padding:3px 8px;font-size:var(--text-xs)}
+#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
+.resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
+#session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 .controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
-body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
-.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -1032,6 +1046,8 @@ function showAdventure(value) {
   if (form.dataset.session !== session.id) {
     form.dataset.session = session.id;
     knownRoomId = null;
+    openCarried.clear();
+    treasureOpen = null;
     element("message").value = "";
     confirmingLeave = false;
     confirmingSale = null;
@@ -1596,16 +1612,13 @@ function showPending(message) {
   followNewest();
 }
 
-// Each list's entries; their actions are in the action bar, except a carried
-// item's, which renderActions puts on its #inventory entry (#198). An empty
-// list is left out, and a room with no exits, features or items says so in
-// one line.
+// Each list's entries; their actions are in the action bar. An empty list is
+// left out, and a room with no exits, features or items says so in one line.
 const ROOM_LISTS = [
   { id: "exits", key: "exits" },
   { id: "features", key: "features" },
   { id: "creatures", key: "creatures" },
   { id: "room-items", key: "items" },
-  { id: "inventory", key: "inventory" },
 ];
 
 const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
@@ -1692,20 +1705,94 @@ function disclose(name, shown) {
 // weapons in hand, then its stowed gear, each kind once with a count, then
 // its arrows and bolts (#230). Each entry's slot says which verbs go on it:
 // Unequip on what is equipped, Wield, Equip and Drop on what is stowed, and
-// Sell on ammunition.
+// Sell on ammunition. Its state says where it is (#432); a magic item
+// explains its bonus (#345).
 function gearEntries(gear) {
-  // A magic item explains its bonus after where it is (#345).
-  const counted = (items, slot, describe) => {
+  const counted = (items, slot, state, group) => {
     const counts = new Map();
     for (const { id, name, icon, magic } of items) counts.set(id, { name, icon, magic, count: (counts.get(id)?.count ?? 0) + 1 });
-    return [...counts].map(([id, { name, icon, magic, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", icon, description: describe(count) + (magic ? " " + magic : "") }));
+    return [...counts].map(([id, { name, icon, magic, count }]) => ({ id, slot, group, state, name: count === 1 ? name : name + " (" + count + ")", icon, description: magic ?? "" }));
   };
   return [
-    ...counted(gear.worn, "equipped", () => "Worn."),
-    ...counted(gear.held, "equipped", () => "In hand."),
-    ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
-    ...gear.ammunition.map(({ id, name, icon, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", icon, description: "Ammunition: each shot spends one." })),
+    ...counted(gear.worn, "equipped", "Worn", "gear"),
+    ...counted(gear.held, "equipped", "In hand", "gear"),
+    ...counted(gear.stowed, "stowed", "Stowed", "other"),
+    ...gear.ammunition.map(({ id, name, icon, count }) => ({ id, slot: "stowed", group: "consumable", state: "", name: name + " (" + count + ")", icon, description: "Ammunition: each shot spends one." })),
   ];
+}
+
+// "You carry" (#432) sorts what the character carries into groups, each a
+// compact list: a line per entry with its icon, name and state, and its
+// verbs on the right (renderActions puts them there, #198). An entry's
+// description opens from its name. Treasure starts collapsed when it is long.
+const CARRIED_GROUPS = [["gear", "Worn and wielded"], ["consumable", "Consumables"], ["treasure", "Treasure"], ["other", "Other"]];
+const TREASURE_SHOWN = 4;
+// The entries whose description the player opened, by id and slot, and
+// whether the player opened (true) or closed (false) the treasure, or null
+// for its default: both hold until the next adventure.
+const openCarried = new Set();
+let treasureOpen = null;
+
+function renderInventory(room) {
+  const entries = [...gearEntries(room.gear), ...room.inventory];
+  element("inventory-group").hidden = entries.length === 0 && !room.purse;
+  element("inventory").replaceChildren(...CARRIED_GROUPS.flatMap(([group, title]) => {
+    const members = entries.filter((entry) => entry.group === group);
+    if (!members.length) return [];
+    const list = make("ul", undefined, "carry-list");
+    list.append(...members.map(carriedEntry));
+    if (group === "treasure") {
+      const box = make("details", undefined, "carry-group");
+      box.dataset.group = group;
+      box.open = treasureOpen ?? members.length <= TREASURE_SHOWN;
+      // The player's click, not the toggle event, which setting open fires too.
+      const summary = make("summary", title + " (" + members.length + ")", "carry-title");
+      summary.addEventListener("click", () => {
+        treasureOpen = !box.open;
+      });
+      box.append(summary, list);
+      return [box];
+    }
+    const box = make("div", undefined, "carry-group");
+    box.dataset.group = group;
+    const heading = make("h4", title, "carry-title");
+    heading.id = "carry-" + group;
+    list.setAttribute("aria-labelledby", heading.id);
+    box.append(heading, list);
+    return [box];
+  }));
+}
+
+// One "You carry" entry: its line, which opens its description when it has
+// one, and the controls renderActions fills.
+function carriedEntry(entry) {
+  const item = make("li");
+  item.dataset.id = entry.id;
+  if (entry.slot) item.dataset.slot = entry.slot;
+  // A gem or art object shows its value (#239), a wand its charges (#346).
+  // An item's icon before its name (#377).
+  const name = make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : ""));
+  const line = [...iconned(entry.icon, name), ...(entry.state ? [" ", make("span", entry.state, "carry-state")] : [])];
+  if (entry.description) {
+    const key = entry.id + "/" + (entry.slot ?? "");
+    const more = make("details", undefined, "carry-more");
+    more.open = openCarried.has(key);
+    const summary = make("summary");
+    summary.addEventListener("click", () => {
+      if (more.open) openCarried.delete(key);
+      else openCarried.add(key);
+    });
+    summary.title = entry.description;
+    summary.append(...line);
+    more.append(summary, make("p", entry.description, "carry-text"));
+    item.append(more);
+  } else {
+    const text = make("p", undefined, "carry-line");
+    text.append(...line);
+    item.append(text);
+  }
+  item.append(make("div", undefined, "controls"));
+  return item;
 }
 
 function renderRoom(room) {
@@ -1717,7 +1804,7 @@ function renderRoom(room) {
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
   for (const list of ROOM_LISTS) {
-    const entries = list.key === "inventory" ? [...gearEntries(room.gear), ...room.inventory] : room[list.key];
+    const entries = room[list.key];
     element(list.id + "-group").hidden = entries.length === 0;
     element(list.id).replaceChildren(...entries.map((entry) => {
       const item = make("li");
@@ -1761,7 +1848,7 @@ function renderRoom(room) {
   // The purse shows with what the character carries, once it holds coin.
   element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
-  if (room.purse) element("inventory-group").hidden = false;
+  renderInventory(room);
   element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
 }
@@ -1925,9 +2012,9 @@ const ACTIONS = {
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   // On the check just failed (#315): a use of Second Wind adds 1d10.
   "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
-  // A short rest (#334), in the room panel with its choice of hit dice.
+  // A short rest (#334), in the character column with its choice of hit dice.
   rest: { label: "Rest", busy: "Resting", busyLabel: "Resting…" },
-  // A long rest at a rest site (#335), in the room panel.
+  // A long rest at a rest site (#335), in the character column.
   "long-rest": { label: "Long rest", busy: "Taking a long rest", busyLabel: "Resting…" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
@@ -2207,13 +2294,13 @@ function renderActions() {
   element("feature-controls").replaceChildren(...(fighting ? fightRows.filter(({ dataset }) => dataset.row !== "attack") : groups.feature));
   element("explore-controls").replaceChildren(...groups.explore);
   element("leave-controls").replaceChildren(...groups.leave);
-  // A carried item's verbs go on its entry in the room panel's list (#198).
+  // A carried item's verbs go on its entry in "You carry" (#198).
   // An equipped item's sale asks there first, in place of its verbs (#210).
   const selling = confirmingSale && session.actions.find(({ action, target }) => action === "sell-equipped" && target.id === confirmingSale);
   if (!selling) confirmingSale = null;
-  for (const entry of element("inventory").children) {
+  for (const entry of document.querySelectorAll("#inventory li[data-id]")) {
     const verbs = groups.carried.filter((wrap) => wrap.dataset.target === entry.dataset.id && wrap.dataset.slot === entry.dataset.slot);
-    const controls = entry.querySelector(".controls") || entry.appendChild(make("div", undefined, "controls"));
+    const controls = entry.querySelector(".controls");
     const asking = selling && entry.dataset.id === confirmingSale && entry.dataset.slot === "equipped";
     controls.replaceChildren(...(asking ? [saleQuestion(selling.target)] : verbs));
     controls.hidden = !asking && verbs.length === 0;
@@ -2252,7 +2339,7 @@ function actionRow(key, name, controls) {
   return row;
 }
 
-// A short rest (#334) in the room panel while exploring: the short rests and
+// A short rest (#334) in the character column while exploring: the short rests and
 // hit dice left and, while a rest would restore something, how many hit dice
 // to spend (the most the engine accepts unless the player chose fewer) and
 // Rest, disabled with the engine's reason when it would refuse.

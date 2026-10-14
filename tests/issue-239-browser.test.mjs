@@ -101,7 +101,7 @@ async function journey(seed, finish) {
     await fight(page);
     await explore(page, "examine", "stone-bier");
     await explore(page, "take", "blue-opal");
-    const opal = page.locator('#inventory > li[data-id="blue-opal"]');
+    const opal = page.locator('#inventory li[data-id="blue-opal"]');
     assert.match(await opal.innerText(), /Blue Opal \(50 gp\)/);
     await explore(page, "move", "barrow-mouth");
 

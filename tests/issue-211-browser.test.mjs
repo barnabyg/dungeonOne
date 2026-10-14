@@ -135,8 +135,8 @@ test(
       }
       assert.match(await newest(page), /Scarred Bandit is defeated\./);
       assert.match(
-        await text(page.locator("#room")),
-        /Dagger — In hand\.\nMace — Carried, not equipped\./,
+        await text(page.locator("#inventory")),
+        /Dagger In hand\n[\s\S]*Mace Stowed/,
       );
       await clickAction(page, "examine", "strongbox");
       await clickAction(page, "take", "toll-seal");
@@ -215,7 +215,11 @@ test(
       assert.equal(await page.locator("#purse").textContent(), "Purse: 4 gp");
       assert.match(
         await text(page.locator("#room")),
-        /Items here\nShield — You dropped it here\.\nYou carry\nLeather armour — Worn\.\n[\s\S]*Shortsword — In hand\.\n[\s\S]*Dagger — Carried, not equipped\./u,
+        /Items here\nShield — You dropped it here\./u,
+      );
+      assert.match(
+        await text(page.locator("#inventory")),
+        /Leather armour Worn\n[\s\S]*Shortsword In hand\n[\s\S]*Dagger Stowed/u,
       );
       await page.locator('#breadcrumb a[data-view="sheet"]').click();
       // Keep going closes the question; the second Abandon confirms it.

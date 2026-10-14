@@ -95,6 +95,7 @@ const screen = (page) =>
   page.evaluate(() => ({
     status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
+    carried: document.getElementById("inventory-group").innerText,
     // Each action's accessible name, and the reason it is unavailable (#157),
     // in the action bar and on carried items (#198).
     actions: [...document.querySelectorAll("button.act")]
@@ -196,9 +197,9 @@ test(
       await explore(page, "take", "healing-potion");
       shown = await screen(page);
       assert.match(
-        shown.room,
-        // After Ada's own gear (#209).
-        /You carry\n[\s\S]*Potion of Healing — A stoppered vial/,
+        shown.carried,
+        // After Ada's own gear (#209), with the consumables (#432).
+        /You carry\n[\s\S]*Consumables\n[\s\S]*Potion of Healing/,
       );
       assert.doesNotMatch(shown.room, /Items here|None\./);
       // Full health: Drink is disabled, with the reason.
@@ -241,8 +242,12 @@ test(
         /^Ada heals \d+ \(d4 \d \+ d4 \d \+ 2\) → \d+\/\d+ HP$/,
       );
       // The potion is gone; "You carry" keeps only Ada's own gear (#209).
-      assert.doesNotMatch(shown.room, /Potion of Healing —|None\./);
-      assert.match(shown.room, /You carry\n+Leather armour — Worn\./);
+      assert.doesNotMatch(shown.room, /None\./);
+      assert.doesNotMatch(shown.carried, /Potion of Healing/);
+      assert.match(
+        shown.carried,
+        /You carry\n+Worn and wielded\n+Leather armour Worn/,
+      );
       assert.match(
         shown.status,
         new RegExp(`HP ${expected.state.character.hp}/`),

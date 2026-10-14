@@ -119,7 +119,7 @@ test(
 
       // Selling worn armour asks first, inside its "You carry" entry.
       const leather = page.locator(
-        '#inventory > li[data-id="leather"][data-slot="equipped"]',
+        '#inventory li[data-id="leather"][data-slot="equipped"]',
       );
       await leather.locator('button[data-action="sell-equipped"]').click();
       assert.equal(await page.locator("#sale-confirm").isVisible(), true);

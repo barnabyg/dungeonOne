@@ -74,7 +74,7 @@ const tabRegions = async (page) => {
     const region = await page.evaluate(
       () =>
         document.activeElement.closest(
-          "#session-status, #session-scene, #session-actions, #session-history, #session-composer",
+          "#session-scene, #session-character, #session-actions, #session-history, #session-composer",
         )?.id,
     );
     if (!region) {
@@ -87,9 +87,10 @@ const tabRegions = async (page) => {
   return regions;
 };
 
+// Scene, then the character's column (#432), then the dock.
 const ORDER = [
-  "session-status",
   "session-scene",
+  "session-character",
   "session-actions",
   "session-history",
   "session-composer",
