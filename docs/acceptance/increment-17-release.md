@@ -33,7 +33,9 @@ deeper dungeon, closer to the published modules the
 - **The release module.** _The Coldwater Weirgate_ was designed with the
   owner (#411), written (#412), and given AI DM evaluation cases (#413).
 
-This ticket hands the increment to players. The
+This ticket hands the increment to players: it adds the handoff, its
+browser test and the plan and README updates, and changes no code or
+content. The
 [rules document](../character-rules.md) lists every rule, abstraction and
 house rule.
 
@@ -211,7 +213,7 @@ Ada is a level-3 Fighter (28 HP, AC 14) with a mace and no thieves' tools.
      more.";
    - "The alarm is raised by breaking down the Iron Grate (failure by 5 or
      more). The weir bell is clanging; boots drum on the wall-walk above.";
-   - the alarm's words in red under the room's description.
+   - the alarm's words under the room's description.
 5. Press **Unlock** on the Iron Grate. Expect "You unlock the Iron Grate
    with the Grate Key."
 6. **Go** Stair Foot. The deadfall springs: expect "The Bell-Wire Deadfall

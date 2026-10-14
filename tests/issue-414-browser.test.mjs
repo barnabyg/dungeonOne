@@ -104,25 +104,17 @@ const special = (chain) => (views, state) => {
 
 /**
  * One fight turn by the handoff's rule, the clicks a `journey` with the
- * `special` chooser makes: in the Lock Chamber, Disengage and then flee to
- * the Pump Room; with `chain`, in the Gear Hall, use the Counterweight Chain
- * by Athletics; otherwise attack, make the extra attack with a second light
- * weapon, or end the turn. Neither character has a reaction to answer a hit
- * with at level 3, so no turn offers Take the hit.
+ * `special` chooser makes: with `chain`, in the Gear Hall, use the
+ * Counterweight Chain by Athletics; otherwise attack, make the extra attack
+ * with a second light weapon, or end the turn. Vex's flight from the Lock
+ * Chamber is clicked by its test, step by step. Neither character has a
+ * reaction to answer a hit with at level 3, so no turn offers Take the hit.
  */
 async function fightTurn(page, chain) {
   const enabled = async (locator) =>
     (await locator.count()) > 0 && (await locator.first().isEnabled());
   const room = await page.locator("#room-title").textContent();
   const choices = [
-    ...(room === "Lock Chamber"
-      ? [
-          page.locator('button.act[data-action="disengage"]'),
-          page.locator(
-            'button.act[data-action="flee"][data-target="pump-room"]',
-          ),
-        ]
-      : []),
     ...(chain && room === "Gear Hall"
       ? [
           page.locator(
@@ -256,7 +248,7 @@ test(
       );
       await startAdventure(page, "coldwater-weirgate");
       const ends = [];
-      await play(page, STAIR_ROUTE, ends, true);
+      await play(page, STAIR_ROUTE, ends);
       // The Known rooms panel, in the Pump Room: the rooms Ada has been in
       // and those seen through their exits, by region.
       assert.deepEqual(await knownRooms(page), [
@@ -312,6 +304,8 @@ test(
         /You unlock the Iron Grate with the Grate Key\./u,
         /The Bell-Wire Deadfall deals 1 \+ 1 = 2 bludgeoning; you have 26\/28 HP\./u,
         /The alarm carries through the dark: d100 21, over 15: nothing stirs\./u,
+        /Initiative: Grisk 16 \+ 2 = 18; Ada/u,
+        /Grisk attacks Ada with Scimitar: 11 \+ 4 = 15 against AC 14\. Hit\. Damage 6 \+ 2 = 8 slashing; Ada has 18\/28 HP\./u,
         /You use the Counterweight Chain against Grisk\./u,
         /Athletics check, at advantage \(Remarkable Athlete\): d20 20 and 20, keeping 20; 20 \+ 3 \+ 2 proficiency = 25 against DC 13\. Success by 5 or more\./u,
         /The Counterweight Chain hits Grisk\. Damage 5 \+ 4 \+ 0 = 9 bludgeoning; Grisk has 12\/21 HP\./u,
@@ -349,6 +343,8 @@ const ROGUE_ROUTE = [
   ["move", "lock-chamber"],
   ["move", "gear-hall"],
 ];
+// The step into the Lock Chamber, where Vex flees Old Sullage.
+const INTO_THE_LOCK = ROGUE_ROUTE.length - 2;
 // The handoff's seed for scenario 2: the Lockjaw patrol wanders into the
 // sluice-house, and Vex wins every fight she stays in by the rule.
 const ROGUE_SEED = 152;
@@ -378,10 +374,12 @@ test(
         .click();
       await startAdventure(page, "coldwater-weirgate");
       const ends = [];
-      await play(page, ROGUE_ROUTE.slice(0, -2), ends);
+      await play(page, ROGUE_ROUTE.slice(0, INTO_THE_LOCK), ends);
       // Old Sullage wakes in the Lock Chamber. Fleeing would draw its attack
       // until Vex disengages.
-      await settled(page, () => button(page, ROGUE_ROUTE.at(-2)).click());
+      await settled(page, () =>
+        button(page, ROGUE_ROUTE[INTO_THE_LOCK]).click(),
+      );
       const drawn = page.locator("#flee-attacks");
       assert.equal(
         await drawn.textContent(),
@@ -400,7 +398,7 @@ test(
         await page.locator("#room-title").textContent(),
         "Pump Room",
       );
-      const log = await play(page, ROGUE_ROUTE.slice(-1), ends);
+      const log = await play(page, ROGUE_ROUTE.slice(INTO_THE_LOCK + 1), ends);
       // The Lockjaw patrol and Grisk.
       assert.deepEqual(ends, ["21/21", "21/21"]);
       await keep("rogue", log);
@@ -409,12 +407,13 @@ test(
         /You listen as you go: d100 2, 15 or less: the Patrolling Bandit and the Patrol Bandit come upon you\./u,
         /Patrol Bandit is defeated\./u,
         /Patrolling Bandit is defeated\./u,
-        /You use the Windlass Crank on the Drain Gear\./u,
+        /You use the Windlass Crank on the Drain Gear\. The crank fits the socket\./u,
         /The way to the Drain Mouth is open\./u,
+        /Initiative: Old Sullage 11 − 1 = 10; Vex 4 \+ 4 = 8\./u,
         /Old Sullage attacks Vex with Greatclub: 7 \+ 6 = 13 against AC 15\. Miss\./u,
         /You disengage: fleeing this turn draws no attacks\./u,
         /You flee, disengaged: no foe gets an attack on you as you go\./u,
-        /You get away from the Lock Chamber into the Pump Room, leaving the Old Sullage behind\./u,
+        /You get away from the Lock Chamber into the Pump Room, leaving the Old Sullage behind\. The fight is unresolved:/u,
         /Grisk is defeated\./u,
       ]);
       assert.match(await ending(page), /^The sluices open\nVictory\n/u);
