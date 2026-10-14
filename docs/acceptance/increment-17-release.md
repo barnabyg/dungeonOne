@@ -313,10 +313,10 @@ you, separately from the evidence above.
 
 ## Limits
 
-- **Names with an article.** Fight lines put "the" before a named foe: "You
-  attack the Sergeant Larrow.", "leaving the Old Sullage behind". This was
-  recorded in #412 and fixed later by #428: card lines now name foes as the
-  fight log does.
+- **Names with an article (since fixed by #428).** At this release, card
+  lines put "the" before a named foe: "You attack the Sergeant Larrow.",
+  "leaving the Old Sullage behind". #428 made them name foes as the fight
+  log does, and the scenarios above now quote the fixed text.
 - **The judged styles don't flee or use the room.** As the shared contract
   sets, the gate's judged runs are a lower bound: fleeing and fight actions
   are reported styles only. The lure, the kobold truce and the silt tunnel
