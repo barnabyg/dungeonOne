@@ -19,7 +19,7 @@ import {
   projectCreation,
   validateCharacter,
 } from "../dist/character-5e.js";
-import { FEATURE_USES_RULE, FIGHTING_STYLES } from "../dist/class-5e.js";
+import { FIGHTING_STYLES } from "../dist/class-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
 import { FIGHTER } from "../dist/fighter-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -82,13 +82,17 @@ const api = {
 
 /**
  * The feature-uses rule as the hard-coded Fighter worded it, before short
- * rests (#334) changed it.
+ * rests (#334) changed it, at the end of each limited-use feature's text
+ * until the sheet stated it once instead (#431).
  */
 const RECORDED_RULE =
   "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";
+const RECORDED_WITH_RULE = new Set(["second-wind", "action-surge"]);
 const asWorded = (value) =>
-  JSON.parse(
-    JSON.stringify(value).replaceAll(FEATURE_USES_RULE, RECORDED_RULE),
+  JSON.parse(JSON.stringify(value), (_key, entry) =>
+    RECORDED_WITH_RULE.has(entry?.id) && typeof entry.text === "string"
+      ? { ...entry, text: `${entry.text} ${RECORDED_RULE}` }
+      : entry,
   );
 
 test("a Fighter derives the hard-coded Fighter's numbers at every level, style and kit", () => {

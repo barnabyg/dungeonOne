@@ -122,12 +122,9 @@ test(
     };
     try {
       await createAndStart(page, server.url, "goblin-band");
-      // The prose sentence is gone; the rule stays beside the fight.
+      // The prose sentence is gone, and the rule is on the sheet (#431).
       assert.equal(await page.locator("#economy").count(), 0);
-      assert.match(
-        await page.locator("#feature-rule").textContent(),
-        /^A short rest restores some spent uses/,
-      );
+      assert.equal(await page.locator("#feature-rule").count(), 0);
       let shown = await status(page);
       const maxHp = firstFighter(seed).hp;
       assert.match(shown.hp, new RegExp(`^HP \\d+ of ${maxHp}, \\w+$`));

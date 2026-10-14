@@ -188,7 +188,6 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <button id="initiative-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="initiative-panel" hidden>Initiative order</button>
 <div id="initiative-panel"><div class="table-wrap"><table id="initiative" aria-label="Initiative order"><thead><tr><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
 <details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
-<p id="feature-rule" class="hint"></p>
 </section>
 <section id="known-rooms" aria-labelledby="known-rooms-title"><h3 id="known-rooms-title">Known rooms</h3><div id="known-room-list"></div><div id="known-room-record" aria-live="polite" hidden></div></section>
 </div>
@@ -501,7 +500,11 @@ function profileNodes(abilities, profile, hp, carrying) {
     item.append(make("strong", feature.name + ". "), document.createTextNode(feature.text));
     features.append(item);
   }
-  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features];
+  // How spent uses come back, once under the features (#431), for a
+  // character with a limited-use feature; spell slots alone don't count.
+  const limited = profile.features.some(({ id }) => profile.featureUses[id]);
+  const rule = limited ? [make("p", ${JSON.stringify(FEATURE_USES_RULE)}, "hint feature-uses-rule")] : [];
+  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features, ...rule];
 }
 
 /** A spell by id, from the classes' lists (#339). */
@@ -1058,7 +1061,6 @@ function renderAdventure() {
   if (encounter) renderInitiative(encounter, fighting);
   renderGear(session.room.gear);
   renderActions();
-  element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
   renderEnding();
   renderComposer();
