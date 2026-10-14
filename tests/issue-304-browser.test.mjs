@@ -96,7 +96,7 @@ test(
       const ending = await text(page.locator("#ending"));
       assert.match(ending, /^Out through the den\n/u);
       assert.ok(
-        ending.includes("Parted peacefully with the Giant Rat: +15 XP"),
+        ending.includes("Parted peacefully with Giant Rat: +15 XP"),
         ending,
       );
       assert.ok(!ending.includes("Defeated"), ending);

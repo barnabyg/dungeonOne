@@ -128,7 +128,7 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       const ending = await text(page.locator("#ending"));
       assert.ok(
-        ending.includes("Parted peacefully with the Bandit: +25 XP"),
+        ending.includes("Parted peacefully with Bandit: +25 XP"),
         ending,
       );
 

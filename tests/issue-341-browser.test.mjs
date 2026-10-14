@@ -416,7 +416,7 @@ test(
       await clickAction(page, "move", "stair-foot");
       assert.match(
         await text(page.locator("#log")),
-        /You leave the Rat-Gnawed Cellar with the Zombie and the Ghoul still turned\./u,
+        /You leave the Rat-Gnawed Cellar with Zombie and Ghoul still turned\./u,
       );
       assert.deepEqual(await channelPips(page), spent);
       const folder = join(directory, "characters-adventures");

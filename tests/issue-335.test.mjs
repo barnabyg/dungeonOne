@@ -390,7 +390,7 @@ test("an interrupted rest restores nothing and starts the wandering encounter's 
   );
   assert.match(
     renderFifthResult(result),
-    /^You keep watch as you rest: d100 25, 25 or less: the Prowling Rat comes upon you\. Your long rest is interrupted and restores nothing\.$/mu,
+    /^You keep watch as you rest: d100 25, 25 or less: Prowling Rat comes upon you\. Your long rest is interrupted and restores nothing\.$/mu,
   );
   // No rest in its fight.
   refused(using, state, LONG, "fighting");

@@ -88,7 +88,7 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       const ending = await text(page.locator("#ending"));
       assert.match(ending, /^Out through the den\n/u);
-      assert.ok(ending.includes("Slipped past the Giant Rat: +20 XP"), ending);
+      assert.ok(ending.includes("Slipped past Giant Rat: +20 XP"), ending);
       assert.ok(!ending.includes("Defeated"), ending);
 
       // Storage credits the 20 XP authored for slipping past, and no more.

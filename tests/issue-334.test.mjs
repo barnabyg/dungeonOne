@@ -243,7 +243,7 @@ test("a rest is refused in a room whose hostile encounter is unresolved", () => 
   const rejection = refused(using, lair, rest(1), "hostile-here");
   assert.match(
     rejection.reason,
-    /^Not with the Giant Rat here: you can rest only where no foes are left./u,
+    /^Not with Giant Rat here: you can rest only where no foes are left./u,
   );
   // Once the fight is won, the room is safe.
   const won = { ...lair, clearedEncounterIds: ["cellar-rat"] };

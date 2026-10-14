@@ -3338,10 +3338,7 @@ export function renderFifthEvent(
         return `You pay the toll of ${formatCoins(price)}.${text === undefined ? "" : ` ${text}`} ${pass} Purse: ${formatCoins(purse)}.`;
       }
       return event.option === "attack"
-        ? `You attack ${listed(
-            event.reactors.map((name) => `the ${name}`),
-            "and",
-          )}.`
+        ? `You attack ${listed(event.reactors, "and")}.`
         : pass;
     }
     case "parleyed": {
@@ -3368,12 +3365,12 @@ export function renderFifthEvent(
     }
     case "turned-away":
       return `You leave the ${event.room} with ${listed(
-        event.opponents.map((name) => `the ${name}`),
+        event.opponents,
         "and",
       )} still turned. The fight is unresolved: ${event.opponents.length === 1 ? "it waits" : "they wait"} there if you come back, and the fallen stay fallen.`;
     case "fled-fight":
       return `You get away from the ${event.room} into the ${event.to}, leaving ${listed(
-        event.opponents.map((who) => `the ${who}`),
+        event.opponents,
         "and",
       )} behind. The fight is unresolved: ${event.opponents.length === 1 ? "it waits" : "they wait"} there if you come back, wounds and all, and the fallen stay fallen.`;
     case "bypassed":
@@ -3475,7 +3472,7 @@ export function renderFifthEvent(
       const comers = event.opponents ?? [];
       if (event.interrupted) {
         const come = `${watch}: d100 ${event.roll}, ${event.chance} or less: ${listed(
-          comers.map((opponent) => `the ${opponent}`),
+          comers,
           "and",
         )} ${comers.length === 1 ? "comes" : "come"} upon you.`;
         return event.rest === undefined
@@ -5587,7 +5584,7 @@ export function createFifthRuntime(
     if (comer !== undefined) {
       return {
         wandering: `A wandering encounter came upon you here: ${listed(
-          comer.opponents.map(({ name }) => `the ${name}`),
+          comer.opponents.map(({ name }) => name),
           "and",
         )}.`,
       };
@@ -7242,7 +7239,7 @@ export function createFifthRuntime(
       ? [
           "hostile-here",
           `Not with ${listed(
-            foes.opponents.map(({ name }) => `the ${name}`),
+            foes.opponents.map(({ name }) => name),
             "and",
           )} here: you can rest only where no foes are left.`,
         ]
@@ -9235,7 +9232,7 @@ export function createFifthRuntime(
         const opponent = encounterById
           .get(cause.encounterId)
           ?.opponents.find(({ id }) => id === cause.opponentId);
-        return `the ${opponent?.name ?? "opponent"} that fled the fight in the ${roomById(cause.roomId).name} and lived`;
+        return `${opponent?.name ?? "an opponent"} that fled the fight in the ${roomById(cause.roomId).name} and lived`;
       }
     }
   };
@@ -9445,7 +9442,7 @@ export function createFifthRuntime(
       return reject(
         "unseen",
         `Not while you are sneaking past ${listed(
-          opponents(state).map(({ name }) => `the ${name}`),
+          opponents(state).map(({ name }) => name),
           "and",
         )}: you would be seen. Ambush them, or slip past.`,
       );
@@ -13591,7 +13588,7 @@ export function createFifthRuntime(
               {
                 id: `${adventure.id}/encounter/${fight.id}`,
                 name: `Slipped past ${listed(
-                  fight.opponents.map(({ name }) => `the ${name}`),
+                  fight.opponents.map(({ name }) => name),
                   "and",
                 )}`,
                 xp: fight.bypassXp,
@@ -13611,7 +13608,7 @@ export function createFifthRuntime(
               {
                 id: `${adventure.id}/encounter/${fight.id}`,
                 name: `Parted peacefully with ${listed(
-                  reactors(fight.opponents).map(({ name }) => `the ${name}`),
+                  reactors(fight.opponents).map(({ name }) => name),
                   "and",
                 )}`,
                 xp,

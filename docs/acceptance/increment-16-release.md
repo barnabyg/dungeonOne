@@ -265,7 +265,7 @@ Mage Armor.
    Fire Bolt. Vela wins at 14/20.
 2. **Go** Vestry. The room panel says "This is a safe place to rest. Long
    rests: 1 of 1 left in this adventure". Press **Long rest**. Expect:
-   - "You keep watch as you rest: d100 16, 25 or less: the Wandering
+   - "You keep watch as you rest: d100 16, 25 or less: Wandering
      Corpse comes upon you. Your long rest is interrupted and restores
      nothing.";
    - the Wandering Corpse fights in the vestry.

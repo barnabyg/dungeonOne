@@ -100,7 +100,7 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.ok(
         (await text(page.locator("#ending"))).includes(
-          "Parted peacefully with the Giant Rat: +15 XP",
+          "Parted peacefully with Giant Rat: +15 XP",
         ),
       );
       const record = await readAda(libraryPath);

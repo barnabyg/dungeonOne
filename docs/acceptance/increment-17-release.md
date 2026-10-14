@@ -260,7 +260,7 @@ thieves' tools.
    Windlass Crank.
 2. **Go** Barge Yard, then Sluice-House. That is Vex's fourth move in the
    Keep, so the Keep's table rolls. Expect "You listen as you go: d100 2, 15
-   or less: the Patrolling Bandit and the Patrol Bandit come upon you."
+   or less: Patrolling Bandit and Patrol Bandit come upon you."
    Fight by the rule. Vex wins at 21/21.
 3. In the Drain Gear's row, press **Use Windlass Crank**. Expect "The crank
    fits the socket. …" and "The way to the Drain Mouth is open."
@@ -270,8 +270,8 @@ thieves' tools.
    **Disengage**: the row now says "Draws no attacks". Press **Pump Room**
    in the Flee row. Expect:
    - "You flee, disengaged: no foe gets an attack on you as you go.";
-   - "You get away from the Lock Chamber into the Pump Room, leaving the
-     Old Sullage behind. The fight is unresolved: …".
+   - "You get away from the Lock Chamber into the Pump Room, leaving Old
+     Sullage behind. The fight is unresolved: …".
 6. **Go** Gear Hall and fight Grisk by the rule. Vex wins at 21/21.
 7. Expect **The sluices open**: +50 XP for the patrol, +200 for Grisk and
    +500 for the ending. Nothing is credited for the ogre she fled.
@@ -315,8 +315,8 @@ you, separately from the evidence above.
 
 - **Names with an article.** Fight lines put "the" before a named foe: "You
   attack the Sergeant Larrow.", "leaving the Old Sullage behind". This was
-  recorded in #412 and is not fixed here. #323 fixed only the ending's XP
-  lines.
+  recorded in #412 and fixed later by #428: card lines now name foes as the
+  fight log does.
 - **The judged styles don't flee or use the room.** As the shared contract
   sets, the gate's judged runs are a lower bound: fleeing and fight actions
   are reported styles only. The lure, the kobold truce and the silt tunnel

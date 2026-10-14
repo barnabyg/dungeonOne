@@ -129,7 +129,7 @@ test("each opponent able to act attacks before the character gets away; the figh
   );
   assert.match(
     text,
-    /You get away from the Rat-Gnawed Cellar into the Foot of the Stair, leaving the Giant Rat and the Zombie behind\. The fight is unresolved: they wait there if you come back, wounds and all, and the fallen stay fallen\./u,
+    /You get away from the Rat-Gnawed Cellar into the Foot of the Stair, leaving Giant Rat and Zombie behind\. The fight is unresolved: they wait there if you come back, wounds and all, and the fallen stay fallen\./u,
   );
   // The stair foot is an exit room: leaving is offered, and is an escape.
   assert.equal(offered(runtime, fled.state, "leave").length, 1);

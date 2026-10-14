@@ -112,7 +112,7 @@ test("a successful sneak leaves the character unseen: the fight has not begun", 
   );
   assert.match(
     rejection.reason,
-    /^Not while you are sneaking past the Giant Rat: you would be seen\./u,
+    /^Not while you are sneaking past Giant Rat: you would be seen\./u,
   );
   // The AI DM is offered ambush and move, and no examine.
   const tools = runtime.getGameToolDefinitions(state).map(({ name }) => name);
@@ -250,7 +250,7 @@ test("a bypassed fight gives only its authored XP, credited once; none by defaul
   assert.deepEqual(run.projectSettlement(state).xp, [
     {
       id: "rat-run/encounter/cellar-rat",
-      name: "Slipped past the Giant Rat",
+      name: "Slipped past Giant Rat",
       xp: 20,
     },
   ]);

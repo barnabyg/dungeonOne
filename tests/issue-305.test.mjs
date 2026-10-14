@@ -309,7 +309,7 @@ test("a parley's band moves the reaction, lets the character pass or starts the 
   assert.deepEqual(runtime.projectSettlement(left).xp, [
     {
       id: "bandit-toll/encounter/cellar-bandit",
-      name: "Parted peacefully with the Bandit",
+      name: "Parted peacefully with Bandit",
       xp: 25,
     },
   ]);
