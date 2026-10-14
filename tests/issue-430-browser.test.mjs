@@ -19,7 +19,9 @@ const chrome = (page) =>
   page.evaluate(() => {
     const box = (selector) => {
       const node = document.querySelector(selector);
-      if (node === null || node.getClientRects().length === 0) return null;
+      if (node === null || node.getClientRects().length === 0) {
+        return null;
+      }
       const rect = node.getBoundingClientRect();
       return { top: rect.top, bottom: rect.bottom, height: rect.height };
     };
