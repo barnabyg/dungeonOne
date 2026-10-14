@@ -323,7 +323,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v43";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v44";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
