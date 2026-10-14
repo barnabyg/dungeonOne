@@ -4610,6 +4610,20 @@ export function describeFifthResult(
 }
 
 type Named = Readonly<{ id: string; name: string; description: string }>;
+/**
+ * The groups "You carry" sorts what the character carries besides its gear
+ * into (#432): potions, spell scrolls and wands; gems and art objects; and
+ * the rest, such as keys and tools.
+ */
+export type CarriedGroup = "consumable" | "treasure" | "other";
+
+/** A carried module item's group (#432); scrolls and wands are held apart. */
+const carriedGroup = (item: FifthItem): CarriedGroup =>
+  item.treasure !== undefined
+    ? "treasure"
+    : potionOf(item) === undefined
+      ? "other"
+      : "consumable";
 
 /**
  * How hurt a creature is, for the browser's status: bloodied at half its HP
@@ -4741,7 +4755,13 @@ export type RoomView = Readonly<{
    * gem or art object shows its value, a wand its charges.
    */
   inventory: readonly (Named &
-    Readonly<{ icon: GameIconId; value?: string; charges?: string }>)[];
+    Readonly<{
+      icon: GameIconId;
+      value?: string;
+      charges?: string;
+      /** Its group in "You carry" (#432). */
+      group: CarriedGroup;
+    }>)[];
   /** The coin the character holds, in mixed denominations, if it has any. */
   purse?: string;
   /** The character's gear as it stands, and the AC and attacks it gives. */
@@ -5773,6 +5793,7 @@ export function createFifthRuntime(
       ...(item.treasure === undefined
         ? {}
         : { value: formatCoins(tradeGoodValue(item.treasure)) }),
+      group: carriedGroup(item),
     })),
     ...state.possessions.treasure.map(({ id, name, description, value }) => ({
       id,
@@ -5780,6 +5801,7 @@ export function createFifthRuntime(
       description,
       icon: TREASURE_ICON,
       value: formatCoins(value),
+      group: "treasure" as const,
     })),
     // Spell scrolls and wands (#346), a wand with its charges.
     ...heldItems(state).map((item) => ({
@@ -5788,6 +5810,7 @@ export function createFifthRuntime(
       icon: item.wand === undefined ? SCROLL_ICON : WAND_ICON,
       description: heldItemText(item),
       ...(item.wand === undefined ? {} : { charges: chargesText(item)! }),
+      group: "consumable" as const,
     })),
   ];
 

@@ -380,6 +380,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
     description: "A milky opal flecked with blue fire.",
     icon: "chest",
     value: "50 gp",
+    group: "treasure",
   });
   const sold = accept(later, start, sellTreasure("lintel-barrow/blue-opal"));
   assert.equal(sold.state.possessions.treasure.length, 0);
