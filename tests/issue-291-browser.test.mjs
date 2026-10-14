@@ -1,8 +1,9 @@
 // #291, browser → API → storage: the increment 14 player handoff
 // (docs/acceptance/increment-14-release.md), each scenario on its own library
-// and seed, with the numbers the handoff quotes:
-// - Scenario 1: the 2,690 XP Ada of #286 wins the Drowned Chapel and settles
-//   at level 4, owing her choices.
+// and seed, with the numbers the handoff quotes (scenario 1's since #438 are
+// the fixture's):
+// - Scenario 1: the 2,690 XP Ada of #286 wins a fight (the Lone Goblin
+//   fixture, since #438) and settles at level 4, owing her choices.
 // - Scenario 2: a level-4 Ada with 4,100 XP (about a career's after the
 //   earlier modules) finds the Thornwood Lodge under levels 4–5 and Hard, wins
 //   Brann over with Persuasion (a check with two approaches) to open the
@@ -30,6 +31,7 @@ import {
   text,
 } from "./fixtures/browser-journey.mjs";
 import { journey, xpOf } from "./fixtures/module-journey.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 
 const LIBRARY = fileURLToPath(
@@ -316,7 +318,7 @@ const LEVEL_THREE = fileURLToPath(
 );
 
 test(
-  "increment 14 handoff: the Drowned Chapel takes the 2,690 XP Ada to level 4, owing her choices (seed 0)",
+  "increment 14 handoff: a won fight takes the 2,690 XP Ada to level 4, owing her choices (seed 0)",
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-291-level-4-"));
@@ -325,6 +327,7 @@ test(
     const server = await startFifthBrowserServer({
       libraryPath,
       seed: 0,
+      adventures: [loneGoblin],
       qualifies: () => true,
     });
     const browser = await launch();
@@ -338,19 +341,12 @@ test(
         .locator("#characters button")
         .filter({ hasText: "Ada" })
         .click();
-      await startAdventure(page, "drowned-chapel");
-      await clickAction(page, "move", "flooded-nave");
+      await startAdventure(page, "lone-goblin");
       assert.match(
         await lastEntry(page),
-        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 12 and 11, kept\) 12 \+ 2 = 14; Drowned Sexton 5 − 2 = 3\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 12 and 11, kept\) 12 \+ 2 = 14; Goblin Warrior 5 \+ 2 = 7\./u,
       );
       await fight(page);
-      await clickAction(page, "examine", "sunken-altar");
-      await clickAction(page, "take", "silver-reliquary");
-      await clickAction(page, "take", "moss-agate");
-      await clickAction(page, "move", "chapel-porch");
-      await page.locator("#leave-controls button").click();
-      await page.locator("#confirm-leave").click();
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.equal(
         await page.locator("#level-up-title").textContent(),
@@ -359,8 +355,10 @@ test(
       const record = await readAda(libraryPath);
       assert.deepEqual(
         [record.sheet.level, record.sheet.xp, record.sheet.hp],
-        [4, 3040, 36],
+        [4, 2740, 36],
       );
+      // Her level-4 Ability Score Improvement is still owed.
+      assert.deepEqual(record.sheet.abilityScoreImprovements, []);
     } finally {
       await browser.close();
       await server.close();

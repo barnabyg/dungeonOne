@@ -54,10 +54,10 @@ export function testRogueAt(level: 1 | 2 | 3, purse = 0): CharacterSheet {
 
 /**
  * A character library holding only Vex at level 3 with 20 gp, about what a
- * career brings out of the level-1 and level-2 modules (#311): The
- * Counting-House on Mallow Quay's release run and player handoff
- * (docs/acceptance/inputs/increment-15/level-3-vex.json) start from it, and
- * the gold pays Snikk's toll.
+ * career brings out of the level-1 and level-2 modules (#311): level-3 Rogue
+ * browser journeys and the player handoff input
+ * docs/acceptance/inputs/increment-15/level-3-vex.json start from it, and the
+ * gold pays a toll.
  */
 export function rogueLibrary(): FifthLibraryData {
   return {

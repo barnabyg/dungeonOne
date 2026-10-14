@@ -63,7 +63,7 @@ test("a change picks the tiers it can break, and anything else runs every test",
   });
   const bestiary = selectForChanges([
     "adventures/5e/bestiary.json",
-    "adventures/5e/drowned-chapel.json",
+    "adventures/5e/abandoned-delve.json",
   ]);
   assert.deepEqual(bestiary.tiers, ["quick", "browser", "content"]);
   assert.deepEqual(bestiary.modules, []);

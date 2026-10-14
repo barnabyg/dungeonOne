@@ -17,7 +17,6 @@ import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildCharacter,
@@ -36,6 +35,7 @@ import {
   text,
 } from "./fixtures/browser-journey.mjs";
 import { journey, xpOf } from "./fixtures/module-journey.mjs";
+import { quayStrongroom } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
@@ -44,16 +44,15 @@ const input = (path) =>
 const VEX_LIBRARY = input("increment-15/level-3-vex.json");
 const ADA_LIBRARY = input("increment-13/level-3-ada.json");
 
-const quay = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "mallow-counting-house",
-);
+// The handoff's module, retiring, is played as a fixture copy since #438.
+const quay = quayStrongroom;
 
 /** A browser on a server for `libraryPath` on `seed`, and its page. */
 async function open(libraryPath, seed) {
   const server = await startFifthBrowserServer({
     libraryPath,
     seed,
-    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    adventures: [quayStrongroom],
     qualifies: () => true,
   });
   const browser = await launch();
@@ -219,9 +218,9 @@ test(
         .click();
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Counting-House on Mallow Quay\nStart\nLevels 3–4\nMedium\n/u,
+        /The Quay Strongroom\nStart\nLevels 3–4\nMedium\n/u,
       );
-      await startAdventure(page, "mallow-counting-house");
+      await startAdventure(page, "quay-strongroom");
       const seen = [];
       for (const step of ROGUE_ROUTE) {
         await click(page, step);
@@ -334,7 +333,7 @@ test(
         .locator("#characters button")
         .filter({ hasText: "Ada" })
         .click();
-      await startAdventure(page, "mallow-counting-house");
+      await startAdventure(page, "quay-strongroom");
       const seen = [];
       for (const step of FIGHTER_ROUTE) {
         if (step[0] === "break" && step[3] !== true) {
