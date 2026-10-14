@@ -15,13 +15,15 @@ import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const newest = (page) => page.locator("#log li").last().innerText();
 
-/** Each "You carry" entry's text, and the verbs on it. */
+/** Each "You carry" entry's name and state, and the verbs on it. */
 const carried = (page) =>
   page
-    .locator("#inventory > li")
+    .locator("#inventory li[data-id]")
     .evaluateAll((entries) =>
       entries.map((entry) => [
-        entry.querySelector("p").textContent,
+        entry.querySelector("strong").textContent +
+          " — " +
+          entry.querySelector(".carry-state").textContent,
         [...entry.querySelectorAll("button")].map((button) =>
           button.getAttribute("aria-label"),
         ),
@@ -61,20 +63,17 @@ test(
       );
       // Ada's own gear heads what she carries, acted on from there (#198).
       assert.deepEqual(await carried(page), [
-        ["Leather armour — Worn.", ["Unequip Leather armour"]],
-        ["Mace — In hand.", []],
+        ["Leather armour — Worn", ["Unequip Leather armour"]],
+        ["Mace — In hand", []],
       ]);
 
       await explore(page, "examine", "scratched-lintel");
       await explore(page, "take", "lintel-longsword");
       assert.equal(await newest(page), "You take the Longsword and stow it.");
       assert.deepEqual(await carried(page), [
-        ["Leather armour — Worn.", ["Unequip Leather armour"]],
-        ["Mace — In hand.", []],
-        [
-          "Longsword — Carried, not equipped.",
-          ["Wield Longsword", "Drop Longsword"],
-        ],
+        ["Leather armour — Worn", ["Unequip Leather armour"]],
+        ["Mace — In hand", []],
+        ["Longsword — Stowed", ["Wield Longsword", "Drop Longsword"]],
       ]);
       // No gear verb is in the action bar outside a fight.
       assert.equal(
@@ -106,9 +105,9 @@ test(
       // Ada has no longsword mastery, so no Sap.
       assert.match(numbers, /1d10 [+−] \d+ slashing, two-handed\.$/);
       assert.deepEqual(await carried(page), [
-        ["Leather armour — Worn.", ["Unequip Leather armour"]],
-        ["Longsword — In hand.", []],
-        ["Mace — Carried, not equipped.", ["Wield Mace", "Drop Mace"]],
+        ["Leather armour — Worn", ["Unequip Leather armour"]],
+        ["Longsword — In hand", []],
+        ["Mace — Stowed", ["Wield Mace", "Drop Mace"]],
       ]);
 
       // The mace dropped lies here, with Take to pick it back up.
@@ -127,8 +126,8 @@ test(
         true,
       );
       assert.deepEqual(await carried(page), [
-        ["Leather armour — Worn.", ["Unequip Leather armour"]],
-        ["Longsword — In hand.", []],
+        ["Leather armour — Worn", ["Unequip Leather armour"]],
+        ["Longsword — In hand", []],
       ]);
 
       await page.locator("#leave-controls button").click();

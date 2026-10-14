@@ -74,14 +74,18 @@ test(
       await explore(page, "take", "armour-scroll");
       await explore(page, "take", "sickness-scroll");
       const armour = page.locator(
-        '#inventory > li[data-id="lintel-barrow/armour-scroll"]',
+        '#inventory li[data-id="lintel-barrow/armour-scroll"]',
       );
       const sickness = page.locator(
-        '#inventory > li[data-id="lintel-barrow/sickness-scroll"]',
+        '#inventory li[data-id="lintel-barrow/sickness-scroll"]',
+      );
+      assert.equal(
+        await armour.locator("strong").innerText(),
+        "Spell Scroll (Mage Armor)",
       );
       assert.match(
-        await armour.locator("p").first().innerText(),
-        /^Spell Scroll \(Mage Armor\) — A spell scroll of Mage Armor \(1st level\)/u,
+        await armour.locator(".carry-text").textContent(),
+        /^A spell scroll of Mage Armor \(1st level\)/u,
       );
       // Ray of Sickness is cast only in a fight: no Read outside one (a
       // Thunderwave scroll until #348 put Thunderwave in the default book).

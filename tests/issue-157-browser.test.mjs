@@ -106,6 +106,7 @@ const furnishedCellar = (() => {
 
 /** The adventure screen's regions, in their order in a fight (#386). */
 const REGIONS = [
+  // The character's column (#432), which the status strip heads, comes first.
   "#session-status",
   "#encounter",
   "#room",
@@ -192,11 +193,13 @@ test(
         "There is nothing else here.",
       );
       assert.equal(await page.locator("#room-empty").isVisible(), true);
-      // Only what the character carries: its own gear (#209).
+      // No lists at all: what the character carries is in its own column
+      // (#432).
       assert.deepEqual(
         await page.locator("#room h4:visible").allTextContents(),
-        ["You carry"],
+        [],
       );
+      assert.equal(await page.locator("#inventory-group").isVisible(), true);
       // Re-rendering after an action keeps the room shown, below the fight.
       await clickNext(page);
       assert.equal(await page.locator("#room-description").isVisible(), true);

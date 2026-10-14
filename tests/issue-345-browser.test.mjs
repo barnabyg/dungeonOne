@@ -15,11 +15,21 @@ import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const newest = (page) => page.locator("#log li").last().innerText();
 
-/** Each "You carry" entry's text. */
+/** Each "You carry" entry's name, state and description (#432). */
 const carried = (page) =>
   page
-    .locator("#inventory > li > p")
-    .evaluateAll((entries) => entries.map((entry) => entry.textContent));
+    .locator("#inventory li[data-id]")
+    .evaluateAll((entries) =>
+      entries.map((entry) =>
+        [
+          entry.querySelector("strong").textContent,
+          entry.querySelector(".carry-state").textContent,
+          entry.querySelector(".carry-text")?.textContent,
+        ]
+          .filter(Boolean)
+          .join(" — "),
+      ),
+    );
 
 const BONUS = "Uncommon magic weapon: +1 to attack and damage rolls.";
 
@@ -54,9 +64,9 @@ test(
         "You take the +1 Shortsword and stow it.",
       );
       assert.deepEqual(await carried(page), [
-        "Leather armour — Worn.",
-        "Mace — In hand.",
-        `+1 Shortsword — Carried, not equipped. ${BONUS}`,
+        "Leather armour — Worn",
+        "Mace — In hand",
+        `+1 Shortsword — Stowed — ${BONUS}`,
       ]);
 
       await explore(page, "swap", "shortsword-plus-1");
@@ -81,9 +91,9 @@ test(
         numbers,
       );
       assert.deepEqual(await carried(page), [
-        "Leather armour — Worn.",
-        `+1 Shortsword — In hand. ${BONUS}`,
-        "Mace — Carried, not equipped.",
+        "Leather armour — Worn",
+        `+1 Shortsword — In hand — ${BONUS}`,
+        "Mace — Stowed",
       ]);
 
       await page.locator("#leave-controls button").click();

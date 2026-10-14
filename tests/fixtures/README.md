@@ -459,3 +459,10 @@ pass `qualifies: () => true`: the fixtures are engine material, and since
 #310 several of them (the lone goblin, the goblin band, the lintel barrow)
 are too deadly for the Rogue to pass the gate. The gate is tested in
 `balance-5e.test.mjs` and on the shipped modules.
+
+## A full pack (issue 432)
+
+`packed-barrow.mjs` is the market barrow for levels 1–3 with twelve items
+behind the lintel at its mouth (potions, gems and art objects, a spell scroll
+and 20 gp), so "You carry" fills every group, and the pedlar there buys and
+sells from it.
