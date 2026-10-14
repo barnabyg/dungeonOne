@@ -1,6 +1,7 @@
 // #405, browser → API → storage: Ada explores the Two-Level Tunnels. The
 // Known rooms panel lists the rooms she has been in and those seen through
-// an exit, by region, with her own marked; choosing one shows its record
+// an exit, by region, each marked as where she is, visited or seen (a room
+// she has left keeps a mark); choosing one shows its record
 // without moving her, and a reload shows the same rooms.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -55,7 +56,10 @@ test("the Known rooms panel lists the rooms by region and shows a room's record 
     await clickAction(page, "examine", "rusted-lantern");
     await clickAction(page, "move", "alcove");
     assert.deepEqual(await panel(page), [
-      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here)"]],
+      [
+        "Upper Tunnels",
+        ["Foot of the Stair (visited)", "Alcove (you are here)"],
+      ],
       ["Lower Tunnels", ["Rat-Gnawed Cellar (seen)"]],
     ]);
 
@@ -70,7 +74,7 @@ test("the Known rooms panel lists the rooms by region and shows a room's record 
     assert.equal(await page.locator("#room-title").textContent(), "Alcove");
     assert.deepEqual((await panel(page))[0], [
       "Upper Tunnels",
-      ["Foot of the Stair [shown]", "Alcove (you are here)"],
+      ["Foot of the Stair (visited) [shown]", "Alcove (you are here)"],
     ]);
     // A room only seen has no record yet.
     await page
@@ -91,7 +95,10 @@ test("the Known rooms panel lists the rooms by region and shows a room's record 
     await page.reload();
     await page.locator("#adventure").waitFor({ state: "visible" });
     assert.deepEqual(await panel(page), [
-      ["Upper Tunnels", ["Foot of the Stair", "Alcove (you are here)"]],
+      [
+        "Upper Tunnels",
+        ["Foot of the Stair (visited)", "Alcove (you are here)"],
+      ],
       ["Lower Tunnels", ["Rat-Gnawed Cellar (seen)"]],
     ]);
     await page
