@@ -20,6 +20,7 @@ const NAMES = [
   "rope-cove",
   "sealed-crypt",
   "shifting-ossuary",
+  "sunken-chantry",
   "toll-yard",
 ];
 
@@ -447,7 +448,7 @@ export const banditTollFile = (() => {
 export const banditToll = validateModule(structuredClone(banditTollFile));
 
 /**
- * The Counting-House's mechanics together, kept for its player-handoff
+ * A retiring release module's mechanics together, kept for #311's handoff
  * journeys when it retires (#438): levels 3–4, medium. A toll-taker at the
  * arch who reacts, parleys and charges a toll; a goblin lurking in the
  * counting hall, past which the character may sneak (springing a scything
@@ -455,6 +456,14 @@ export const banditToll = validateModule(structuredClone(banditTollFile));
  * each try costing 1d4 bludgeoning damage.
  */
 export const quayStrongroom = validateModule(moduleFile("quay-strongroom"));
+
+/**
+ * A retiring release module's mechanics together, kept for #350's handoff
+ * journeys when it retires (#438): level 3, medium. A sexton's key to a
+ * locked grille, a ward read with Arcana, undead to turn, a +1 Mace, spell
+ * scrolls, and a vestry whose long rests the restless dead may interrupt.
+ */
+export const sunkenChantry = validateModule(moduleFile("sunken-chantry"));
 
 /**
  * Long rests and interrupted rests (#335): the rat tunnels as _The Resting

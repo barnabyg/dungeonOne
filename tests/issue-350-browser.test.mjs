@@ -1,6 +1,6 @@
 // #350, browser → API → storage: the increment 16 player handoff
 // (docs/acceptance/increment-16-release.md), each scenario on its own
-// library and seed, in The Hollow Chantry:
+// library and seed, in the module's fixture copy, the Sunken Chantry (#438):
 // - Scenario 1: the level-3 Fighter Ada takes the sexton's key, unlocks the
 //   grille, beats the ghoul in the ossuary for the founder's +1 Mace, wields
 //   it and lays the Risen Prior to rest. She can't read the Cure Wounds
@@ -19,12 +19,12 @@ import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
 import { settled, startAdventure, text } from "./fixtures/browser-journey.mjs";
 import { libraryOf, miraAt3, velaAt3 } from "./fixtures/level-3-casters.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
+import { sunkenChantry } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
@@ -34,16 +34,14 @@ const ADA_LIBRARY = input("increment-13/level-3-ada.json");
 const MIRA_LIBRARY = input("increment-16/level-3-mira.json");
 const VELA_LIBRARY = input("increment-16/level-3-vela.json");
 
-const chantry = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "hollow-chantry",
-);
+const chantry = sunkenChantry;
 
 /** A browser on a server for `libraryPath` on `seed`, and its page. */
 async function open(libraryPath, seed) {
   const server = await startFifthBrowserServer({
     libraryPath,
     seed,
-    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    adventures: [sunkenChantry],
     qualifies: () => true,
   });
   const browser = await launch();
@@ -243,9 +241,9 @@ test(
         .click();
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Hollow Chantry\nStart\nLevel 3\nMedium\n/u,
+        /The Sunken Chantry\nStart\nLevel 3\nMedium\n/u,
       );
-      await startAdventure(page, "hollow-chantry");
+      await startAdventure(page, "sunken-chantry");
       const ends = [];
       const log = await play(page, FIGHTER_ROUTE, "fighter", ends);
       // The HP Ada ends each fight at: nave, pit, ossuary, undercroft.
@@ -266,7 +264,7 @@ test(
       assert.equal(
         await page
           .locator(
-            'button.act[data-action="read"][data-target="hollow-chantry/vestry-scroll"]:enabled',
+            'button.act[data-action="read"][data-target="sunken-chantry/vestry-scroll"]:enabled',
           )
           .count(),
         0,
@@ -350,7 +348,7 @@ test(
         .locator("#characters button")
         .filter({ hasText: "Vela" })
         .click();
-      await startAdventure(page, "hollow-chantry");
+      await startAdventure(page, "sunken-chantry");
       const ends = [];
       await play(page, WIZARD_ROUTE.slice(0, 2), "wizard", ends);
       assert.match(
@@ -397,7 +395,7 @@ const CLERIC_ROUTE = [
   ["examine", "vestment-press"],
   ["take", "vestry-scroll"],
   ["take", "vestry-potion"],
-  ["read", "hollow-chantry/vestry-scroll", "cure-wounds"],
+  ["read", "sunken-chantry/vestry-scroll", "cure-wounds"],
   ["rest", 3],
   ["move", "nave"],
   ["examine", "sexton-pew"],
@@ -441,7 +439,7 @@ test(
         .locator("#characters button")
         .filter({ hasText: "Mira" })
         .click();
-      await startAdventure(page, "hollow-chantry");
+      await startAdventure(page, "sunken-chantry");
       const ends = [];
       const log = await play(page, CLERIC_ROUTE, "cleric", ends);
       // Nave, pit, undercroft.
