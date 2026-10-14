@@ -43,20 +43,33 @@ const unreachable = async (page) => {
   const missed = [];
   for (const button of await buttons.all()) {
     await button.scrollIntoViewIfNeeded();
-    const reached = await button.evaluate((node) => {
+    const where = await button.evaluate((node) => {
       const rect = node.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
-      return (
+      const hit = document.elementFromPoint(x, y);
+      const reached =
         rect.top >= 0 &&
         rect.left >= 0 &&
         rect.bottom <= window.innerHeight &&
         rect.right <= window.innerWidth &&
-        node.contains(document.elementFromPoint(x, y))
-      );
+        node.contains(hit);
+      // Where it sat and what covered it, to say why when it is missed.
+      return reached
+        ? null
+        : JSON.stringify({
+            rect: [rect.left, rect.top, rect.right, rect.bottom],
+            window: [window.innerWidth, window.innerHeight],
+            client: [
+              document.documentElement.clientWidth,
+              document.documentElement.clientHeight,
+            ],
+            scroll: [window.scrollX, window.scrollY],
+            hit: hit?.closest("[id]")?.id ?? hit?.tagName ?? null,
+          });
     });
-    if (!reached) {
-      missed.push(await text(button));
+    if (where !== null) {
+      missed.push(`${await text(button)} ${where}`);
     }
   }
   return missed;
