@@ -301,7 +301,7 @@ test("attacking begins the fight; letting pass ends the encounter peacefully for
   );
   assert.equal(
     rejection.reason,
-    "The Giant Rat is waiting to see what you do: you may attack or pass peacefully.",
+    "Giant Rat is waiting to see what you do: you may attack or pass peacefully.",
   );
   refused(facing, { type: "examine", targetId: "gnawed-sacks" }, "reacting");
   assert.deepEqual(

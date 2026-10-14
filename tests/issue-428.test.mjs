@@ -137,7 +137,7 @@ test("talk refusals and retries name the creature without an article", () => {
   );
 });
 
-test("with nothing changed, a talk retry is refused by the creature's name alone", () => {
+test("with nothing changed, a talk retry refusal names the creature without an article", () => {
   const { runtime, begun } = hesk({
     after: {
       type: "discovered",

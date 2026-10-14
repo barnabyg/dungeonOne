@@ -9476,7 +9476,7 @@ export function createFifthRuntime(
       return reject(
         "reacting",
         `${listed(
-          watching.map(({ name }) => `The ${name}`),
+          watching.map(({ name }) => name),
           "and",
         )} ${watching.length === 1 ? "is" : "are"} waiting to see what you do: you may ${reactionChoicesText(state)}.`,
       );
@@ -10840,7 +10840,7 @@ export function createFifthRuntime(
           action.type === "buy" &&
           !(isCatalogueId(id) && trader.merchant.stock.includes(id))
         ) {
-          return reject("not-stocked", `The ${trader.name} doesn't sell that.`);
+          return reject("not-stocked", `${trader.name} doesn't sell that.`);
         }
         if (!isCatalogueId(id)) {
           return reject("not-carried", "You don't carry that.");
