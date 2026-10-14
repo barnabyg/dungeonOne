@@ -1,5 +1,5 @@
-// #432: from 1500 px wide the adventure screen has three columns, scene,
-// character and dock, in that tab order, up to about 1880 px in all; the
+// #432: from 1500 px wide the adventure screen has three columns, character,
+// scene and dock, in that tab order, up to about 1880 px in all; the
 // character column holds the status strip, "You carry" and the rests.
 // "You carry" is a compact, grouped list, a line per entry with its verbs on
 // the right. Narrower, the screen keeps two columns without scrolling
@@ -103,13 +103,15 @@ test(
         wide.layout.width >= 1780 && wide.layout.width <= 1900,
         `layout ${wide.layout.width} px wide`,
       );
-      assert.ok(wide.scene.right <= wide.character.left, JSON.stringify(wide));
-      assert.ok(wide.character.right <= wide.dock.left, JSON.stringify(wide));
+      // The character's column is on the left (owner decision, 14 October
+      // 2026).
+      assert.ok(wide.character.right <= wide.scene.left, JSON.stringify(wide));
+      assert.ok(wide.scene.right <= wide.dock.left, JSON.stringify(wide));
       assert.deepEqual(wide.sceneHolds, []);
       assert.ok(wide.status.left >= wide.character.left);
       assert.deepEqual(await tabRegions(page), [
-        "session-scene",
         "session-character",
+        "session-scene",
         "session-dock",
       ]);
 

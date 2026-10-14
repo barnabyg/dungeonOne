@@ -106,12 +106,12 @@ const furnishedCellar = (() => {
 
 /** The adventure screen's regions, in their order in a fight (#386). */
 const REGIONS = [
+  // The character's column (#432), which the status strip heads, comes first.
+  "#session-status",
   "#encounter",
   "#room",
-  // The known rooms (#405) follow the room, then the character's column
-  // (#432), which the status strip heads.
+  // The known rooms (#405) follow the room.
   "#known-rooms",
-  "#session-status",
   "#session-actions",
   "#session-history",
   "#session-composer",
@@ -314,7 +314,7 @@ test(
       assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
       assert.match(await page.locator("#features").textContent(), /Ale Rack/);
 
-      // DOM and tab order: Fight, room, known rooms, status, actions,
+      // DOM and tab order: status, Fight, room, known rooms, actions,
       // history, composer.
       assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
       const tabbed = await tabRegions(page);
