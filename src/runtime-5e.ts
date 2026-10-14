@@ -1322,8 +1322,9 @@ export type FifthEvent =
       rooms: readonly string[];
     }>
   /**
-   * Another try at a check already made (#284): what it is made on, and why
-   * it is offered, a cost paid first or a changed circumstance.
+   * Another try at a check already made (#284): what it is made on, as the
+   * card names it ("the Sheer Cliff", "asking Hesk about the burrow"), and
+   * why it is offered, a cost paid first or a changed circumstance.
    */
   | Readonly<{ type: "retry"; name: string; reason: string }>
   /** An item a retry used up (#284). */
@@ -1443,6 +1444,11 @@ export type FifthEvent =
       type: "check-damage";
       /** What the check was made on, such as "Rubble Heap". */
       source: string;
+      /**
+       * Set when `source` is a creature talked to (#428), which the card
+       * names without an article.
+       */
+      creature?: true;
       rolls: readonly number[];
       modifier: number;
       damage: number;
@@ -3432,7 +3438,7 @@ export function renderFifthEvent(
         : `${titleCase(way)} is closed.`;
     }
     case "retry":
-      return `Another try at the ${event.name} (${event.reason}).`;
+      return `Another try at ${event.name} (${event.reason}).`;
     case "used-up":
       return `The ${event.name} is used up.`;
     case "tactical-mind": {
@@ -3503,7 +3509,7 @@ export function renderFifthEvent(
         )
         .join(" ");
     case "check-damage":
-      return `The ${event.source} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
+      return `${event.creature === true ? event.source : `The ${event.source}`} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
     case "door":
       return doorText(event);
     case "searched":
@@ -6151,7 +6157,7 @@ export function createFifthRuntime(
     state: FifthState,
     site: CheckSite,
     retry: boolean,
-    name: string,
+    what: string,
   ): Readonly<{
     refused?: FifthRejection;
     offer?: Readonly<{ reason: string; cost?: RetryCost }>;
@@ -6171,7 +6177,7 @@ export function createFifthRuntime(
       return {
         refused: {
           code: "no-retry",
-          reason: `You haven't tried the ${name} yet.`,
+          reason: `You haven't tried ${what} yet.`,
         },
       };
     }
@@ -6180,7 +6186,7 @@ export function createFifthRuntime(
       ? {
           refused: {
             code: "no-retry",
-            reason: `Nothing lets you try the ${name} again.`,
+            reason: `Nothing lets you try ${what} again.`,
           },
         }
       : { offer };
@@ -7006,6 +7012,12 @@ export function createFifthRuntime(
   };
 
   /**
+   * What a check is made on (#428): its name, and whether it is a creature
+   * talked to, which cards name without an article.
+   */
+  type CheckSource = Readonly<{ name: string; creature?: true }>;
+
+  /**
    * Damage a check's band or a retry's cost deals the character (#281,
    * #284): rolled and dealt with no saving throw; at 0 HP the adventure ends
    * in its defeat.
@@ -7019,7 +7031,7 @@ export function createFifthRuntime(
       damageType: string;
       defeatEndingId: string;
     }>,
-    source: string,
+    source: CheckSource,
     dice: Pick<RandomSource, "roll">,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
     const rolls = Array.from({ length: effect.dice }, () =>
@@ -7036,7 +7048,8 @@ export function createFifthRuntime(
     };
     const dealt: FifthEvent = {
       type: "check-damage",
-      source,
+      source: source.name,
+      ...(source.creature === true ? { creature: true as const } : {}),
       rolls,
       modifier: effect.modifier,
       damage,
@@ -7074,19 +7087,24 @@ export function createFifthRuntime(
   const payRetry = (
     state: FifthState,
     offer: Readonly<{ reason: string; cost?: RetryCost }> | undefined,
-    name: string,
+    what: string,
+    source: CheckSource,
     random: Pick<RandomSource, "roll"> | undefined,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
     if (offer === undefined) {
       return { state, events: [] };
     }
-    const tried: FifthEvent = { type: "retry", name, reason: offer.reason };
+    const tried: FifthEvent = {
+      type: "retry",
+      name: what,
+      reason: offer.reason,
+    };
     const { cost } = offer;
     if (cost === undefined) {
       return { state, events: [tried] };
     }
     if (cost.type === "damage") {
-      const hurt = checkDamage(state, cost, name, need(random, "A retry"));
+      const hurt = checkDamage(state, cost, source, need(random, "A retry"));
       return { state: hurt.state, events: [tried, ...hurt.events] };
     }
     const item = items.get(cost.item)!;
@@ -7957,7 +7975,7 @@ export function createFifthRuntime(
   ): Readonly<{
     state: FifthState;
     events: readonly FifthEvent[];
-    source: string;
+    source: CheckSource;
   }> => {
     const { success } = roll;
     switch (site.kind) {
@@ -7980,7 +7998,7 @@ export function createFifthRuntime(
               opened: success,
             },
           ],
-          source: door.name,
+          source: { name: door.name },
         };
       }
       case "search": {
@@ -7988,7 +8006,7 @@ export function createFifthRuntime(
         return {
           state: searched.state,
           events: [searched.event],
-          source: room(state).name,
+          source: { name: room(state).name },
         };
       }
       case "disarm": {
@@ -8002,7 +8020,7 @@ export function createFifthRuntime(
           events: [
             { type: "disarmed", trapId: trap.id, name: trap.name, success },
           ],
-          source: trap.name,
+          source: { name: trap.name },
         };
       }
       case "talk": {
@@ -8014,7 +8032,7 @@ export function createFifthRuntime(
         return {
           state,
           events: [topicWords(state, creature, topic, success)],
-          source: creature.name,
+          source: { name: creature.name, creature: true },
         };
       }
       case "examine": {
@@ -8030,7 +8048,7 @@ export function createFifthRuntime(
               found: [],
             },
           ],
-          source: feature.name,
+          source: { name: feature.name },
         };
       }
     }
@@ -8054,7 +8072,7 @@ export function createFifthRuntime(
     site: CheckSite,
     check: AuthoredCheck,
     spec: AuthoredApproach,
-    source: string,
+    source: CheckSource,
     random: Pick<RandomSource, "roll"> | undefined,
   ): Readonly<{
     state: FifthState;
@@ -8131,7 +8149,7 @@ export function createFifthRuntime(
   const bandOutcome = (
     state: FifthState,
     outcome: CheckBand | undefined,
-    source: string,
+    source: CheckSource,
     dice: Pick<RandomSource, "roll">,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
     let next = state;
@@ -9930,7 +9948,12 @@ export function createFifthRuntime(
           );
         }
         const site: CheckSite = { kind: action.type, id: door.id };
-        const again = tryAgain(state, site, action.retry === true, door.name);
+        const again = tryAgain(
+          state,
+          site,
+          action.retry === true,
+          `the ${door.name}`,
+        );
         if (again.refused !== undefined) {
           return { state, rejection: again.refused };
         }
@@ -9950,7 +9973,13 @@ export function createFifthRuntime(
           return { state, rejection: choice.refused };
         }
         // A retry's cost is paid before the roll, and may end the adventure.
-        const paid = payRetry(state, again.offer, door.name, random);
+        const paid = payRetry(
+          state,
+          again.offer,
+          `the ${door.name}`,
+          { name: door.name },
+          random,
+        );
         if (paid.state.status !== "playing") {
           return paid;
         }
@@ -9959,7 +9988,7 @@ export function createFifthRuntime(
           site,
           spec,
           choice.spec!,
-          door.name,
+          { name: door.name },
           random,
         );
         const events = [
@@ -10005,7 +10034,14 @@ export function createFifthRuntime(
           state: next,
           roll,
           around,
-        } = resolveCheck(state, site, spec, spec, room(state).name, random);
+        } = resolveCheck(
+          state,
+          site,
+          spec,
+          spec,
+          { name: room(state).name },
+          random,
+        );
         const searched = searchFinds(next, roll.total);
         return { state: searched.state, events: around([searched.event]) };
       }
@@ -10033,7 +10069,12 @@ export function createFifthRuntime(
           return reject("trap-sprung", `The ${trap.name} has already sprung.`);
         }
         const site: CheckSite = { kind: "disarm", id: trap.id };
-        const again = tryAgain(state, site, action.retry === true, trap.name);
+        const again = tryAgain(
+          state,
+          site,
+          action.retry === true,
+          `the ${trap.name}`,
+        );
         if (again.refused !== undefined) {
           return { state, rejection: again.refused };
         }
@@ -10052,7 +10093,13 @@ export function createFifthRuntime(
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
-        const paid = payRetry(state, again.offer, trap.name, random);
+        const paid = payRetry(
+          state,
+          again.offer,
+          `the ${trap.name}`,
+          { name: trap.name },
+          random,
+        );
         if (paid.state.status !== "playing") {
           return paid;
         }
@@ -10065,7 +10112,7 @@ export function createFifthRuntime(
           site,
           trap.disarm,
           choice.spec!,
-          trap.name,
+          { name: trap.name },
           random,
         );
         return {
@@ -10092,7 +10139,7 @@ export function createFifthRuntime(
           return reject("no-topic", "There is no one here to ask about that.");
         }
         const site: CheckSite = { kind: "talk", id: topic.id };
-        const asking = `${creature.name} about ${topic.name}`;
+        const asking = `asking ${creature.name} about ${topic.name}`;
         const again = tryAgain(state, site, action.retry === true, asking);
         if (again.refused !== undefined) {
           return { state, rejection: again.refused };
@@ -10103,14 +10150,20 @@ export function createFifthRuntime(
         ) {
           return reject(
             "already-asked",
-            `You already asked the ${creature.name} about ${topic.name}.`,
+            `You already asked ${creature.name} about ${topic.name}.`,
           );
         }
         const choice = chooseApproach(state, topic.check, action.approach);
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
-        const paid = payRetry(state, again.offer, asking, random);
+        const paid = payRetry(
+          state,
+          again.offer,
+          asking,
+          { name: creature.name, creature: true },
+          random,
+        );
         if (paid.state.status !== "playing") {
           return paid;
         }
@@ -10134,7 +10187,7 @@ export function createFifthRuntime(
           site,
           topic.check,
           choice.spec!,
-          creature.name,
+          { name: creature.name, creature: true },
           random,
         );
         return {
@@ -10308,7 +10361,7 @@ export function createFifthRuntime(
         const outcome = bandOutcome(
           used,
           { effects: use.effects },
-          feature.name,
+          { name: feature.name },
           use.effects.some(({ type }) => type === "damage")
             ? need(random, "Using an item")
             : {
@@ -10365,7 +10418,7 @@ export function createFifthRuntime(
             state,
             site,
             action.retry === true,
-            feature.name,
+            `the ${feature.name}`,
           );
           if (again.refused !== undefined) {
             return { state, rejection: again.refused };
@@ -10398,7 +10451,13 @@ export function createFifthRuntime(
           if (choice.refused !== undefined) {
             return { state, rejection: choice.refused };
           }
-          const paid = payRetry(state, again.offer, feature.name, random);
+          const paid = payRetry(
+            state,
+            again.offer,
+            `the ${feature.name}`,
+            { name: feature.name },
+            random,
+          );
           if (paid.state.status !== "playing") {
             return paid;
           }
@@ -10414,7 +10473,7 @@ export function createFifthRuntime(
             site,
             authored.check,
             choice.spec!,
-            feature.name,
+            { name: feature.name },
             random,
           );
           return {
