@@ -99,7 +99,7 @@ export function libraryAt(level: Level): FifthLibraryData {
 
 /**
  * A character library holding only Ada at level 3 (#241). Level-3 browser
- * journeys, the Silvervein Mine's release run and the player handoff input
+ * journeys, a level-3 release run and the player handoff input
  * docs/acceptance/inputs/increment-13/level-3-ada.json start from it.
  */
 export function levelThreeLibrary(): FifthLibraryData {
