@@ -38,6 +38,13 @@ const chrome = (page) =>
     };
   });
 
+// The yard with Tinker's Toll's objective, the longest a shipped module has.
+const yard = {
+  ...goblinYard,
+  objective:
+    "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
+};
+
 /** Whether `inner` lies within `outer` from top to bottom. */
 const within = (inner, outer) =>
   inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
@@ -53,7 +60,7 @@ for (const viewport of [
     const server = await startFifthBrowserServer({
       libraryPath,
       seed: 7,
-      adventures: [goblinYard],
+      adventures: [yard],
       qualifies: () => true,
     });
     const browser = await launch();
@@ -84,9 +91,18 @@ for (const viewport of [
       );
       assert.ok(shown.objective.top >= shown.bar.bottom);
       assert.ok(shown.objective.bottom <= shown.layout.top);
+      // The objective keeps to one line; its full text is on hover.
+      assert.ok(
+        shown.objective.height <= 25,
+        `objective ${shown.objective.height}`,
+      );
       assert.equal(
         await text(page.locator("#adventure-objective")),
-        goblinYard.objective,
+        yard.objective,
+      );
+      assert.equal(
+        await page.locator("#adventure-objective").getAttribute("title"),
+        yard.objective,
       );
       assert.match(
         await text(page.locator("#adventure-meta")),
