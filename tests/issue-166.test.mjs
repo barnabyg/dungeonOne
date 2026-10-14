@@ -20,7 +20,7 @@ const RULE =
 // Long rests arrived in #335; uses no longer stay spent.
 const STALE = /stay spent|return after the adventure/i;
 
-test("Second Wind and Action Surge state the rule that applies now (#166)", () => {
+test("Second Wind and Action Surge give their uses, the rule apart (#166, #431)", () => {
   assert.equal(FEATURE_USES_RULE, RULE);
   const sheet = buildCharacter(
     "a".repeat(32),
@@ -58,11 +58,11 @@ test("Second Wind and Action Surge state the rule that applies now (#166)", () =
     characterProfile(second).features.find((feature) => feature.id === id).text;
   assert.equal(
     text("second-wind"),
-    `Bonus action: regain 1d10 + 2 HP. 2 uses. ${RULE}`,
+    "Bonus action: regain 1d10 + 2 HP. 2 uses.",
   );
   assert.equal(
     text("action-surge"),
-    `Take one additional action on your turn, except Magic. 1 use. ${RULE}`,
+    "Take one additional action on your turn, except Magic. 1 use.",
   );
 });
 
@@ -92,7 +92,7 @@ test(
         "Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.",
       );
 
-      // The creation preview gives Second Wind the sheet's words.
+      // The creation preview states the rule as the sheet does (#431).
       const preview = page.locator("#preview-body");
       await preview.filter({ hasText: "AC:" }).waitFor();
       const previewText = await preview.innerText();
@@ -113,10 +113,9 @@ test(
       );
       await page.locator("#delete-dialog").press("Escape");
 
-      // In a fight the same rule sits under the initiative table (#155).
+      // A fight leaves the rule to the sheet (#431).
       await startAdventure(page, "lone-goblin");
-      const rule = await page.locator("#feature-rule").textContent();
-      assert.equal(rule, RULE);
+      assert.ok(!(await page.locator("#adventure").innerText()).includes(RULE));
       assert.doesNotMatch(
         await page.locator("#session-status").textContent(),
         STALE,

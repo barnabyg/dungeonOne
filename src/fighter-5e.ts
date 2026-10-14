@@ -5,7 +5,6 @@
  * definition alone. `docs/character-rules.md` records the numbers.
  */
 import {
-  FEATURE_USES_RULE,
   FIGHTING_STYLES,
   abilityScoreImprovementText,
   WEAPON_MASTERY_FEATURE,
@@ -88,7 +87,7 @@ export const FIGHTER: ClassDefinition = {
       level: 1,
       name: "Second Wind",
       text: ({ level, uses }) =>
-        `Bonus action: regain 1d10 + ${level} HP. ${uses} uses. ${FEATURE_USES_RULE}`,
+        `Bonus action: regain 1d10 + ${level} HP. ${uses} uses.`,
       uses: { 1: 2, 2: 2, 3: 2, 4: 3, 5: 3 },
       recovery: { shortRest: 1, longRest: "all" },
       effect: { kind: "second-wind", healing: { dice: 1, sides: 10 } },
@@ -99,7 +98,7 @@ export const FIGHTER: ClassDefinition = {
       level: 2,
       name: "Action Surge",
       text: ({ uses }) =>
-        `Take one additional action on your turn, except Magic. ${uses} use. ${FEATURE_USES_RULE}`,
+        `Take one additional action on your turn, except Magic. ${uses} use.`,
       uses: { 1: 0, 2: 1, 3: 1, 4: 1, 5: 1 },
       recovery: { shortRest: "all", longRest: "all" },
       effect: { kind: "action-surge" },

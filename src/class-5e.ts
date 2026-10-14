@@ -174,8 +174,9 @@ export function fightingStyleUse(
 
 /**
  * How limited feature uses recover: a short rest (#334) or a long rest
- * (#335) restores what each feature's recovery gives. The sheet, the creation preview and the fight
- * all show these words.
+ * (#335) restores what each feature's recovery gives. The sheet and the
+ * creation preview state these words once, under the features, when the
+ * character has a feature with limited uses (#431).
  */
 export const FEATURE_USES_RULE =
   "A short rest restores some spent uses, at most twice an adventure, and a long rest at a rest site restores them all; a rest between adventures restores them all and every hit point.";

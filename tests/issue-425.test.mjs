@@ -15,8 +15,8 @@ import {
 } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER_CHOICES } from "../dist/test-fighter-5e.js";
 
-test("the prompt is v43", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v43");
+test("the prompt changes", () => {
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
 });
 
 test("a request to do something in another room is not a move", () => {
