@@ -2,7 +2,10 @@ name: Verify
 
 on:
   pull_request:
+  # Branch pushes with an open PR are already covered by pull_request; running
+  # both doubled every PR's CI. Push only re-checks main after a merge.
   push:
+    branches: [main]
 
 permissions:
   contents: read
