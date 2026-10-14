@@ -1,0 +1,1037 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 42,
+  "id": "bramblecote-cider-house",
+  "title": "The Bramblecote Cider House",
+  "objective": "Get back what you can of the Pell family's goods from the goblins in the cider house, and come out alive.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "medium",
+  "long": true,
+  "regions": [
+    {
+      "id": "yard",
+      "name": "The Yard"
+    },
+    {
+      "id": "vaults",
+      "name": "The Vaults"
+    }
+  ],
+  "routes": [
+    {
+      "id": "press-house",
+      "name": "Down the press-house trapdoor",
+      "rooms": ["press-house", "cellar-stair", "cask-gallery"]
+    },
+    {
+      "id": "old-well",
+      "name": "Down the old well",
+      "rooms": ["dog-yard", "well-yard", "well-bottom", "cask-gallery"]
+    }
+  ],
+  "startRoomId": "lane-gate",
+  "rooms": [
+    {
+      "id": "lane-gate",
+      "name": "Lane Gate",
+      "description": "A five-bar gate hangs open on the lane, and the air smells of windfall apples going soft in the grass. Beyond it a cobbled yard runs up to a long stone press house and a thatched farmhouse.",
+      "region": "yard",
+      "exit": true,
+      "features": [
+        {
+          "id": "bramblecote-sign",
+          "name": "Bramblecote Sign",
+          "description": "A painted board on the gatepost: a bramble, an apple and the word BRAMBLECOTE. Someone has daubed a crude goblin face over the apple."
+        },
+        {
+          "id": "cart-ruts",
+          "name": "Cart Ruts",
+          "description": "Deep ruts in the lane mud, cut by a heavy cart.",
+          "discovery": "Among the hoofprints are the prints of small bare feet, many of them, going in and out of the yard."
+        },
+        {
+          "id": "orchard-hedge",
+          "name": "Orchard Hedge",
+          "description": "A thick hawthorn hedge round the orchard, heavy with red berries and the last of the apples."
+        }
+      ],
+      "items": [],
+      "creatures": [
+        {
+          "id": "ressa-pell",
+          "name": "Widow Ressa Pell",
+          "description": "A grey-haired woman in a cider-stained apron, leaning on a stick at the gate. She watches the yard with a hard, tired face.",
+          "topics": [
+            {
+              "id": "the-goblins",
+              "name": "the goblins",
+              "reply": "\"Four or five of them, maybe more. They came the night after the pressing and drove me and my lad out with knives. Their chief sleeps it off in the hayloft. You can hear him snore from the press house.\""
+            },
+            {
+              "id": "the-strongroom",
+              "name": "the strongroom",
+              "reply": "\"Our savings are in the strongroom under the cask gallery. Snagtooth's runt, Wick, took the key off my belt. He keeps it on a string round his neck.\""
+            },
+            {
+              "id": "the-old-well",
+              "name": "the old well",
+              "reply": "\"The old well drops straight into the vaults. My husband's father used it to lower casks. There's rope in the cooper's shed, if the goblins haven't burned it.\""
+            },
+            {
+              "id": "about-brack",
+              "name": "Brack",
+              "reply": "\"Brack was a good dog. They've chained him in the dog yard and starved him mean. He'll go for anyone now.\""
+            },
+            {
+              "id": "the-sump",
+              "name": "the sump",
+              "reply": "\"Nobody goes in the low cellar. It floods when the river's high, and things wash in. Leave it be.\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dog-yard",
+      "name": "Dog Yard",
+      "description": "A muddy yard behind the farmhouse, ringed with gnawed bones and stinking of dog. A long chain runs from a post to a kennel of broken boards.",
+      "region": "yard",
+      "encounterId": "dog-yard-fight",
+      "features": [
+        {
+          "id": "kennel",
+          "name": "Kennel",
+          "description": "A kennel of rotten boards, its straw trodden flat.",
+          "discovery": "A gnawed goblin sandal lies in the straw. Brack has been eating better than his masters think."
+        },
+        {
+          "id": "water-trough",
+          "name": "Water Trough",
+          "description": "A stone trough, its water green and scummed over."
+        },
+        {
+          "id": "chain-post",
+          "name": "Chain Post",
+          "description": "An oak post with an iron ring. The chain is long enough to reach every corner of the yard."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "description": "The farmhouse kitchen is cold, and it smells of burned stew and spilled cider. Chairs lie overturned around a scrubbed table.",
+      "region": "yard",
+      "features": [
+        {
+          "id": "pantry",
+          "name": "Pantry",
+          "description": "A narrow pantry, its shelves picked bare.",
+          "discovery": "Behind a crock of pickled onions, where the goblins didn't look, stands a stoppered vial of red liquid."
+        },
+        {
+          "id": "hearth",
+          "name": "Hearth",
+          "description": "A wide hearth with a pot hanging over dead ashes. The goblins' stew has gone cold and grey."
+        },
+        {
+          "id": "dresser",
+          "name": "Dresser",
+          "description": "A tall dresser of blue plates, half of them smashed on the flagstones."
+        }
+      ],
+      "items": [
+        {
+          "id": "pantry-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "pantry"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "parlour",
+      "name": "Parlour",
+      "description": "A small, quiet room with the shutters barred from inside. Dust lies thick on the good chairs; the goblins never came in here.",
+      "region": "yard",
+      "restSite": true,
+      "features": [
+        {
+          "id": "barred-shutters",
+          "name": "Barred Shutters",
+          "description": "Oak shutters with a bar across them. Nothing can come in this way."
+        },
+        {
+          "id": "settle",
+          "name": "Settle",
+          "description": "A high-backed settle with a patched cushion, long enough to sleep on."
+        },
+        {
+          "id": "long-case-clock",
+          "name": "Long-Case Clock",
+          "description": "A tall clock painted with apple blossom, its pendulum still.",
+          "discovery": "It stopped at a quarter past two: the hour the goblins came, and nobody has wound it since."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "coopers-shed",
+      "name": "Cooper's Shed",
+      "description": "Shavings carpet the floor of a lean-to shed, and it smells of oak and old smoke. Hoops and staves are stacked against every wall.",
+      "region": "yard",
+      "features": [
+        {
+          "id": "tool-rack",
+          "name": "Tool Rack",
+          "description": "A rack of adzes, drawknives and mallets.",
+          "discovery": "A coil of good hemp rope hangs on the end peg, under a sack."
+        },
+        {
+          "id": "stave-pile",
+          "name": "Stave Pile",
+          "description": "Split oak staves, stacked to season. Some have been pulled out and burned."
+        },
+        {
+          "id": "half-made-cask",
+          "name": "Half-made Cask",
+          "description": "A cask with half its staves in the hoop, left where the cooper dropped his tools."
+        }
+      ],
+      "items": [
+        {
+          "id": "coil-of-rope",
+          "name": "Coil of Rope",
+          "description": "Fifty feet of good hemp rope, dry and strong.",
+          "kind": "tool",
+          "hiddenIn": "tool-rack"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "press-house",
+      "name": "Press House",
+      "description": "The long press house reeks of fermenting mash, and wasps drone over a heap of brown pulp. A great wooden press stands in the middle, and a trapdoor lies open in the floor. A ladder climbs to the hayloft.",
+      "region": "yard",
+      "encounterId": "press-house-fight",
+      "features": [
+        {
+          "id": "pomace-heap",
+          "name": "Pomace Heap",
+          "description": "A heap of pressed apple pulp, crawling with wasps. Something glints in it.",
+          "discovery": "Nib has buried his hoard in the mash: a sticky handful of coins."
+        },
+        {
+          "id": "cider-press",
+          "name": "Cider Press",
+          "description": "An oak press with a screw as thick as your leg. Something is wedged in its threads.",
+          "discovery": "Jammed in the screw is a strip of bark scratched with a goblin tally: rows of barrels, each crossed out beside a little drawing of a boat. \"To the river man,\" someone has scrawled.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 12
+              },
+              {
+                "skill": "perception",
+                "dc": 13
+              }
+            ],
+            "bands": {
+              "failure-by-5": {
+                "text": "You get a hand stuck in the sticky screw and pull it free with nothing to show but wasp stings."
+              },
+              "failure": {
+                "text": "Whatever is in there is jammed too deep to see."
+              },
+              "success": {
+                "text": "You work the bark free of the screw.",
+                "effects": [
+                  {
+                    "type": "discovery",
+                    "feature": "cider-press"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "You work the bark free, and spot chalk marks on the press's frame as well.",
+                "effects": [
+                  {
+                    "type": "discovery",
+                    "feature": "cider-press"
+                  },
+                  {
+                    "type": "discovery",
+                    "feature": "trapdoor"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "trapdoor",
+          "name": "Trapdoor",
+          "description": "A wide trapdoor, propped open, with a barrel ramp running down into the dark. Cold air comes up it.",
+          "discovery": "A chalk arrow on the press frame points at the hatch, and beside it a goblin has scratched a circle and a line going down: the old well goes into the vaults too."
+        }
+      ],
+      "items": [
+        {
+          "id": "nibs-hoard",
+          "name": "Nib's Hoard",
+          "description": "A sticky handful of gold coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 8
+          },
+          "hiddenIn": "pomace-heap"
+        },
+        {
+          "id": "nib-coins",
+          "name": "Nib's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 9
+          },
+          "hiddenIn": "nib"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "hayloft",
+      "name": "Hayloft",
+      "description": "Loud snoring fills a dusty loft under the thatch, and the hay smells of mice and stale cider. Empty jugs roll on the boards.",
+      "region": "yard",
+      "avoidable": true,
+      "encounterId": "hayloft-fight",
+      "features": [
+        {
+          "id": "snagtooths-sack",
+          "name": "Snagtooth's Sack",
+          "description": "A greasy sack that the goblin chief uses as a pillow.",
+          "discovery": "Inside, among apple cores and a broken pipe, are a few gold coins and a dark green stone flecked with red."
+        },
+        {
+          "id": "hay-bales",
+          "name": "Hay Bales",
+          "description": "Bales of last summer's hay, pulled apart into goblin nests."
+        },
+        {
+          "id": "loft-door",
+          "name": "Loft Door",
+          "description": "A hay door open to the orchard, two storeys up. It's a long drop."
+        }
+      ],
+      "items": [
+        {
+          "id": "sack-bloodstone",
+          "name": "Bloodstone",
+          "description": "A dark green stone flecked with red, polished smooth.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "snagtooths-sack"
+        },
+        {
+          "id": "sack-coins",
+          "name": "Chief's Gold",
+          "description": "A few gold coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 5
+          },
+          "hiddenIn": "snagtooths-sack"
+        },
+        {
+          "id": "strongroom-key",
+          "name": "Strongroom Key",
+          "description": "An iron key on a dirty string.",
+          "kind": "key",
+          "hiddenIn": "wick"
+        },
+        {
+          "id": "snagtooth-coins",
+          "name": "Snagtooth's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 6
+          },
+          "hiddenIn": "snagtooth"
+        },
+        {
+          "id": "wick-coins",
+          "name": "Wick's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 9
+          },
+          "hiddenIn": "wick"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "well-yard",
+      "name": "Well Yard",
+      "description": "A walled yard at the orchard's edge, its cobbles green with moss. An old well head stands in the middle under a wooden windlass.",
+      "region": "yard",
+      "features": [
+        {
+          "id": "well-head",
+          "name": "Well Head",
+          "description": "A ring of mossy stone over a dark shaft. Far below, something glints, and cool air rises from the vaults.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "athletics",
+                "dc": 12,
+                "movement": "climb",
+                "advantage": [
+                  {
+                    "type": "holds",
+                    "item": "coil-of-rope",
+                    "name": "Coil of Rope"
+                  }
+                ]
+              },
+              {
+                "skill": "acrobatics",
+                "dc": 13,
+                "advantage": [
+                  {
+                    "type": "holds",
+                    "item": "coil-of-rope",
+                    "name": "Coil of Rope"
+                  }
+                ]
+              }
+            ],
+            "bands": {
+              "failure-by-5": {
+                "text": "Your hold slips on the wet stone, and you drop the last of the way into the silt.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 4,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "fallen-at-bramblecote"
+                  },
+                  {
+                    "type": "open",
+                    "passage": "well-shaft"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "You scrape down the last of it and land hard, but unhurt.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "well-shaft"
+                  }
+                ]
+              },
+              "success": {
+                "text": "You find the old footholds in the shaft and climb down.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "well-shaft"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "You go down hand over hand and land without a sound.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "well-shaft"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "bucket-windlass",
+          "name": "Bucket Windlass",
+          "description": "A wooden windlass with no rope on it. The bucket is gone."
+        },
+        {
+          "id": "orchard-wall",
+          "name": "Orchard Wall",
+          "description": "A dry-stone wall, with apple boughs hanging over it heavy with fruit."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "cart-shed",
+      "name": "Cart Shed",
+      "description": "An open-fronted shed smelling of horse and axle grease. A flat cart stands empty, waiting for barrels.",
+      "region": "yard",
+      "avoidable": true,
+      "encounterId": "cart-shed-fight",
+      "features": [
+        {
+          "id": "flat-cart",
+          "name": "Cart",
+          "description": "A flat river cart with high sides, its bed stained with cider.",
+          "discovery": "The tailboard is branded with a V inside a ring: the same mark is chalked on barrels all over the farm."
+        },
+        {
+          "id": "harness-pegs",
+          "name": "Harness Pegs",
+          "description": "Pegs hung with a carthorse's harness. The horse is nowhere to be seen."
+        },
+        {
+          "id": "feed-sack",
+          "name": "Feed Sack",
+          "description": "A sack of oats, slit open. Something has been eating from it."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "cellar-stair",
+      "name": "Cellar Stair",
+      "description": "Worn steps run down from the trapdoor into a cool, dark passage that smells of wet stone and apples. A barrel ramp runs beside them.",
+      "region": "vaults",
+      "features": [
+        {
+          "id": "worn-steps",
+          "name": "Worn Steps",
+          "description": "Stone steps hollowed by three generations of Pells carrying casks."
+        },
+        {
+          "id": "lamp-niche",
+          "name": "Lamp Niche",
+          "description": "A niche in the wall, blackened by a lamp that has gone."
+        },
+        {
+          "id": "chalk-tally",
+          "name": "Chalk Tally",
+          "description": "Chalk marks on the wall, in rows.",
+          "discovery": "It's a careful human hand, not a goblin's: twenty-two barrels, each marked \"paid\" with a V inside a ring."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "cask-gallery",
+      "name": "Cask Gallery",
+      "description": "A long vault cut into the hill, lined with great casks on stone cradles. The air is thick and sweet. Passages lead off in every direction, and an iron-bound door is set in the far wall.",
+      "region": "vaults",
+      "features": [
+        {
+          "id": "great-casks",
+          "name": "Great Casks",
+          "description": "Casks taller than a man, most of them tapped and dry. Chalked on each is a V inside a ring."
+        },
+        {
+          "id": "spigot-rack",
+          "name": "Spigot Rack",
+          "description": "A rack of brass spigots, every one of them missing but two."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "well-bottom",
+      "name": "Well Bottom",
+      "description": "A round chamber at the foot of the well shaft, damp and dripping. Daylight is a coin of white far above.",
+      "region": "vaults",
+      "features": [
+        {
+          "id": "silted-floor",
+          "name": "Silted Floor",
+          "description": "Grey silt, a foot deep. Coins glint in it here and there.",
+          "discovery": "Generations of wishes: a scatter of coins, green and worn, but still good."
+        },
+        {
+          "id": "dropped-bucket",
+          "name": "Dropped Bucket",
+          "description": "The well's bucket, split open where it fell."
+        },
+        {
+          "id": "sump-arch",
+          "name": "Sump Arch",
+          "description": "A low arch leading down. Black water laps beyond it, and the air is foul."
+        }
+      ],
+      "items": [
+        {
+          "id": "wishing-coins",
+          "name": "Wishing Coins",
+          "description": "A scatter of old coins, worn smooth.",
+          "kind": "coin",
+          "coins": {
+            "gp": 5
+          },
+          "hiddenIn": "silted-floor"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "pell-strongroom",
+      "name": "Pell Strongroom",
+      "description": "A small, dry room behind the iron-bound door, smelling of wax and old paper. The Pells kept everything that mattered here.",
+      "region": "vaults",
+      "features": [
+        {
+          "id": "iron-chest",
+          "name": "Iron Chest",
+          "description": "A squat iron chest, not locked.",
+          "discovery": "Inside are the Pells' savings, wrapped in cloth, and a silver cup engraved with the names of babies."
+        },
+        {
+          "id": "ledger-shelf",
+          "name": "Ledger Shelf",
+          "description": "Fifty years of Bramblecote's accounts, in a row of leather ledgers."
+        },
+        {
+          "id": "cider-wifes-shrine",
+          "name": "Cider-Wife's Shrine",
+          "description": "A little shrine of an apple-cheeked woman holding a cup, with a dried wreath of apple blossom."
+        }
+      ],
+      "items": [
+        {
+          "id": "christening-cup",
+          "name": "Pell Christening Cup",
+          "description": "A small silver cup, engraved with four generations of Pell children's names.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "pell-savings",
+          "name": "Pell Savings",
+          "description": "A cloth bundle of gold coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 30
+          },
+          "hiddenIn": "iron-chest"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "bottling-room",
+      "name": "Bottling Room",
+      "description": "A dry side vault with a heavy door that bars from inside. Rows of empty bottles glint on racks, and a cot stands in the corner.",
+      "region": "vaults",
+      "restSite": true,
+      "features": [
+        {
+          "id": "corking-bench",
+          "name": "Corking Bench",
+          "description": "A bench of corks, wire and wax.",
+          "discovery": "In the bench's drawer, under the corks, is a stoppered vial of red liquid."
+        },
+        {
+          "id": "bottle-racks",
+          "name": "Bottle Racks",
+          "description": "Racks of green glass bottles, every one empty."
+        },
+        {
+          "id": "farmhands-cot",
+          "name": "Farmhand's Cot",
+          "description": "The farmhand's cot, his blanket still folded on it."
+        }
+      ],
+      "items": [
+        {
+          "id": "bench-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "corking-bench"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "cider-store",
+      "name": "Cider Store",
+      "description": "Lamplight falls over rows of full barrels, each chalked with a V inside a ring. The room smells of cider and pipe smoke.",
+      "region": "vaults",
+      "encounterId": "cider-store-fight",
+      "features": [
+        {
+          "id": "fences-strongbox",
+          "name": "Fence's Strongbox",
+          "description": "A small strongbox on a barrel head, its lid open.",
+          "discovery": "Corran's takings: a few gold coins and a banded agate he took in trade."
+        },
+        {
+          "id": "rolled-barrels",
+          "name": "Rolled Barrels",
+          "description": "Barrels lined up on their sides, ready to roll down to the river door."
+        },
+        {
+          "id": "tally-slate",
+          "name": "Tally Slate",
+          "description": "A slate hung on a nail.",
+          "discovery": "\"Snagtooth: 2 sp a barrel. Sells at the quay for 2 gp.\" The fence has done well."
+        }
+      ],
+      "items": [
+        {
+          "id": "banded-agate",
+          "name": "Banded Agate",
+          "description": "A brown and white striped agate.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "fences-strongbox"
+        },
+        {
+          "id": "fence-takings",
+          "name": "Fence's Takings",
+          "description": "A few gold coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 10
+          },
+          "hiddenIn": "fences-strongbox"
+        },
+        {
+          "id": "corran-vey-coins",
+          "name": "Corran Vey's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 12
+          },
+          "hiddenIn": "corran-vey"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "flooded-sump",
+      "name": "Flooded Sump",
+      "description": "The low cellar is knee-deep in black water that smells of river mud and rot. A rusted grating lets in the sound of the river.",
+      "region": "vaults",
+      "avoidable": true,
+      "encounterId": "sump-fight",
+      "features": [
+        {
+          "id": "black-water",
+          "name": "Black Water",
+          "description": "Cold, still water. You can't see the bottom."
+        },
+        {
+          "id": "smugglers-purse",
+          "name": "Smuggler's Purse",
+          "description": "A rotted leather purse caught on the grating, where the river left it.",
+          "discovery": "In the purse is a single red-orange stone."
+        },
+        {
+          "id": "rusted-grating",
+          "name": "Rusted Grating",
+          "description": "An iron grating over a culvert to the river, rusted solid."
+        }
+      ],
+      "items": [
+        {
+          "id": "smugglers-carnelian",
+          "name": "Carnelian",
+          "description": "A red-orange carnelian, smooth and cold.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "smugglers-purse"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "river-door",
+      "name": "River Door",
+      "description": "The passage ends at a low door onto the riverbank. You hear the river running fast beyond it, and smell weed and wet rope.",
+      "region": "vaults",
+      "exit": true,
+      "features": [
+        {
+          "id": "smugglers-door",
+          "name": "Smugglers' Door",
+          "description": "An old oak door, its bolts well greased. It opens onto a muddy bank and the river."
+        },
+        {
+          "id": "mooring-ring",
+          "name": "Mooring Ring",
+          "description": "An iron ring set in the bank outside, a fresh rope burn on it."
+        },
+        {
+          "id": "river-steps",
+          "name": "River Steps",
+          "description": "Stone steps down to the water, slick with weed."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "lane-to-dog-yard",
+      "between": ["lane-gate", "dog-yard"],
+      "description": "A muddy track round the back of the farmhouse. A chain rattles somewhere."
+    },
+    {
+      "id": "lane-to-kitchen",
+      "between": ["lane-gate", "kitchen"],
+      "description": "The farmhouse door, standing open."
+    },
+    {
+      "id": "lane-to-cart-shed",
+      "between": ["lane-gate", "cart-shed"],
+      "description": "The cart track to an open shed."
+    },
+    {
+      "id": "dog-yard-to-shed",
+      "between": ["dog-yard", "coopers-shed"],
+      "description": "A lean-to door, propped with a stave."
+    },
+    {
+      "id": "dog-yard-to-press-house",
+      "between": ["dog-yard", "press-house"],
+      "description": "The press house's yard doors. Wasps drone inside."
+    },
+    {
+      "id": "dog-yard-to-well-yard",
+      "between": ["dog-yard", "well-yard"],
+      "description": "A gap in the orchard wall."
+    },
+    {
+      "id": "kitchen-to-parlour",
+      "between": ["kitchen", "parlour"],
+      "description": "A low door with a bar on its inner side."
+    },
+    {
+      "id": "kitchen-back-door",
+      "between": ["kitchen", "press-house"],
+      "description": "The back door, across a few steps of yard to the press house."
+    },
+    {
+      "id": "hayloft-ladder",
+      "between": ["press-house", "hayloft"],
+      "description": "A ladder up into the hayloft. Snoring comes down it."
+    },
+    {
+      "id": "press-house-trapdoor",
+      "between": ["press-house", "cellar-stair"],
+      "description": "The open trapdoor and its barrel ramp, down into the vaults."
+    },
+    {
+      "id": "well-shaft",
+      "between": ["well-yard", "well-bottom"],
+      "description": "The old well shaft, down into the vaults.",
+      "hidden": true
+    },
+    {
+      "id": "stair-to-gallery",
+      "between": ["cellar-stair", "cask-gallery"],
+      "description": "The passage at the foot of the steps."
+    },
+    {
+      "id": "gallery-to-well-bottom",
+      "between": ["cask-gallery", "well-bottom"],
+      "description": "A narrow passage, damp underfoot."
+    },
+    {
+      "id": "gallery-to-strongroom",
+      "between": ["cask-gallery", "pell-strongroom"],
+      "description": "The iron-bound strongroom door.",
+      "door": {
+        "id": "strongroom-door",
+        "name": "Strongroom Door",
+        "description": "A heavy oak door strapped with iron, locked fast.",
+        "state": "locked",
+        "keyItemId": "strongroom-key",
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 13
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 14,
+          "bands": {
+            "failure-by-5": {
+              "text": "The door doesn't budge, and you jar your shoulder against the iron."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "gallery-to-bottling-room",
+      "between": ["cask-gallery", "bottling-room"],
+      "description": "A side door, its bar hanging loose."
+    },
+    {
+      "id": "gallery-to-cider-store",
+      "between": ["cask-gallery", "cider-store"],
+      "description": "An archway. Lamplight and pipe smoke drift through it."
+    },
+    {
+      "id": "gallery-to-river-door",
+      "between": ["cask-gallery", "river-door"],
+      "description": "The smugglers' passage, sloping down toward the sound of the river."
+    },
+    {
+      "id": "well-bottom-to-sump",
+      "between": ["well-bottom", "flooded-sump"],
+      "description": "The low arch, down into black water."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "dog-yard-fight",
+      "opponents": [
+        {
+          "id": "brack",
+          "monster": "mastiff",
+          "name": "Brack",
+          "description": "A big brindled farm dog, ribs showing, hurls himself at you to the end of his chain."
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    },
+    {
+      "id": "press-house-fight",
+      "opponents": [
+        {
+          "id": "nib",
+          "monster": "goblin-minion",
+          "name": "Nib",
+          "description": "A goblin sticky with mash to the elbows lurches up from the pomace heap, waving a dagger."
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    },
+    {
+      "id": "hayloft-fight",
+      "opponents": [
+        {
+          "id": "snagtooth",
+          "monster": "goblin-warrior",
+          "name": "Snagtooth",
+          "description": "A goblin with one long yellow tusk rolls off his sack, snatches up a scimitar and snarls."
+        },
+        {
+          "id": "wick",
+          "monster": "goblin-minion",
+          "name": "Wick",
+          "description": "A runty goblin with an iron key on a string round his neck scrambles up behind his chief.",
+          "surrender": {
+            "description": "Wick drops his dagger and curls up in the hay, clutching the key on his string.",
+            "topics": [
+              {
+                "id": "the-key",
+                "name": "the key",
+                "reply": "\"The old woman's key! Take it, take it. Wick only keeps it for the chief.\"",
+                "gives": ["strongroom-key"]
+              },
+              {
+                "id": "about-snagtooth",
+                "name": "Snagtooth",
+                "reply": "\"The chief will be angry. He hits very hard, and he never shares.\""
+              },
+              {
+                "id": "the-river-man",
+                "name": "the river man",
+                "reply": "\"The river man buys the barrels. He counts them in the cider store, and his big man waits with the cart.\""
+              },
+              {
+                "id": "the-water",
+                "name": "the water",
+                "reply": "\"Don't go in the low cellar. Something walks in the water there. It doesn't sleep.\""
+              }
+            ],
+            "xp": 25
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    },
+    {
+      "id": "cart-shed-fight",
+      "opponents": [
+        {
+          "id": "dace",
+          "monster": "bandit",
+          "name": "Dace",
+          "description": "A thickset carter gets up from the cart's tail, a scimitar in his hand. \"Corran said no visitors.\""
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    },
+    {
+      "id": "cider-store-fight",
+      "opponents": [
+        {
+          "id": "corran-vey",
+          "monster": "bandit",
+          "name": "Corran Vey",
+          "description": "A lean man in a river-boatman's coat puts down his chalk, takes the pipe from his mouth and draws a scimitar."
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    },
+    {
+      "id": "sump-fight",
+      "opponents": [
+        {
+          "id": "drowned-sump-walker",
+          "monster": "zombie",
+          "name": "Drowned Smuggler",
+          "description": "A bloated smuggler, drowned in the sump long ago, rises from the black water with weed hanging from its jaw, and wades toward you."
+        }
+      ],
+      "defeatEndingId": "fallen-at-bramblecote"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-pells-goods",
+      "kind": "escape-with-loot",
+      "title": "Out with the Pells' goods",
+      "text": "You come out of Bramblecote with what you could carry. Ressa Pell counts it with shaking hands, and for the first time since the pressing, she smiles.",
+      "xp": 300
+    },
+    {
+      "id": "out-of-bramblecote",
+      "kind": "escape-without-loot",
+      "title": "Out of Bramblecote",
+      "text": "You leave the cider house with nothing to show for it. Ressa Pell watches you go without a word."
+    },
+    {
+      "id": "fallen-at-bramblecote",
+      "kind": "defeat",
+      "title": "Fallen at Bramblecote",
+      "text": "You fall among the apples and the barrels of Bramblecote. Your adventuring ends here."
+    }
+  ]
+}

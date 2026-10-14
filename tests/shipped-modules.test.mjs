@@ -78,21 +78,23 @@ const SURVIVAL_SLACK = 0.03;
  * The reference CPU seconds the gate may take over every shipped module, the
  * Coldwater Weirgate (#412) among them as the gate-time canary in place of
  * #410's fixture long module:
- * 240 from #412 (owner's choice), when the Weirgate took the gate to 173.9
+ * 350 from #440 (owner's choice), when the Bramblecote Cider House took the
+ * gate to 253.9 locally; 240 from #412 (owner's choice), when the Weirgate took the gate to 173.9
  * locally; 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
  */
-const GATE_BUDGET_SECONDS = 240;
+const GATE_BUDGET_SECONDS = 350;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #350, #412)", () => {
+test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #350, #412, #440)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
+      "bramblecote-cider-house",
       "coldwater-weirgate",
       "drowned-chapel",
       "goblin-warren",
@@ -131,7 +133,7 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412)", () => {
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
@@ -304,6 +306,26 @@ test("every shipped module declares the strictest difficulty every class passes 
  * than in each module's own tests, so the gate plays each module once.
  */
 const QUOTED_FIGURES = {
+  // Long and level 1 (#440): Medium, as the Rogue's 96.0% is 8 points over
+  // the 88% Medium needs with its slack and under Easy's. Brack, Nib and Wick
+  // of seven ordinary foes are over the cap, no more than half. Every fight's
+  // XP, Wick's 25 for sparing him counted as the greater (#238), and the
+  // ending's 300.
+  "bramblecote-cider-house": {
+    fighter: {
+      survival: [1, "mace", 0.965],
+      alwaysFail: [1, 0.965],
+      overCap: ["brack", "nib", "wick"],
+      enemyCount: 7,
+      xp: 25 + 25 + 50 + (12 + 25) + 25 + 25 + 50 + 300,
+    },
+    rogue: {
+      survival: [1, "shortsword", 0.96],
+      alwaysFail: [1, 0.96],
+      overCap: ["brack", "nib", "wick"],
+      xp: 537,
+    },
+  },
   // Long (#412): Medium, as the Wizard's 90.5% when every check fails is 5.5
   // points over the 85% Medium needs, and every class is under the 98% Easy
   // needs with its slack. Three kobolds of 15 ordinary foes are over the
@@ -582,13 +604,17 @@ const TURN_UNDEAD_FIGURES = {
 };
 
 test("in every undead module the gate judges the Cleric's Turn Undead against the control cap (#348, #349)", () => {
+  // A level-1 Cleric has no Channel Divinity, so a level-1 module's undead
+  // (the Bramblecote Cider House's, #440) are never turned.
   const undeadIn = (adventure) =>
-    opponents(adventure)
-      .filter(
-        ({ boss, statBlock }) =>
-          boss !== true && creatureTypeOf(statBlock.type) === "undead",
-      )
-      .map(({ id }) => id);
+    adventure.recommendedLevels.max < 2
+      ? []
+      : opponents(adventure)
+          .filter(
+            ({ boss, statBlock }) =>
+              boss !== true && creatureTypeOf(statBlock.type) === "undead",
+          )
+          .map(({ id }) => id);
   assert.deepEqual(
     shipped
       .filter((adventure) => undeadIn(adventure).length > 0)
@@ -748,6 +774,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
   // The Delve and the Mine keep their shipped treasure; the others were
   // designed against the budget with more than one class of gem or art object.
   for (const id of [
+    "bramblecote-cider-house",
     "coldwater-weirgate",
     "drowned-chapel",
     "goblin-warren",
@@ -796,6 +823,11 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     ),
   );
   assert.deepEqual(carriers.sort(), [
+    "bramblecote-cider-house/corran-vey-coins@corran-vey",
+    "bramblecote-cider-house/nib-coins@nib",
+    "bramblecote-cider-house/snagtooth-coins@snagtooth",
+    "bramblecote-cider-house/strongroom-key@wick",
+    "bramblecote-cider-house/wick-coins@wick",
     "coldwater-weirgate/bunk-bandit-1-coins@bunk-bandit-1",
     "coldwater-weirgate/bunk-bandit-2-coins@bunk-bandit-2",
     "coldwater-weirgate/grate-key@sergeant-larrow",
@@ -836,6 +868,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       difficulty,
     ]),
     [
+      ["bramblecote-cider-house", "1–1", "medium"],
       ["robbers-barrow", "1–1", "medium"],
       ["smugglers-cellar", "1–1", "hard"],
       ["tinkers-toll", "1–1", "hard"],
