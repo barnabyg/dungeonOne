@@ -15,6 +15,7 @@ const NAMES = [
   "long-workings",
   "obstacle-yard",
   "picklock-cellar",
+  "quay-strongroom",
   "rat-tunnels",
   "rope-cove",
   "sealed-crypt",
@@ -444,6 +445,16 @@ export const banditTollFile = (() => {
   return module;
 })();
 export const banditToll = validateModule(structuredClone(banditTollFile));
+
+/**
+ * The Counting-House's mechanics together, kept for its player-handoff
+ * journeys when it retires (#438): levels 3–4, medium. A toll-taker at the
+ * arch who reacts, parleys and charges a toll; a goblin lurking in the
+ * counting hall, past which the character may sneak (springing a scything
+ * blade) and sneak back to ambush it; and a strongroom door to pick or break,
+ * each try costing 1d4 bludgeoning damage.
+ */
+export const quayStrongroom = validateModule(moduleFile("quay-strongroom"));
 
 /**
  * Long rests and interrupted rests (#335): the rat tunnels as _The Resting
