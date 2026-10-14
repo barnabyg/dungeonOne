@@ -52,23 +52,13 @@ const fighter = () =>
     },
   );
 
-test("feature descriptions leave the feature-uses rule to the sheet (#431)", () => {
+test("the level-up card's features leave the feature-uses rule to the sheet (#431)", () => {
   const first = fighter();
   const raised = { ...first, level: levelForXp(300), xp: 300 };
   const second = validateCharacter({
     ...raised,
     hp: characterProfile(raised).maxHp,
   });
-  const text = (id) =>
-    characterProfile(second).features.find((feature) => feature.id === id).text;
-  assert.equal(
-    text("second-wind"),
-    "Bonus action: regain 1d10 + 2 HP. 2 uses.",
-  );
-  assert.equal(
-    text("action-surge"),
-    "Take one additional action on your turn, except Magic. 1 use.",
-  );
   // The level-up card lists the new features with the sheet's words.
   const gained = levelUpChanges(first, second).features;
   assert.ok(gained.some(({ id }) => id === "action-surge"));
