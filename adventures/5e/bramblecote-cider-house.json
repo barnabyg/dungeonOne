@@ -262,15 +262,11 @@
                 ]
               },
               "success-by-5": {
-                "text": "You work the bark free, and spot chalk marks on the press's frame as well.",
+                "text": "You work the bark free of the screw. A chalk arrow on the press frame points at the hatch, and beside it a goblin has scratched a circle and a line going down: the old well goes into the vaults too.",
                 "effects": [
                   {
                     "type": "discovery",
                     "feature": "cider-press"
-                  },
-                  {
-                    "type": "discovery",
-                    "feature": "trapdoor"
                   }
                 ]
               }
@@ -280,8 +276,7 @@
         {
           "id": "trapdoor",
           "name": "Trapdoor",
-          "description": "A wide trapdoor, propped open, with a barrel ramp running down into the dark. Cold air comes up it.",
-          "discovery": "A chalk arrow on the press frame points at the hatch, and beside it a goblin has scratched a circle and a line going down: the old well goes into the vaults too."
+          "description": "A wide trapdoor, propped open, with a barrel ramp running down into the dark. Cold air comes up it."
         }
       ],
       "items": [

@@ -79,8 +79,8 @@ const SURVIVAL_SLACK = 0.03;
  * Coldwater Weirgate (#412) among them as the gate-time canary in place of
  * #410's fixture long module:
  * 350 from #440 (owner's choice), when the Bramblecote Cider House took the
- * gate to 253.9 locally; 240 from #412 (owner's choice), when the Weirgate took the gate to 173.9
- * locally; 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
+ * gate to 253.9 locally; 240 from #412 (owner's choice), when the Weirgate
+ * took the gate to 173.9 locally; 180 from #377, when CI runs measured 152.6–159.0; 150 from #348, judging
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
  */
@@ -604,10 +604,12 @@ const TURN_UNDEAD_FIGURES = {
 };
 
 test("in every undead module the gate judges the Cleric's Turn Undead against the control cap (#348, #349)", () => {
-  // A level-1 Cleric has no Channel Divinity, so a level-1 module's undead
-  // (the Bramblecote Cider House's, #440) are never turned.
+  // A Cleric gains Channel Divinity at level 2 (SRD 5.2), so a level-1
+  // module's undead (the Bramblecote Cider House's zombie, #440) are never
+  // turned and the gate judges no control there.
+  const CHANNEL_DIVINITY_LEVEL = 2;
   const undeadIn = (adventure) =>
-    adventure.recommendedLevels.max < 2
+    adventure.recommendedLevels.max < CHANNEL_DIVINITY_LEVEL
       ? []
       : opponents(adventure)
           .filter(

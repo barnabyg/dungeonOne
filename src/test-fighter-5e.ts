@@ -82,7 +82,9 @@ export function testFighterAt(level: Level): CharacterSheet {
 /**
  * A character library holding only Ada at `level` (#275), as
  * `testFighterAt` raises her: the player handoffs for modules above level 1
- * start from it (docs/acceptance/inputs/issue-275/level-2-ada.json).
+ * start from it (docs/acceptance/inputs/issue-275/level-2-ada.json), and a
+ * generated release run (#409) without a character of its own starts from it
+ * at the module's lowest recommended level (#440).
  */
 export function libraryAt(level: Level): FifthLibraryData {
   return {
@@ -96,8 +98,8 @@ export function libraryAt(level: Level): FifthLibraryData {
 }
 
 /**
- * A character library holding only Ada at level 3 (#241). Generated release
- * runs (#409), level-3 browser journeys and the player handoff input
+ * A character library holding only Ada at level 3 (#241). Level-3 browser
+ * journeys, the Silvervein Mine's release run and the player handoff input
  * docs/acceptance/inputs/increment-13/level-3-ada.json start from it.
  */
 export function levelThreeLibrary(): FifthLibraryData {
