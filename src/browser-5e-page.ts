@@ -48,8 +48,8 @@
 //   fight, what the character carries is acted on from
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
 //   on its entry, a spell scroll's Read too (#346; in a fight a scroll or
-//   wand is cast from the Cast choice), and the character's own gear heads
-//   the list with its Unequip, Wield, Equip and Drop (#209). A short
+//   wand is cast from the Cast choice), and the character's own gear has
+//   its Unequip, Wield, Equip and Drop there (#209). A short
 //   rest (#334) sits in the character column's #rest-group, never the bar: the
 //   short rests and hit dice left, a choice of how many hit dice to spend
 //   (#rest-dice) and its Rest button, disabled with its reason when the
@@ -1701,12 +1701,13 @@ function disclose(name, shown) {
   element(toggle.getAttribute("aria-controls")).hidden = shown && !disclosures[name];
 }
 
-// The character's own gear heads what it carries (#209): what it wears, the
-// weapons in hand, then its stowed gear, each kind once with a count, then
-// its arrows and bolts (#230). Each entry's slot says which verbs go on it:
-// Unequip on what is equipped, Wield, Equip and Drop on what is stowed, and
-// Sell on ammunition. Its state says where it is (#432); a magic item
-// explains its bonus (#345).
+// The character's own gear in "You carry" (#209): what it wears and the
+// weapons in hand head the list, its arrows and bolts (#230) go with the
+// consumables and its stowed gear with the other things (#432), each kind
+// once with a count. Each entry's slot says which verbs go on it: Unequip on
+// what is equipped, Wield, Equip and Drop on what is stowed, and Sell on
+// ammunition. Its state says where it is; a magic item explains its bonus
+// (#345).
 function gearEntries(gear) {
   const counted = (items, slot, state, group) => {
     const counts = new Map();
@@ -1726,7 +1727,8 @@ function gearEntries(gear) {
 // verbs on the right (renderActions puts them there, #198). An entry's
 // description opens from its name. Treasure starts collapsed when it is long.
 const CARRIED_GROUPS = [["gear", "Worn and wielded"], ["consumable", "Consumables"], ["treasure", "Treasure"], ["other", "Other"]];
-const TREASURE_SHOWN = 4;
+// Treasure starts collapsed above this many entries.
+const TREASURE_COLLAPSE_ABOVE = 4;
 // The entries whose description the player opened, by id and slot, and
 // whether the player opened (true) or closed (false) the treasure, or null
 // for its default: both hold until the next adventure.
@@ -1735,6 +1737,10 @@ let treasureOpen = null;
 
 function renderInventory(room) {
   const entries = [...gearEntries(room.gear), ...room.inventory];
+  // The purse shows with what the character carries, once it holds coin.
+  element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
+  element("purse").hidden = !room.purse;
+  element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("inventory-group").hidden = entries.length === 0 && !room.purse;
   element("inventory").replaceChildren(...CARRIED_GROUPS.flatMap(([group, title]) => {
     const members = entries.filter((entry) => entry.group === group);
@@ -1744,7 +1750,7 @@ function renderInventory(room) {
     if (group === "treasure") {
       const box = make("details", undefined, "carry-group");
       box.dataset.group = group;
-      box.open = treasureOpen ?? members.length <= TREASURE_SHOWN;
+      box.open = treasureOpen ?? members.length <= TREASURE_COLLAPSE_ABOVE;
       // The player's click, not the toggle event, which setting open fires too.
       const summary = make("summary", title + " (" + members.length + ")", "carry-title");
       summary.addEventListener("click", () => {
@@ -1809,11 +1815,9 @@ function renderRoom(room) {
     element(list.id).replaceChildren(...entries.map((entry) => {
       const item = make("li");
       item.dataset.id = entry.id;
-      if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
-      // A gem or art object shows its value (#239), a wand its charges (#346).
       // An item's icon before its name (#377).
-      text.append(...iconned(entry.icon, make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : ""))), document.createTextNode(" — " + entry.description));
+      text.append(...iconned(entry.icon, make("strong", entry.name)), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
@@ -1845,11 +1849,7 @@ function renderRoom(room) {
       return item;
     }));
   }
-  // The purse shows with what the character carries, once it holds coin.
-  element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
-  element("purse").hidden = !room.purse;
   renderInventory(room);
-  element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
 }
 

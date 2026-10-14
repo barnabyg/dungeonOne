@@ -5785,7 +5785,7 @@ export function createFifthRuntime(
           price: held.value,
         };
   };
-  /** What the character carries besides its gear, as the room panel lists it. */
+  /** What the character carries besides its gear, as "You carry" lists it. */
   const carriedEntries = (state: FifthState): RoomView["inventory"] => [
     ...carried(state).map((item) => ({
       ...named(item),

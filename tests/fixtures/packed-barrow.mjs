@@ -1,8 +1,10 @@
-// The market barrow (#210) with a heavy haul lying in its mouth (#432): three
-// potions of healing, eight gems and art objects, a spell scroll, twelve
-// items in all (a room's most), beside the pedlar who buys and sells there. Taken, they fill
-// "You carry" with every group: worn and wielded gear, consumables and
-// treasure. For levels 1–3, so the haul fits the treasure budget.
+// The market barrow (#210) with a heavy haul behind the lintel at its mouth
+// (#432): three potions of healing, seven gems and art objects, a spell
+// scroll and 20 gp, twelve items in all (a room's most), beside the pedlar
+// who buys and sells there. Taken, with the character's gear and what it
+// buys, they fill "You carry": worn and wielded, consumables, treasure and
+// other. For levels 1–3, so the haul fits the treasure budget; the mouth is
+// a rest site.
 import { marketFile } from "./market-barrow.mjs";
 import { room } from "./armoury-barrow.mjs";
 import { validateModule } from "./bestiary.mjs";
@@ -25,7 +27,7 @@ const gem = (n) =>
     treasure: "gem-10gp",
   });
 
-/** The haul's ids, in the order they lie: potions, gems, art, the scroll, coin. */
+/** The haul's items, in the order they lie: potions, gems, art, the scroll, coin. */
 export const HAUL = [
   potion(1),
   potion(2),

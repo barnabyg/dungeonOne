@@ -302,12 +302,18 @@ Small silhouettes sit beside the text that names a monster or an item: before
 each opponent as you meet it, before its name in the lines about its blows and
 its fall and in the initiative table, before an item as you find it, at the start of a line
 that takes, recovers, trades, equips or drinks one, and before each item in the
-room panel's lists, the purse and a merchant's wares. Only the engine's lines
+room panel's lists and **You carry**, the purse and a merchant's wares. Only the engine's lines
 have them, never the Dungeon Master's own words; screen readers skip them.
 
 The room panel shows the current room, its exits, its features (with any
-discovery you have made), the items you can see and what you carry, leaving out
-any list that is empty. Outside a fight, under what you carry, **Short rest**
+discovery you have made) and the items you can see, leaving out any list that
+is empty. On a window 1500 px wide or more the screen has three columns: the
+room, your character, and the action bar with the history; narrower, your
+character's lists sit under the room, with your HP held at the top. Your
+character shows your HP and what you have left this turn, then **You carry**,
+grouped into Worn and wielded, Consumables, Treasure (collapsed when it holds
+more than four) and Other, a line per item with its buttons on the right; open
+an item's name to read about it. Outside a fight, under what you carry, **Short rest**
 shows the short rests (two per adventure) and hit dice you have left: choose how
 many hit dice to spend and press **Rest** to heal and regain Second Wind and
 Action Surge uses. A level-5 Wizard may also choose a prepared spell to forget
@@ -320,7 +326,7 @@ feature use. A module may have a wandering encounter: before each rest a d100
 is rolled against its chance, and if it comes the rest restores nothing and its
 fight begins (it comes at most once). A region's wandering encounter table rolls
 the same way before each rest there, and also as you go and when the alarm is
-raised; an omen it brings lets the rest go on. In a fight these details stay shown below
+raised; an omen it brings lets the rest go on. In a fight the room's details stay shown below
 the encounter panel, which comes first and lists each combatant in initiative
 order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
@@ -337,7 +343,7 @@ a door was, what a creature told you or the way back to a room.
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
 hears the full "Examine Rusted Lantern"). Outside a fight, what you carry is
-acted on from its entry in the room panel's **You carry** list instead, with
+acted on from its entry in your **You carry** list instead, with
 its own **Examine** and, for a potion, **Drink**, so a full pack never crowds
 the bar. An action the engine would refuse now
 stays in place, disabled, with the reason beside it, such as "Full HP",
@@ -462,7 +468,7 @@ defeated at once and for good.
 
 Better weapons and armour are found the same way as treasure, by examining a
 feature or a fallen opponent's body: **Take** stows what you find. Your gear
-heads **You carry** in the room panel, worn, in hand or stowed, and each piece
+is under **You carry**, worn and in hand first, stowed under Other, and each piece
 is acted on there: **Equip** puts on
 armour (the result says how many minutes donning took), straps on a shield or
 takes a second light weapon in your other hand; **Unequip** takes it off again;
@@ -481,7 +487,7 @@ abandoned adventure leaves you with exactly the gear you started with.
 A module for level 3 and up may hide one magic item: a +1 weapon, which adds 1
 to its attack and damage rolls, or +1 armour or a +1 shield, which adds 1 to
 your AC. It is otherwise the item it is made from, and a weapon you have
-mastered keeps its mastery. Its entry under **You carry** explains the bonus,
+mastered keeps its mastery. Its entry under **You carry** opens to explain the bonus,
 and the sheet lists it under **Magic items**. No merchant sells or buys magic
 items.
 
@@ -589,7 +595,7 @@ the history stays readable, and reloading shows the same ending.
   raised there, a d100 decides whether one comes; each wandering encounter
   comes once, and is an omen after. A module with two or more regions, each
   with a rest site, may declare itself long: the character may then take two
-  short rests and one long rest in each region, and the room panel's rest
+  short rests and one long rest in each region, and the rest
   parts count the rests left in this region. A module may declare its routes
   from the entrance to the objective, each by the rooms it must pass, and the
   balance gate then judges every route, naming any too deadly for its
