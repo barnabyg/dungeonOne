@@ -69,10 +69,6 @@ export const CONTENT_TESTS = new Map([
     "the Hollow Chantry's content, routes, rests, magic items and journeys",
   ],
   [
-    "tests/issue-350-browser.test.mjs",
-    "the increment 16 handoff runs of the Hollow Chantry through the browser",
-  ],
-  [
     "tests/ravagers-tower.test.mjs",
     "the Ravager's Tower's content, gate verdict and journeys",
   ],
@@ -101,10 +97,6 @@ export const CONTENT_TESTS = new Map([
     "the Counting-House on Mallow Quay's content, gate verdict, reactions, locks, trap, journeys and release run",
   ],
   [
-    "tests/issue-311-browser.test.mjs",
-    "the increment 15 handoff runs through the browser",
-  ],
-  [
     "tests/coldwater-weirgate.test.mjs",
     "the Coldwater Weirgate's content, routes, flags, alarm, bargain, lure, journeys and generated release run",
   ],
@@ -118,6 +110,6 @@ export const CONTENT_TESTS = new Map([
   ],
   [
     "tests/issue-409-live.test.mjs",
-    "the live release script's generated route (#409) through the Hollow Chantry",
+    "the live release script's generated route (#409) through the Coldwater Weirgate",
   ],
 ]);

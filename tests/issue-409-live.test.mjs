@@ -1,6 +1,7 @@
 // #409: the live release script plays a generated route with --generated:
-// any built-in module, here the Coldwater Weirgate on seed 2, on the route
-// the harness's cautious run takes on the seed, from a saved level-3 Ada.
+// any built-in module, here the Coldwater Weirgate, on the route the
+// harness's cautious run takes on the given seed (2, on which the run
+// takes every step), from a saved level-3 Ada.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";

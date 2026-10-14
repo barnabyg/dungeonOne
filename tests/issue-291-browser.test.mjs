@@ -1,6 +1,7 @@
 // #291, browser → API → storage: the increment 14 player handoff
 // (docs/acceptance/increment-14-release.md), each scenario on its own library
-// and seed, with the numbers the handoff quotes:
+// and seed, with the numbers the handoff quotes (scenario 1's since #438 are
+// the fixture's):
 // - Scenario 1: the 2,690 XP Ada of #286 wins a fight (the Lone Goblin
 //   fixture, since #438) and settles at level 4, owing her choices.
 // - Scenario 2: a level-4 Ada with 4,100 XP (about a career's after the

@@ -34,7 +34,6 @@ test("the handoff's level-3 library is Ada at level 3, as generated release runs
     JSON.parse(await readFile(input, "utf8")),
     JSON.parse(JSON.stringify(levelThreeLibrary())),
   );
-  const [{ sheet }] = levelThreeLibrary().characters;
   assert.deepEqual([sheet.name, sheet.level, sheet.xp], ["Ada", 3, 900]);
   assert.equal(sheet.hp, characterProfile(sheet).maxHp);
 });
