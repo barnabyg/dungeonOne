@@ -365,21 +365,6 @@ test("scripted DM: a level-2 Fighter who walks straight into the webs falls to t
   assert.equal(state.character.hp, 0);
 });
 
-test("the handoff's level-3 library is Ada at level 3, as the release runs start", async () => {
-  const input = new URL(
-    "../docs/acceptance/inputs/increment-13/level-3-ada.json",
-    import.meta.url,
-  );
-  // Regenerate it from levelThreeLibrary() when the library format changes.
-  assert.deepEqual(
-    JSON.parse(await readFile(input, "utf8")),
-    JSON.parse(JSON.stringify(levelThreeLibrary())),
-  );
-  const [{ sheet }] = levelThreeLibrary().characters;
-  assert.deepEqual([sheet.name, sheet.level, sheet.xp], ["Ada", 3, 900]);
-  assert.equal(sheet.hp, characterProfile(sheet).maxHp);
-});
-
 /**
  * A browser seed on which the release run clears the mine and gets out: 47
  * since the Champion's initiative advantage (#315) moved the dice; 26 before.

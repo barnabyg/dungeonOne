@@ -6,11 +6,9 @@
 // declared difficulty.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
@@ -157,20 +155,4 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
     await server.close();
     await rm(directory, { recursive: true, force: true });
   }
-});
-
-// The release script's dry run is spawned once, in issue-140.test.mjs; the
-// toll's route is played in-process above.
-test("the live release script refuses an unknown module", () => {
-  const script = fileURLToPath(
-    new URL("../scripts/qualify-release-live.mjs", import.meta.url),
-  );
-  const env = { ...process.env, OPENAI_API_KEY: "" };
-  const unknown = spawnSync(
-    process.execPath,
-    [script, "--dry-run", "--adventure", "nowhere"],
-    { encoding: "utf8", env },
-  );
-  assert.equal(unknown.status, 2);
-  assert.match(unknown.stderr, /\[--adventure <id>\]/);
 });

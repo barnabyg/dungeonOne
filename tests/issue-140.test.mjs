@@ -226,3 +226,14 @@ test("the live release script needs --live or --dry-run, and a dry run records e
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("the live release script refuses an unknown module", () => {
+  const env = { ...process.env, OPENAI_API_KEY: "" };
+  const unknown = spawnSync(
+    process.execPath,
+    [script, "--dry-run", "--adventure", "nowhere"],
+    { encoding: "utf8", env },
+  );
+  assert.equal(unknown.status, 2);
+  assert.match(unknown.stderr, /\[--adventure <id>\]/);
+});

@@ -5,10 +5,11 @@
 // modules' hand-written routes are unchanged (their own tests play them).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { characterProfile } from "../dist/character-5e.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import {
   RELEASE_TURNS_PER_ROOM,
@@ -22,6 +23,21 @@ import { longTunnels, windingTunnels } from "./fixtures/modules.mjs";
 
 const SEED = 409;
 const [{ sheet }] = levelThreeLibrary().characters;
+
+test("the handoff's level-3 library is Ada at level 3, as generated release runs start", async () => {
+  const input = new URL(
+    "../docs/acceptance/inputs/increment-13/level-3-ada.json",
+    import.meta.url,
+  );
+  // Regenerate it from levelThreeLibrary() when the library format changes.
+  assert.deepEqual(
+    JSON.parse(await readFile(input, "utf8")),
+    JSON.parse(JSON.stringify(levelThreeLibrary())),
+  );
+  const [{ sheet }] = levelThreeLibrary().characters;
+  assert.deepEqual([sheet.name, sheet.level, sheet.xp], ["Ada", 3, 900]);
+  assert.equal(sheet.hp, characterProfile(sheet).maxHp);
+});
 
 test("the turn cap is 40 turns a room: the Delve's 400 for its ten rooms", () => {
   assert.equal(RELEASE_TURNS_PER_ROOM, 40);

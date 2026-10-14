@@ -1,6 +1,6 @@
 // #409: the live release script plays a generated route with --generated:
-// any built-in module, here the eight-room Hollow Chantry, on the route the
-// harness's cautious run takes on the seed, from a saved level-3 Ada.
+// any built-in module, here the Coldwater Weirgate on seed 2, on the route
+// the harness's cautious run takes on the seed, from a saved level-3 Ada.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -24,7 +24,9 @@ test("the live release script plays a generated route with --generated", async (
         "--dry-run",
         "--generated",
         "--adventure",
-        "hollow-chantry",
+        "coldwater-weirgate",
+        "--seed",
+        "2",
         "--output",
         output,
         "--max-calls",
@@ -36,8 +38,8 @@ test("the live release script plays a generated route with --generated", async (
     const report = JSON.parse(await readFile(output, "utf8"));
     assert.equal(report.issue, 409);
     assert.equal(report.generated, true);
-    assert.equal(report.adventureId, "hollow-chantry");
-    assert.equal(report.seed, 0);
+    assert.equal(report.adventureId, "coldwater-weirgate");
+    assert.equal(report.seed, 2);
     assert.equal(report.ending.kind, "victory");
     assert.equal(report.summary.skipped, 0);
   } finally {
@@ -51,7 +53,7 @@ test("without --generated, a module with no hand-written route is refused", () =
   );
   const result = spawnSync(
     process.execPath,
-    [script, "--dry-run", "--adventure", "hollow-chantry"],
+    [script, "--dry-run", "--adventure", "coldwater-weirgate"],
     { encoding: "utf8", timeout: 60000 },
   );
   assert.equal(result.status, 2);
