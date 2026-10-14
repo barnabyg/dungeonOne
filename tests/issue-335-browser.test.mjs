@@ -170,7 +170,7 @@ test(
       const card = await text(page.locator("#log li.newest"));
       assert.match(
         card,
-        /You keep watch as you rest: d100 \d+, 100 or less: the Prowling Rat comes upon you\. Your short rest is interrupted and restores nothing\./u,
+        /You keep watch as you rest: d100 \d+, 100 or less: Prowling Rat comes upon you\. Your short rest is interrupted and restores nothing\./u,
       );
       // The d100 shows on the card.
       assert.match(

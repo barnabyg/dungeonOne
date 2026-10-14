@@ -404,7 +404,7 @@ test(
       await keep("rogue", log);
       says(log, [
         /Behind the charts hangs an iron crank with a square socket, worn bright with use\. You find the Windlass Crank\./u,
-        /You listen as you go: d100 2, 15 or less: the Patrolling Bandit and the Patrol Bandit come upon you\./u,
+        /You listen as you go: d100 2, 15 or less: Patrolling Bandit and Patrol Bandit come upon you\./u,
         /Patrol Bandit is defeated\./u,
         /Patrolling Bandit is defeated\./u,
         /You use the Windlass Crank on the Drain Gear\. The crank fits the socket\./u,
@@ -413,7 +413,7 @@ test(
         /Old Sullage attacks Vex with Greatclub: 7 \+ 6 = 13 against AC 15\. Miss\./u,
         /You disengage: fleeing this turn draws no attacks\./u,
         /You flee, disengaged: no foe gets an attack on you as you go\./u,
-        /You get away from the Lock Chamber into the Pump Room, leaving the Old Sullage behind\. The fight is unresolved:/u,
+        /You get away from the Lock Chamber into the Pump Room, leaving Old Sullage behind\. The fight is unresolved:/u,
         /Grisk is defeated\./u,
       ]);
       assert.match(await ending(page), /^The sluices open\nVictory\n/u);

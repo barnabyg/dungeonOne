@@ -232,7 +232,7 @@ test("D13: with every foe left turned Mira may leave; the fallen stay fallen", (
   ]);
   assert.match(
     renderFifthResult(left),
-    /You leave the Rat-Gnawed Cellar with the Zombie still turned\. The fight is unresolved: it waits there if you come back, and the fallen stay fallen\./u,
+    /You leave the Rat-Gnawed Cellar with Zombie still turned\. The fight is unresolved: it waits there if you come back, and the fallen stay fallen\./u,
   );
   // Coming back meets the Zombie alone (initiative 20, 1).
   const back = accepted(

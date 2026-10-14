@@ -338,7 +338,7 @@ test("an opponent that flees a fight and survives it raises the alarm", () => {
   });
   assert.deepEqual(
     events.filter(({ type }) => type === "alarm").map(({ cause }) => cause),
-    ["the Giant Rat that fled the fight in the Rat-Gnawed Cellar and lived"],
+    ["Giant Rat that fled the fight in the Rat-Gnawed Cellar and lived"],
   );
 });
 

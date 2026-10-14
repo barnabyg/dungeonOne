@@ -344,7 +344,7 @@ test("a merchant offers only its authored stock, at engine prices, and only outs
   );
   assert.deepEqual(runtime.handleAction(looted, buy("longsword")).rejection, {
     code: "not-stocked",
-    reason: "The Pedlar doesn't sell that.",
+    reason: "Pedlar doesn't sell that.",
   });
   assert.equal(
     runtime.handleAction(looted, buy("rope")).rejection.code,
@@ -406,7 +406,7 @@ test("the AI DM trades only through the trade tool's offers, and cannot set a pr
   assert.deepEqual(refused.engineResult, {
     rejection: {
       code: "not-stocked",
-      reason: "The Pedlar doesn't sell that.",
+      reason: "Pedlar doesn't sell that.",
     },
   });
   const bought = call('{"offer":"buy:dagger"}');

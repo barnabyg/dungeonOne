@@ -354,7 +354,7 @@ test("a fight entry comes once, then is its omen; the d100 picks the entry", () 
   });
   assert.match(
     renderFifthResult(came),
-    /^You listen as you go: d100 50, 100 or less: the Prowling Rat comes upon you\.$/mu,
+    /^You listen as you go: d100 50, 100 or less: Prowling Rat comes upon you\.$/mu,
   );
   const { state } = came;
   assert.equal(state.wandering, "prowling-rat");
@@ -368,7 +368,7 @@ test("a fight entry comes once, then is its omen; the d100 picks the entry", () 
   );
   assert.equal(
     runtime.projectDmScene(state).wandering,
-    "A wandering encounter came upon you here: the Prowling Rat.",
+    "A wandering encounter came upon you here: Prowling Rat.",
   );
   // Come (here, fled from and never beaten), it is its omen from now on.
   const after = at("landing", { wanderersCome: ["prowling-rat"] });
@@ -542,7 +542,7 @@ test("the alarm rolls the table of the region it is raised in", () => {
   });
   assert.match(
     renderFifthResult(result),
-    /^The alarm carries through the dark: d100 40, 100 or less: the Prowling Rat comes upon you\.$/mu,
+    /^The alarm carries through the dark: d100 40, 100 or less: Prowling Rat comes upon you\.$/mu,
   );
   assert.equal(result.state.roomId, "stair-foot");
   assert.equal(result.state.wandering, "prowling-rat");

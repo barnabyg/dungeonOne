@@ -301,7 +301,7 @@ test("attacking begins the fight; letting pass ends the encounter peacefully for
   );
   assert.equal(
     rejection.reason,
-    "The Giant Rat is waiting to see what you do: you may attack or pass peacefully.",
+    "Giant Rat is waiting to see what you do: you may attack or pass peacefully.",
   );
   refused(facing, { type: "examine", targetId: "gnawed-sacks" }, "reacting");
   assert.deepEqual(
@@ -316,7 +316,7 @@ test("attacking begins the fight; letting pass ends the encounter peacefully for
   ]);
   assert.equal(
     renderFifthEvent(attacked.state, attacked.events[0]),
-    "You attack the Giant Rat.",
+    "You attack Giant Rat.",
   );
   assert.equal(attacked.state.encounter.outcome, "ongoing");
   // Nobody is surprised.
@@ -348,7 +348,7 @@ test("attacking begins the fight; letting pass ends the encounter peacefully for
   assert.deepEqual(runtime.projectSettlement(left).xp, [
     {
       id: "wary-tunnels/encounter/cellar-rat",
-      name: "Parted peacefully with the Giant Rat",
+      name: "Parted peacefully with Giant Rat",
       xp: 15,
     },
   ]);
@@ -553,7 +553,7 @@ test("scripted DM: attacking anyway works where offered; no other option, and no
     "I attack it anyway.",
     scriptedDm("react", '{"option":"attack"}', ""),
   );
-  assert.match(entry.cards[0].text, /^You attack the Giant Rat\./u);
+  assert.match(entry.cards[0].text, /^You attack Giant Rat\./u);
   assert.equal(session.state.encounter.outcome, "ongoing");
 
   // Where attacking isn't offered, picking it is refused.

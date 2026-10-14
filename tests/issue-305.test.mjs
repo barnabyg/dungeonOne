@@ -309,7 +309,7 @@ test("a parley's band moves the reaction, lets the character pass or starts the 
   assert.deepEqual(runtime.projectSettlement(left).xp, [
     {
       id: "bandit-toll/encounter/cellar-bandit",
-      name: "Parted peacefully with the Bandit",
+      name: "Parted peacefully with Bandit",
       xp: 25,
     },
   ]);
@@ -498,10 +498,7 @@ test("trade opens only while a band offering it holds", () => {
       { type: "buy", itemId: "arrows" },
       "reacting",
     );
-    assert.match(
-      rejection.reason,
-      /^The Bandit is waiting to see what you do/u,
-    );
+    assert.match(rejection.reason, /^Bandit is waiting to see what you do/u);
     assert.ok(
       !runtime.projectActions(state).some(({ action }) => action === "buy"),
     );

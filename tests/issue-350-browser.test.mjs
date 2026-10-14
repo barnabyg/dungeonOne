@@ -363,7 +363,7 @@ test(
       await keep("wizard", log);
       says(log, [
         /Dead Sexton is defeated\./u,
-        /You keep watch as you rest: d100 16, 25 or less: the Wandering Corpse comes upon you\. Your long rest is interrupted and restores nothing\./u,
+        /You keep watch as you rest: d100 16, 25 or less: Wandering Corpse comes upon you\. Your long rest is interrupted and restores nothing\./u,
         /Wandering Corpse is defeated\./u,
         /You take a long rest: you regain 13 HP \(20\/20 HP\) and 0 hit dice \(3 of 3 d6 left\)\. Long rests: 0 of 1 left in this adventure\./u,
         /Arcana check: d20 7 \+ 3 \+ 4 proficiency \(Expertise\) = 14 against DC 13\. Success\./u,
