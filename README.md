@@ -14,8 +14,9 @@ house rules and each rule left out because the game has no map. The
 [5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
 ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
 records how the 5e release was qualified, with manual test scenarios. The
-latest, the [increment 16 handoff](docs/acceptance/increment-16-release.md),
-covers rests, the Cleric and Wizard, and magic items.
+latest, the [increment 17 handoff](docs/acceptance/increment-17-release.md),
+covers the long release module _The Coldwater Weirgate_: fleeing, alarms,
+using items and the room, wandering monsters and the known rooms.
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). Update, 8 October 2026: increment 14 is published as GitHub issues #280–#291 (see the [increment 14 ticket proposal](increment-14-ticket-proposal.md)), and is done: #291 released _The Thornwood Lodge_, with the [increment 14 player handoff](docs/acceptance/increment-14-release.md). Increment 15 is published as GitHub issues #300–#311 (see the [increment 15 ticket proposal](increment-15-ticket-proposal.md)), and is done (9 October 2026): #311 released _The Counting-House on Mallow Quay_, with the [increment 15 player handoff](docs/acceptance/increment-15-release.md). Update, 9 October 2026: increment 16 is published as GitHub issues #333–#350 (see the [increment 16 ticket proposal](increment-16-ticket-proposal.md)), and is done (11 October 2026): #350 released _The Hollow Chantry_, with the [increment 16 player handoff](docs/acceptance/increment-16-release.md). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). Update, 8 October 2026: increment 14 is published as GitHub issues #280–#291 (see the [increment 14 ticket proposal](increment-14-ticket-proposal.md)), and is done: #291 released _The Thornwood Lodge_, with the [increment 14 player handoff](docs/acceptance/increment-14-release.md). Increment 15 is published as GitHub issues #300–#311 (see the [increment 15 ticket proposal](increment-15-ticket-proposal.md)), and is done (9 October 2026): #311 released _The Counting-House on Mallow Quay_, with the [increment 15 player handoff](docs/acceptance/increment-15-release.md). Update, 9 October 2026: increment 16 is published as GitHub issues #333–#350 (see the [increment 16 ticket proposal](increment-16-ticket-proposal.md)), and is done (11 October 2026): #350 released _The Hollow Chantry_, with the [increment 16 player handoff](docs/acceptance/increment-16-release.md). Update, 12 October 2026: the owner dropped the Companions increment, so the game stays single-player. Increment 17 became a longer dungeon for one character, published as GitHub issues #395–#414 (see the [increment 17 ticket proposal](increment-17-ticket-proposal.md)). It is done (14 October 2026): #414 released _The Coldwater Weirgate_, with the [increment 17 player handoff](docs/acceptance/increment-17-release.md). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -59,16 +59,16 @@ The order is kept except where a dependency forces a change:
 
 ### Resulting increments
 
-| Increment | Theme                                                   | Owner items      |
-| --------- | ------------------------------------------------------- | ---------------- |
-| 11        | 5e foundation, first adventure, removal of the old game | 1, 4 (+ 5e move) |
-| 12        | Equipment and economy                                   | 2, 5             |
-| 13        | Conditions, monsters and treasure                       | 6, 3 (+ morale)  |
-| 14        | Flexible checks and higher levels                       | 7, 8             |
-| 15        | Encounter openings and the rogue                        | 12, 10, 9        |
-| 16        | Magic                                                   | 11               |
-| 17        | Companions                                              | 13               |
-| 18        | Shared campaign world                                   | 14               |
+| Increment | Theme                                                   | Owner items       |
+| --------- | ------------------------------------------------------- | ----------------- |
+| 11        | 5e foundation, first adventure, removal of the old game | 1, 4 (+ 5e move)  |
+| 12        | Equipment and economy                                   | 2, 5              |
+| 13        | Conditions, monsters and treasure                       | 6, 3 (+ morale)   |
+| 14        | Flexible checks and higher levels                       | 7, 8              |
+| 15        | Encounter openings and the rogue                        | 12, 10, 9         |
+| 16        | Magic                                                   | 11                |
+| 17        | A longer dungeon (Companions dropped)                   | none (13 dropped) |
+| 18        | Shared campaign world                                   | 14                |
 
 ## 3. Shared contracts
 
@@ -709,9 +709,9 @@ Published as issues #333–#350, reworked into eighteen slices; see the [increme
 | 16.5  | Find scrolls, wands and magic items               | SRD magic items under the 13.4 budget and rarity tiers.                                                                                                                                          | 16.3, 16.4 |
 | 16.6  | Release adventures qualified for all four classes | Harness policies for casters (spend slots early or conserve).                                                                                                                                    | 16.5       |
 
-### Increment 17 — Companions
+### Increment 17 — A longer dungeon (Companions dropped)
 
-Settle open decision 7 first. Recommended first step: **engine-controlled hirelings**.
+The owner dropped Companions on 12 October 2026 (open decision 7): the game stays single-player. In their place, increment 17 gave one character a deeper dungeon, closer to the modules the [published module survey](docs/published-module-survey.md) read: regions and long modules, fleeing, flags, using items and the room, alarms, wandering encounter tables, the known rooms panel and a gate for routes and regions. Published as issues #395–#414; see the [increment 17 ticket proposal](increment-17-ticket-proposal.md). Done, 14 October 2026: #414 released _The Coldwater Weirgate_ (level 3, Medium, long) for all four classes, with the [increment 17 player handoff](docs/acceptance/increment-17-release.md). The table below is the dropped Companions plan, kept for the record.
 
 | Slice | Title                                        | Notes                                                                                                          | Blocked by |
 | ----- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------- |
@@ -824,9 +824,24 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Turned undead        | Can't act until damaged or the minute ends; if all remaining opponents are turned, the character may leave or attack                                               | #341             |
 | Careers              | Each class must have a career reach level 5                                                                                                                        | #348             |
 
+### Settled by the owner, 12 October 2026 (increment 17)
+
+| Decision                     | Outcome                                                                                                                                       | Where it applies |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Companions                   | Dropped; the game stays single-player, and a longer dungeon replaces the increment                                                            | Increment 17     |
+| Cost of fleeing (D1)         | Each standing opponent able to act makes one attack before the character leaves; a Rogue's Disengage (Cunning Action) avoids them             | #396             |
+| Foes don't follow (D2)       | A fled fight stays in its room; no pursuit                                                                                                    | #396             |
+| Flags only turn on (D3)      | A flag is set once and never cleared; a door that opens and later shuts is two flags                                                          | #397–#399        |
+| Removing a foe (D4)          | A fight action may remove an ordinary opponent, never a boss, once per feature; its XP is credited and its loot lost                          | #402             |
+| Encounter cap (D5)           | 30 per module, wandering encounters counted                                                                                                   | #403             |
+| Long-module budget (D6)      | Twice the treasure budget, and an XP limit that allows one more level                                                                         | #404             |
+| Level band (D7)              | The release module is for level 3 only; no levelling mid-adventure                                                                            | #411, #412       |
+| Optional rooms (D8)          | Each declared route is judged at the module's difficulty and each region's sweep one difficulty lower; an avoidable room lies off every route | #407, #408       |
+| Defeat in a long module (D9) | 0 HP stays an instant defeat; every region of a long module has a reachable exit                                                              | #404             |
+
 ### Open
 
-Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), numbers 2, 3 and 8 when increment 12 was ticketed, numbers 4 and 5 when increment 13 was ticketed (see the 6 October decisions), and number 6 when increment 14 was ticketed (see the 8 October decisions); the rest can wait until their increment.
+Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), numbers 2, 3 and 8 when increment 12 was ticketed, numbers 4 and 5 when increment 13 was ticketed (see the 6 October decisions), number 6 when increment 14 was ticketed (see the 8 October decisions), and number 7 when increment 17 was ticketed (see the 12 October decisions); the rest can wait until their increment.
 
 1. ~~**"Too easy" measure details**~~: settled, with the XP limit.
 2. ~~**Currency**~~: settled, copper/silver/gold stored as copper.
@@ -834,7 +849,7 @@ Number 1 was settled while working ticket 11.8 (#135; see the 5 October decision
 4. ~~**XP and loot for fled or surrendered monsters**~~: settled, no XP and the loot leaves with it.
 5. ~~**+1 gear**~~: settled, waits for magic in increment 16.
 6. ~~**Content strategy**~~: settled, hand-authored adventures.
-7. **Companions:** engine-controlled hirelings or a player-controlled party of library characters.
+7. ~~**Companions**~~: settled, dropped; the game stays single-player (12 October 2026).
 8. ~~**Market location**~~: settled, in-adventure merchants only.
 9. **Long-term level cap** after 5.
 
