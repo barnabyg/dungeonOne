@@ -4734,6 +4734,7 @@ export function orderFifthAdventures<
  */
 export const FIFTH_ADVENTURE_FILES = {
   "abandoned-delve": "abandoned-delve.json",
+  "bramblecote-cider-house": "bramblecote-cider-house.json",
   "coldwater-weirgate": "coldwater-weirgate.json",
   "drowned-chapel": "drowned-chapel.json",
   "goblin-warren": "goblin-warren.json",

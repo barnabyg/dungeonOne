@@ -200,6 +200,18 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
+- _The Bramblecote Cider House_ (`adventures/5e/bramblecote-cider-house.json`,
+  level 1, Medium): a long module of seventeen rooms in two regions, a
+  hillside cider farm and the vaults cut under it, with a rest site and an
+  exit in each. A little goblin gang has driven out Widow Ressa Pell and sells
+  her cider to a river fence. Get past a drunk goblin in the press house and
+  down its trapdoor, or past the half-wild farm dog and down the old well,
+  where the cooper's rope helps the climb. Off the way, the goblin chief
+  snores in the hayloft beside his runt, who may surrender the strongroom
+  key; the fence's carter waits in the cart shed and the fence tallies
+  barrels in the cider store; the Pells' strongroom opens by key, pick or
+  force; and something walks in the flooded sump. Come out with the Pells'
+  goods for 300 XP, enough for level 2.
 - _The Coldwater Weirgate_ (`adventures/5e/coldwater-weirgate.json`, level 3,
   Medium): a long module of twenty rooms in two regions, a dead guild's
   lock-keep and the culverts under it, with a rest site, an exit and

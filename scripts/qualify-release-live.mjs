@@ -8,7 +8,9 @@
 // mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
 // or, with --generated, any built-in module on a route generated from the
 // harness's cautious run on the seed (#409), played by the run's saved
-// character or else a saved level-3 Ada,
+// character or else a saved Ada at the module's lowest recommended level
+// (level 3 for the Coldwater Weirgate, level 1 for the Bramblecote Cider
+// House, #440),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -53,6 +55,7 @@ import {
 import {
   levelFourCareerLibrary,
   levelThreeLibrary,
+  libraryAt,
 } from "../dist/test-fighter-5e.js";
 import { rogueLibrary } from "../dist/test-rogue-5e.js";
 
@@ -129,13 +132,15 @@ if (
   usage();
 }
 // A generated route (#409) is the harness's run with a saved character's
-// sheet: the run's own, or else a level-3 Ada.
+// sheet: the run's own, or else Ada at the module's lowest recommended level.
 const run = generated
   ? {
       seed: "0",
       ...RUNS[options.adventure],
       issue: 409,
-      character: RUNS[options.adventure]?.character ?? levelThreeLibrary,
+      character:
+        RUNS[options.adventure]?.character ??
+        (() => libraryAt(adventure.recommendedLevels.min)),
     }
   : RUNS[options.adventure];
 const dryRun = mode === "--dry-run";
