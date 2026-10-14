@@ -38,11 +38,12 @@ const chrome = (page) =>
     };
   });
 
-// The yard with Tinker's Toll's objective, the longest a shipped module has.
+// The yard with an objective as long as the longest a shipped module has
+// (165 characters), which wraps unless it is kept to one line.
 const yard = {
   ...goblinYard,
   objective:
-    "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
+    "Goblins hold the old inn cellar below the yard, and the landlord's barrels are stuck behind a barricade. Clear the cellar or take what you can, and get out alive.",
 };
 
 /** Whether `inner` lies within `outer` from top to bottom. */
