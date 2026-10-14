@@ -48,11 +48,13 @@ const unreachable = async (page) => {
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
       const hit = document.elementFromPoint(x, y);
+      // A pixel of slack, as the layout fixture allows: the window scrolls
+      // in whole pixels, so an edge at x.06 can overhang by a fraction.
       const reached =
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= window.innerHeight &&
-        rect.right <= window.innerWidth &&
+        rect.top >= -1 &&
+        rect.left >= -1 &&
+        rect.bottom <= window.innerHeight + 1 &&
+        rect.right <= window.innerWidth + 1 &&
         node.contains(hit);
       // Where it sat and what covered it, to say why when it is missed.
       return reached
