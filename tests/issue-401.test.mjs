@@ -96,7 +96,7 @@ function longFight(on, turns, from = on.createSession()) {
 }
 
 test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
@@ -525,6 +525,7 @@ test("a noisy band names its own kind of check: forcing a door, disarming a trap
   module.rooms.push({
     id: "store",
     name: "Store",
+    at: [2, 0],
     description: "A bare store cut into the rock.",
     features: [],
     items: [],

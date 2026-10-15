@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "mallow-counting-house",
   "title": "The Counting-House on Mallow Quay",
   "objective": "Get past Snikk's goblins into the burned counting-house on Mallow Quay, open the guild's strongroom, and leave by the quay steps.",
@@ -14,6 +14,7 @@
     {
       "id": "quay-steps",
       "name": "Quay Steps",
+      "at": [0, 0],
       "description": "Slimy stone steps climb out of the river to a burned archway. A mooring bollard leans at the top, scrawled with chalk.",
       "exit": true,
       "features": [
@@ -37,6 +38,7 @@
     {
       "id": "toll-arch",
       "name": "Toll Arch",
+      "at": [1, 0],
       "description": "The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch.",
       "encounterId": "arch-toll",
       "features": [
@@ -52,6 +54,7 @@
     {
       "id": "counting-hall",
       "name": "Counting Hall",
+      "at": [2, 0],
       "description": "A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end.",
       "encounterId": "hall-goblin",
       "features": [
@@ -88,6 +91,8 @@
     {
       "id": "clerks-gallery",
       "name": "Clerks' Gallery",
+      "at": [2, 0],
+      "floor": 1,
       "description": "A narrow gallery of clerks' desks above the hall, half its rail burned away. A ladder climbs to the loft.",
       "features": [
         {
@@ -128,6 +133,8 @@
     {
       "id": "records-loft",
       "name": "Records Loft",
+      "at": [2, 0],
+      "floor": 2,
       "description": "Charred bales of records under the roof beams, and a nest of torn ledgers that smells of something large.",
       "encounterId": "loft-bugbear",
       "features": [],
@@ -162,6 +169,7 @@
     {
       "id": "strongroom",
       "name": "Strongroom",
+      "at": [3, 0],
       "description": "An iron-lined vault the fire never reached. An iron coffer is bolted to the floor.",
       "features": [
         {
@@ -223,6 +231,7 @@
     {
       "id": "hall-to-gallery",
       "between": ["counting-hall", "clerks-gallery"],
+      "vertical": "stairs",
       "description": "The gallery stair.",
       "trap": {
         "id": "scything-blade",
@@ -261,6 +270,7 @@
     {
       "id": "gallery-to-loft",
       "between": ["clerks-gallery", "records-loft"],
+      "vertical": "ladder",
       "description": "The ladder to the loft."
     },
     {

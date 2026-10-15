@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "goblin-trio",
   "title": "The Goblin Trio",
   "objective": "Clear the goblin band out of the mill storeroom.",
@@ -14,6 +14,7 @@
     {
       "id": "storeroom",
       "name": "Mill Storeroom",
+      "at": [0, 0],
       "description": "Flour sacks are slit open across the floor, and the air is white with dust. Three goblins look up from their plunder.",
       "encounterId": "goblin-band",
       "features": [],

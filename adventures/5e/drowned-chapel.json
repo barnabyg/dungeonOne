@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "drowned-chapel",
   "title": "The Drowned Chapel",
   "objective": "Recover the chapel's silver from the flooded nave and get back out alive. Leave by the porch when you are ready.",
@@ -11,6 +11,7 @@
     {
       "id": "chapel-porch",
       "name": "Chapel Porch",
+      "at": [0, 0],
       "description": "A stone porch at the edge of a marsh. The chapel's door hangs open, and dark water laps over its sill.",
       "exit": true,
       "features": [
@@ -26,6 +27,7 @@
     {
       "id": "flooded-nave",
       "name": "Flooded Nave",
+      "at": [1, 0],
       "description": "Knee-deep black water fills the nave between rows of rotting pews. Something moves slowly near the altar.",
       "encounterId": "drowned-sexton",
       "features": [
@@ -58,6 +60,7 @@
     {
       "id": "vestry",
       "name": "Vestry",
+      "at": [2, 0],
       "description": "A small room above the waterline, its cupboards swollen shut with damp.",
       "features": [
         {

@@ -21,6 +21,7 @@ room(gemMarketFile, "burial-hall").items.push(structuredClone(OPAL));
 gemMarketFile.rooms.push({
   id: "ogre-den",
   name: "Ogre's Den",
+  at: [-1, 0],
   description: "A reeking hollow under the hill, strewn with gnawed bones.",
   encounterId: "den-ogre",
   features: [],

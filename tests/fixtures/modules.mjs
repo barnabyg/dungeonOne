@@ -255,6 +255,7 @@ export const coalStore = (() => {
   module.rooms.push({
     id: "coal-store",
     name: "Coal Store",
+    at: [0, 1],
     description: "A low bay heaped with coal dust and fallen stone.",
     features: [heap],
     items: [ring],
@@ -510,6 +511,7 @@ export const goblinYardFile = (() => {
   module.rooms.unshift({
     id: "yard",
     name: "Inn Yard",
+    at: [0, -1],
     description: "A muddy yard behind the inn. Steps lead down to the cellar.",
     features: [
       {
@@ -597,6 +599,8 @@ export const longTunnelsFile = (() => {
   module.rooms.push({
     id: "cistern",
     name: "Cistern",
+    at: [1, 1],
+    floor: -1,
     description: "A dry cistern with a ledge above the old waterline.",
     region: "lower",
     restSite: true,
@@ -606,6 +610,7 @@ export const longTunnelsFile = (() => {
   module.passages.push({
     id: "cellar-to-cistern",
     between: ["rat-cellar", "cistern"],
+    vertical: "ladder",
     description: "A ladder down into the dark.",
   });
   return module;
@@ -653,6 +658,7 @@ export const lairTunnelsFile = ({ avoidable = false, routes } = {}) => {
   module.rooms.push({
     id: "lair",
     name: "Lair",
+    at: [-1, 0],
     description: "Gnawed bones carpet a low den.",
     region: "upper",
     encounterId: "lair-guardian",
@@ -690,6 +696,7 @@ export const windingTunnelsFile = (() => {
     {
       id: "collapsed-store",
       name: "Collapsed Store",
+      at: [2, 0],
       description: "Half the roof lies on the floor among split crates.",
       region: "upper",
       features: [
@@ -714,6 +721,7 @@ export const windingTunnelsFile = (() => {
     {
       id: "well-shaft",
       name: "Well Shaft",
+      at: [0, -1],
       description: "A round shaft drops away beside a crumbling well-head.",
       region: "upper",
       features: [
@@ -738,6 +746,8 @@ export const windingTunnelsFile = (() => {
     {
       id: "drain-tunnel",
       name: "Drain Tunnel",
+      at: [2, 1],
+      floor: -1,
       description:
         "A low brick tunnel that once carried water from the cistern.",
       region: "lower",
@@ -805,6 +815,7 @@ export const fleeingCellarFile = (() => {
   module.rooms.push({
     id: "sump",
     name: "Flooded Sump",
+    at: [2, 2],
     description: "Black water stands knee-deep under a low vault.",
     features: [],
     items: [],
@@ -831,6 +842,7 @@ export const fleeingCellarFile = (() => {
   module.rooms.push({
     id: "store",
     name: "Grain Store",
+    at: [2, 1],
     description: "Empty bins line a narrow room.",
     features: [],
     items: [],
@@ -965,6 +977,7 @@ export function rousedTunnelsFile(moving = true) {
   module.rooms.push({
     id: "nest",
     name: "Rat's Nest",
+    at: [2, 0],
     description: "A low burrow of shredded sacking, warm and rank.",
     encounterId: "cellar-rat",
     features: [],
@@ -1018,6 +1031,7 @@ export const snakeDoorFile = (() => {
   module.rooms.push({
     id: "vault",
     name: "Snake Vault",
+    at: [2, 0],
     description: "A dry vault, its walls painted with snakes.",
     features: [
       {
@@ -1146,6 +1160,7 @@ export const alarmTunnelsFile = (() => {
     {
       id: "landing",
       name: "Landing",
+      at: [2, 2],
       description: "A wide step in the tunnel, worn smooth by many feet.",
       region: "lower",
       features: [],
@@ -1154,6 +1169,7 @@ export const alarmTunnelsFile = (() => {
     {
       id: "guard-post",
       name: "Guard Post",
+      at: [3, 2],
       description: "A niche with a stool, a gong and a view of the landing.",
       region: "lower",
       encounterId: "lookout",
@@ -1242,6 +1258,7 @@ export const wanderingTunnelsFile = (() => {
   module.rooms.push({
     id: "landing",
     name: "Landing",
+    at: [2, 2],
     description: "A wide step in the tunnel, worn smooth by many feet.",
     region: "lower",
     features: [],
@@ -1308,6 +1325,7 @@ export const memoryTunnelsFile = (() => {
   module.rooms.push({
     id: "gallery",
     name: "Gallery",
+    at: [0, 1],
     description:
       "A narrow gallery cut into the rock, open to the cellar below.",
     region: "upper",
@@ -1408,20 +1426,27 @@ export const forkedTunnelsFile = (routes) => {
     ],
     defeatEndingId: "fallen-in-the-cellar",
   });
-  for (const [id, name, description, encounterId] of [
+  for (const [id, name, at, description, encounterId] of [
     [
       "guard-hall",
       "Guard Hall",
+      [2, 0],
       "A long hall lined with empty racks.",
       "hall-guardian",
     ],
-    ["hall-stair", "Hall Stair", "Steps down from the guard hall."],
-    ["cache", "Cache", "A cramped hole behind the boards."],
-    ["sluice-room", "Sluice Room", "A dripping chamber behind the sluice."],
+    ["hall-stair", "Hall Stair", [2, 1], "Steps down from the guard hall."],
+    ["cache", "Cache", [1, -1], "A cramped hole behind the boards."],
+    [
+      "sluice-room",
+      "Sluice Room",
+      [-1, 0],
+      "A dripping chamber behind the sluice.",
+    ],
   ]) {
     module.rooms.push({
       id,
       name,
+      at,
       description,
       ...(encounterId === undefined ? {} : { encounterId }),
       features: [],

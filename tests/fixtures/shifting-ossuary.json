@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "shifting-ossuary",
   "title": "The Shifting Ossuary",
   "objective": "Find the ossuary's tomb and lay its guardian to rest. Leave by the gate if it gets too much.",
@@ -14,6 +14,7 @@
     {
       "id": "ossuary-gate",
       "name": "Ossuary Gate",
+      "at": [0, 0],
       "description": "A rusted gate stands open on a stair down into the ossuary.",
       "exit": true,
       "features": [],
@@ -22,6 +23,7 @@
     {
       "id": "bone-hall",
       "name": "Bone Hall",
+      "at": [1, 0],
       "description": "Skulls are stacked to the ceiling along every wall. A low door leads to a side crypt, and an arch to the tomb.",
       "features": [
         {
@@ -53,6 +55,7 @@
     {
       "id": "reliquary",
       "name": "Reliquary",
+      "at": [1, -1],
       "description": "A cramped chamber behind the skull wall, its niches full of dust.",
       "features": [
         {
@@ -76,6 +79,7 @@
     {
       "id": "side-crypt",
       "name": "Side Crypt",
+      "at": [1, 1],
       "description": "A crypt with a single shelf of urns.",
       "features": [
         {
@@ -98,6 +102,7 @@
     {
       "id": "tomb",
       "name": "Tomb",
+      "at": [2, 0],
       "description": "A round tomb where something gnaws at the bones of the dead.",
       "encounterId": "tomb-rat",
       "features": [],

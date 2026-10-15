@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "graded-cellar",
   "title": "The Graded Cellar",
   "objective": "Search the old cellar for what was buried in it, and get out alive. Leave by the steps when you are ready.",
@@ -14,6 +14,7 @@
     {
       "id": "cellar-steps",
       "name": "Cellar Steps",
+      "at": [0, 0],
       "description": "Worn steps lead down from a trapdoor into a cellar. Half the far wall has fallen in.",
       "exit": true,
       "features": [
@@ -116,6 +117,7 @@
     {
       "id": "rat-hole",
       "name": "Rat Hole",
+      "at": [1, 0],
       "description": "A crawl space behind the cellar, its floor gnawed bones and straw.",
       "encounterId": "hole-rat",
       "features": [],

@@ -240,6 +240,7 @@ test("the validator rejects unreachable rooms", () => {
           m.rooms.push({
             id: "vault",
             name: "Vault",
+            at: [5, 5],
             description: "Sealed.",
             features: [],
             items: [],

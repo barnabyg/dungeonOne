@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "gravediggers-lodge",
   "title": "The Gravedigger's Lodge",
   "objective": "Find what the false gravedigger has dug up from the churchyard, and get out alive. Leave by the lychgate when you are ready.",
@@ -11,6 +11,7 @@
     {
       "id": "lychgate",
       "name": "Lychgate",
+      "at": [0, 0],
       "description": "A roofed gate into an overgrown churchyard. A lamp burns in the gravedigger's lodge beyond the yews.",
       "exit": true,
       "features": [
@@ -41,6 +42,7 @@
     {
       "id": "dead-house",
       "name": "Dead-house",
+      "at": [1, 0],
       "description": "The lodge's cold back room, where the dead are laid out. Coffins stand open along the walls, and one has been dragged into the middle of the floor.",
       "encounterId": "dead-house-fight",
       "features": [

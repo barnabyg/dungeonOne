@@ -62,7 +62,7 @@ const offeredTalk = (runtime, state) =>
     .map(({ target }) => target.id);
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
 });
 
 // The validator.
@@ -182,6 +182,8 @@ test("a topic's check counts toward reaching a room only while it is surely offe
   topic.check = { skill: "persuasion", dc: 5, bands: {} };
   topic.failure = "He shrugs.";
   const den = room(module, "den");
+  // Out of line with the stair foot's way down to the cellar.
+  den.at = [2, 1];
   module.passages.push({
     id: "stair-to-den",
     between: ["stair-foot", "den"],

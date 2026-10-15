@@ -31,6 +31,7 @@ const emptyBarrow = (() => {
   module.rooms.push({
     id: "side-crypt",
     name: "Side Crypt",
+    at: [2, 0],
     description: "A cramped niche of stacked bones.",
     encounterId: "barrow-goblin",
     features: [],

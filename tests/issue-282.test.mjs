@@ -165,6 +165,7 @@ test("the validator rejects a close that can cut off every exit", () => {
     m.rooms.push({
       id: "stair-top",
       name: "Stair Top",
+      at: [-1, 0],
       description: "The top of the ossuary stair, open to the sky.",
       exit: true,
       features: [],

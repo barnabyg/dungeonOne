@@ -91,7 +91,7 @@ const at = (roomId, more = {}) => ({
 });
 
 test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
@@ -206,7 +206,10 @@ test("the validator refuses malformed wandering tables", () => {
 });
 
 test("a module may have 30 encounters, wandering ones counted (D5)", () => {
-  /** The tunnels with `count` more rats, each in a nook of its own. */
+  /**
+   * The tunnels with `count` more rats, each in a nook of its own, the
+   * nooks in a row east of the stair foot.
+   */
   const nooks = (count) =>
     wandering((module) => {
       const rat = module.encounters[0];
@@ -222,6 +225,7 @@ test("a module may have 30 encounters, wandering ones counted (D5)", () => {
         module.rooms.push({
           id: `nook-${index}`,
           name: `Nook ${index}`,
+          at: [2 + index, 0],
           description: "A damp nook.",
           region: "upper",
           encounterId: id,
@@ -230,7 +234,10 @@ test("a module may have 30 encounters, wandering ones counted (D5)", () => {
         });
         module.passages.push({
           id: `to-nook-${index}`,
-          between: ["stair-foot", `nook-${index}`],
+          between: [
+            index === 0 ? "stair-foot" : `nook-${index - 1}`,
+            `nook-${index}`,
+          ],
           description: "A gap in the wall.",
         });
       }

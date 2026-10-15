@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "winch-tunnels",
   "title": "The Winch Tunnels",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
@@ -14,6 +14,7 @@
     {
       "id": "stair-foot",
       "name": "Foot of the Stair",
+      "at": [1, 0],
       "description": "Worn steps end in a cold cellar passage. Water drips somewhere ahead, and the air smells of rot and lamp oil.",
       "features": [
         {
@@ -28,6 +29,7 @@
     {
       "id": "alcove",
       "name": "Alcove",
+      "at": [0, 0],
       "description": "A cramped alcove cut into the rock, out of the draught. Someone slept here once.",
       "features": [
         {
@@ -56,6 +58,7 @@
     {
       "id": "rat-cage",
       "name": "Rat Cage",
+      "at": [-1, 0],
       "description": "A low stone pen behind an arch. As you step in, an iron gate drops shut in the arch behind you.",
       "sets": "cage-gate-dropped",
       "encounterId": "cage-rat",
@@ -65,6 +68,7 @@
     {
       "id": "rat-cellar",
       "name": "Rat-Gnawed Cellar",
+      "at": [1, 1],
       "description": "Grain sacks slump against the walls, chewed open. Droppings cover the floor.",
       "encounterId": "cellar-rat",
       "features": [
@@ -79,6 +83,7 @@
     {
       "id": "den",
       "name": "Smugglers' Den",
+      "at": [1, 2],
       "description": "A vaulted room with a cold hearth, a table of empty bottles and a barrel used as a desk.",
       "encounterId": "den-goblin",
       "features": [

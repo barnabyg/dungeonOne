@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "lintel-barrow",
   "title": "The Lintel Barrow",
   "objective": "Find what the goblin robbers left in the old barrow, and get out alive. Leave by the way you came in when you are ready.",
@@ -14,6 +14,7 @@
     {
       "id": "barrow-mouth",
       "name": "Barrow Mouth",
+      "at": [0, 0],
       "description": "A low doorway of fitted stones opens onto the hillside. Daylight reaches a few steps in and no further.",
       "exit": true,
       "features": [
@@ -29,6 +30,7 @@
     {
       "id": "burial-hall",
       "name": "Burial Hall",
+      "at": [1, 0],
       "description": "A long, low hall of packed earth and old bones. A stone bier stands at the far end under a rotted cloth.",
       "encounterId": "barrow-goblin",
       "features": [

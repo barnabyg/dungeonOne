@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 39) and its validator.
+ * The 5e adventure module format and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -76,7 +76,14 @@
  *
  * A module may group its rooms into regions (#395), such as an upper and a
  * lower level: then every room names its region, and every region has a
- * room. Regions are a list, not a map.
+ * room, and the room map shades it.
+ *
+ * Every room sits on a cell of the room map (#455), `at: [x, y]`, on a
+ * floor (0 unless authored). The rules that keep the map readable live in
+ * `map-5e.ts`: one room to a cell, straight passages that don't cross or
+ * run through rooms, and stairs, a ladder or a shaft (`vertical`) between
+ * adjacent floors. The map is a layout of rooms; there is no tactical grid,
+ * no position inside a room.
  *
  * A module may declare flags (#397): named facts about the session that
  * only ever turn on. A flag is set by a check band's `set` effect, an
@@ -223,6 +230,14 @@ import {
   unique,
 } from "./json-shape.js";
 import {
+  type Cell,
+  layoutErrors,
+  MAX_CELL,
+  MAX_FLOOR,
+  VERTICAL_KINDS,
+  type VerticalKind,
+} from "./map-5e.js";
+import {
   damageType,
   loadBuiltInFifthBestiary,
   statBlock,
@@ -245,7 +260,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 42;
+export const FIFTH_ADVENTURE_FORMAT = 43;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -1015,6 +1030,10 @@ const MAX_TRADE_MINUTES = 60;
 export type FifthRoom = Readonly<{
   id: string;
   name: string;
+  /** Its cell on the room map (#455): `[x, y]`, x east and y south. */
+  at: Cell;
+  /** Its floor on the room map (#455): 0 unless authored, up positive. */
+  floor: number;
   description: string;
   /** The fight that begins when the character enters. */
   encounterId?: string;
@@ -1037,8 +1056,8 @@ export type FifthRoom = Readonly<{
 }>;
 
 /**
- * A part of a module, such as an upper or a lower level (#395): a list of
- * rooms, not a place on a map. In a module with regions every room belongs
+ * A part of a module, such as an upper or a lower level (#395): a group of
+ * rooms, which the room map shades. In a module with regions every room belongs
  * to one, and every region has a room.
  */
 export type FifthRegion = Readonly<{
@@ -1119,6 +1138,8 @@ export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
+  /** What carries it between floors (#455): only between adjacent floors. */
+  vertical?: VerticalKind;
   hidden?: true;
   /** The flag that opens it (#397): closed until it is set. */
   openWhen?: string;
@@ -1349,6 +1370,18 @@ function carriedLoot(
   if (found > 1) {
     refuse(`${found} trinkets`);
   }
+}
+
+/** A room's cell on the map (#455): `[x, y]`, each within `MAX_CELL`. */
+function cell(value: unknown, where: string): Cell {
+  if (!Array.isArray(value) || value.length !== 2) {
+    fail(`${where} must be a cell, [x, y].`);
+  }
+  const [x, y] = value as unknown[];
+  return [
+    integer(x, `${where} x`, -MAX_CELL, MAX_CELL),
+    integer(y, `${where} y`, -MAX_CELL, MAX_CELL),
+  ];
 }
 
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
@@ -2610,8 +2643,9 @@ function validateModule(
     const where = `room ${index + 1}`;
     const room = knownKeys(
       entry,
-      ["id", "name", "description", "features", "items"],
+      ["id", "name", "at", "description", "features", "items"],
       [
+        "floor",
         "encounterId",
         "creatures",
         "exit",
@@ -2906,6 +2940,16 @@ function validateModule(
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),
+      at: cell(room.at, `${where} (${String(room.id)}) at`),
+      floor:
+        room.floor === undefined
+          ? 0
+          : integer(
+              room.floor,
+              `${where} (${String(room.id)}) floor`,
+              -MAX_FLOOR,
+              MAX_FLOOR,
+            ),
       description: text(room.description, `${where} description`),
       ...(room.encounterId === undefined
         ? {}
@@ -3227,9 +3271,15 @@ function validateModule(
       const passage = knownKeys(
         entry,
         ["id", "between", "description"],
-        ["door", "trap", "hidden", "openWhen", "closeWhen"],
+        ["vertical", "door", "trap", "hidden", "openWhen", "closeWhen"],
         where,
       );
+      if (
+        passage.vertical !== undefined &&
+        !isOneOf(VERTICAL_KINDS, passage.vertical)
+      ) {
+        fail(`${where} vertical must be ${VERTICAL_KINDS.join(", ")}.`);
+      }
       if (passage.hidden !== undefined && passage.hidden !== true) {
         fail(`${where} hidden must be true, or left out.`);
       }
@@ -3262,6 +3312,9 @@ function validateModule(
         id: id(passage.id, `${where} id`),
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
+        ...(passage.vertical === undefined
+          ? {}
+          : { vertical: passage.vertical as VerticalKind }),
         ...(passage.hidden === true ? { hidden: true as const } : {}),
         ...(passage.openWhen === undefined
           ? {}
@@ -3801,6 +3854,12 @@ function validateModule(
     ({ between: [from, to] }) =>
       `two passages join ${from} and ${to}; one is enough.`,
   );
+  // The room map (#455): its rules live in map-5e.ts, shared with the
+  // mapping tool.
+  const [layoutError] = layoutErrors(rooms, passages);
+  if (layoutError !== undefined) {
+    fail(layoutError);
+  }
   // Every room must be reachable from the start.
   const reached = new Set([module.startRoomId as string]);
   for (let grew = true; grew;) {

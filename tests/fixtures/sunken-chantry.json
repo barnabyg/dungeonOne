@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "sunken-chantry",
   "title": "The Sunken Chantry",
   "objective": "Go down under the chantry and put to rest whatever woke its dead. Leave by the porch if it is too much for you.",
@@ -11,6 +11,7 @@
     {
       "id": "porch",
       "name": "Chantry Porch",
+      "at": [0, 0],
       "description": "A stone porch on a bare hillside. The chantry door hangs open on one hinge, and something shuffles about inside.",
       "exit": true,
       "features": [
@@ -26,6 +27,7 @@
     {
       "id": "nave",
       "name": "Nave",
+      "at": [1, 0],
       "description": "Pews lie overturned under a broken roof. An iron grille in the floor covers steps going down, and faded sigils are painted round a blank stretch of wall beside the altar. A low door leads to the vestry.",
       "encounterId": "nave-fight",
       "features": [
@@ -91,6 +93,7 @@
     {
       "id": "vestry",
       "name": "Vestry",
+      "at": [1, 1],
       "description": "A small room off the nave with a priest's cot. The door bars from inside: somewhere safe enough to sleep.",
       "restSite": true,
       "features": [
@@ -122,6 +125,8 @@
     {
       "id": "sexton-stair",
       "name": "Sexton's Stair",
+      "at": [0, 0],
+      "floor": -1,
       "description": "Worn steps under the grille, down to a charnel pit where the sexton stacked old bones. An arch opens on the ossuary, and a passage runs on to the undercroft.",
       "encounterId": "pit-fight",
       "features": [
@@ -153,6 +158,8 @@
     {
       "id": "ossuary",
       "name": "Ossuary",
+      "at": [0, 1],
+      "floor": -1,
       "description": "Skulls stacked to the vault. The founder's tomb stands at the far end, its lid cracked open.",
       "encounterId": "ossuary-fight",
       "features": [
@@ -193,6 +200,7 @@
     {
       "id": "priests-stair",
       "name": "Priests' Stair",
+      "at": [2, 0],
       "description": "A narrow, dry stair behind the ward, untouched by the dead. It goes down to a cell.",
       "features": [
         {
@@ -224,6 +232,8 @@
     {
       "id": "priors-cell",
       "name": "Prior's Cell",
+      "at": [2, 0],
+      "floor": -1,
       "description": "A bare cell at the foot of the priests' stair. Its far door stands open on the undercroft.",
       "encounterId": "cell-fight",
       "features": [],
@@ -232,6 +242,8 @@
     {
       "id": "undercroft",
       "name": "Undercroft",
+      "at": [1, 0],
+      "floor": -1,
       "description": "A low vault under the nave. A broken reliquary lies at its heart, its gold long gone.",
       "encounterId": "undercroft-fight",
       "features": [],
@@ -252,6 +264,7 @@
     {
       "id": "nave-to-sexton-stair",
       "between": ["nave", "sexton-stair"],
+      "vertical": "stairs",
       "description": "The iron grille in the floor.",
       "door": {
         "id": "iron-grille",
@@ -282,6 +295,7 @@
     {
       "id": "priests-stair-to-cell",
       "between": ["priests-stair", "priors-cell"],
+      "vertical": "stairs",
       "description": "The foot of the priests' stair."
     },
     {

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "tinkers-toll",
   "title": "The Tinker's Toll",
   "objective": "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
@@ -14,6 +14,7 @@
     {
       "id": "wayside-shrine",
       "name": "Wayside Shrine",
+      "at": [0, 0],
       "description": "A moss-grown shrine stands where the road dips toward the river. Travellers leave coins here for a safe crossing. The road runs on to a cart pulled up on the verge.",
       "exit": true,
       "features": [
@@ -43,6 +44,7 @@
     {
       "id": "tinkers-cart",
       "name": "Tinker's Cart",
+      "at": [1, 0],
       "description": "A painted cart sits on the verge with its mule unhitched, hung with pots, blades and a dented shield. The road runs on down to the ford.",
       "features": [],
       "items": [],
@@ -73,6 +75,7 @@
     {
       "id": "ford",
       "name": "Ford",
+      "at": [2, 0],
       "description": "The road runs into a shallow, stony ford, thick with reeds on either bank. A track climbs from the far bank to the toll tower.",
       "encounterId": "ford-wolf",
       "features": [
@@ -108,6 +111,7 @@
     {
       "id": "toll-tower",
       "name": "Toll Tower",
+      "at": [3, 0],
       "description": "A squat stone tower with a chain across the road. A cookfire smokes inside, and a strongbox sits under the stair.",
       "encounterId": "tower-bandits",
       "features": [

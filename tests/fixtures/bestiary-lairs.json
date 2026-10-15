@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "bestiary-lairs",
   "title": "The Bestiary Lairs",
   "objective": "Clear any one lair off the crossroads.",
@@ -14,6 +14,7 @@
     {
       "id": "crossroads",
       "name": "Crossroads",
+      "at": [1, 1],
       "description": "Five tunnels lead off a muddy crossroads.",
       "features": [],
       "items": []
@@ -21,6 +22,7 @@
     {
       "id": "kobold-warren",
       "name": "Kobold Warren",
+      "at": [0, 0],
       "description": "Low tunnels reek of smoke. Two kobolds hiss and raise their spikes.",
       "encounterId": "kobold-warren-fight",
       "features": [],
@@ -29,6 +31,7 @@
     {
       "id": "hobgoblin-post",
       "name": "Hobgoblin Post",
+      "at": [1, 0],
       "description": "A neat guard post with a swept floor. A hobgoblin stands to attention.",
       "encounterId": "hobgoblin-post-fight",
       "features": [],
@@ -37,6 +40,7 @@
     {
       "id": "bugbear-den",
       "name": "Bugbear Den",
+      "at": [2, 0],
       "description": "Bones and furs litter a cramped den. Something large shifts in the dark.",
       "encounterId": "bugbear-den-fight",
       "features": [],
@@ -45,6 +49,7 @@
     {
       "id": "gnoll-pit",
       "name": "Gnoll Pit",
+      "at": [0, 1],
       "description": "A pit of gnawed bones. A gnoll looks up and laughs.",
       "encounterId": "gnoll-pit-fight",
       "features": [],
@@ -53,6 +58,7 @@
     {
       "id": "ogre-cave",
       "name": "Ogre Cave",
+      "at": [2, 1],
       "description": "A cave that stinks of old meat. An ogre heaves itself upright.",
       "encounterId": "ogre-cave-fight",
       "features": [],

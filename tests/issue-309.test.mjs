@@ -393,6 +393,7 @@ test("a module whose only route to its goal is a lock only thieves' tools open i
   chute.rooms.push({
     id: "coal-store",
     name: "Coal Store",
+    at: [0, 1],
     description: "A black, dusty store beside the cellar.",
     features: [],
     items: [],

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "lone-goblin",
   "title": "The Lone Goblin",
   "objective": "Drive out the goblin that has taken over the inn's cellar.",
@@ -14,6 +14,7 @@
     {
       "id": "cellar",
       "name": "Inn Cellar",
+      "at": [0, 0],
       "description": "A low stone cellar lit by one guttering lantern. Broken casks line the walls, and the floor is wet with spilled ale.",
       "encounterId": "lone-goblin",
       "features": [],

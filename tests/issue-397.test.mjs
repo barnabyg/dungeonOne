@@ -72,6 +72,7 @@ function nookFile(base, flag, setter, closing = false) {
   module.rooms.push({
     id: "nook",
     name: "Nook",
+    at: [2, -1],
     description: "A dry nook in the rock.",
     features: [],
     items: [],
@@ -89,7 +90,7 @@ function nookFile(base, flag, setter, closing = false) {
 const nook = (...args) => validateModule(nookFile(...args));
 
 test("the formats bump; the prompt does not change", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
@@ -727,6 +728,7 @@ test("the harness goes back to set a flag in a room it slipped through", () => {
   file.rooms.push({
     id: "hatch",
     name: "Hatch",
+    at: [1, 3],
     description: "A trapdoor opens onto the hillside.",
     features: [],
     items: [],

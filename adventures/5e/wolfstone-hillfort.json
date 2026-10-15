@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "wolfstone-hillfort",
   "title": "The Wolfstone Hillfort",
   "objective": "Get past the Reaver's dire wolf into the old hillfort, take what you can from it, and leave by the drovers' camp.",
@@ -14,6 +14,7 @@
     {
       "id": "drovers-camp",
       "name": "Drovers' Camp",
+      "at": [0, 1],
       "description": "A cold camp below the hillfort's ditch. A drover sits by a cart, and a sheep track winds up the hill behind it.",
       "exit": true,
       "features": [
@@ -90,6 +91,7 @@
     {
       "id": "outer-ditch",
       "name": "Outer Ditch",
+      "at": [1, 1],
       "description": "A deep ditch below the rampart, littered with gnawed bones. A rusted portcullis blocks the gate passage.",
       "encounterId": "ditch-wolf",
       "features": [
@@ -124,6 +126,7 @@
     {
       "id": "watchtower",
       "name": "Old Watchtower",
+      "at": [0, 0],
       "description": "A roofless tower on the hill's shoulder, looking down into the fort.",
       "features": [
         {
@@ -153,6 +156,7 @@
     {
       "id": "gatehouse",
       "name": "Gatehouse",
+      "at": [2, 1],
       "description": "A broken gatehouse inside the rampart. A rope bridge sags across a ravine towards the keep, and steps lead down into the undercroft.",
       "features": [
         {
@@ -242,6 +246,8 @@
     {
       "id": "undercroft",
       "name": "Undercroft",
+      "at": [3, 1],
+      "floor": -1,
       "description": "A collapsed undercroft that stinks of bear. A stair at the far end climbs towards the keep.",
       "encounterId": "undercroft-bear",
       "features": [
@@ -273,6 +279,7 @@
     {
       "id": "keep-hall",
       "name": "Keep Hall",
+      "at": [4, 1],
       "description": "The hall of the old keep, hung with stolen banners. The Reaver's strongbox sits under the high table.",
       "encounterId": "keep-reaver",
       "features": [
@@ -363,11 +370,13 @@
     {
       "id": "gatehouse-to-undercroft",
       "between": ["gatehouse", "undercroft"],
+      "vertical": "stairs",
       "description": "The steps down into the undercroft."
     },
     {
       "id": "undercroft-to-keep",
       "between": ["undercroft", "keep-hall"],
+      "vertical": "stairs",
       "description": "The undercroft stair."
     },
     {

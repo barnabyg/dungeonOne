@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "toll-yard",
   "title": "The Toll Yard",
   "objective": "Talk your way into the strongroom, or take the rat cellar's coins, and leave by the gate.",
@@ -14,6 +14,7 @@
     {
       "id": "toll-yard",
       "name": "Toll Yard",
+      "at": [0, 0],
       "description": "A cobbled yard inside a toll gate. A keeper sits by a barred strongroom, and steps lead down to a cellar.",
       "exit": true,
       "features": [],
@@ -51,6 +52,7 @@
     {
       "id": "strongroom",
       "name": "Strongroom",
+      "at": [1, 0],
       "description": "A windowless room of iron-bound chests.",
       "features": [
         {
@@ -76,6 +78,7 @@
     {
       "id": "rat-cellar",
       "name": "Rat Cellar",
+      "at": [0, 1],
       "description": "A damp cellar that reeks of rats.",
       "encounterId": "cellar-rat",
       "features": [

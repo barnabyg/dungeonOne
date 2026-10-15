@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "warden-crypt",
   "title": "The Warden's Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
@@ -14,6 +14,7 @@
     {
       "id": "crypt-stair",
       "name": "Crypt Stair",
+      "at": [1, 0],
       "description": "Narrow steps end at a damp landing. A passage leads on into the dark, and a swollen wooden door stands shut in the side wall.",
       "features": [
         {
@@ -28,6 +29,7 @@
     {
       "id": "flooded-cell",
       "name": "Flooded Cell",
+      "at": [0, 0],
       "description": "Ankle-deep water fills a small cell. A shelf runs along the back wall above the waterline.",
       "features": [
         {
@@ -50,6 +52,7 @@
     {
       "id": "hall",
       "name": "Hall of Niches",
+      "at": [1, 1],
       "description": "Burial niches line a long hall. Archways lead off to either side, and an iron door is set in the far wall beside the way to the tomb.",
       "features": [],
       "items": [],
@@ -81,6 +84,7 @@
     {
       "id": "offering-room",
       "name": "Offering Room",
+      "at": [0, 1],
       "description": "A low chamber with a stone altar. Mouldering offerings are heaped around a bronze bowl.",
       "features": [
         {
@@ -111,6 +115,7 @@
     {
       "id": "strongroom",
       "name": "Strongroom",
+      "at": [2, 1],
       "description": "A cramped vault behind the iron door. Shelves of rotten ledgers line the walls.",
       "features": [
         {
@@ -159,6 +164,7 @@
     {
       "id": "tomb",
       "name": "Warden's Tomb",
+      "at": [1, 2],
       "description": "A domed tomb with a stone sarcophagus at its heart. Its lid has been pushed aside.",
       "encounterId": "tomb-warden",
       "features": [],

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "thornwood-lodge",
   "title": "The Thornwood Lodge",
   "objective": "Get past Captain Hesk's beasts into the old hunting lodge, take what you can from it, and leave by the forest gate.",
@@ -14,6 +14,7 @@
     {
       "id": "forest-gate",
       "name": "Forest Gate",
+      "at": [1, 2],
       "description": "A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile.",
       "exit": true,
       "features": [
@@ -90,6 +91,7 @@
     {
       "id": "poachers-hide",
       "name": "Poachers' Hide",
+      "at": [0, 1],
       "description": "A hide of woven branches under the palisade, smelling of old smoke.",
       "features": [
         {
@@ -119,6 +121,7 @@
     {
       "id": "kennel-yard",
       "name": "Kennel Yard",
+      "at": [1, 1],
       "description": "A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall.",
       "encounterId": "yard-hound",
       "features": [
@@ -153,6 +156,7 @@
     {
       "id": "lodge-hall",
       "name": "Lodge Hall",
+      "at": [1, 0],
       "description": "A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, and a hatch in the floor leads down to the ice house.",
       "encounterId": "hall-bear",
       "features": [
@@ -289,6 +293,8 @@
     {
       "id": "ice-house",
       "name": "Ice House",
+      "at": [1, 0],
+      "floor": -1,
       "description": "A domed ice house, half full of straw-packed ice. Something huge has made a nest in the back.",
       "encounterId": "ice-house-owlbear",
       "features": [
@@ -320,6 +326,8 @@
     {
       "id": "captains-solar",
       "name": "Captain's Solar",
+      "at": [1, 0],
+      "floor": 1,
       "description": "A panelled room above the hall, warm from a banked fire. Captain Hesk's strongbox sits at the foot of a carved bed.",
       "encounterId": "solar-captain",
       "features": [
@@ -382,12 +390,14 @@
     {
       "id": "hall-to-ice-house",
       "between": ["lodge-hall", "ice-house"],
+      "vertical": "stairs",
       "description": "The steps down under the hatch.",
       "hidden": true
     },
     {
       "id": "hall-to-solar",
       "between": ["lodge-hall", "captains-solar"],
+      "vertical": "stairs",
       "description": "The gallery stair.",
       "trap": {
         "id": "gallery-man-trap",

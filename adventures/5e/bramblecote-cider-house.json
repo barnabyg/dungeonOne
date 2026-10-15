@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "bramblecote-cider-house",
   "title": "The Bramblecote Cider House",
   "objective": "Get back what you can of the Pell family's goods from the goblins in the cider house, and come out alive.",
@@ -37,6 +37,7 @@
     {
       "id": "lane-gate",
       "name": "Lane Gate",
+      "at": [2, 3],
       "description": "A five-bar gate hangs open on the lane, and the air smells of windfall apples going soft in the grass. Beyond it a cobbled yard runs up to a long stone press house and a thatched farmhouse.",
       "region": "yard",
       "exit": true,
@@ -97,6 +98,7 @@
     {
       "id": "dog-yard",
       "name": "Dog Yard",
+      "at": [2, 1],
       "description": "A muddy yard behind the farmhouse, ringed with gnawed bones and stinking of dog. A long chain runs from a post to a kennel of broken boards.",
       "region": "yard",
       "encounterId": "dog-yard-fight",
@@ -124,6 +126,7 @@
     {
       "id": "kitchen",
       "name": "Kitchen",
+      "at": [1, 2],
       "description": "The farmhouse kitchen is cold, and it smells of burned stew and spilled cider. Chairs lie overturned around a scrubbed table.",
       "region": "yard",
       "features": [
@@ -158,6 +161,7 @@
     {
       "id": "parlour",
       "name": "Parlour",
+      "at": [0, 2],
       "description": "A small, quiet room with the shutters barred from inside. Dust lies thick on the good chairs; the goblins never came in here.",
       "region": "yard",
       "restSite": true,
@@ -185,6 +189,7 @@
     {
       "id": "coopers-shed",
       "name": "Cooper's Shed",
+      "at": [2, 0],
       "description": "Shavings carpet the floor of a lean-to shed, and it smells of oak and old smoke. Hoops and staves are stacked against every wall.",
       "region": "yard",
       "features": [
@@ -219,6 +224,7 @@
     {
       "id": "press-house",
       "name": "Press House",
+      "at": [1, 1],
       "description": "The long press house reeks of fermenting mash, and wasps drone over a heap of brown pulp. A great wooden press stands in the middle, and a trapdoor lies open in the floor. A ladder climbs to the hayloft.",
       "region": "yard",
       "encounterId": "press-house-fight",
@@ -306,6 +312,8 @@
     {
       "id": "hayloft",
       "name": "Hayloft",
+      "at": [1, 1],
+      "floor": 1,
       "description": "Loud snoring fills a dusty loft under the thatch, and the hay smells of mice and stale cider. Empty jugs roll on the boards.",
       "region": "yard",
       "avoidable": true,
@@ -380,6 +388,7 @@
     {
       "id": "well-yard",
       "name": "Well Yard",
+      "at": [3, 1],
       "description": "A walled yard at the orchard's edge, its cobbles green with moss. An old well head stands in the middle under a wooden windlass.",
       "region": "yard",
       "features": [
@@ -478,6 +487,7 @@
     {
       "id": "cart-shed",
       "name": "Cart Shed",
+      "at": [3, 3],
       "description": "An open-fronted shed smelling of horse and axle grease. A flat cart stands empty, waiting for barrels.",
       "region": "yard",
       "avoidable": true,
@@ -506,6 +516,8 @@
     {
       "id": "cellar-stair",
       "name": "Cellar Stair",
+      "at": [1, 1],
+      "floor": -1,
       "description": "Worn steps run down from the trapdoor into a cool, dark passage that smells of wet stone and apples. A barrel ramp runs beside them.",
       "region": "vaults",
       "features": [
@@ -532,6 +544,8 @@
     {
       "id": "cask-gallery",
       "name": "Cask Gallery",
+      "at": [2, 1],
+      "floor": -1,
       "description": "A long vault cut into the hill, lined with great casks on stone cradles. The air is thick and sweet. Passages lead off in every direction, and an iron-bound door is set in the far wall.",
       "region": "vaults",
       "features": [
@@ -552,6 +566,8 @@
     {
       "id": "well-bottom",
       "name": "Well Bottom",
+      "at": [3, 1],
+      "floor": -1,
       "description": "A round chamber at the foot of the well shaft, damp and dripping. Daylight is a coin of white far above.",
       "region": "vaults",
       "features": [
@@ -589,6 +605,8 @@
     {
       "id": "pell-strongroom",
       "name": "Pell Strongroom",
+      "at": [2, 0],
+      "floor": -1,
       "description": "A small, dry room behind the iron-bound door, smelling of wax and old paper. The Pells kept everything that mattered here.",
       "region": "vaults",
       "features": [
@@ -634,6 +652,8 @@
     {
       "id": "bottling-room",
       "name": "Bottling Room",
+      "at": [1, 0],
+      "floor": -1,
       "description": "A dry side vault with a heavy door that bars from inside. Rows of empty bottles glint on racks, and a cot stands in the corner.",
       "region": "vaults",
       "restSite": true,
@@ -669,6 +689,8 @@
     {
       "id": "cider-store",
       "name": "Cider Store",
+      "at": [1, 2],
+      "floor": -1,
       "description": "Lamplight falls over rows of full barrels, each chalked with a V inside a ring. The room smells of cider and pipe smoke.",
       "region": "vaults",
       "encounterId": "cider-store-fight",
@@ -726,6 +748,8 @@
     {
       "id": "flooded-sump",
       "name": "Flooded Sump",
+      "at": [3, 2],
+      "floor": -1,
       "description": "The low cellar is knee-deep in black water that smells of river mud and rot. A rusted grating lets in the sound of the river.",
       "region": "vaults",
       "avoidable": true,
@@ -763,6 +787,8 @@
     {
       "id": "river-door",
       "name": "River Door",
+      "at": [2, 2],
+      "floor": -1,
       "description": "The passage ends at a low door onto the riverbank. You hear the river running fast beyond it, and smell weed and wet rope.",
       "region": "vaults",
       "exit": true,
@@ -831,16 +857,19 @@
     {
       "id": "hayloft-ladder",
       "between": ["press-house", "hayloft"],
+      "vertical": "ladder",
       "description": "A ladder up into the hayloft. Snoring comes down it."
     },
     {
       "id": "press-house-trapdoor",
       "between": ["press-house", "cellar-stair"],
+      "vertical": "stairs",
       "description": "The open trapdoor and its barrel ramp, down into the vaults."
     },
     {
       "id": "well-shaft",
       "between": ["well-yard", "well-bottom"],
+      "vertical": "shaft",
       "description": "The old well shaft, down into the vaults.",
       "hidden": true
     },

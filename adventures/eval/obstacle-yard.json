@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "obstacle-yard",
   "title": "The Obstacle Yard",
   "objective": "Get past the yard's wall or its guard, see what lies beyond, and leave by the gate.",
@@ -14,6 +14,7 @@
     {
       "id": "yard-gate",
       "name": "Yard Gate",
+      "at": [1, 0],
       "description": "A muddy yard inside an old gate. A crumbling wall hides a garden, and a guard leans on a door to the guardhouse.",
       "exit": true,
       "features": [
@@ -105,6 +106,7 @@
     {
       "id": "herb-garden",
       "name": "Herb Garden",
+      "at": [0, 0],
       "description": "Overgrown beds of herbs behind the wall.",
       "features": [
         {
@@ -130,6 +132,7 @@
     {
       "id": "guardhouse",
       "name": "Guardhouse",
+      "at": [2, 0],
       "description": "A cramped guardhouse that smells of rats.",
       "encounterId": "guardhouse-rat",
       "features": [],
