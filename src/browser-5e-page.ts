@@ -1826,6 +1826,8 @@ function renderMap() {
   const width = 2 * MAP_PAD + (Math.max(...cells.map(([x]) => x)) - minX + 1) * MAP_CELL.x;
   const height = 2 * MAP_PAD + (Math.max(...cells.map(([, y]) => y)) - minY + 1) * MAP_CELL.y;
   const canvas = element("map-canvas");
+  // Redrawn while open (as a reply lands), focus stays on its room.
+  const focusedRoom = canvas.contains(document.activeElement) ? document.activeElement.closest(".map-room")?.dataset.room || session.map.rooms.find(({ current }) => current).id : null;
   canvas.style.width = width + "px";
   canvas.style.height = height + "px";
   const here = map.rooms.find(({ current }) => current);
@@ -1916,6 +1918,7 @@ function renderMap() {
     nodes.push(box);
   }
   canvas.replaceChildren(...nodes);
+  if (focusedRoom) canvas.querySelector(".map-room[data-room='" + focusedRoom + "'] > button")?.focus();
   renderMapKey(stubs.size > 0);
   renderMapRecord();
 }

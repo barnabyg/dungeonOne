@@ -288,6 +288,13 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     dm.release();
     await page.locator("#log li[data-pending]").waitFor({ state: "detached" });
     assert.equal(await page.locator("#room-title").textContent(), "Sump");
+    // The reply redraws the open map; focus stays on her room in it.
+    assert.equal(
+      await page.evaluate(
+        () => document.activeElement.closest(".map-room")?.dataset.room,
+      ),
+      "sump",
+    );
     await page.locator("#close-map").click();
 
     // Nor in a fight: the rat's cellar, then the stair foot on the map.
