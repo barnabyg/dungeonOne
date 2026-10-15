@@ -45,8 +45,9 @@ const drawn = (page) =>
           box.querySelector("button").firstChild.textContent +
           (box.classList.contains("current") ? "!" : ""),
         at: at(centre(box, 136, 88)),
-        ways: [...box.querySelectorAll(".map-way")].map(
-          (way) => way.textContent + (way.tagName === "BUTTON" ? " [go]" : ""),
+        climbs: [...box.querySelectorAll(".map-climb")].map(
+          (climb) =>
+            climb.textContent + (climb.tagName === "BUTTON" ? " [go]" : ""),
         ),
       })),
       stubs: [...canvas.querySelectorAll(".map-stub")].map((stub) => [
@@ -117,8 +118,9 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     const sent = page.waitForRequest("**/api/5e/session/explore");
     await settled(page, () => target.click());
     // The same request as Go to's.
-    assert.deepEqual((await sent).postDataJSON().action, "move");
-    assert.deepEqual((await sent).postDataJSON().target, destination);
+    const { action, target: sentTarget } = (await sent).postDataJSON();
+    assert.equal(action, "move");
+    assert.equal(sentTarget, destination);
     assert.equal(await dialog.isVisible(), false, "the map closes on a move");
   };
   try {
@@ -139,7 +141,7 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
         {
           name: "Foot of the Stair!",
           at: [0, 0],
-          ways: ["↑ stairs NE: ? [go]"],
+          climbs: ["↑ stairs NE: ? [go]"],
         },
       ],
       // The gallery's stub is two cells east, on its own cell.
@@ -210,13 +212,13 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     await page.keyboard.press("m");
     const fromGallery = await drawn(page);
     assert.deepEqual(fromGallery.rooms, [
-      { name: "Foot of the Stair", at: [-2, 0], ways: ["↑ stairs NE: ?"] },
-      { name: "Long Gallery!", at: [0, 0], ways: ["↓ ladder: ? [go]"] },
+      { name: "Foot of the Stair", at: [-2, 0], climbs: ["↑ stairs NE: ?"] },
+      { name: "Long Gallery!", at: [0, 0], climbs: ["↓ ladder: ? [go]"] },
     ]);
 
     // Down the ladder by its line on the gallery: the map opens on the
     // floor she is on, with a tab per floor, all to one origin.
-    await moveBy(page.locator("#map-canvas button.map-way"), "sump");
+    await moveBy(page.locator("#map-canvas button.map-climb"), "sump");
     await page.keyboard.press("m");
     assert.deepEqual(
       await page
@@ -231,7 +233,7 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
       ["Main floor", "1 floor down [shown]"],
     );
     assert.deepEqual((await drawn(page)).rooms, [
-      { name: "Sump!", at: [0, 0], ways: ["↑ ladder: Long Gallery [go]"] },
+      { name: "Sump!", at: [0, 0], climbs: ["↑ ladder: Long Gallery [go]"] },
     ]);
     const sumpLeft = await page
       .locator(".map-room[data-room='sump']")
@@ -251,7 +253,7 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
       "the gallery and the sump below it share a column",
     );
     assert.deepEqual(
-      (await drawn(page)).rooms.map(({ name, ways }) => [name, ways]),
+      (await drawn(page)).rooms.map(({ name, climbs }) => [name, climbs]),
       [
         ["Foot of the Stair", ["↑ stairs NE: ?"]],
         ["Long Gallery", ["↓ ladder: Sump"]],
@@ -279,7 +281,7 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     await page.locator("#send-message").click();
     await page.locator("#log li[data-pending]").waitFor();
     await openButton.click();
-    await page.locator("#map-canvas button.map-way").click();
+    await page.locator("#map-canvas button.map-climb").click();
     assert.equal(
       await status.textContent(),
       "Wait for the Dungeon Master's reply first.",

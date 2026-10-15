@@ -4648,6 +4648,9 @@ export function healthOf(hp: number, maxHp: number): Health {
  */
 export const KNOWN_ROOMS_SCENE_BYTES = 4096;
 
+/** How a trap stands: armed, disarmed, or sprung on the character. */
+export type TrapState = "armed" | "disarmed" | "sprung";
+
 /** How a known room's fight stands (#405). */
 export type KnownFightStatus =
   "under-way" | "won" | "peaceful" | "bypassed" | "fled" | "waiting";
@@ -4678,7 +4681,7 @@ export type KnownRoomView = Readonly<{
     traps: readonly Readonly<{
       name: string;
       to: string;
-      state: "armed" | "disarmed" | "sprung";
+      state: TrapState;
     }>[];
     fight?: Readonly<{
       status: KnownFightStatus;
@@ -4697,7 +4700,7 @@ export type KnownRegionView = Readonly<{
 }>;
 
 /**
- * One end of a way on the map (#457): its room's cell and floor, and the
+ * One end of a passage on the map (#457): its room's cell and floor, and the
  * room's id once the character has visited it. A room not yet visited is
  * never named.
  */
@@ -4705,8 +4708,8 @@ export type MapEndView = Readonly<{ at: Cell; floor: number; room?: string }>;
 
 /**
  * The fog-of-war map (#457): the floor the character is on, the rooms it
- * has visited, in the module's order, and every way out of them it can
- * see, once each.
+ * has visited, in the module's order, and every passage out of them it
+ * can see, once each.
  */
 export type MapView = Readonly<{
   floor: number;
@@ -4721,18 +4724,18 @@ export type MapView = Readonly<{
     current?: true;
   }>[];
   /**
-   * A way out of a visited room: its two ends, the first one visited; a
-   * passage between floors is stairs, a ladder or a shaft. A hidden passage
-   * shows only once a band opens it. A closed way is marked, and so are its
-   * door and its trap, once found, as on the room panel's exits. A way from
+   * A passage out of a visited room: its two ends, the first one visited;
+   * one between floors is stairs, a ladder or a shaft. A hidden passage
+   * shows only once a band opens it. A closed one is marked, and so are its
+   * door and its trap, once found, as on the room panel's exits. One from
    * the character's room names the room it moves to.
    */
-  ways: readonly Readonly<{
+  passages: readonly Readonly<{
     between: readonly [MapEndView, MapEndView];
     vertical?: VerticalKind;
     closed?: true;
     door?: Readonly<{ name: string; open: boolean }>;
-    trap?: Readonly<{ name: string; state: "armed" | "disarmed" | "sprung" }>;
+    trap?: Readonly<{ name: string; state: TrapState }>;
     move?: string;
   }>[];
 }>;
@@ -4764,7 +4767,7 @@ export type RoomView = Readonly<{
     Readonly<{
       route?: "opened" | "closed" | "open-now";
       door?: Named & Readonly<{ open: boolean }>;
-      trap?: Named & Readonly<{ state: "armed" | "disarmed" | "sprung" }>;
+      trap?: Named & Readonly<{ state: TrapState }>;
     }>)[];
   features: readonly (Named & Readonly<{ discovery?: string }>)[];
   /**
@@ -5270,7 +5273,7 @@ export type FifthRuntime = Omit<
     projectKnownRooms(state: FifthState): readonly KnownRegionView[];
     /**
      * The fog-of-war map (#457): the rooms visited, on their cells, and
-     * the ways out of them the character can see.
+     * the passages out of them the character can see.
      */
     projectMap(state: FifthState): MapView;
     /** Its module's monster and item icons, for result lines (#377). */
@@ -12390,8 +12393,8 @@ export function createFifthRuntime(
 
   /**
    * The fog-of-war map (#457): the rooms visited, in the module's order,
-   * and each way out of them as the room panel would show it from there,
-   * once, with the room at its far end named only once visited.
+   * and each passage out of them as the room panel would show it from
+   * there, once, with the room at its far end named only once visited.
    */
   const projectMap = (state: FifthState): MapView => {
     const visited = new Set(state.visitedRoomIds);
@@ -12402,7 +12405,7 @@ export function createFifthRuntime(
       ...(visited.has(id) ? { room: id } : {}),
     });
     const shown = new Set<string>();
-    const ways = rooms.flatMap((from) =>
+    const passages = rooms.flatMap((from) =>
       waysFrom(state, from.id).flatMap(({ passage, to }) => {
         if (shown.has(passage.id)) {
           return [];
@@ -12410,7 +12413,8 @@ export function createFifthRuntime(
         shown.add(passage.id);
         const { vertical, door, trap } = passage;
         const closed = isClosed(state, passage);
-        const here = [from.id, to].indexOf(state.roomId);
+        // Which end, if either, is the character's room: 0, 1 or -1.
+        const ours = [from.id, to].indexOf(state.roomId);
         return [
           {
             between: [end(from), end(roomById(to))] as const,
@@ -12425,7 +12429,7 @@ export function createFifthRuntime(
               : {
                   trap: { name: trap.name, state: trapStateOf(state, trap.id) },
                 }),
-            ...(here === -1 ? {} : { move: here === 0 ? to : from.id }),
+            ...(ours === -1 ? {} : { move: ours === 0 ? to : from.id }),
           },
         ];
       }),
@@ -12448,7 +12452,7 @@ export function createFifthRuntime(
         ...shade(of),
         ...(of.id === state.roomId ? { current: true as const } : {}),
       })),
-      ways,
+      passages,
     };
   };
 

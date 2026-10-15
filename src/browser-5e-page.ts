@@ -275,7 +275,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .map-lines{position:absolute;inset:0;pointer-events:none}.map-lines line{stroke:var(--color-ink);stroke-width:3}.map-lines line.closed{stroke:var(--color-danger);stroke-dasharray:7 5}
 .map-room{position:absolute;width:136px;height:88px;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
 .map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);text-decoration:none;overflow:hidden;overflow-wrap:anywhere}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
-.map-ways{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-way{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-way{border-color:var(--color-ink);color:var(--color-ink)}
+.map-climbs{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-climb{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-climb{border-color:var(--color-ink);color:var(--color-ink)}
 .map-stub{position:absolute;width:40px;height:40px;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
 .map-mark{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
 .map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
@@ -1714,14 +1714,14 @@ function recordNodes(room) {
 }
 
 // The fog-of-war map (#457), a pop-up (#map-dialog) drawn from session.map:
-// the rooms visited on their grid cells, the current one marked; every way
-// out of them, to a visited room or a "?" stub on the far room's own cell
-// (a long passage is drawn its whole length); marks on a way for its door,
-// a trap found and a closed way; and on a room, a line per stair, ladder or
+// the rooms visited on their grid cells, the current one marked; every
+// passage out of them, to a visited room or a "?" stub on the far room's own
+// cell (a long passage is drawn its whole length); marks on a passage for
+// its door, a trap found and a closed way; and on a room, a line per stair, ladder or
 // shaft, naming where it leads once visited. Rooms are shaded by region.
 // One floor shows at a time, with a tab per floor visited, all floors drawn
 // to one origin and scale; it opens on the character's floor. Choosing the
-// room at the other end of a way from the character's room, its stub or
+// room at the other end of a passage from the character's room, its stub or
 // its stair makes the same move as Go to and closes the map; choosing any
 // other room shows its record, as in Known rooms. No room not yet visited
 // is ever named here. M opens it (not while typing); Escape or Close
@@ -1745,17 +1745,20 @@ function compass(from, to) {
   const word = north + east;
   return { word, letters: (north.charAt(0) + east.charAt(0)).toUpperCase() };
 }
-/** A way's marks: its closed way, its door and its trap found. */
-const wayMarks = (way) => [
-  ...(way.closed ? [{ glyph: "✕", kind: "closed", label: "Way closed" }] : []),
-  ...(way.door ? [{ glyph: way.door.open ? "□" : "■", kind: "door", label: way.door.name + ": " + (way.door.open ? "open" : "shut") }] : []),
-  ...(way.trap ? [{ glyph: "!", kind: "trap", label: way.trap.name + ": " + TRAP_STATES[way.trap.state] }] : []),
+/** A passage's marks: closed, its door and its trap found. */
+const passageMarks = (passage) => [
+  ...(passage.closed ? [{ glyph: "✕", kind: "closed", label: "Way closed" }] : []),
+  ...(passage.door ? [{ glyph: passage.door.open ? "□" : "■", kind: "door", label: passage.door.name + ": " + (passage.door.open ? "open" : "shut") }] : []),
+  ...(passage.trap ? [{ glyph: "!", kind: "trap", label: passage.trap.name + ": " + TRAP_STATES[passage.trap.state] }] : []),
 ];
-function markNode({ glyph, kind, label }, className) {
-  const mark = make("span", glyph, className + " " + kind);
-  mark.setAttribute("role", "img");
-  mark.setAttribute("aria-label", label);
-  mark.title = label;
+/** A mark on the map, named by its label; in the key, which says it in words, hidden. */
+function markNode({ glyph, kind, label }) {
+  const mark = make("span", glyph, "map-mark " + kind);
+  if (label) {
+    mark.setAttribute("role", "img");
+    mark.setAttribute("aria-label", label);
+    mark.title = label;
+  } else mark.setAttribute("aria-hidden", "true");
   return mark;
 }
 const place = (node, left, top) => {
@@ -1764,8 +1767,9 @@ const place = (node, left, top) => {
   return node;
 };
 
+/** Opens the map, unless there is no adventure shown or a dialog is open; true if it opened. */
 function openMap() {
-  if (!session || element("adventure").hidden || document.querySelector("dialog[open]")) return;
+  if (!session || element("adventure").hidden || document.querySelector("dialog[open]")) return false;
   mapReturn = document.activeElement;
   restoreMapFocus = true;
   mapFloor = session.map.floor;
@@ -1778,6 +1782,7 @@ function openMap() {
     here.focus();
     here.scrollIntoView({ block: "center", inline: "center" });
   }
+  return true;
 }
 
 function closeMap(restore) {
@@ -1785,13 +1790,22 @@ function closeMap(restore) {
   element("map-dialog").close();
 }
 
+/** Why the Go to option can't be made now, or "" if it can. */
+function moveRefusal(option) {
+  if (session.status !== "playing") return "The adventure is over.";
+  if (acting) return "Wait for the Dungeon Master's reply first.";
+  if (!option) return fightingNow() ? "Not in a fight: flee from the action bar instead." : "You can't go that way now.";
+  return option.available ? "" : option.reason + ".";
+}
+
 /**
- * Goes to the room at the other end of a way from the character's room, as
- * Go to does, closing the map; or says in the map why not. True if it went.
+ * Goes to the room at the other end of a passage from the character's
+ * room, as Go to does, closing the map; or says in the map why not. True
+ * if it went.
  */
 function mapGo(roomId) {
   const option = session.actions.find(({ action, target }) => action === "move" && target.id === roomId);
-  const why = session.status !== "playing" ? "The adventure is over." : acting ? "Wait for the Dungeon Master's reply first." : !option ? (fightingNow() ? "Not in a fight: flee from the action bar instead." : "You can't go that way now.") : option.available ? "" : option.reason + ".";
+  const why = moveRefusal(option);
   element("map-status").textContent = why;
   if (why) return false;
   closeMap(false);
@@ -1818,8 +1832,9 @@ function renderMap() {
     return tab;
   }));
   // Every floor shares one origin and scale, so a stair's ends line up.
-  const flat = map.ways.filter(({ vertical }) => !vertical);
-  const cells = [...map.rooms.map(({ at }) => at), ...flat.flatMap(({ between }) => between.map(({ at }) => at))];
+  // The passages that run along a floor, not between floors.
+  const level = map.passages.filter(({ vertical }) => !vertical);
+  const cells = [...map.rooms.map(({ at }) => at), ...level.flatMap(({ between }) => between.map(({ at }) => at))];
   const minX = Math.min(...cells.map(([x]) => x));
   const minY = Math.min(...cells.map(([, y]) => y));
   const centre = ([x, y]) => [MAP_PAD + (x - minX + 0.5) * MAP_CELL.x, MAP_PAD + (y - minY + 0.5) * MAP_CELL.y];
@@ -1832,8 +1847,8 @@ function renderMap() {
   canvas.style.height = height + "px";
   const here = map.rooms.find(({ current }) => current);
   const roomOf = (end) => end.room && map.rooms.find(({ id }) => id === end.room);
-  // The rooms a way from the character's room leads to: one click goes there.
-  const near = new Set(map.ways.flatMap(({ move }) => move ? [move] : []));
+  // The rooms a passage from the character's room leads to: one click goes there.
+  const nextDoor = new Set(map.passages.flatMap(({ move }) => move ? [move] : []));
   const lines = document.createElementNS(SVG, "svg");
   lines.setAttribute("class", "map-lines");
   lines.setAttribute("width", String(width));
@@ -1841,22 +1856,22 @@ function renderMap() {
   lines.setAttribute("aria-hidden", "true");
   const nodes = [lines];
   const stubs = new Map();
-  for (const way of flat.filter(({ between }) => between[0].floor === mapFloor)) {
-    const [from, to] = way.between.map(({ at }) => centre(at));
+  for (const passage of level.filter(({ between }) => between[0].floor === mapFloor)) {
+    const [from, to] = passage.between.map(({ at }) => centre(at));
     const line = document.createElementNS(SVG, "line");
     line.setAttribute("x1", String(from[0]));
     line.setAttribute("y1", String(from[1]));
     line.setAttribute("x2", String(to[0]));
     line.setAttribute("y2", String(to[1]));
-    if (way.closed) line.setAttribute("class", "closed");
+    if (passage.closed) line.setAttribute("class", "closed");
     lines.append(line);
-    const marks = wayMarks(way);
-    marks.forEach((mark, index) => nodes.push(place(markNode(mark, "map-mark"), (from[0] + to[0]) / 2 + (index - (marks.length - 1) / 2) * 22, (from[1] + to[1]) / 2)));
-    for (const end of way.between) {
+    const marks = passageMarks(passage);
+    marks.forEach((mark, index) => nodes.push(place(markNode(mark), (from[0] + to[0]) / 2 + (index - (marks.length - 1) / 2) * 22, (from[1] + to[1]) / 2)));
+    for (const end of passage.between) {
       if (end.room) continue;
       const key = end.at.join(",");
       const stub = stubs.get(key) || { at: end.at };
-      if (way.move) stub.move = way.move;
+      if (passage.move) stub.move = passage.move;
       stubs.set(key, stub);
     }
   }
@@ -1882,33 +1897,33 @@ function renderMap() {
     const name = make("button", room.name, "quiet");
     name.type = "button";
     if (room.current) name.append(make("span", "You are here", "map-here"));
-    else if (near.has(room.id)) name.title = "Go to " + room.name;
+    else if (nextDoor.has(room.id)) name.title = "Go to " + room.name;
     name.addEventListener("click", () => {
-      if (near.has(room.id) && mapGo(room.id)) return;
+      if (nextDoor.has(room.id) && mapGo(room.id)) return;
       mapRecordId = room.id;
       renderMapRecord();
     });
     box.append(name);
     // Each stair, ladder or shaft out of the room, naming where it leads.
-    const climbs = map.ways.filter(({ vertical, between }) => vertical && between.some((end) => end.room === room.id));
+    const climbs = map.passages.filter(({ vertical, between }) => vertical && between.some((end) => end.room === room.id));
     if (climbs.length) {
-      const list = make("ul", undefined, "map-ways");
-      list.append(...climbs.map((way) => {
-        const other = way.between.find((end) => end.room !== room.id);
+      const list = make("ul", undefined, "map-climbs");
+      list.append(...climbs.map((passage) => {
+        const other = passage.between.find((end) => end.room !== room.id);
         const up = other.floor > room.floor;
         const { word, letters } = compass(room.at, other.at);
         const goes = roomOf(other);
-        const marks = wayMarks(way);
-        const text = (up ? "↑ " : "↓ ") + way.vertical + (letters ? " " + letters : "") + ": " + (goes ? goes.name : "?") + marks.map(({ glyph }) => " " + glyph).join("");
-        const said = (up ? "up" : "down") + " the " + way.vertical + (word ? ", " + word : "") + ", to " + (goes ? goes.name : "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
-        const moves = room.current && way.move;
+        const marks = passageMarks(passage);
+        const text = (up ? "↑ " : "↓ ") + passage.vertical + (letters ? " " + letters : "") + ": " + (goes ? goes.name : "?") + marks.map(({ glyph }) => " " + glyph).join("");
+        const said = (up ? "up" : "down") + " the " + passage.vertical + (word ? ", " + word : "") + ", to " + (goes ? goes.name : "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
+        const moves = room.current && passage.move;
         const item = make("li");
-        const node = make(moves ? "button" : "span", text, moves ? "secondary map-way" : "map-way");
+        const node = make(moves ? "button" : "span", text, moves ? "secondary map-climb" : "map-climb");
         node.title = titleCase(said);
         node.setAttribute("aria-label", moves ? "Go " + said : titleCase(said));
         if (moves) {
           node.type = "button";
-          node.addEventListener("click", () => mapGo(way.move));
+          node.addEventListener("click", () => mapGo(passage.move));
         }
         item.append(node);
         return item;
@@ -1937,11 +1952,7 @@ function renderMapKey(withStubs) {
     node.setAttribute("aria-hidden", "true");
     return node;
   };
-  const mark = (glyph, kind) => {
-    const node = make("span", glyph, "map-mark " + kind);
-    node.setAttribute("aria-hidden", "true");
-    return node;
-  };
+  const mark = (glyph, kind) => markNode({ glyph, kind });
   const stub = make("span", "?", "map-stub");
   stub.setAttribute("aria-hidden", "true");
   element("map-key").replaceChildren(
@@ -3871,9 +3882,7 @@ element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && m
 document.addEventListener("keydown", (event) => {
   if ((event.key !== "m" && event.key !== "M") || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
   if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]")) return;
-  if (element("adventure").hidden || document.querySelector("dialog[open]")) return;
-  event.preventDefault();
-  openMap();
+  if (openMap()) event.preventDefault();
 });
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 element("confirm-leave").addEventListener("click", leaveAdventure);

@@ -28,13 +28,13 @@ function accepted(runtime, state, action, random = uncheckedDice()) {
   return result.state;
 }
 
-/** Each way as `from > to`, a room by id and a cell not visited as `x,y/floor`. */
-const ways = (map) =>
-  map.ways.map(({ between, ...rest }) => {
+/** Each passage as `from > to`, a room by id and a cell not visited as `x,y/floor`. */
+const passages = (map) =>
+  map.passages.map(({ between, ...rest }) => {
     const [from, to] = between.map(
       ({ room, at, floor }) => room ?? `${at[0]},${at[1]}/${floor}`,
     );
-    return { way: `${from} > ${to}`, ...rest };
+    return { passage: `${from} > ${to}`, ...rest };
   });
 
 test("the formats stay as they were", () => {
@@ -56,12 +56,12 @@ test("the map shows the rooms visited, and ways to the rooms beyond by cell only
       current: true,
     },
   ]);
-  assert.deepEqual(ways(map), [
-    { way: "stair-foot > 0,0/0", move: "alcove" },
-    { way: "stair-foot > 1,1/0", move: "rat-cellar" },
+  assert.deepEqual(passages(map), [
+    { passage: "stair-foot > 0,0/0", move: "alcove" },
+    { passage: "stair-foot > 1,1/0", move: "rat-cellar" },
     // Two cells east: its stub is the gallery's own cell, not the next one.
-    { way: "stair-foot > 3,0/0", move: "gallery" },
-    { way: "stair-foot > 2,-1/1", vertical: "stairs", move: "belfry" },
+    { passage: "stair-foot > 3,0/0", move: "gallery" },
+    { passage: "stair-foot > 2,-1/1", vertical: "stairs", move: "belfry" },
   ]);
   // No room not yet visited is named, nor any region not yet entered.
   const text = JSON.stringify(map);
@@ -84,12 +84,12 @@ test("each way shows once, and moves only from the character's room", () => {
     map.rooms.map(({ id, current }) => (current ? `${id}!` : id)),
     ["stair-foot", "gallery!"],
   );
-  assert.deepEqual(ways(map), [
-    { way: "stair-foot > 0,0/0" },
-    { way: "stair-foot > 1,1/0" },
-    { way: "stair-foot > gallery", move: "stair-foot" },
-    { way: "stair-foot > 2,-1/1", vertical: "stairs" },
-    { way: "gallery > 3,0/-1", vertical: "ladder", move: "sump" },
+  assert.deepEqual(passages(map), [
+    { passage: "stair-foot > 0,0/0" },
+    { passage: "stair-foot > 1,1/0" },
+    { passage: "stair-foot > gallery", move: "stair-foot" },
+    { passage: "stair-foot > 2,-1/1", vertical: "stairs" },
+    { passage: "gallery > 3,0/-1", vertical: "ladder", move: "sump" },
   ]);
 
   // Down the ladder, the map opens on floor −1, in the Lower Tunnels.
@@ -104,8 +104,8 @@ test("each way shows once, and moves only from the character's room", () => {
     region: { name: "Lower Tunnels", shade: 1 },
     current: true,
   });
-  assert.deepEqual(ways(below).at(-1), {
-    way: "gallery > sump",
+  assert.deepEqual(passages(below).at(-1), {
+    passage: "gallery > sump",
     vertical: "ladder",
     move: "gallery",
   });
@@ -115,11 +115,11 @@ test("a hidden passage shows once found; a door and a closed way are marked", ()
   const runtime = createFifthRuntime(shiftingOssuary, TEST_FIGHTER);
   const begun = accepted(runtime, runtime.createSession(), { type: "begin" });
   const inHall = accepted(runtime, begun, MOVE("bone-hall"));
-  assert.deepEqual(ways(runtime.projectMap(inHall)), [
-    { way: "ossuary-gate > bone-hall", move: "ossuary-gate" },
-    { way: "bone-hall > 2,0/0", move: "tomb" },
+  assert.deepEqual(passages(runtime.projectMap(inHall)), [
+    { passage: "ossuary-gate > bone-hall", move: "ossuary-gate" },
+    { passage: "bone-hall > 2,0/0", move: "tomb" },
     {
-      way: "bone-hall > 1,1/0",
+      passage: "bone-hall > 1,1/0",
       door: { name: "Rotten Door", open: false },
       move: "side-crypt",
     },
@@ -131,8 +131,8 @@ test("a hidden passage shows once found; a door and a closed way are marked", ()
     { type: "examine", targetId: "skull-wall" },
     dice([20, 10]),
   );
-  assert.deepEqual(ways(runtime.projectMap(found))[2], {
-    way: "bone-hall > 1,-1/0",
+  assert.deepEqual(passages(runtime.projectMap(found))[2], {
+    passage: "bone-hall > 1,-1/0",
     move: "reliquary",
   });
 
@@ -143,8 +143,8 @@ test("a hidden passage shows once found; a door and a closed way are marked", ()
     { type: "force", doorId: "rotten-door" },
     dice([20, 1]),
   );
-  assert.deepEqual(ways(runtime.projectMap(closed))[2], {
-    way: "bone-hall > 1,1/0",
+  assert.deepEqual(passages(runtime.projectMap(closed))[2], {
+    passage: "bone-hall > 1,1/0",
     closed: true,
     move: "side-crypt",
   });
@@ -160,17 +160,17 @@ test("a trap shows once found, and a way from a room left behind keeps its marks
     visitedRoomIds: ["quay-steps", "toll-arch", "counting-hall"],
   };
   const hall = (map) =>
-    ways(map).filter(({ way }) => way.startsWith("counting-hall"));
+    passages(map).filter(({ passage }) => passage.startsWith("counting-hall"));
   assert.deepEqual(hall(runtime.projectMap(state)), [
-    { way: "counting-hall > 2,0/1", vertical: "stairs" },
+    { passage: "counting-hall > 2,0/1", vertical: "stairs" },
     {
-      way: "counting-hall > 3,0/0",
+      passage: "counting-hall > 3,0/0",
       door: { name: "Strongroom Door", open: false },
     },
   ]);
   const found = { ...state, foundTrapIds: ["scything-blade"] };
   assert.deepEqual(hall(runtime.projectMap(found))[0], {
-    way: "counting-hall > 2,0/1",
+    passage: "counting-hall > 2,0/1",
     vertical: "stairs",
     trap: { name: "Scything Blade", state: "armed" },
   });
@@ -199,8 +199,8 @@ test("a closed way keeps its found trap, as on the room panel", () => {
     dice([20, 1]),
   );
   // Its door is gone, but the trap found stays marked.
-  assert.deepEqual(ways(runtime.projectMap(closed))[2], {
-    way: "bone-hall > 1,1/0",
+  assert.deepEqual(passages(runtime.projectMap(closed))[2], {
+    passage: "bone-hall > 1,1/0",
     closed: true,
     trap: { name: "Scything Blade", state: "armed" },
     move: "side-crypt",
