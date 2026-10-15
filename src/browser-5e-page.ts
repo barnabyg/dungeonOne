@@ -273,11 +273,11 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h2{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
 .map-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:var(--space-4)}#map-view{overflow:auto;border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface)}#map-canvas{position:relative;margin:auto}
 .map-lines{position:absolute;inset:0;pointer-events:none}.map-lines line{stroke:var(--color-ink);stroke-width:3}.map-lines line.closed{stroke:var(--color-danger);stroke-dasharray:7 5}
-.map-room{position:absolute;width:136px;height:88px;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
+.map-room{position:absolute;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
 .map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);text-decoration:none;overflow:hidden;overflow-wrap:anywhere}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
 .map-climbs{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-climb{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-climb{border-color:var(--color-ink);color:var(--color-ink)}
-.map-stub{position:absolute;width:40px;height:40px;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
-.map-mark{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
+.map-stub{position:absolute;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
+.map-mark{position:absolute;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
 .map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
 .map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade)}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
@@ -1729,6 +1729,7 @@ function recordNodes(room) {
 const MAP_CELL = { x: 176, y: 128 };
 const MAP_ROOM = { x: 136, y: 88 };
 const MAP_STUB = 40;
+const MAP_MARK = 20;
 const MAP_PAD = 16;
 const MAP_SHADES = 6;
 let mapFloor = 0;
@@ -1761,9 +1762,12 @@ function markNode({ glyph, kind, label }) {
   } else mark.setAttribute("aria-hidden", "true");
   return mark;
 }
-const place = (node, left, top) => {
-  node.style.left = left + "px";
-  node.style.top = top + "px";
+/** Sizes the map node and centres it on the point x, y. */
+const place = (node, [x, y], width, height) => {
+  node.style.left = x - width / 2 + "px";
+  node.style.top = y - height / 2 + "px";
+  node.style.width = width + "px";
+  node.style.height = height + "px";
   return node;
 };
 
@@ -1866,7 +1870,7 @@ function renderMap() {
     if (passage.closed) line.setAttribute("class", "closed");
     lines.append(line);
     const marks = passageMarks(passage);
-    marks.forEach((mark, index) => nodes.push(place(markNode(mark), (from[0] + to[0]) / 2 + (index - (marks.length - 1) / 2) * 22, (from[1] + to[1]) / 2)));
+    marks.forEach((mark, index) => nodes.push(place(markNode(mark), [(from[0] + to[0]) / 2 + (index - (marks.length - 1) / 2) * (MAP_MARK + 2), (from[1] + to[1]) / 2], MAP_MARK, MAP_MARK)));
     for (const end of passage.between) {
       if (end.room) continue;
       const key = end.at.join(",");
@@ -1876,7 +1880,6 @@ function renderMap() {
     }
   }
   for (const stub of stubs.values()) {
-    const [x, y] = centre(stub.at);
     const direction = here.floor === mapFloor ? compass(here.at, stub.at).word : "";
     const node = make(stub.move ? "button" : "span", "?", stub.move ? "secondary map-stub" : "map-stub");
     if (stub.move) {
@@ -1887,11 +1890,10 @@ function renderMap() {
       node.setAttribute("role", "img");
       node.setAttribute("aria-label", "A room not yet explored");
     }
-    nodes.push(place(node, x - MAP_STUB / 2, y - MAP_STUB / 2));
+    nodes.push(place(node, centre(stub.at), MAP_STUB, MAP_STUB));
   }
   for (const room of map.rooms.filter(({ floor }) => floor === mapFloor)) {
-    const [x, y] = centre(room.at);
-    const box = place(make("div", undefined, "map-room" + (room.current ? " current" : "")), x - MAP_ROOM.x / 2, y - MAP_ROOM.y / 2);
+    const box = place(make("div", undefined, "map-room" + (room.current ? " current" : "")), centre(room.at), MAP_ROOM.x, MAP_ROOM.y);
     box.dataset.room = room.id;
     if (room.region) box.style.setProperty("--map-shade", regionShade(room.region.shade));
     const name = make("button", room.name, "quiet");

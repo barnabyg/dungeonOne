@@ -31,20 +31,20 @@ const CELL = { x: 176, y: 128 };
  */
 const drawn = (page) =>
   page.locator("#map-canvas").evaluate((canvas, cell) => {
-    const centre = (node, width, height) => [
-      parseFloat(node.style.left) + width / 2,
-      parseFloat(node.style.top) + height / 2,
+    const centre = (node) => [
+      parseFloat(node.style.left) + parseFloat(node.style.width) / 2,
+      parseFloat(node.style.top) + parseFloat(node.style.height) / 2,
     ];
     const boxes = [...canvas.querySelectorAll(".map-room")];
     const here = boxes.find((box) => box.classList.contains("current"));
-    const origin = here ? centre(here, 136, 88) : centre(boxes[0], 136, 88);
+    const origin = centre(here ?? boxes[0]);
     const at = ([x, y]) => [(x - origin[0]) / cell.x, (y - origin[1]) / cell.y];
     return {
       rooms: boxes.map((box) => ({
         name:
           box.querySelector("button").firstChild.textContent +
           (box.classList.contains("current") ? "!" : ""),
-        at: at(centre(box, 136, 88)),
+        at: at(centre(box)),
         climbs: [...box.querySelectorAll(".map-climb")].map(
           (climb) =>
             climb.textContent + (climb.tagName === "BUTTON" ? " [go]" : ""),
@@ -52,7 +52,7 @@ const drawn = (page) =>
       })),
       stubs: [...canvas.querySelectorAll(".map-stub")].map((stub) => [
         stub.getAttribute("aria-label"),
-        at(centre(stub, 40, 40)),
+        at(centre(stub)),
       ]),
       marks: [...canvas.querySelectorAll(".map-mark")].map((mark) =>
         mark.getAttribute("aria-label"),
