@@ -2326,7 +2326,7 @@ export const FIFTH_WEIRGATE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     id: "weirgate-trade-offered",
     seed: 4,
     setup: toTollWithCoin,
-    playerInput: "I'll take one of those daggers off her.",
+    playerInput: "I'll buy one of those daggers from her.",
     name: "trade",
     arguments: { offer: "buy:dagger" },
     dimensions: ["synonym-accuracy"],
