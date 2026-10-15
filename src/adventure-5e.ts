@@ -232,8 +232,8 @@ import {
 import {
   type Cell,
   layoutErrors,
-  MAX_CELL,
-  MAX_FLOOR,
+  readCell,
+  readFloor,
   VERTICAL_KINDS,
   type VerticalKind,
 } from "./map-5e.js";
@@ -261,11 +261,13 @@ import {
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
 export const FIFTH_ADVENTURE_FORMAT = 43;
+/** The `kind` every adventure module file declares. */
+export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
 /** The most regions one module may declare (#395). */
-const MAX_REGIONS = 10;
+export const MAX_REGIONS = 10;
 /** The most encounters one module may have, wandering ones included (D5). */
 export const MAX_ENCOUNTERS = 30;
 /** The most entries a region's wandering encounter table may have (#403). */
@@ -1372,18 +1374,6 @@ function carriedLoot(
   }
 }
 
-/** A room's cell on the map (#455): `[x, y]`, each within `MAX_CELL`. */
-function cell(value: unknown, where: string): Cell {
-  if (!Array.isArray(value) || value.length !== 2) {
-    fail(`${where} must be a cell, [x, y].`);
-  }
-  const [x, y] = value as unknown[];
-  return [
-    integer(x, `${where} x`, -MAX_CELL, MAX_CELL),
-    integer(y, `${where} y`, -MAX_CELL, MAX_CELL),
-  ];
-}
-
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
 function coins(value: unknown, where: string): Coins {
   const denominations = Object.keys(COIN_VALUES) as Coin[];
@@ -2228,7 +2218,7 @@ function validateModule(
   value: unknown,
   bestiary: FifthBestiary,
 ): FifthAdventure {
-  if (!isRecord(value) || value.kind !== "dungeon-one-5e-adventure") {
+  if (!isRecord(value) || value.kind !== FIFTH_ADVENTURE_KIND) {
     fail("not a 5e adventure module.");
   }
   if (value.formatVersion !== FIFTH_ADVENTURE_FORMAT) {
@@ -2940,16 +2930,8 @@ function validateModule(
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),
-      at: cell(room.at, `${where} (${String(room.id)}) at`),
-      floor:
-        room.floor === undefined
-          ? 0
-          : integer(
-              room.floor,
-              `${where} (${String(room.id)}) floor`,
-              -MAX_FLOOR,
-              MAX_FLOOR,
-            ),
+      at: readCell(room.at, `${where} (${String(room.id)}) at`),
+      floor: readFloor(room.floor, `${where} (${String(room.id)}) floor`),
       description: text(room.description, `${where} description`),
       ...(room.encounterId === undefined
         ? {}
@@ -4751,7 +4733,7 @@ export async function loadFifthAdventure(
   }
   if (
     isRecord(decoded) &&
-    decoded.kind === "dungeon-one-5e-adventure" &&
+    decoded.kind === FIFTH_ADVENTURE_KIND &&
     decoded.formatVersion !== FIFTH_ADVENTURE_FORMAT
   ) {
     throw new Error(

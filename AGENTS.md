@@ -51,7 +51,11 @@ The game uses the 2024 5e rules in SRD 5.2 under [ADR 0005](docs/adr/0005-start-
 
 The 5e runtime (`src/runtime-5e.ts`) implements `src/runtime-contract.ts`, and the 5e session, browser server and CLI use it directly. Shared infrastructure (the DM turn loop, the model adapters, randomness, file locking and atomic writes, the browser launcher) takes a runtime as an argument and must not import the 5e game; the `SHARED_MODULES` rule in `eslint.style.config.mjs` enforces this, and its tests use the counter runtime in `tests/fixtures/counter-runtime.mjs`.
 
-Formats are throwaway until the owner declares a stable release in a new ADR. The character library, save, trace and adventure module files each carry one format version. When you change a format, bump its version and make the loader refuse older files with a message that names the file and tells the player to move it aside. Never delete, migrate or reinterpret an older file, and do not add compatibility shims, migrations, fallbacks or per-increment rules versions. This overrides any general instruction to keep released formats readable.
+Formats are throwaway until the owner declares a stable release in a new ADR. The character library, save, trace, adventure module and layout sketch files each carry one format version. When you change a format, bump its version and make the loader refuse older files with a message that names the file and tells the player to move it aside. Never delete, migrate or reinterpret an older file, and do not add compatibility shims, migrations, fallbacks or per-increment rules versions. This overrides any general instruction to keep released formats readable.
+
+## Designing a module
+
+Read [`docs/module-authoring.md`](docs/module-authoring.md) before you design or build an adventure module. It holds the map's layout rules, the design-ticket checklist and the settled authoring rules. Propose every layout as a sketch file, and check it with `npm.cmd run map -- <module-id | path>`. The command draws the map as text and as an SVG in `.scratch/maps/`, lists every layout error and warning, and exits 1 on an error.
 
 ## Player testing handoff
 

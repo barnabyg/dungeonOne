@@ -699,6 +699,11 @@ These are for development, not play.
   lower what it rolled and roll again; one whose loot you removed entirely is
   rolled afresh. See
   [the rules document](docs/character-rules.md#monster-loot-240).
+- **Mapping tool.** `npm.cmd run map -- <module-id | path>` draws a module's
+  map, or a design-stage layout sketch's, as a text grid of each floor and an
+  SVG in `.scratch/maps/<id>.svg`. It lists every layout error and warning and
+  exits 1 on an error. See
+  [the module-authoring guide](docs/module-authoring.md).
 - **Live DM evaluation.** `npm.cmd run eval:dm -- --model <model-id> --live`
   evaluates the live AI DM on The Abandoned Delve's interpretation, refusal and
   narration-fidelity cases (`src/dm-evaluation-5e.ts`), within a stated call

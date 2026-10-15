@@ -4,13 +4,16 @@
 // place in the browser's adventure list; and a new character's career
 // through them reaches the required level in every class (#290, #310), and
 // the gate judges Turn Undead in every undead module (#349) and Sleep and
-// Hold Person in every module (#369).
+// Hold Person in every module (#369); and the mapping tool draws each with
+// no layout error (#456).
 // Besides each released module's own content and release tests, these are
 // the only tests that read a shipped module; engine tests play the fixtures
 // in tests/fixtures/.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   DIFFICULTIES,
   FIFTH_ADVENTURE_FILES,
@@ -43,6 +46,7 @@ import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
+import { main as drawMap } from "../scripts/map-5e.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
 const moduleFiles = Object.fromEntries(
@@ -115,6 +119,18 @@ test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311, #
       "wolfstone-hillfort",
     ],
   );
+});
+
+test("the mapping tool draws every shipped module by id with no layout error (#456)", async (t) => {
+  const outDir = await mkdtemp(join(tmpdir(), "dungeon-456-shipped-"));
+  t.after(() => rm(outDir, { recursive: true, force: true }));
+  for (const id of Object.keys(FIFTH_ADVENTURE_FILES)) {
+    let text = "";
+    const output = { write: (chunk) => (text += chunk) };
+    assert.equal(await drawMap([id], { output, outDir }), 0, text);
+    assert.match(text, /\nNo layout errors\.\n/u, id);
+    assert.ok((await stat(join(outDir, `${id}.svg`))).isFile(), id);
+  }
 });
 
 /** Each shipped module's full gate result for every class, reports included. */
