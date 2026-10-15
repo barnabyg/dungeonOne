@@ -41,13 +41,15 @@ Other 5e rules arrive in later increments as the expansion plan schedules them (
 
 | Left out                                                   | Why                                                                                                                                                                                   |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Positioning (grid, distance, movement speed, reach, areas) | The game has no map. Rules that need distance are omitted or abstracted, and the rules document lists each one, including weapon masteries such as Push.                              |
+| Positioning (grid, distance, movement speed, reach, areas) | The game has no tactical grid. Rules that need distance are omitted or abstracted, and the rules document lists each one, including weapon masteries such as Push.                    |
 | Opportunity attacks                                        | They depend on leaving reach, which needs positions.                                                                                                                                  |
 | Ranged combat                                              | Range bands and cover need positions. Deferred to a later version.                                                                                                                    |
 | Feats, except the level-4 Ability Score Improvement        | Not among the owner's priorities. The ASI is kept because planned levels reach 4.                                                                                                     |
 | Multiclassing                                              | Not among the owner's priorities, and one class per character keeps balance qualification tractable. It can be its own plan later.                                                    |
 | Species                                                    | Not among the owner's priorities. It can be its own plan later.                                                                                                                       |
 | Background features other than the ability increase        | The 2024 +2/+1 (or +1/+1/+1) ability increase is kept for build choice; origin feats, tool proficiencies and starting equipment are not, to keep creation small and gear common tier. |
+
+> **Note (15 October 2026, #455):** the game now has a map of rooms, in which each room sits on a hand-placed cell of a grid, on a floor. It lays out rooms only: there is still no tactical grid, so the positioning rules above stay left out.
 
 ## House rules on top of 5e
 
