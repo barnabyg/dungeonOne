@@ -540,7 +540,7 @@ export const COUNTING_HOUSE_ROUTE: readonly ReleaseStep[] = Object.freeze([
 
 /**
  * A generated release run's turn cap, per room of its module (#409): the
- * hand-written runs' 400 turns for the Delve's ten rooms.
+ * hand-written runs' 400 turns over the ten rooms the Delve had then.
  */
 export const RELEASE_TURNS_PER_ROOM = 40;
 

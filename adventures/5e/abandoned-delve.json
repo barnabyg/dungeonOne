@@ -50,7 +50,7 @@
           "id": "chalk-marks",
           "name": "Chalk Marks",
           "description": "Faded chalk marks left by an earlier treasure-hunter, and a fresher line beneath them.",
-          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\" Under them, in new chalk: \"M.C. went down the shaft. Mine.\""
+          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\" Under them, in new chalk: \"M.C. went down the shaft — mine.\""
         }
       ],
       "items": []
@@ -169,7 +169,7 @@
     {
       "id": "dry-well",
       "name": "Dry Well",
-      "description": "A round chamber around a dry well under a rotted windlass. A goblin calls up from the bottom of the well. A stair leads down to a shrine, and a webbed passage to a crypt.",
+      "description": "A round chamber around a dry well under a rotted windlass, where a scrawny goblin chatters at anyone who comes near. A stair leads down to a shrine, and a webbed passage to a crypt.",
       "region": "cellars",
       "features": [
         {
@@ -203,7 +203,7 @@
         {
           "id": "goblin",
           "name": "Goblin",
-          "description": "A scrawny goblin who fell down the well, too frightened of the dead to make a fuss about it.",
+          "description": "A scrawny goblin, grey with well silt, who is too frightened of the dead to go anywhere alone.",
           "topics": [
             {
               "id": "the-vault",
@@ -647,7 +647,7 @@
                 ]
               },
               "success-by-5": {
-                "text": "The lid grinds aside. Cut into its underside, where only the dead would read it, is an inscription: \"I kept the keep. Let it keep me.\"",
+                "text": "The lid grinds aside, and with it out of the way you can read the inscription cut under the effigy's feet, where only the dead would see it: \"I kept the keep. Let it keep me.\"",
                 "effects": [
                   { "type": "discovery", "feature": "sarcophagus-lid" },
                   { "type": "item", "item": "death-mask" },

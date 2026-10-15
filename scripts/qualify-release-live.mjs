@@ -122,7 +122,8 @@ for (let index = 0; index < args.length; index += 1) {
     usage();
   }
 }
-generated ||= RUNS[options.adventure]?.generated === true;
+const own = RUNS[options.adventure];
+generated ||= own?.generated === true;
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === options.adventure,
 );
@@ -139,15 +140,13 @@ if (
 const run = generated
   ? {
       seed: "0",
-      ...RUNS[options.adventure],
-      issue: RUNS[options.adventure]?.generated
-        ? RUNS[options.adventure].issue
-        : 409,
+      ...own,
+      // A run that is always generated keeps its own issue.
+      issue: own?.generated ? own.issue : 409,
       character:
-        RUNS[options.adventure]?.character ??
-        (() => libraryAt(adventure.recommendedLevels.min)),
+        own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
     }
-  : RUNS[options.adventure];
+  : own;
 const dryRun = mode === "--dry-run";
 options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
 options.seed ??= run.seed;

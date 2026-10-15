@@ -177,7 +177,7 @@ const goblinFreed = [
   ...toWellWithRope,
   { type: "use-on", featureId: "well-head", itemId: "coil-of-rope" },
 ] as const;
-// Seed 1: down the shrine stair to the shaft bottom, where her try to break
+// Seed 1: down the shrine stair to the shaft bottom, where her attempt to break
 // the vault door fails by 5 or more and rouses the crypts.
 const cryptsRoused = [
   ...toWell,
@@ -640,8 +640,7 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     id: "rope-down-the-well",
     seed: 0,
     setup: toWellWithRope,
-    playerInput:
-      "I knot my rope to the windlass and pay it down to the goblin.",
+    playerInput: "I lower my rope down the well to the goblin.",
     name: "use_on",
     arguments: { use: "well-head:coil-of-rope" },
     dimensions: ["synonym-accuracy"],

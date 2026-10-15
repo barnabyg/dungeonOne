@@ -687,6 +687,14 @@ const HOLD_PERSON_FIGURES = {
   ],
 };
 
+/** The ordinary foes one control takes out over the cap, by module and class. */
+const CONTROL_OVER_CAP = {
+  "abandoned-delve cleric": [
+    ["skeleton-sergeant", TURN_UNDEAD_ID],
+    ["skeleton-guard", TURN_UNDEAD_ID],
+  ],
+};
+
 test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369, #412)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
@@ -703,12 +711,15 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
       }
       assert.equal(control.ok, true, label);
       // Sleep's saves with advantage keep every foe under, and so do Hold
-      // Person's saves each turn on the one module's bandits. Turn Undead's
-      // figures are pinned above: the Delve's skeletons are over Hard's 30%
-      // cap since #442, two of seven foes, no more than half.
+      // Person's saves each turn on the one module's bandits. Only Turn
+      // Undead may be over: on the Delve's skeletons since it became Hard
+      // (#442), two of seven foes, no more than half.
       assert.deepEqual(
-        control.overCap.filter(({ control: used }) => used !== TURN_UNDEAD_ID),
-        [],
+        control.overCap.map(({ opponentId, control: used }) => [
+          opponentId,
+          used,
+        ]),
+        CONTROL_OVER_CAP[`${adventure.id} ${classId}`] ?? [],
         label,
       );
       assert.deepEqual(
