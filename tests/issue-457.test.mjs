@@ -12,8 +12,10 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { dice, uncheckedDice } from "./fixtures/engine-dice.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 import {
   mapTunnels,
+  moduleFile,
   quayStrongroom,
   shiftingOssuary,
 } from "./fixtures/modules.mjs";
@@ -172,4 +174,41 @@ test("a trap shows once found, and a way from a room left behind keeps its marks
     vertical: "stairs",
     trap: { name: "Scything Blade", state: "armed" },
   });
+});
+
+test("a closed way keeps its found trap, as on the room panel", () => {
+  // The shifting ossuary with a trap on the rotten door's way.
+  const file = moduleFile("shifting-ossuary");
+  const trapped = file.passages.find(({ id }) => id === "hall-to-side");
+  trapped.trap = structuredClone(
+    moduleFile("quay-strongroom").passages.find(({ trap }) => trap).trap,
+  );
+  trapped.trap.defeatEndingId = file.endings.find(
+    ({ kind }) => kind === "defeat",
+  ).id;
+  const runtime = createFifthRuntime(validateModule(file), TEST_FIGHTER);
+  const begun = accepted(runtime, runtime.createSession(), { type: "begin" });
+  const inHall = {
+    ...accepted(runtime, begun, MOVE("bone-hall")),
+    foundTrapIds: ["scything-blade"],
+  };
+  const closed = accepted(
+    runtime,
+    inHall,
+    { type: "force", doorId: "rotten-door" },
+    dice([20, 1]),
+  );
+  // Its door is gone, but the trap found stays marked.
+  assert.deepEqual(ways(runtime.projectMap(closed))[2], {
+    way: "bone-hall > 1,1/0",
+    closed: true,
+    trap: { name: "Scything Blade", state: "armed" },
+    move: "side-crypt",
+  });
+  const exit = runtime
+    .projectRoom(closed)
+    .exits.find(({ id }) => id === "side-crypt");
+  assert.equal(exit.route, "closed");
+  assert.equal(exit.door, undefined);
+  assert.equal(exit.trap.state, "armed");
 });
