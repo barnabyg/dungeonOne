@@ -15,9 +15,13 @@
  *   links rooms on adjacent floors; a vertical passage never links rooms on
  *   one floor.
  *
- * Those are errors. A scattered region (one whose rooms on a floor surround
- * another region's room) is only a warning, which the mapping tool reports.
+ * Those are errors. The mapping tool (#456) also warns about layouts that
+ * read badly: a scattered region (one whose rooms on a floor surround
+ * another region's room), a passage of three cells or more, and a passage
+ * of two cells or more whose description reads as a doorway or a step.
  */
+
+import { fail, integer } from "./json-shape.js";
 
 export type Cell = readonly [x: number, y: number];
 
@@ -43,7 +47,24 @@ export type MapPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   vertical?: VerticalKind;
+  description?: string;
 }>;
+
+/** A room's cell (#455): `[x, y]`, each within `MAX_CELL`. */
+export function readCell(value: unknown, where: string): Cell {
+  if (!Array.isArray(value) || value.length !== 2) {
+    fail(`${where} must be a cell, [x, y].`);
+  }
+  const [x, y] = value as unknown[];
+  return [
+    integer(x, `${where} x`, -MAX_CELL, MAX_CELL),
+    integer(y, `${where} y`, -MAX_CELL, MAX_CELL),
+  ];
+}
+
+/** A room's floor: 0 if left out, else within `MAX_FLOOR` of it. */
+export const readFloor = (value: unknown, where: string): number =>
+  value === undefined ? 0 : integer(value, where, -MAX_FLOOR, MAX_FLOOR);
 
 const cellText = ([x, y]: Cell) => `[${x}, ${y}]`;
 const placeText = (room: MapRoom) =>
@@ -195,11 +216,30 @@ export function layoutErrors(
   return errors;
 }
 
+/** A passage on one floor this many cells long, or longer, is long. */
+export const LONG_PASSAGE = 3;
+
 /**
- * The layout's warnings: each region whose rooms on a floor surround (lie
- * around, in a bounding box) a room of another region on that floor.
+ * Whether a passage's description reads as a doorway or a step rather than
+ * a way between: a door, an arch, a gate, a hatch, a curtain or steps in
+ * its first four words, or "short", "a few steps", "next door" or "beside"
+ * anywhere.
  */
-export function layoutWarnings(rooms: readonly MapRoom[]): string[] {
+const readsShort = (description: string) =>
+  /^(?:\S+\s+){0,3}?(?:door|doorway|arch|archway|gate|hatch|curtain|steps?)\b/iu.test(
+    description,
+  ) || /\b(?:short|few steps|next door|beside)\b/iu.test(description);
+
+/**
+ * The layout's warnings: first each region whose rooms on a floor surround
+ * (lie around, in a bounding box) a room of another region on that floor;
+ * then each straight passage on one floor that runs `LONG_PASSAGE` cells or
+ * more, or runs two cells or more but reads as a doorway or a step.
+ */
+export function layoutWarnings(
+  rooms: readonly MapRoom[],
+  passages: readonly MapPassage[] = [],
+): string[] {
   const warnings: string[] = [];
   const blocks = new Map<string, MapRoom[]>();
   for (const room of rooms) {
@@ -224,6 +264,33 @@ export function layoutWarnings(rooms: readonly MapRoom[]): string[] {
           `region ${region} is scattered: room ${room.id} of region ${room.region} is on cell ${cellText(room.at)}, among its rooms on floor ${floor} (${cellText(low)} to ${cellText(high)}).`,
         );
       }
+    }
+  }
+  const byId = new Map(rooms.map((room) => [room.id, room]));
+  for (const { id, between, vertical, description } of passages) {
+    const [from, to] = between.map((roomId) => byId.get(roomId));
+    if (
+      from === undefined ||
+      to === undefined ||
+      from.floor !== to.floor ||
+      vertical !== undefined ||
+      !isStraight(from.at, to.at)
+    ) {
+      continue;
+    }
+    const cells = Math.max(
+      Math.abs(to.at[0] - from.at[0]),
+      Math.abs(to.at[1] - from.at[1]),
+    );
+    if (cells >= LONG_PASSAGE) {
+      warnings.push(
+        `passage ${id} from ${from.id} to ${to.id} runs ${cells} cells on floor ${from.floor}: move the rooms closer, or put a room on the way.`,
+      );
+    }
+    if (cells >= 2 && description !== undefined && readsShort(description)) {
+      warnings.push(
+        `passage ${id} from ${from.id} to ${to.id} runs ${cells} cells, but its description reads as a doorway or a step ("${description}"): describe the way between, or move the rooms together.`,
+      );
     }
   }
   return warnings;

@@ -327,6 +327,10 @@ _Avoid_: Journal, Log, Clue
 The layout of an adventure module's rooms (#455): each room on a cell of a square grid, on a floor, joined by straight passages, and stairs, ladders or shafts between floors. The module's author places every room by hand; `src/map-5e.ts` holds the rules that keep it readable. The player sees it as fog of war: the rooms visited, with stubs for the exits not yet taken. It is not a tactical grid: there is no position, distance or movement inside a room.
 _Avoid_: Grid (a tactical one), Board, Plan
 
+**Layout sketch**:
+A design-stage map of a module before its content exists (#456): its rooms, each on a cell and floor and in a region, and its passages, with their doors, traps, stairs and hidden ways marked. It is a strict subset of a module's fields, so the module is built by filling in the rest. `npm run map` draws and checks it, as it does a finished module; `docs/module-authoring.md` describes it.
+_Avoid_: Draft module, Mock-up, Plan
+
 **Cell**:
 One square of a map, `[x, y]`, with x growing east and y south (#455). Each room sits on one, and no two rooms on a floor share one.
 _Avoid_: Square, Tile, Position

@@ -45,6 +45,10 @@ that strips every attack's riders, for the gate tests that compare a monster
 with and without them (#232, #234). `FIXTURE_MODULES`
 lists every module above, for property checks that play each one.
 
+`fox-barrow-sketch.json` is a layout sketch (#456), not a module: six rooms
+in two regions over two floors, with a stuck and a locked door, a hidden way,
+a trap and hidden stairs, for the mapping tool's tests.
+
 `renamed-skeletons.mjs` is two bestiary Skeletons under the module's own
 names (#231) and a one-room fight against them, for the tests that check a
 renamed monster keeps its module name.

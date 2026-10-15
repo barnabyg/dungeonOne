@@ -53,6 +53,10 @@ The 5e runtime (`src/runtime-5e.ts`) implements `src/runtime-contract.ts`, and t
 
 Formats are throwaway until the owner declares a stable release in a new ADR. The character library, save, trace and adventure module files each carry one format version. When you change a format, bump its version and make the loader refuse older files with a message that names the file and tells the player to move it aside. Never delete, migrate or reinterpret an older file, and do not add compatibility shims, migrations, fallbacks or per-increment rules versions. This overrides any general instruction to keep released formats readable.
 
+## Designing a module
+
+Read [`docs/module-authoring.md`](docs/module-authoring.md) before you design or build an adventure module. It holds the map's layout rules, the design-ticket checklist and the settled authoring rules. Propose every layout as a sketch file, and check it with `npm.cmd run map -- <module-id | path>`. The command draws the map as text and as an SVG in `.scratch/maps/`, lists every layout error and warning, and exits 1 on an error.
+
 ## Player testing handoff
 
 Players use the browser; the command-line app is a testing and regression adapter. For changed player-facing behavior, give a copyable PowerShell `npm.cmd run browser` command with a concrete seed and an explicit `--characters` library path, such as `npm.cmd run browser -- --seed 0 --characters .\.scratch\<name>\characters.json`. Use a fresh library path that no earlier build has written to. List the browser actions (character creation or selection, adventure start, clicks and typed messages) separately, with the expected response at each meaningful branch. Include prerequisites (`OPENAI_API_KEY` for gameplay) and restart steps when needed. To show continuation, wait for a complete reply and enabled input, press Ctrl+C, then rerun the exact same command; the browser has no `--resume` flag. Give CLI commands only when the change is to the CLI adapter. The CLI adapter is `npm.cmd run cli` (`src/cli-5e.ts`).

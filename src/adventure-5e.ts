@@ -232,8 +232,8 @@ import {
 import {
   type Cell,
   layoutErrors,
-  MAX_CELL,
-  MAX_FLOOR,
+  readCell,
+  readFloor,
   VERTICAL_KINDS,
   type VerticalKind,
 } from "./map-5e.js";
@@ -1370,18 +1370,6 @@ function carriedLoot(
   if (found > 1) {
     refuse(`${found} trinkets`);
   }
-}
-
-/** A room's cell on the map (#455): `[x, y]`, each within `MAX_CELL`. */
-function cell(value: unknown, where: string): Cell {
-  if (!Array.isArray(value) || value.length !== 2) {
-    fail(`${where} must be a cell, [x, y].`);
-  }
-  const [x, y] = value as unknown[];
-  return [
-    integer(x, `${where} x`, -MAX_CELL, MAX_CELL),
-    integer(y, `${where} y`, -MAX_CELL, MAX_CELL),
-  ];
 }
 
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
@@ -2940,16 +2928,8 @@ function validateModule(
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),
-      at: cell(room.at, `${where} (${String(room.id)}) at`),
-      floor:
-        room.floor === undefined
-          ? 0
-          : integer(
-              room.floor,
-              `${where} (${String(room.id)}) floor`,
-              -MAX_FLOOR,
-              MAX_FLOOR,
-            ),
+      at: readCell(room.at, `${where} (${String(room.id)}) at`),
+      floor: readFloor(room.floor, `${where} (${String(room.id)}) floor`),
       description: text(room.description, `${where} description`),
       ...(room.encounterId === undefined
         ? {}

@@ -1,0 +1,77 @@
+{
+  "kind": "dungeon-one-5e-map-sketch",
+  "formatVersion": 1,
+  "id": "fox-barrow",
+  "title": "The Fox Barrow",
+  "startRoomId": "mound-gate",
+  "regions": [
+    { "id": "mound", "name": "The Mound" },
+    { "id": "vault", "name": "The Vault" }
+  ],
+  "rooms": [
+    {
+      "id": "mound-gate",
+      "name": "Mound Gate",
+      "at": [0, 0],
+      "region": "mound",
+      "exit": true
+    },
+    { "id": "fox-hall", "name": "Fox Hall", "at": [1, 0], "region": "mound" },
+    {
+      "id": "bone-niche",
+      "name": "Bone Niche",
+      "at": [1, 1],
+      "region": "mound"
+    },
+    {
+      "id": "far-shrine",
+      "name": "Far Shrine",
+      "at": [3, 0],
+      "region": "mound"
+    },
+    {
+      "id": "stair-foot",
+      "name": "Stair Foot",
+      "at": [1, 0],
+      "floor": -1,
+      "region": "vault"
+    },
+    {
+      "id": "gold-vault",
+      "name": "Gold Vault",
+      "at": [2, 1],
+      "floor": -1,
+      "region": "vault"
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-hall",
+      "between": ["mound-gate", "fox-hall"],
+      "description": "A low arch.",
+      "door": { "state": "stuck" }
+    },
+    {
+      "id": "hall-to-niche",
+      "between": ["fox-hall", "bone-niche"],
+      "hidden": true
+    },
+    {
+      "id": "hall-to-shrine",
+      "between": ["fox-hall", "far-shrine"],
+      "description": "A long tunnel of roots.",
+      "trap": {}
+    },
+    {
+      "id": "hall-stairs",
+      "between": ["fox-hall", "stair-foot"],
+      "vertical": "stairs",
+      "hidden": true
+    },
+    {
+      "id": "foot-to-vault",
+      "between": ["stair-foot", "gold-vault"],
+      "door": { "state": "locked" }
+    }
+  ]
+}
