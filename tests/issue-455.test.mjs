@@ -179,7 +179,7 @@ test("passages on one floor don't cross", () => {
           room(module, "den").at = [2, 0];
         }),
       ),
-    /passages stair-to-alcove \(stair-foot to alcove\) and cellar-to-den \(rat-cellar to den\) cross on floor 0: move a room so they don't\./u,
+    /passages stair-to-alcove \(stair-foot on cell \[1, 0\] to alcove on cell \[2, 1\]\) and cellar-to-den \(rat-cellar on cell \[1, 1\] to den on cell \[2, 0\]\) cross on floor 0: move a room so they don't\./u,
   );
   // Two passages between the same rooms lie along each other.
   assert.deepEqual(

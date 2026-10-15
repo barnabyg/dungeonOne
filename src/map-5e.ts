@@ -187,6 +187,8 @@ export function layoutErrors(
     }
     flat.push({ passage, from, to });
   }
+  const runText = ({ from, to }: (typeof flat)[number]) =>
+    `${from.id} on cell ${cellText(from.at)} to ${to.id} on cell ${cellText(to.at)}`;
   for (const [index, first] of flat.entries()) {
     for (const second of flat.slice(index + 1)) {
       if (first.from.floor !== second.from.floor) {
@@ -208,7 +210,7 @@ export function layoutErrors(
         meet(first.from.at, first.to.at, second.from.at, second.to.at)
       ) {
         errors.push(
-          `passages ${first.passage.id} (${first.from.id} to ${first.to.id}) and ${second.passage.id} (${second.from.id} to ${second.to.id}) cross on floor ${first.from.floor}: move a room so they don't.`,
+          `passages ${first.passage.id} (${runText(first)}) and ${second.passage.id} (${runText(second)}) cross on floor ${first.from.floor}: move a room so they don't.`,
         );
       }
     }
