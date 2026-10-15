@@ -402,7 +402,7 @@ A character carries its equipment and its **stowed** gear: catalogue weapons, ar
   A long module (#404, D6) has twice its maximum level's budget (`LONG_MODULE_BUDGET_FACTOR`): 900 gp at level 3. Its excess is named as any module's, "over the 900 gp budget for a long module at level 3".
 
 - **Tiers by level.** An item a module hides must have a tier allowed at its maximum recommended level (`TIER_MIN_LEVEL`): common always, uncommon from level 3 (so at levels 4 and 5 too), and no rare treasure yet. Magic items have their own limits (see Magic items, #345). Merchant stock keeps its own rule, by the lowest recommended level (see Trading), on purpose: gear on sale must suit every level the module recommends, while a find may reward its highest.
-- **Shipped modules** (#252): each reworked module, and each added since (#275), holds 75–100% of its budget as a mixed hoard of gems, art objects and coin (owner decision, 7 October 2026); the Abandoned Delve and the Silvervein Mine keep the treasure they shipped with. Until #252 every treasure but the Mine's was a 25 gp art object.
+- **Shipped modules** (#252): each reworked module, and each added since (#275), holds 75–100% of its budget as a mixed hoard of gems, art objects and coin (owner decision, 7 October 2026); the Silvervein Mine keeps the treasure it shipped with, as the Abandoned Delve did until its expansion (#442). Until #252 every treasure but the Mine's was a 25 gp art object.
 
   | Module                  | Findable treasure                                                                                                                                                        | Value of budget            |
   | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
@@ -410,7 +410,7 @@ A character carries its equipment and its **stowed** gear: catalogue weapons, ar
   | The Smugglers' Cellar   | Potion of Healing (50 gp), Silver Hip Flask (art, 25 gp), Smuggled Moonstone (gem, 50 gp), 10 gp                                                                         | 135 gp of 150 gp           |
   | The Tinker's Toll       | Potion of Healing (50 gp, since #310), a shield (10 gp), 3 gp 5 sp, Silver Toll Seal (art, 25 gp), Traveller's Carnelian (gem, 50 gp), 11 gp                             | 149 gp 5 sp of 150 gp      |
   | The Shepherd's Bothy    | Potion of Healing (50 gp), Enamelled Brooch (art, 25 gp), Pallet Sapphire (gem, 100 gp), Bloodstone (gem, 50 gp), 60 gp, the Moor Bandit's 11 sp                         | 286 gp 1 sp of 300 gp      |
-  | The Abandoned Delve     | two Potions of Healing, a shortsword and a shield, four art objects of 25 gp, 40 gp and 18 sp                                                                            | 261 gp 8 sp of 300 gp      |
+  | The Abandoned Delve     | two Potions of Healing, a shortsword and a shield, a Spell Scroll of Cure Wounds (50 gp), five art objects of 25 gp, two gems of 10 gp and three of 50 gp, 123 gp, 18 sp and Mags Corrow's rolled 9 sp (#442) | 590 gp 7 sp of 600 gp      |
   | The Warden's Crypt      | two Potions of Healing, Offering Azurite (gem, 10 gp), Warden's Silver Cup (art, 25 gp), Warden's Sapphire (gem, 100 gp), 30 gp                                          | 265 gp of 300 gp           |
   | The Gravedigger's Lodge | two Potions of Healing, Gold Mourning Ring and Jet Cameo (art, 25 gp each), Grave Tourmaline (gem, 100 gp), 40 gp, the False Gravedigger's 11 sp                         | 291 gp 1 sp of 300 gp      |
   | The Silvervein Mine     | two Potions of Healing, Silver Locket (art, 25 gp), Uncut Sapphire (gem, 100 gp), the bugbear's Rough Gem (gem, 10 gp), 60 gp, 40 sp and the rolled 12 sp, 9 cp and 8 cp | 300 gp 3 sp 7 cp of 450 gp |
@@ -840,7 +840,7 @@ A module the harness can't play fails the gate with the harness's named reason. 
 | The Smugglers' Cellar   | Hard     | 69.5% spend-early (reported)         | 78.5% spend-early (reported)         |
 | The Tinker's Toll       | Hard     | 75.5% spend-early (reported)         | 75.0% spend-early (reported)         |
 | The Shepherd's Bothy    | Easy     | 94.5% conserve (reported)            | 95.5% conserve (reported)            |
-| The Abandoned Delve     | Medium   | 88.5% spend-early (reported)         | 80.0% (78.0%) spend-early (reported) |
+| The Abandoned Delve     | Hard     | 73.0% (67.5%) conserve (reported)    | 80.0% (72.0%) spend-early (reported) |
 | The Warden's Crypt      | Medium   | 90.0% (91.5%) spend-early (reported) | 82.5% (84.5%) spend-early (reported) |
 | The Gravedigger's Lodge | Hard     | 44.0% spend-early (reported)         | 69.0% spend-early (reported)         |
 | The Silvervein Mine     | Medium   | 94.5% spend-early (level 3)          | 98.5% conserve (level 3)             |
@@ -868,7 +868,7 @@ The owner approved two module changes for the casters (11 October 2026): the Rav
 | The Smugglers' Cellar   | Hard     | 79.0%         | 79.0%         |
 | The Tinker's Toll       | Hard     | 82.0%         | 81.0%         |
 | The Shepherd's Bothy    | Easy     | 100.0%        | 98.5%         |
-| The Abandoned Delve     | Medium   | 96.0% (93.0%) | 94.0% (90.0%) |
+| The Abandoned Delve     | Hard     | 91.5% (93.0%) | 86.5%         |
 | The Warden's Crypt      | Medium   | 96.0% (95.0%) | 95.0% (93.5%) |
 | The Gravedigger's Lodge | Hard     | 83.5%         | 82.0%         |
 | The Silvervein Mine     | Medium   | 92.5%         | 90.5%         |

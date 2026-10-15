@@ -198,14 +198,14 @@ test(
         "Escaped with loot",
       );
       const ending = await page.locator("#ending").innerText();
-      assert.match(ending, /Ada has 300 XP\./);
+      assert.match(ending, /Ada has 700 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
 
       // Storage holds the settled character.
       const [record] = (await libraryFile(libraryPath)).characters;
       assert.equal(record.session, undefined);
       assert.equal(record.sheet.level, 2);
-      assert.equal(record.sheet.xp, 300);
+      assert.equal(record.sheet.xp, 700);
       assert.deepEqual(
         record.sheet.treasure.map(({ name }) => name),
         ["Dagger Hilt"],
@@ -214,7 +214,7 @@ test(
       await page.locator("#sheet").waitFor({ state: "visible" });
       assert.match(
         await page.locator("#sheet-body").innerText(),
-        /^Level 2 Fighter · 300 XP/,
+        /^Level 2 Fighter · 700 XP/,
       );
     } finally {
       await browser.close();

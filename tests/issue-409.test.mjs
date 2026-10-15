@@ -38,7 +38,7 @@ test("the handoff's level-3 library is Ada at level 3, as generated release runs
   assert.equal(sheet.hp, characterProfile(sheet).maxHp);
 });
 
-test("the turn cap is 40 turns a room: the Delve's 400 for its ten rooms", () => {
+test("the turn cap is 40 turns a room", () => {
   assert.equal(RELEASE_TURNS_PER_ROOM, 40);
   assert.equal(windingTunnels.rooms.length, 8);
   assert.equal(releaseTurnCap(windingTunnels), 320);

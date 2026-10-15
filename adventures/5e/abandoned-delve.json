@@ -4,24 +4,53 @@
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
-  "recommendedLevels": {
-    "min": 2,
-    "max": 2
+  "recommendedLevels": { "min": 2, "max": 2 },
+  "difficulty": "hard",
+  "long": true,
+  "regions": [
+    { "id": "cellars", "name": "The Keep Cellars" },
+    { "id": "crypts", "name": "The Crypts" }
+  ],
+  "flags": ["goblin-freed", "delve-roused"],
+  "alarm": {
+    "flag": "delve-roused",
+    "text": "Your noise carries through the crypts. Somewhere ahead, boots crunch over bone toward the shaft.",
+    "fights": [{ "region": "crypts", "round": 4 }]
   },
-  "difficulty": "medium",
+  "routes": [
+    {
+      "id": "shrine-stair",
+      "name": "Down the shrine stair",
+      "rooms": ["guard-post", "dry-well", "shrine", "shaft-bottom"]
+    },
+    {
+      "id": "old-well",
+      "name": "Down the old well",
+      "rooms": [
+        "porters-lodge",
+        "guard-post",
+        "dry-well",
+        "well-bottom",
+        "flooded-cistern",
+        "ossuary",
+        "shaft-bottom"
+      ]
+    }
+  ],
   "startRoomId": "broken-gate",
   "rooms": [
     {
       "id": "broken-gate",
       "name": "Broken Gate",
       "description": "A cracked stair runs down from the ruined keep to a gate hanging off its hinges. Daylight is at your back. Someone has chalked marks on the gatepost.",
+      "region": "cellars",
       "exit": true,
       "features": [
         {
           "id": "chalk-marks",
           "name": "Chalk Marks",
-          "description": "Faded chalk marks left by an earlier treasure-hunter.",
-          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\""
+          "description": "Faded chalk marks left by an earlier treasure-hunter, and a fresher line beneath them.",
+          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\" Under them, in new chalk: \"M.C. went down the shaft. Mine.\""
         }
       ],
       "items": []
@@ -29,7 +58,8 @@
     {
       "id": "gate-hall",
       "name": "Gate Hall",
-      "description": "A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "description": "A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
+      "region": "cellars",
       "features": [],
       "items": []
     },
@@ -37,6 +67,7 @@
       "id": "guard-post",
       "name": "Guard Post",
       "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post. A narrow way leads on to an old well.",
+      "region": "cellars",
       "encounterId": "guard-zombie",
       "features": [
         {
@@ -65,9 +96,7 @@
           "name": "Guard's Purse",
           "description": "A leather purse of old silver coins, the guard's stake.",
           "kind": "coin",
-          "coins": {
-            "sp": 18
-          },
+          "coins": { "sp": 18 },
           "hiddenIn": "overturned-table"
         }
       ]
@@ -76,6 +105,8 @@
       "id": "barracks",
       "name": "Barracks",
       "description": "Rows of collapsed bunks. Two skeletons in rusted mail stand guard here still, beside a footlocker at the end of the room.",
+      "region": "cellars",
+      "avoidable": true,
       "encounterId": "barracks-skeletons",
       "features": [
         {
@@ -100,6 +131,7 @@
       "id": "storeroom",
       "name": "Storeroom",
       "description": "A dry storeroom of split barrels and empty shelves. One old barrel is still sealed.",
+      "region": "cellars",
       "features": [
         {
           "id": "old-barrel",
@@ -137,14 +169,41 @@
     {
       "id": "dry-well",
       "name": "Dry Well",
-      "description": "A round chamber around a dry well. A goblin is stuck at the bottom and calls up to you. A stair leads down to a shrine, and a webbed passage to a crypt.",
-      "features": [],
+      "description": "A round chamber around a dry well under a rotted windlass. A goblin calls up from the bottom of the well. A stair leads down to a shrine, and a webbed passage to a crypt.",
+      "region": "cellars",
+      "features": [
+        {
+          "id": "well-head",
+          "name": "Well Head",
+          "description": "A ring of worn stone over the dry shaft. Far below, a goblin squints up at you, and a low arch opens off the bottom.",
+          "changed": {
+            "when": "goblin-freed",
+            "description": "Your rope hangs from the windlass down into the well, knotted fast. It would take your weight to the bottom."
+          },
+          "uses": [
+            {
+              "item": "coil-of-rope",
+              "text": "You knot the rope to the windlass and pay it down. The goblin swarms up it before you've finished, and sits panting on the rim, grinning at you.",
+              "consumes": true,
+              "effects": [
+                { "type": "open", "passage": "well-rope" },
+                { "type": "set", "flag": "goblin-freed" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "windlass",
+          "name": "Windlass",
+          "description": "An oak windlass over the well. Its rope rotted away long ago, but the axle still turns."
+        }
+      ],
       "items": [],
       "creatures": [
         {
           "id": "goblin",
           "name": "Goblin",
-          "description": "A scrawny goblin wedged at the bottom of the well, too frightened of the dead to climb out.",
+          "description": "A scrawny goblin who fell down the well, too frightened of the dead to make a fuss about it.",
           "topics": [
             {
               "id": "the-vault",
@@ -154,27 +213,126 @@
             {
               "id": "the-stair",
               "name": "the stair",
-              "check": {
-                "skill": "persuasion",
-                "dc": 12
-              },
+              "check": { "skill": "persuasion", "dc": 12 },
               "reply": "\"Fine, fine. There's a loose step on the shrine stair. Step on it and the stair drops you. Look before you walk.\"",
               "failure": "\"Get me out first, then I'll tell you things.\" The goblin sulks."
+            },
+            {
+              "id": "the-woman",
+              "name": "the woman",
+              "offeredWhile": "goblin-freed",
+              "reply": "\"One came down the shaft rope yesterday. Mags, she called herself. She's in the bone room with a hammer, taking teeth. Loud, and she'll run if she hears you.\""
+            },
+            {
+              "id": "the-tomb",
+              "name": "the tomb",
+              "offeredWhile": "goblin-freed",
+              "reply": "\"The old lord's box opens if you press the carved hand on its side. Don't tell the dead I said.\""
             }
           ]
         }
       ]
     },
     {
+      "id": "porters-lodge",
+      "name": "Porter's Lodge",
+      "description": "A narrow lodge beside the gate hall, dry and still. Its door has a stout bar on the inside, and a cot stands under a row of pegs.",
+      "region": "cellars",
+      "restSite": true,
+      "features": [
+        {
+          "id": "peg-rail",
+          "name": "Peg Rail",
+          "description": "A rail of wooden pegs, hung with a porter's cloak gone stiff with age.",
+          "discovery": "Under the cloak hangs a coil of good hemp rope."
+        },
+        {
+          "id": "porters-cot",
+          "name": "Porter's Cot",
+          "description": "A narrow cot with a straw mattress. It would do for a night."
+        },
+        {
+          "id": "key-board",
+          "name": "Key Board",
+          "description": "A board of iron hooks, every one empty. A label under the largest reads \"vault\"."
+        }
+      ],
+      "items": [
+        {
+          "id": "coil-of-rope",
+          "name": "Coil of Rope",
+          "description": "Fifty feet of hemp rope, dry and strong.",
+          "kind": "tool",
+          "hiddenIn": "peg-rail"
+        }
+      ]
+    },
+    {
+      "id": "fallen-kitchen",
+      "name": "Fallen Kitchen",
+      "description": "Half the kitchen roof has fallen in, and grey daylight shows through the hole. Something has made a den in the rubble by the hearth, and the floor is littered with bones.",
+      "region": "cellars",
+      "encounterId": "kitchen-wolf",
+      "features": [
+        {
+          "id": "hearth",
+          "name": "Hearth",
+          "description": "A wide hearth, cold for years, with a spit still across it."
+        },
+        {
+          "id": "bone-heap",
+          "name": "Bone Heap",
+          "description": "Gnawed bones heaped against the wall, sheep's and deer's and one that might be a man's.",
+          "discovery": "Among the bones is a traveller's rotted belt, its purse still full of gold, and a green stone with moss-like threads inside it."
+        },
+        {
+          "id": "roof-hole",
+          "name": "Roof Hole",
+          "description": "A hole in the roof, open to the sky. It's too high to climb."
+        }
+      ],
+      "items": [
+        {
+          "id": "travellers-purse",
+          "name": "Traveller's Purse",
+          "description": "A rotted leather purse of gold coins.",
+          "kind": "coin",
+          "coins": { "gp": 12 },
+          "hiddenIn": "bone-heap"
+        },
+        {
+          "id": "moss-agate",
+          "name": "Moss Agate",
+          "description": "A pale green agate threaded with dark green, like moss under ice.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "bone-heap"
+        }
+      ]
+    },
+    {
       "id": "shrine",
       "name": "Shrine",
-      "description": "A small shrine at the foot of the stair. Silver candlesticks stand on a stone altar. A passage runs on to a shaft of daylight.",
+      "description": "A small, quiet shrine at the foot of the stair. Silver candlesticks stand on a stone altar beside an offering box, and a lamp still hangs over them. A passage runs on to a shaft of daylight.",
+      "region": "crypts",
+      "restSite": true,
       "features": [
         {
           "id": "altar",
           "name": "Altar",
           "description": "A stone altar with two tarnished silver candlesticks.",
           "discovery": "Behind the candlesticks lies a heavy bronze key."
+        },
+        {
+          "id": "offering-box",
+          "name": "Offering Box",
+          "description": "A small oak box at the altar's foot, its lid carved with an open hand.",
+          "discovery": "Inside lies a roll of parchment, sealed with the shrine's open hand."
+        },
+        {
+          "id": "shrine-lamp",
+          "name": "Shrine Lamp",
+          "description": "A bronze lamp on a chain. The dead have never come in here, and the air is calm."
         }
       ],
       "items": [
@@ -192,6 +350,14 @@
           "kind": "treasure",
           "treasure": "art-25gp",
           "hiddenIn": "altar"
+        },
+        {
+          "id": "shrine-scroll",
+          "name": "Sealed Parchment",
+          "description": "A roll of parchment sealed with an open hand.",
+          "kind": "scroll",
+          "spell": "cure-wounds",
+          "hiddenIn": "offering-box"
         }
       ]
     },
@@ -199,6 +365,8 @@
       "id": "web-crypt",
       "name": "Web Crypt",
       "description": "Thick webs fill a low crypt. A cocooned body hangs in the middle, and something large shifts in the dark above it.",
+      "region": "crypts",
+      "avoidable": true,
       "encounterId": "crypt-spider",
       "features": [
         {
@@ -222,7 +390,8 @@
     {
       "id": "shaft-bottom",
       "name": "Shaft Bottom",
-      "description": "The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault.",
+      "description": "The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault, and a passage lined with bones leads away into the dark.",
+      "region": "crypts",
       "exit": true,
       "features": [
         {
@@ -237,14 +406,58 @@
     {
       "id": "vault",
       "name": "Vault",
-      "description": "The lord's vault: a stone room with an iron chest against the far wall. Something that was once a man crouches over it.",
+      "description": "The lord's vault: a stone room with an iron chest against the far wall and a tall stack of coffers on a shelf above it. Something that was once a man crouches over the chest.",
+      "region": "crypts",
+      "avoidable": true,
       "encounterId": "vault-ghoul",
       "features": [
         {
           "id": "iron-chest",
           "name": "Iron Chest",
           "description": "A great iron chest, its lid broken open.",
-          "discovery": "The chest is still half full of old gold coins, and a jewelled goblet lies on top of them."
+          "discovery": "The chest is still half full of old gold coins. A jewelled goblet lies on top of them, and a dark red stone has rolled into one corner."
+        },
+        {
+          "id": "coffer-stack",
+          "name": "Coffer Stack",
+          "description": "Iron-bound coffers stacked high on a sagging shelf. One good heave would bring them all down.",
+          "fightAction": {
+            "once": "adventure",
+            "check": {
+              "approaches": [
+                { "skill": "athletics", "dc": 13 },
+                { "ability": "strength", "dc": 13 }
+              ]
+            },
+            "bands": {
+              "failure": { "text": "The shelf creaks but holds." },
+              "success": {
+                "text": "The shelf gives way, and the coffers come crashing down on your foe.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "The whole stack comes down on your foe and knocks it flat.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  },
+                  { "type": "condition", "condition": "prone", "turns": 1 }
+                ]
+              }
+            }
+          }
         }
       ],
       "items": [
@@ -253,9 +466,7 @@
           "name": "Gold Coins",
           "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
           "kind": "coin",
-          "coins": {
-            "gp": 40
-          },
+          "coins": { "gp": 90 },
           "hiddenIn": "iron-chest"
         },
         {
@@ -265,6 +476,214 @@
           "kind": "treasure",
           "treasure": "art-25gp",
           "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "vault-garnet",
+          "name": "Garnet",
+          "description": "A dark red garnet the size of a thumbnail.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "iron-chest"
+        }
+      ]
+    },
+    {
+      "id": "well-bottom",
+      "name": "Well Bottom",
+      "description": "The dry bottom of the well, a round pit of silt with a coin of daylight far above. A goblin has made a nest here, and a low arch leads on into the dark.",
+      "region": "crypts",
+      "features": [
+        {
+          "id": "silted-floor",
+          "name": "Silted Floor",
+          "description": "Dry grey silt. Coins glint in it here and there.",
+          "discovery": "Generations of wishes: a scatter of coins, green and worn, but still good."
+        },
+        {
+          "id": "goblins-nest",
+          "name": "Goblin's Nest",
+          "description": "A heap of rags and rat bones where the goblin slept. It smells as bad as it looks."
+        },
+        {
+          "id": "low-arch",
+          "name": "Low Arch",
+          "description": "A low arch of old brick, leading down. You hear water dripping beyond it."
+        }
+      ],
+      "items": [
+        {
+          "id": "wishing-coins",
+          "name": "Wishing Coins",
+          "description": "A scatter of old coins, worn smooth.",
+          "kind": "coin",
+          "coins": { "gp": 6 },
+          "hiddenIn": "silted-floor"
+        }
+      ]
+    },
+    {
+      "id": "flooded-cistern",
+      "name": "Flooded Cistern",
+      "description": "Steps run down into a vaulted cistern, flooded to the third step with black, still water. A walkway runs round its edge to an arch at the far side.",
+      "region": "crypts",
+      "features": [
+        {
+          "id": "black-water",
+          "name": "Black Water",
+          "description": "Cold, still water. You can't see the bottom, and you'd rather not."
+        },
+        {
+          "id": "drowned-delver",
+          "name": "Drowned Delver",
+          "description": "A body in a delver's coat lies face down on the walkway, a pack still on its back.",
+          "discovery": "In the pack, wrapped in a wet stocking, is a red-brown jasper."
+        },
+        {
+          "id": "cistern-steps",
+          "name": "Cistern Steps",
+          "description": "Worn steps going down into the water. The lowest are green and slick."
+        }
+      ],
+      "items": [
+        {
+          "id": "delvers-jasper",
+          "name": "Jasper",
+          "description": "A polished red-brown jasper, cold from the water.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "drowned-delver"
+        }
+      ]
+    },
+    {
+      "id": "ossuary",
+      "name": "Ossuary",
+      "description": "Skulls line every wall of a long vault, row on row, and the floor crunches with small bones. Someone has been at work here: skulls lie knocked from their rows, and a satchel lies dropped among them.",
+      "region": "crypts",
+      "encounterId": "ossuary-rival",
+      "features": [
+        {
+          "id": "skull-wall",
+          "name": "Skull Wall",
+          "description": "Hundreds of skulls, set in rows by the keep's long-dead masons. Many have been knocked about, their teeth pried out."
+        },
+        {
+          "id": "mags-satchel",
+          "name": "Mags's Satchel",
+          "description": "A battered leather satchel, heavy and rattling.",
+          "discovery": "Inside are a handful of gold teeth and coins, and a blue-green stone wrapped in a rag."
+        },
+        {
+          "id": "bone-passage",
+          "name": "Bone Passage",
+          "description": "A passage lined with bones runs toward a glimmer of daylight. Another arch leads on to a tomb."
+        }
+      ],
+      "items": [
+        {
+          "id": "satchel-gold",
+          "name": "Mags's Takings",
+          "description": "Gold teeth and old coins, worth a fair few gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 15 },
+          "hiddenIn": "mags-satchel"
+        },
+        {
+          "id": "satchel-turquoise",
+          "name": "Turquoise",
+          "description": "A blue-green turquoise, veined with brown.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "mags-satchel"
+        },
+        {
+          "id": "mags-corrow-coins",
+          "name": "Mags Corrow's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 9 },
+          "hiddenIn": "mags-corrow"
+        }
+      ]
+    },
+    {
+      "id": "lords-tomb",
+      "name": "Lord's Tomb",
+      "description": "A cold, high tomb. A stone effigy of the old lord lies on a great sarcophagus, his hands folded on his sword, and faded banners hang above him.",
+      "region": "crypts",
+      "features": [
+        {
+          "id": "sarcophagus-lid",
+          "name": "Sarcophagus Lid",
+          "description": "A heavy stone lid, carved with the old lord's arms. A carved hand on its side is worn smooth.",
+          "discovery": "Inside, the old lord's bones wear a silver death mask, and a green stone rests on his breastbone.",
+          "check": {
+            "approaches": [
+              { "skill": "athletics", "dc": 14 },
+              {
+                "skill": "investigation",
+                "dc": 13,
+                "advantage": [
+                  {
+                    "type": "flag",
+                    "flag": "goblin-freed",
+                    "name": "The goblin's directions"
+                  }
+                ]
+              }
+            ],
+            "bands": {
+              "failure-by-5": {
+                "text": "The lid slips and crashes back down.",
+                "noisy": true
+              },
+              "failure": { "text": "The lid won't move." },
+              "success": {
+                "text": "The lid grinds aside.",
+                "effects": [
+                  { "type": "discovery", "feature": "sarcophagus-lid" },
+                  { "type": "item", "item": "death-mask" },
+                  { "type": "item", "item": "tomb-peridot" }
+                ]
+              },
+              "success-by-5": {
+                "text": "The lid grinds aside. Cut into its underside, where only the dead would read it, is an inscription: \"I kept the keep. Let it keep me.\"",
+                "effects": [
+                  { "type": "discovery", "feature": "sarcophagus-lid" },
+                  { "type": "item", "item": "death-mask" },
+                  { "type": "item", "item": "tomb-peridot" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "effigy",
+          "name": "Effigy",
+          "description": "A stone lord, stern and long-nosed, his sword on his breast. Someone has chipped the gilt from his crown."
+        },
+        {
+          "id": "faded-banners",
+          "name": "Faded Banners",
+          "description": "Banners so faded their arms can hardly be read. They stir in a draught from the ossuary."
+        }
+      ],
+      "items": [
+        {
+          "id": "death-mask",
+          "name": "Silver Death Mask",
+          "description": "A thin silver mask of the old lord's face, tarnished black.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "sarcophagus-lid"
+        },
+        {
+          "id": "tomb-peridot",
+          "name": "Peridot",
+          "description": "A clear olive-green peridot.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "sarcophagus-lid"
         }
       ]
     }
@@ -294,11 +713,18 @@
         "name": "Swollen Door",
         "description": "The damp wood has swollen tight in its frame.",
         "state": "stuck",
-        "force": {
-          "skill": "athletics",
-          "dc": 12
-        }
+        "force": { "skill": "athletics", "dc": 12 }
       }
+    },
+    {
+      "id": "hall-to-lodge",
+      "between": ["gate-hall", "porters-lodge"],
+      "description": "The porter's door, its bar hanging loose."
+    },
+    {
+      "id": "hall-to-kitchen",
+      "between": ["gate-hall", "fallen-kitchen"],
+      "description": "A rubble-strewn arch toward daylight. Something growls beyond it."
     },
     {
       "id": "guard-post-to-well",
@@ -313,27 +739,15 @@
         "id": "loose-step",
         "name": "Loose Step",
         "description": "One step is set loose over a drop, wired to give way.",
-        "find": {
-          "dc": 13
-        },
+        "find": { "dc": 13 },
         "disarm": {
           "approaches": [
-            {
-              "ability": "dexterity",
-              "tool": "thieves-tools",
-              "dc": 12
-            },
-            {
-              "ability": "dexterity",
-              "dc": 12
-            }
+            { "ability": "dexterity", "tool": "thieves-tools", "dc": 12 },
+            { "ability": "dexterity", "dc": 12 }
           ]
         },
         "trigger": "A step gives way and the stair drops you down onto broken stone.",
-        "save": {
-          "ability": "dexterity",
-          "dc": 12
-        },
+        "save": { "ability": "dexterity", "dc": 12 },
         "damage": {
           "dice": 2,
           "sides": 6,
@@ -342,6 +756,12 @@
         },
         "defeatEndingId": "lost-in-the-delve"
       }
+    },
+    {
+      "id": "well-rope",
+      "between": ["dry-well", "well-bottom"],
+      "description": "Your rope, down the well shaft.",
+      "hidden": true
     },
     {
       "id": "well-to-crypt",
@@ -368,16 +788,38 @@
         "description": "A bronze door stamped with a lord's crest, locked fast.",
         "state": "locked",
         "keyItemId": "bronze-key",
-        "pick": {
-          "ability": "dexterity",
-          "tool": "thieves-tools",
-          "dc": 15
-        },
+        "pick": { "ability": "dexterity", "tool": "thieves-tools", "dc": 15 },
         "break": {
           "skill": "athletics",
-          "dc": 17
+          "dc": 17,
+          "bands": {
+            "failure-by-5": {
+              "text": "The bronze rings like a bell, and the echo rolls away through the crypts.",
+              "noisy": true
+            }
+          }
         }
       }
+    },
+    {
+      "id": "shaft-to-ossuary",
+      "between": ["shaft-bottom", "ossuary"],
+      "description": "A passage lined with bones."
+    },
+    {
+      "id": "well-bottom-to-cistern",
+      "between": ["well-bottom", "flooded-cistern"],
+      "description": "The low arch, down a few wet steps."
+    },
+    {
+      "id": "cistern-to-ossuary",
+      "between": ["flooded-cistern", "ossuary"],
+      "description": "The walkway round the cistern, to an arch. Something taps beyond it."
+    },
+    {
+      "id": "ossuary-to-tomb",
+      "between": ["ossuary", "lords-tomb"],
+      "description": "A carved arch, its keystone a crowned skull."
     }
   ],
   "encounters": [
@@ -411,6 +853,18 @@
       "defeatEndingId": "lost-in-the-delve"
     },
     {
+      "id": "kitchen-wolf",
+      "opponents": [
+        {
+          "id": "grey-wolf",
+          "monster": "wolf",
+          "name": "Grey Wolf",
+          "description": "A lean grey wolf rises from its den in the rubble, hackles up, and comes at you low."
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
+    },
+    {
       "id": "crypt-spider",
       "opponents": [
         {
@@ -432,15 +886,41 @@
         }
       ],
       "defeatEndingId": "lost-in-the-delve"
+    },
+    {
+      "id": "ossuary-rival",
+      "opponents": [
+        {
+          "id": "mags-corrow",
+          "monster": "bandit",
+          "name": "Mags Corrow",
+          "description": "A wiry woman in a dusty coat drops her hammer, snatches up a scimitar and snarls. \"Find your own dead.\""
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve",
+      "movesTo": { "roomId": "shaft-bottom", "when": "delve-roused" }
+    },
+    {
+      "id": "dead-delver",
+      "opponents": [
+        {
+          "id": "dead-delver",
+          "monster": "zombie",
+          "name": "Dead Delver",
+          "description": "A dead treasure-hunter in a mouldering coat shuffles out of the dark, still clutching an empty sack."
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
     }
   ],
+  "wanderingEncounter": { "encounterId": "dead-delver", "chance": 25 },
   "endings": [
     {
       "id": "out-with-the-loot",
       "kind": "escape-with-loot",
       "title": "Out with the loot",
       "text": "You climb back into the daylight with the dungeon's treasure on your back.",
-      "xp": 200
+      "xp": 600
     },
     {
       "id": "out-empty-handed",
