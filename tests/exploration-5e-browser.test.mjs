@@ -168,8 +168,8 @@ test(
       assert.equal(shown.encounterHidden, true);
       assert.match(shown.room, /^Foot of the Stair\n/);
       assert.match(shown.status, /HP (\d+)\/\1 /);
-      assert.match(shown.actions, /Go to Alcove/);
-      assert.match(shown.actions, /Go to Rat-Gnawed Cellar/);
+      assert.match(shown.actions, /Go west to Alcove/);
+      assert.match(shown.actions, /Go south to Rat-Gnawed Cellar/);
       assert.match(shown.actions, /Examine Rusted Lantern/);
 
       await explore(page, "move", "alcove");
@@ -223,7 +223,7 @@ test(
       );
       shown = await screen(page);
       assert.match(shown.status, new RegExp(`HP ${expected.hurt}/`));
-      assert.match(shown.actions, /Go to Smugglers' Den/);
+      assert.match(shown.actions, /Go south to Smugglers' Den/);
 
       // Reload after the fight: the same screen, from the saved session.
       await page.reload();

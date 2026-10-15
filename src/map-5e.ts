@@ -101,6 +101,40 @@ export function straightRun(from: Cell, to: Cell) {
   };
 }
 
+/** The way an exit leads (#458): a compass point, or up or down a floor. */
+export type Direction =
+  | "north"
+  | "northeast"
+  | "east"
+  | "southeast"
+  | "south"
+  | "southwest"
+  | "west"
+  | "northwest"
+  | "up"
+  | "down";
+
+/**
+ * The direction of an exit from one room to another: up or down between
+ * floors, else the compass point from the one cell to the other. The rules
+ * keep two rooms on one floor off one cell, and keep a passage on a floor
+ * straight, so the point is exact.
+ */
+export function exitDirection(
+  from: Pick<MapRoom, "at" | "floor">,
+  to: Pick<MapRoom, "at" | "floor">,
+): Direction {
+  if (to.floor !== from.floor) {
+    return to.floor > from.floor ? "up" : "down";
+  }
+  const north = Math.sign(to.at[1] - from.at[1]);
+  const east = Math.sign(to.at[0] - from.at[0]);
+  if (north === 0 && east === 0) {
+    throw new Error(`Two rooms share cell ${cellText(to.at)} of a floor.`);
+  }
+  return `${["north", "", "south"][north + 1]}${["west", "", "east"][east + 1]}` as Direction;
+}
+
 /** The turn from a to b to c: positive anticlockwise, 0 if in a line. */
 const turn = (a: Cell, b: Cell, c: Cell) =>
   Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));

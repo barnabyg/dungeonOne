@@ -93,7 +93,7 @@ test("the formats bump; the prompt does not change", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
 });
 
 // The validator.

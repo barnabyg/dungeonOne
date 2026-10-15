@@ -193,9 +193,9 @@ test(
             buttons.map((button) => button.getAttribute("aria-label")),
           ),
         [
-          "Go to Alcove",
-          "Go to Rat-Gnawed Cellar",
-          "Sneak into Rat-Gnawed Cellar",
+          "Go west to Alcove",
+          "Go south to Rat-Gnawed Cellar",
+          "Sneak south into Rat-Gnawed Cellar",
           "Examine Rusted Lantern",
         ],
       );

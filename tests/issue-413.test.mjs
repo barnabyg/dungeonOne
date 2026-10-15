@@ -29,7 +29,7 @@ import { testFighterAt } from "../dist/test-fighter-5e.js";
 const byId = (id) => FIFTH_WEIRGATE_DM_CASES.find((sample) => sample.id === id);
 
 test("the prompt changes: a wrong item, or fleeing untouched, calls no tool", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /without calling a tool: not examine on the feature, nor use_on with another item, in its place/u,

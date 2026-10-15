@@ -71,7 +71,7 @@ test(
       await clickAction(page, "move", "bone-hall");
       let screen = await shown(page);
       assert.doesNotMatch(screen.exits, /The way is closed/);
-      assert.ok(screen.go.includes("Go to Side Crypt Door shut"));
+      assert.ok(screen.go.includes("Go south to Side Crypt Door shut"));
 
       await clickAction(page, "force", "rotten-door");
       assert.match(
@@ -81,9 +81,9 @@ test(
       screen = await shown(page);
       assert.match(
         screen.exits,
-        /Side Crypt — A low door\.\n+The way is closed\.$/,
+        /South: Side Crypt — A low door\.\n+The way is closed\.$/,
       );
-      assert.ok(screen.go.includes("Go to Side Crypt Way closed"));
+      assert.ok(screen.go.includes("Go south to Side Crypt Way closed"));
       assert.equal(
         await page.locator('button[data-target="rotten-door"]').count(),
         0,

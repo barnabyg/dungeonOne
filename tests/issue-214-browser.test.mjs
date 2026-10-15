@@ -113,7 +113,11 @@ test(
           .evaluateAll((things) =>
             things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
           ),
-        ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
+        [
+          "West: Alcove Go",
+          "South: Rat-Gnawed Cellar Go",
+          "Rusted Lantern Examine",
+        ],
       );
       assert.equal(
         await page
@@ -127,7 +131,7 @@ test(
 
       // The alcove after taking the potion: a disabled Drink with its
       // reason, beside rows with different verbs and name lengths.
-      await act("Go to Alcove");
+      await act("Go west to Alcove");
       await act("Examine Iron-Bound Chest");
       assert.equal(
         await page

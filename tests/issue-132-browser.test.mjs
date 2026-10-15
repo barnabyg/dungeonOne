@@ -150,7 +150,7 @@ async function play(seed, check, { reload = false } = {}) {
     await createAndStart(page, server.url, "sealed-crypt");
 
     let shown = await screen(page);
-    assert.match(shown.actions, /Go to Flooded Cell Door shut/);
+    assert.match(shown.actions, /Go west to Flooded Cell Door shut/);
     assert.match(shown.actions, /Force Swollen Door/);
     assert.match(shown.actions, /Search Crypt Stair/);
     assert.match(shown.room, /Swollen Door: shut\./);
@@ -172,7 +172,9 @@ async function play(seed, check, { reload = false } = {}) {
     }
     assert.match(
       shown.actions,
-      expected.forced ? /Go to Flooded Cell\n/ : /Go to Flooded Cell Door shut/,
+      expected.forced
+        ? /Go west to Flooded Cell\n/
+        : /Go west to Flooded Cell Door shut/,
     );
 
     await click(page, "move", "hall");

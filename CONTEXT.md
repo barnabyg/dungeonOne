@@ -324,7 +324,7 @@ The rooms the character has visited in an adventure, or seen through a visited r
 _Avoid_: Journal, Log, Clue
 
 **Map**:
-The layout of an adventure module's rooms (#455): each room on a cell of a square grid, on a floor, joined by straight passages, and stairs, ladders or shafts between floors. The module's author places every room by hand; `src/map-5e.ts` holds the rules that keep it readable. The player sees it as fog of war: the rooms visited, with stubs for the exits not yet taken. It is not a tactical grid: there is no position, distance or movement inside a room.
+The layout of an adventure module's rooms (#455): each room on a cell of a square grid, on a floor, joined by straight passages, and stairs, ladders or shafts between floors. The module's author places every room by hand; `src/map-5e.ts` holds the rules that keep it readable. The player sees it as fog of war: the rooms visited, with stubs for the exits not yet taken. It is not a tactical grid: there is no position, distance or movement inside a room. Each exit takes its direction from it (#458): a compass point from cell to cell, or up or down between floors.
 _Avoid_: Grid (a tactical one), Board, Plan
 
 **Layout sketch**:
