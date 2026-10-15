@@ -265,7 +265,7 @@ export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
 /** The most regions one module may declare (#395). */
-const MAX_REGIONS = 10;
+export const MAX_REGIONS = 10;
 /** The most encounters one module may have, wandering ones included (D5). */
 export const MAX_ENCOUNTERS = 30;
 /** The most entries a region's wandering encounter table may have (#403). */

@@ -12,7 +12,7 @@
  * rest.
  */
 
-import { FIFTH_ADVENTURE_FORMAT } from "./adventure-5e.js";
+import { FIFTH_ADVENTURE_FORMAT, MAX_REGIONS } from "./adventure-5e.js";
 import {
   fail,
   id,
@@ -106,6 +106,15 @@ function readPassage(
   if (raw.hidden !== undefined && raw.hidden !== true) {
     fail(`${where} hidden must be true, or left out.`);
   }
+  // The module validator's own refusals, so a sketch builds into a module.
+  if (sketch && raw.hidden === true && raw.openWhen !== undefined) {
+    fail(
+      `${where} is hidden and has openWhen: a band opens a hidden passage, a flag one already there to see.`,
+    );
+  }
+  if (sketch && raw.openWhen !== undefined && raw.openWhen === raw.closeWhen) {
+    fail(`${where} opens and closes on the same flag.`);
+  }
   let door: LayoutPassage["door"];
   if (raw.door !== undefined) {
     const state = isRecord(raw.door) ? raw.door.state : undefined;
@@ -196,7 +205,9 @@ export function readMapLayout(value: unknown): MapLayout {
     return entry;
   };
   const regions = (
-    value.regions === undefined ? [] : list(value.regions, "regions", 20)
+    value.regions === undefined
+      ? []
+      : list(value.regions, "regions", MAX_REGIONS)
   ).map((entry, index) => {
     const where = `region ${index + 1}`;
     const region = sketch
@@ -234,6 +245,21 @@ export function readMapLayout(value: unknown): MapLayout {
   for (const room of rooms) {
     if (room.region !== undefined && !regionIds.has(room.region)) {
       fail(`room ${room.id} names unknown region ${room.region}.`);
+    }
+  }
+  // As in a module: every room has a region, or none does, and each region
+  // has a room.
+  if (sketch && regions.length > 0) {
+    const index = rooms.findIndex(({ region }) => region === undefined);
+    if (index !== -1) {
+      fail(
+        `room ${index + 1} (${rooms[index]!.id}) has no region, but other rooms have one: give every room a region, or none.`,
+      );
+    }
+    for (const { id: regionId } of regions) {
+      if (!rooms.some(({ region }) => region === regionId)) {
+        fail(`region ${regionId} has no room: give it one, or leave it out.`);
+      }
     }
   }
   for (const passage of passages) {

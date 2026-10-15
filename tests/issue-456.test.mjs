@@ -132,6 +132,34 @@ test("a sketch is read strictly: only the module's map fields, in its own format
       (value) => (value.formatVersion = 2),
       "it is a layout sketch in format version 2, not 1. Move it aside; the file has not been changed.",
     ],
+    // What a module refuses, a sketch refuses too, in the module's words.
+    [
+      (value) =>
+        (value.regions = Array.from({ length: 11 }, (_, index) => ({
+          id: `region-${index}`,
+          name: `Region ${index}`,
+        }))),
+      "regions must list 1–10 entries.",
+    ],
+    [
+      (value) => delete value.rooms[1].region,
+      "room 2 (fox-hall) has no region, but other rooms have one: give every room a region, or none.",
+    ],
+    [
+      (value) => value.regions.push({ id: "den", name: "The Den" }),
+      "region den has no room: give it one, or leave it out.",
+    ],
+    [
+      (value) => (value.passages[1].openWhen = "roots-cut"),
+      "passage 2 is hidden and has openWhen: a band opens a hidden passage, a flag one already there to see.",
+    ],
+    [
+      (value) => {
+        value.passages[0].openWhen = "roots-cut";
+        value.passages[0].closeWhen = "roots-cut";
+      },
+      "passage 1 opens and closes on the same flag.",
+    ],
   ]) {
     const value = await sketch();
     change(value);

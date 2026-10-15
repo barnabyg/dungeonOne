@@ -180,7 +180,10 @@ the sketch is a matter of filling in the rest. Its kind is
   `locked`) and `trap` (`{}`, which the module fills in).
 
 Anything else is refused, and so is a reference to a room or region that isn't
-there. Keep sketches in `.scratch/` while you work, which git ignores, and
+there. The tool also refuses what the module validator would refuse of these
+fields: more than 10 regions, a region with no room, some rooms with a region
+and some without, a hidden passage with `openWhen`, and a passage that opens and
+closes on one flag. Keep sketches in `.scratch/` while you work, which git ignores, and
 paste them into the design ticket. `tests/fixtures/fox-barrow-sketch.json` is a
 complete example.
 
