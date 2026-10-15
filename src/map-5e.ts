@@ -66,7 +66,8 @@ export function readCell(value: unknown, where: string): Cell {
 export const readFloor = (value: unknown, where: string): number =>
   value === undefined ? 0 : integer(value, where, -MAX_FLOOR, MAX_FLOOR);
 
-const cellText = ([x, y]: Cell) => `[${x}, ${y}]`;
+/** A cell as the rules' messages and the mapping tool write it. */
+export const cellText = ([x, y]: Cell) => `[${x}, ${y}]`;
 const placeText = (room: MapRoom) =>
   `${room.id} on cell ${cellText(room.at)} of floor ${room.floor}`;
 
@@ -82,8 +83,23 @@ function cellsBetween(from: Cell, to: Cell): Cell[] {
   );
 }
 
-const isStraight = ([x1, y1]: Cell, [x2, y2]: Cell) =>
-  x1 === x2 || y1 === y2 || Math.abs(x2 - x1) === Math.abs(y2 - y1);
+/**
+ * A straight run from one cell to another: its step, -1, 0 or 1, on each
+ * axis and its length in cells; undefined if the run isn't horizontal,
+ * vertical or a 45° diagonal.
+ */
+export function straightRun(from: Cell, to: Cell) {
+  const x = to[0] - from[0];
+  const y = to[1] - from[1];
+  if (x !== 0 && y !== 0 && Math.abs(x) !== Math.abs(y)) {
+    return undefined;
+  }
+  return {
+    dx: Math.sign(x),
+    dy: Math.sign(y),
+    steps: Math.max(Math.abs(x), Math.abs(y)),
+  };
+}
 
 /** The turn from a to b to c: positive anticlockwise, 0 if in a line. */
 const turn = (a: Cell, b: Cell, c: Cell) =>
@@ -168,7 +184,7 @@ export function layoutErrors(
       );
       continue;
     }
-    if (!isStraight(from.at, to.at)) {
+    if (straightRun(from.at, to.at) === undefined) {
       errors.push(
         `passage ${passage.id} from ${placeText(from)} to ${to.id} on cell ${cellText(to.at)} is not a straight run: make it horizontal, vertical or a 45° diagonal.`,
       );
@@ -219,7 +235,7 @@ export function layoutErrors(
 }
 
 /** A passage on one floor this many cells long, or longer, is long. */
-export const LONG_PASSAGE = 3;
+const LONG_PASSAGE = 3;
 
 /**
  * Whether a passage's description reads as a doorway or a step rather than
@@ -274,15 +290,14 @@ export function layoutWarnings(
       from === undefined ||
       to === undefined ||
       from.floor !== to.floor ||
-      vertical !== undefined ||
-      !isStraight(from.at, to.at)
+      vertical !== undefined
     ) {
       continue;
     }
-    const cells = Math.max(
-      Math.abs(to.at[0] - from.at[0]),
-      Math.abs(to.at[1] - from.at[1]),
-    );
+    const cells = straightRun(from.at, to.at)?.steps;
+    if (cells === undefined) {
+      continue;
+    }
     if (cells >= LONG_PASSAGE) {
       warnings.push(
         `passage ${id} from ${from.id} to ${to.id} runs ${cells} cells on floor ${from.floor}: move the rooms closer, or put a room on the way.`,

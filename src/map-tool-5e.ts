@@ -12,7 +12,11 @@
  * rest.
  */
 
-import { FIFTH_ADVENTURE_FORMAT, MAX_REGIONS } from "./adventure-5e.js";
+import {
+  FIFTH_ADVENTURE_FORMAT,
+  FIFTH_ADVENTURE_KIND,
+  MAX_REGIONS,
+} from "./adventure-5e.js";
 import {
   fail,
   id,
@@ -24,17 +28,18 @@ import {
   unique,
 } from "./json-shape.js";
 import {
+  cellText,
   type MapPassage,
   type MapRoom,
   readCell,
   readFloor,
+  straightRun,
   VERTICAL_KINDS,
   type VerticalKind,
 } from "./map-5e.js";
 
-export const MAP_SKETCH_KIND = "dungeon-one-5e-map-sketch";
-export const MAP_SKETCH_FORMAT = 1;
-const MODULE_KIND = "dungeon-one-5e-adventure";
+const MAP_SKETCH_KIND = "dungeon-one-5e-map-sketch";
+const MAP_SKETCH_FORMAT = 1;
 const DOOR_STATES = ["stuck", "locked"] as const;
 
 export type LayoutRoom = MapRoom &
@@ -187,7 +192,7 @@ export function readMapLayout(value: unknown): MapLayout {
         `it is a layout sketch in format version ${String(value.formatVersion)}, not ${MAP_SKETCH_FORMAT}. Move it aside; the file has not been changed.`,
       );
     }
-  } else if (value.kind === MODULE_KIND) {
+  } else if (value.kind === FIFTH_ADVENTURE_KIND) {
     if (value.formatVersion !== FIFTH_ADVENTURE_FORMAT) {
       fail(
         `it is a 5e adventure module in format version ${String(value.formatVersion)}, not ${FIFTH_ADVENTURE_FORMAT}. Move it aside; the file has not been changed.`,
@@ -195,7 +200,7 @@ export function readMapLayout(value: unknown): MapLayout {
     }
   } else {
     fail(
-      `kind must be ${MAP_SKETCH_KIND} (a layout sketch) or ${MODULE_KIND} (a module).`,
+      `kind must be ${MAP_SKETCH_KIND} (a layout sketch) or ${FIFTH_ADVENTURE_KIND} (a module).`,
     );
   }
   const record = (entry: unknown, where: string) => {
@@ -288,54 +293,45 @@ export function readMapLayout(value: unknown): MapLayout {
 const label = (index: number) =>
   String.fromCharCode(index < 26 ? 65 + index : 71 + index);
 
-const cellText = ([x, y]: readonly [number, number]) => `[${x}, ${y}]`;
-
 /** The floors with rooms, highest first. */
 const floorsOf = (layout: MapLayout) =>
   [...new Set(layout.rooms.map(({ floor }) => floor))].sort((a, b) => b - a);
 
-/** The cells' extent over every floor, so the floors line up. */
-function extent(layout: MapLayout) {
+/** The rows a floor's rooms span, from its lowest y to its highest. */
+function floorRows(layout: MapLayout, floor: number) {
+  const ys = layout.rooms
+    .filter((room) => room.floor === floor)
+    .map(({ at }) => at[1]);
+  return { minY: Math.min(...ys), maxY: Math.max(...ys) };
+}
+
+/** A passage's two rooms, from the layout's rooms by id. */
+function passageEnds(layout: MapLayout) {
+  const byId = new Map(layout.rooms.map((room) => [room.id, room]));
+  return (passage: LayoutPassage) =>
+    passage.between.map((roomId) => byId.get(roomId)!) as [
+      LayoutRoom,
+      LayoutRoom,
+    ];
+}
+
+/** The columns every floor's rooms span, so the floors line up. */
+function columns(layout: MapLayout) {
   const xs = layout.rooms.map(({ at }) => at[0]);
-  const ys = layout.rooms.map(({ at }) => at[1]);
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-  };
+  return { minX: Math.min(...xs), maxX: Math.max(...xs) };
 }
 
-/**
- * A straight run's direction, a step of -1, 0 or 1 on each axis, and its
- * length in cells; undefined if the run isn't straight (a layout error),
- * which the drawings leave out.
- */
-function straightRun(from: LayoutRoom, to: LayoutRoom) {
-  const x = to.at[0] - from.at[0];
-  const y = to.at[1] - from.at[1];
-  if (x !== 0 && y !== 0 && Math.abs(x) !== Math.abs(y)) {
-    return undefined;
-  }
-  return {
-    dx: Math.sign(x),
-    dy: Math.sign(y),
-    steps: Math.max(Math.abs(x), Math.abs(y)),
-  };
-}
-
-/** A passage's marks, as the text and the SVG legend list them. */
-function passageMarks(
+/** A passage between floors, as the text lists it. */
+const verticalText = (
   passage: LayoutPassage,
   from: LayoutRoom,
   to: LayoutRoom,
-) {
+) =>
+  `${passage.vertical!}, ${to.floor > from.floor ? "up" : "down"} from floor ${from.floor} to floor ${to.floor}`;
+
+/** A passage's marks but its floors: a door, hidden, a trap and flags. */
+function passageMarks(passage: LayoutPassage) {
   return [
-    ...(passage.vertical === undefined
-      ? []
-      : [
-          `${passage.vertical}, ${to.floor > from.floor ? "up" : "down"} from floor ${from.floor} to floor ${to.floor}`,
-        ]),
     ...(passage.door === undefined ? [] : [`${passage.door} door`]),
     ...(passage.hidden ? ["hidden"] : []),
     ...(passage.trap ? ["trap"] : []),
@@ -365,11 +361,11 @@ const table = (rows: readonly (readonly string[])[]) => {
  * between floors).
  */
 export function drawMapText(layout: MapLayout): string {
-  const { minX, maxX } = extent(layout);
+  const { minX, maxX } = columns(layout);
   const labels = new Map(
     layout.rooms.map((room, index) => [room.id, label(index)]),
   );
-  const byId = new Map(layout.rooms.map((room) => [room.id, room]));
+  const ends = passageEnds(layout);
   // A cell is four characters wide and two lines tall: a room's box, then
   // the gap a passage crosses to the next cell. Every floor has the same
   // columns, but only its own rows.
@@ -378,11 +374,7 @@ export function drawMapText(layout: MapLayout): string {
     `${layout.title} (${layout.id}): a ${layout.source} of ${layout.rooms.length} rooms and ${layout.passages.length} passages.`,
   ];
   for (const floor of floorsOf(layout)) {
-    const ys = layout.rooms
-      .filter((room) => room.floor === floor)
-      .map(({ at }) => at[1]);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    const { minY, maxY } = floorRows(layout, floor);
     const line = (y: number) => 2 * (y - minY);
     const grid = Array.from({ length: line(maxY) + 1 }, (_, row) => [
       ...(row % 2 === 0 ? `${String(row / 2 + minY).padStart(3)}  ` : "     "),
@@ -391,19 +383,16 @@ export function drawMapText(layout: MapLayout): string {
     const put = (row: number, col: number, char: string) => {
       grid[row]![col] = char;
     };
-    for (const { between, vertical } of layout.passages) {
-      const [from, to] = between.map((roomId) => byId.get(roomId)!) as [
-        LayoutRoom,
-        LayoutRoom,
-      ];
+    for (const passage of layout.passages) {
+      const [from, to] = ends(passage);
       if (
-        vertical !== undefined ||
+        passage.vertical !== undefined ||
         from.floor !== floor ||
         to.floor !== floor
       ) {
         continue;
       }
-      const run = straightRun(from, to);
+      const run = straightRun(from.at, to.at);
       if (run === undefined) {
         continue;
       }
@@ -466,11 +455,13 @@ export function drawMapText(layout: MapLayout): string {
     ),
   );
   const marked = layout.passages.flatMap((passage) => {
-    const [from, to] = passage.between.map((roomId) => byId.get(roomId)!) as [
-      LayoutRoom,
-      LayoutRoom,
+    const [from, to] = ends(passage);
+    const marks = [
+      ...(passage.vertical === undefined
+        ? []
+        : [verticalText(passage, from, to)]),
+      ...passageMarks(passage),
     ];
-    const marks = passageMarks(passage, from, to);
     return marks.length === 0
       ? []
       : [
@@ -543,21 +534,16 @@ const arrow = (from: LayoutRoom, to: LayoutRoom) =>
 
 /**
  * The layout as an SVG: each floor from the top down, all on the same
- * columns so a stair's two ends line up; each room a box on its cell, shaded by its
- * region and labelled by name and id, with the start and exit rooms and its
- * stairs, ladders and shafts marked; each passage on a floor a line, dashed
- * if hidden and dotted if a flag opens or closes it, with a door and a trap
- * marked on it; then a legend of the regions, the marks and the passages
- * between floors.
+ * columns so a stair's two ends line up; each room a box on its cell,
+ * shaded by its region and labelled by name and id, with the start and exit
+ * rooms and its stairs, ladders and shafts marked; each passage on a floor a
+ * line, dashed if hidden and dotted if a flag opens or closes it, with a
+ * door and a trap marked on it; then a legend of the regions, the marks and
+ * the passages between floors.
  */
 export function drawMapSvg(layout: MapLayout): string {
-  const { minX, maxX } = extent(layout);
-  const byId = new Map(layout.rooms.map((room) => [room.id, room]));
-  const ends = (passage: LayoutPassage) =>
-    passage.between.map((roomId) => byId.get(roomId)!) as [
-      LayoutRoom,
-      LayoutRoom,
-    ];
+  const { minX, maxX } = columns(layout);
+  const ends = passageEnds(layout);
   const shades = new Map(
     layout.regions.map(({ id: key }, index) => [
       key,
@@ -576,11 +562,7 @@ export function drawMapSvg(layout: MapLayout): string {
   for (const floor of floorsOf(layout)) {
     // Every floor has the same columns, so a stair's ends line up, but
     // only its own rows.
-    const ys = layout.rooms
-      .filter((room) => room.floor === floor)
-      .map(({ at }) => at[1]);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    const { minY, maxY } = floorRows(layout, floor);
     const cellsTop = top + 2 * LINE + 10;
     const centre = ([x, y]: readonly [number, number]) =>
       [
@@ -613,7 +595,7 @@ export function drawMapSvg(layout: MapLayout): string {
         passage.vertical !== undefined ||
         from.floor !== floor ||
         to.floor !== floor ||
-        straightRun(from, to) === undefined
+        straightRun(from.at, to.at) === undefined
       ) {
         continue;
       }
@@ -765,7 +747,7 @@ export function drawMapSvg(layout: MapLayout): string {
     heading("Between floors");
     for (const passage of verticals) {
       const [from, to] = ends(passage);
-      const marks = passageMarks(passage, from, to).slice(1);
+      const marks = passageMarks(passage);
       legend.push(
         `<text x="${LEFT}" y="${y + 4}" font-size="12">${escape(`${from.name} ${arrow(from, to)} ${passage.vertical!} to ${to.name} (floor ${to.floor})${marks.length === 0 ? "" : `: ${marks.join(", ")}`}`)}</text>`,
       );

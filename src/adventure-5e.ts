@@ -261,6 +261,8 @@ import {
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
 export const FIFTH_ADVENTURE_FORMAT = 43;
+/** The `kind` every adventure module file declares. */
+export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -2216,7 +2218,7 @@ function validateModule(
   value: unknown,
   bestiary: FifthBestiary,
 ): FifthAdventure {
-  if (!isRecord(value) || value.kind !== "dungeon-one-5e-adventure") {
+  if (!isRecord(value) || value.kind !== FIFTH_ADVENTURE_KIND) {
     fail("not a 5e adventure module.");
   }
   if (value.formatVersion !== FIFTH_ADVENTURE_FORMAT) {
@@ -4731,7 +4733,7 @@ export async function loadFifthAdventure(
   }
   if (
     isRecord(decoded) &&
-    decoded.kind === "dungeon-one-5e-adventure" &&
+    decoded.kind === FIFTH_ADVENTURE_KIND &&
     decoded.formatVersion !== FIFTH_ADVENTURE_FORMAT
   ) {
     throw new Error(
