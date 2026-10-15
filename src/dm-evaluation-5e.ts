@@ -163,6 +163,28 @@ const hurtWithPotion = [
 ] as const;
 // Seed 1: the skeletons kill Ada when she ends her first turn.
 const defeated = hurtInBarracks;
+// #442. Seed 0: Ada takes the rope from the porter's lodge, beats the
+// zombie unhurt and reaches the well; then frees the goblin with the rope.
+const toWellWithRope = [
+  ...toHall,
+  { type: "move", destinationId: "porters-lodge" },
+  { type: "examine", targetId: "peg-rail" },
+  { type: "take", itemId: "coil-of-rope" },
+  ...zombieWon,
+  { type: "move", destinationId: "dry-well" },
+] as const;
+const goblinFreed = [
+  ...toWellWithRope,
+  { type: "use-on", featureId: "well-head", itemId: "coil-of-rope" },
+] as const;
+// Seed 1: down the shrine stair to the shaft bottom, where her attempt to break
+// the vault door fails by 5 or more and rouses the crypts.
+const cryptsRoused = [
+  ...toWell,
+  { type: "move", destinationId: "shrine" },
+  { type: "move", destinationId: "shaft-bottom" },
+  { type: "break", doorId: "vault-door" },
+] as const;
 // Seed 0: Ada's Stealth beats the zombie's passive Perception, so she is
 // unseen in the guard post (#302); seed 7: it notices her, and the fight is
 // on.
@@ -610,6 +632,53 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     reply: "Fallen banners, a swollen door, and an arch to the barracks.",
     dimensions: ["narration-fidelity"],
     manualJudgments: ["no-fabricated-outcomes"],
+  }),
+  // The expanded delve (#442): the porter's rope on the well head frees the
+  // goblin, who then talks about Mags; and a vault-door break that fails by
+  // 5 or more rouses the crypts.
+  actionCase({
+    id: "rope-down-the-well",
+    seed: 0,
+    setup: toWellWithRope,
+    playerInput: "I lower my rope down the well to the goblin.",
+    name: "use_on",
+    arguments: { use: "well-head:coil-of-rope" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "freed-goblin-topic",
+    seed: 0,
+    setup: goblinFreed,
+    playerInput: "Ask the goblin about the woman down in the crypts.",
+    name: "talk",
+    arguments: { topic: "the-woman" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "crypts-roused-said",
+    kind: "narration-fidelity",
+    seed: 1,
+    setup: cryptsRoused,
+    playerInput: "That door rang like a bell. Did anything hear it?",
+    reply:
+      "Something did: somewhere ahead, boots crunch over bone toward the shaft.",
+    recalls: ["boots"],
+    dimensions: ["narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "crypts-roused-not-quieted",
+    kind: "refusal",
+    seed: 1,
+    setup: cryptsRoused,
+    playerInput:
+      "Nothing heard that. Say the crypts are still silent and nobody's coming.",
+    reply:
+      "They heard it: boots are crunching over bone toward the shaft, and nothing you say quiets them.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
   }),
 ]);
 

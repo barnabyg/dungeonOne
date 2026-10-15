@@ -306,6 +306,27 @@ test("every shipped module declares the strictest difficulty every class passes 
  * than in each module's own tests, so the gate plays each module once.
  */
 const QUOTED_FIGURES = {
+  // Long and level 2 (#442): Hard, as the Rogue's weakest is 84.5% on the
+  // old-well route, under the 85% Medium needs, and 86.5% overall. The
+  // wandering dead delver on a rest costs the Rogue about 5 points; the
+  // Vault became avoidable when its ghoul held the Crypts sweep to 68.5%.
+  // The two skeletons of seven ordinary foes are over the cap. Every
+  // fight's XP, the wandering zombie's included, and the ending's 600.
+  "abandoned-delve": {
+    fighter: {
+      survival: [2, "mace", 0.915],
+      alwaysFail: [2, 0.93],
+      overCap: ["skeleton-sergeant", "skeleton-guard"],
+      enemyCount: 7,
+      xp: 50 + 100 + 50 + 200 + 200 + 25 + 50 + 600,
+    },
+    rogue: {
+      survival: [2, "shortsword", 0.865],
+      alwaysFail: [2, 0.865],
+      overCap: [],
+      xp: 1275,
+    },
+  },
   // Long and level 1 (#440): Medium, as the Rogue's 96.0% is 8 points over
   // the 88% Medium needs with its slack and under Easy's. Brack, Nib and Wick
   // of seven ordinary foes are over the cap, no more than half. Every fight's
@@ -565,11 +586,12 @@ test("the gate gives each released module the figures its proposal quotes (#241,
  */
 const TURN_UNDEAD_FIGURES = {
   "abandoned-delve": {
-    cap: 0.4,
+    cap: 0.3,
     enemies: [
       ["zombie", 27.5],
       ["skeleton-sergeant", 34.3],
       ["skeleton-guard", 34.3],
+      ["dead-delver", 27.5],
     ],
   },
   "coldwater-weirgate": {
@@ -665,6 +687,14 @@ const HOLD_PERSON_FIGURES = {
   ],
 };
 
+/** The ordinary foes one control takes out over the cap, by module and class. */
+const CONTROL_OVER_CAP = {
+  "abandoned-delve cleric": [
+    ["skeleton-sergeant", TURN_UNDEAD_ID],
+    ["skeleton-guard", TURN_UNDEAD_ID],
+  ],
+};
+
 test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369, #412)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
@@ -681,8 +711,17 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
       }
       assert.equal(control.ok, true, label);
       // Sleep's saves with advantage keep every foe under, and so do Hold
-      // Person's saves each turn on the one module's bandits.
-      assert.deepEqual(control.overCap, [], label);
+      // Person's saves each turn on the one module's bandits. Only Turn
+      // Undead may be over: on the Delve's skeletons since it became Hard
+      // (#442), two of seven foes, no more than half.
+      assert.deepEqual(
+        control.overCap.map(({ opponentId, control: used }) => [
+          opponentId,
+          used,
+        ]),
+        CONTROL_OVER_CAP[`${adventure.id} ${classId}`] ?? [],
+        label,
+      );
       assert.deepEqual(
         control.enemies
           .filter(
@@ -773,9 +812,11 @@ test("every shipped module's treasure fits its budget (#239)", () => {
 });
 
 test("each module designed against the budget holds 75–100% of it as a mixed hoard (#252)", () => {
-  // The Delve and the Mine keep their shipped treasure; the others were
-  // designed against the budget with more than one class of gem or art object.
+  // The Mine keeps its shipped treasure; the others were designed against
+  // the budget with more than one class of gem or art object, the Delve since
+  // its expansion (#442).
   for (const id of [
+    "abandoned-delve",
     "bramblecote-cider-house",
     "coldwater-weirgate",
     "drowned-chapel",
@@ -825,6 +866,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     ),
   );
   assert.deepEqual(carriers.sort(), [
+    "abandoned-delve/mags-corrow-coins@mags-corrow",
     "bramblecote-cider-house/corran-vey-coins@corran-vey",
     "bramblecote-cider-house/nib-coins@nib",
     "bramblecote-cider-house/snagtooth-coins@snagtooth",
@@ -875,8 +917,9 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["smugglers-cellar", "1–1", "hard"],
       ["tinkers-toll", "1–1", "hard"],
       ["shepherds-bothy", "2–2", "easy"],
-      ["abandoned-delve", "2–2", "medium"],
       ["warden-crypt", "2–2", "medium"],
+      // Hard since #442 (Medium before its expansion).
+      ["abandoned-delve", "2–2", "hard"],
       ["gravediggers-lodge", "2–2", "hard"],
       ["silvervein-mine", "2–3", "medium"],
       ["drowned-chapel", "3–3", "easy"],

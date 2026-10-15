@@ -194,12 +194,20 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
 
-- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, level 2, Medium): ten
-  rooms under a ruined keep. A Zombie that keeps getting up guards the way in,
-  two Skeletons that shatter under clubs and maces the barracks, a Giant Spider
-  an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
-  goblin to question, treasure and coin hidden in features, and a
-  second exit beside the vault where you choose to climb out or push on.
+- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, level 2, Hard):
+  a long module of sixteen rooms in two regions under a ruined keep, the keep
+  cellars and the crypts below, with a rest site and an exit in each. A
+  Zombie that keeps getting up guards the way in, and a wolf dens in the
+  fallen kitchen. Go down by the trapped shrine stair, or lower the porter's
+  rope down the dry well: it frees the goblin stuck there, who then talks
+  about the crypts, and opens a second way down past a flooded cistern to the
+  ossuary, where Mags Corrow, a rival treasure-hunter, is prying gold teeth
+  from skulls. Make too much noise in the crypts and she runs for the shaft.
+  Off the way, two Skeletons hold the barracks, a Giant Spider a webbed
+  crypt, and a Ghoul the lord's vault, where a stack of coffers can be
+  toppled on it; the lord's sarcophagus opens by strength or by finding its
+  catch, and a dead delver may come upon you as you rest. Climb out with
+  loot for 600 XP, enough for level 3.
 - _The Bramblecote Cider House_ (`adventures/5e/bramblecote-cider-house.json`,
   level 1, Medium): a long module of seventeen rooms in two regions, a
   hillside cider farm and the vaults cut under it, with a rest site and an
@@ -708,8 +716,9 @@ These are for development, not play.
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
-  `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 1443
-  by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
+  `--max-calls`, default 160) plays The Abandoned Delve on a route generated
+  from the balance harness's cautious run (#442; seed 0 by default) from a
+  saved level-2 Ada, or with `--adventure tinkers-toll` The Tinker's Toll with its
   trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
   (seed 47) from a saved level-3 Ada, through the browser server, typing every
   step to the AI DM

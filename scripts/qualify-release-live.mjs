@@ -1,6 +1,7 @@
 // Opt-in live release run: a module played from start to an ending through
 // the 5e browser server, its API and its saves (The Abandoned Delve for #140
-// by default, The Tinker's Toll for #211 with --adventure tinkers-toll, or
+// by default, on a generated route since its expansion (#442), played by a
+// saved level-2 Ada, The Tinker's Toll for #211 with --adventure tinkers-toll, or
 // The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
 // saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
 // #291 with --adventure thornwood-lodge, played by a saved level-4 Ada with
@@ -45,7 +46,6 @@ import {
 } from "../dist/openai-dm-model.js";
 import {
   COUNTING_HOUSE_ROUTE,
-  DELVE_FULL_ROUTE,
   generateReleaseRun,
   LODGE_ROUTE,
   MINE_FULL_ROUTE,
@@ -64,9 +64,11 @@ const USAGE =
 
 // Each release run's issue, route and default seed, on which its character
 // clears the route and walks out when each step is taken as planned. A run with a
-// `character` starts from a library holding it, already saved.
+// `character` starts from a library holding it, already saved. A `generated`
+// run always plays the route generated on its seed (#409), as --generated
+// does, under its own issue.
 const RUNS = {
-  "abandoned-delve": { issue: 140, route: DELVE_FULL_ROUTE, seed: "1443" },
+  "abandoned-delve": { issue: 140, generated: true, seed: "0" },
   "tinkers-toll": { issue: 211, route: TOLL_FULL_ROUTE, seed: "0" },
   "silvervein-mine": {
     issue: 241,
@@ -120,6 +122,8 @@ for (let index = 0; index < args.length; index += 1) {
     usage();
   }
 }
+const own = RUNS[options.adventure];
+generated ||= own?.generated === true;
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === options.adventure,
 );
@@ -136,13 +140,13 @@ if (
 const run = generated
   ? {
       seed: "0",
-      ...RUNS[options.adventure],
-      issue: 409,
+      ...own,
+      // A run that is always generated keeps its own issue.
+      issue: own?.generated ? own.issue : 409,
       character:
-        RUNS[options.adventure]?.character ??
-        (() => libraryAt(adventure.recommendedLevels.min)),
+        own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
     }
-  : RUNS[options.adventure];
+  : own;
 const dryRun = mode === "--dry-run";
 options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
 options.seed ??= run.seed;

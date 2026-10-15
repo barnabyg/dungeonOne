@@ -1,12 +1,12 @@
 /**
  * The release runs: a module played from start to an ending through a
  * browser server's API, every turn typed to the AI DM as a player would.
- * The #140 run visits every room of The Abandoned Delve, fights every
- * encounter, loots every treasure and coin and climbs out. The #211 run
- * clears The Tinker's Toll, equips the shield it finds, buys and wields a
- * shortsword with the coin it finds, sells its mace and walks out. The #311
- * run takes a Rogue through The Counting-House on Mallow Quay: a parley and a
- * toll, a sneak past a lurking goblin and an ambush, and a picked lock.
+ * The #140 run plays The Abandoned Delve on a generated route (#442). The
+ * #211 run clears The Tinker's Toll, equips the shield it finds, buys and
+ * wields a shortsword with the coin it finds, sells its mace and walks out.
+ * The #311 run takes a Rogue through The Counting-House on Mallow Quay: a
+ * parley and a toll, a sneak past a lurking goblin and an ambush, and a
+ * picked lock.
  *
  * Each route step names the action-bar action it wants and the words a
  * player would type for it. When the AI DM's turn leaves that action still
@@ -18,7 +18,7 @@
  * make the extra attack with a second light weapon.
  *
  * A route is hand-written or generated (#409). A hand-written route
- * (`DELVE_FULL_ROUTE` and the rest) is for a shipped module whose release
+ * (`TOLL_FULL_ROUTE` and the rest) is for a shipped module whose release
  * run checks particular moments: a trade, a parley, a surrender, a retry,
  * with phrasing chosen to test the AI DM. Those routes stay as they are,
  * capped at 400 turns. `generateReleaseRun` builds a route from the balance
@@ -98,150 +98,6 @@ export type ReleaseTurn = Readonly<{
   cards: readonly Readonly<{ kind: string; text: string }>[];
   hp: number;
 }>;
-
-/** The whole dungeon, in play order; fights run between steps. */
-export const DELVE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
-  {
-    action: "examine",
-    target: "chalk-marks",
-    say: "Read the chalk marks on the gatepost.",
-  },
-  {
-    action: "move",
-    target: "gate-hall",
-    say: "Head through the gate into the hall.",
-  },
-  {
-    action: "force",
-    target: "swollen-door",
-    say: "Put my shoulder to the swollen door and force it.",
-  },
-  { action: "move", target: "storeroom", say: "Go into the storeroom." },
-  {
-    action: "examine",
-    target: "old-barrel",
-    say: "Open the sealed barrel and look inside.",
-  },
-  {
-    action: "take",
-    target: "barrel-potion",
-    say: "Take the potion out of the barrel.",
-  },
-  { action: "move", target: "gate-hall", say: "Back out to the gate hall." },
-  { action: "move", target: "guard-post", say: "Go to the guard post." },
-  {
-    action: "examine",
-    target: "weapon-rack",
-    say: "Search the weapon rack.",
-  },
-  {
-    action: "take",
-    target: "rack-potion",
-    say: "Grab the vial from behind the spears.",
-  },
-  {
-    action: "examine",
-    target: "overturned-table",
-    say: "Look under the overturned table.",
-  },
-  { action: "take", target: "guard-purse", say: "Take the guard's purse." },
-  { action: "move", target: "gate-hall", say: "Return to the gate hall." },
-  {
-    action: "move",
-    target: "barracks",
-    say: "Go through the arch into the barracks.",
-  },
-  {
-    action: "examine",
-    target: "footlocker",
-    say: "Rummage through the footlocker.",
-  },
-  { action: "take", target: "dagger-hilt", say: "Take the dagger hilt." },
-  { action: "move", target: "gate-hall", say: "Head back to the gate hall." },
-  { action: "move", target: "guard-post", say: "Go to the guard post." },
-  {
-    action: "move",
-    target: "dry-well",
-    say: "Squeeze through the narrow way to the well.",
-  },
-  {
-    action: "talk",
-    target: "the-vault",
-    say: "Ask the goblin what it knows about the vault.",
-  },
-  {
-    action: "talk",
-    target: "the-stair",
-    say: "Talk the goblin into telling me about the stair.",
-  },
-  {
-    action: "search",
-    target: "dry-well",
-    say: "Check the stair down for traps before I use it.",
-  },
-  { action: "disarm", target: "loose-step", say: "Disarm the loose step." },
-  {
-    action: "move",
-    target: "shrine",
-    say: "Go down the stair to the shrine.",
-  },
-  { action: "examine", target: "altar", say: "Look over the altar." },
-  { action: "take", target: "bronze-key", say: "Take the bronze key." },
-  {
-    action: "take",
-    target: "candlesticks",
-    say: "Take the silver candlesticks too.",
-  },
-  {
-    action: "move",
-    target: "shaft-bottom",
-    say: "Follow the passage toward daylight.",
-  },
-  {
-    action: "examine",
-    target: "knotted-rope",
-    say: "Test the knotted rope.",
-  },
-  {
-    action: "move",
-    target: "web-crypt",
-    say: "Push through the webs into the crypt.",
-  },
-  {
-    action: "examine",
-    target: "cocoon",
-    say: "Cut open the hanging cocoon.",
-  },
-  { action: "take", target: "gold-ring", say: "Take the gold ring." },
-  {
-    action: "move",
-    target: "shaft-bottom",
-    say: "Go back to the bottom of the shaft.",
-  },
-  {
-    action: "unlock",
-    target: "vault-door",
-    say: "Unlock the vault door with the bronze key.",
-  },
-  { action: "move", target: "vault", say: "Go into the vault." },
-  {
-    action: "examine",
-    target: "iron-chest",
-    say: "Look in the iron chest.",
-  },
-  { action: "take", target: "coin-chest", say: "Scoop up the gold coins." },
-  {
-    action: "take",
-    target: "jewelled-goblet",
-    say: "Take the jewelled goblet.",
-  },
-  {
-    action: "move",
-    target: "shaft-bottom",
-    say: "Back to the shaft and the rope.",
-  },
-  { action: "leave", target: "shaft-bottom" },
-]);
 
 /**
  * The Tinker's Toll, in play order: the wolf at the ford, the shield and
@@ -684,7 +540,7 @@ export const COUNTING_HOUSE_ROUTE: readonly ReleaseStep[] = Object.freeze([
 
 /**
  * A generated release run's turn cap, per room of its module (#409): the
- * hand-written runs' 400 turns for the Delve's ten rooms.
+ * hand-written runs' 400 turns over the ten rooms the Delve had then.
  */
 export const RELEASE_TURNS_PER_ROOM = 40;
 
@@ -976,13 +832,13 @@ async function post(
 export async function playReleaseRun(options: {
   url: string;
   session: ReleaseSessionView;
-  route?: readonly ReleaseStep[];
+  route: readonly ReleaseStep[];
   maxTurns?: number;
   onTurn?: (turn: ReleaseTurn) => void;
 }): Promise<
   Readonly<{ session: ReleaseSessionView; turns: readonly ReleaseTurn[] }>
 > {
-  const { url, route = DELVE_FULL_ROUTE, maxTurns = 400 } = options;
+  const { url, route, maxTurns = 400 } = options;
   let view = options.session;
   const turns: ReleaseTurn[] = [];
   const record = (turn: ReleaseTurn) => {

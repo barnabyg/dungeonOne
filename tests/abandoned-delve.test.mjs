@@ -1,8 +1,12 @@
-// #136: The Abandoned Delve, the first real 5e adventure module. It holds
-// what the ticket asks for, and scripted-DM journeys reach each of its
+// #136: The Abandoned Delve, the first real 5e adventure module, expanded
+// for #442 as the owner approved it on #441: a long level-2 module of
+// sixteen rooms in two regions, the Keep Cellars and the Crypts, with the
+// rope that frees the goblin and opens the well, Mags Corrow the rival, the
+// crypts' alarm, the vault's coffer stack, the lord's sarcophagus and a
+// wandering dead delver on rests. Scripted-DM journeys reach each of its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty. The DM evaluation's cases and the live qualification, both
-// written for it (#138), are checked here too.
+// difficulty, with its quoted figures. The DM evaluation's cases and the
+// live qualification, both written for it (#138), are checked here too.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -10,8 +14,11 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
-import { requiredPath } from "../dist/balance-5e.js";
+import {
+  findableValue,
+  loadBuiltInFifthAdventures,
+} from "../dist/adventure-5e.js";
+import { regionSweeps, requiredPath } from "../dist/balance-5e.js";
 import {
   FIFTH_DM_CASES,
   offeredToolsMatchActions,
@@ -23,7 +30,10 @@ import { runDmTurn } from "../dist/dm-turn.js";
 import { buildCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { testFighterAt } from "../dist/test-fighter-5e.js";
+import { treasureBudget } from "../dist/treasure-5e.js";
 import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
+import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
 
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
@@ -53,73 +63,305 @@ const WEAK = buildCharacter(
 );
 
 const room = (id) => delve.rooms.find((entry) => entry.id === id);
-const encounter = (id) => delve.encounters.find((entry) => entry.id === id);
 const passage = (from, to) =>
   delve.passages.find(
     ({ between }) => between.includes(from) && between.includes(to),
   );
-/** The loot in a room: treasure and coin. */
-const treasureIn = (roomId) =>
-  room(roomId).items.filter(
-    ({ kind }) => kind === "treasure" || kind === "coin",
-  );
+const feature = (roomId, id) =>
+  room(roomId).features.find((entry) => entry.id === id);
+const level2 = testFighterAt(2);
 
-// #233: Undead Fortitude made its Zombie too deadly at level 1. #252: its
-// cautious route survives 96%, so it is declared Medium.
-test("the delve is a 10-room crawl for level 2, declared medium", () => {
+// #233: Undead Fortitude made its Zombie too deadly at level 1. #442: the
+// weakest level-2 Rogue survives the old-well route 84.5%, under Medium's
+// 85%, so the expanded delve is declared Hard.
+test("the delve is a long level-2 Hard module of sixteen rooms in two regions, left by the gate or the shaft", () => {
   assert.equal(delve.title, "The Abandoned Delve");
   assert.deepEqual(delve.recommendedLevels, { min: 2, max: 2 });
-  assert.equal(delve.difficulty, "medium");
-  assert.equal(delve.rooms.length, 10);
+  assert.equal(delve.difficulty, "hard");
+  assert.equal(delve.long, true);
   assert.deepEqual(
-    delve.rooms.filter(({ exit }) => exit).map(({ id }) => id),
-    ["broken-gate", "shaft-bottom"],
+    delve.regions.map(({ id, name }) => [id, name]),
+    [
+      ["cellars", "The Keep Cellars"],
+      ["crypts", "The Crypts"],
+    ],
   );
+  assert.deepEqual(
+    delve.rooms.map(({ id, region, exit, restSite, avoidable }) => [
+      id,
+      region,
+      exit === true,
+      restSite === true,
+      avoidable === true,
+    ]),
+    [
+      ["broken-gate", "cellars", true, false, false],
+      ["gate-hall", "cellars", false, false, false],
+      ["guard-post", "cellars", false, false, false],
+      ["barracks", "cellars", false, false, true],
+      ["storeroom", "cellars", false, false, false],
+      ["dry-well", "cellars", false, false, false],
+      ["porters-lodge", "cellars", false, true, false],
+      ["fallen-kitchen", "cellars", false, false, false],
+      ["shrine", "crypts", false, true, false],
+      ["web-crypt", "crypts", false, false, true],
+      ["shaft-bottom", "crypts", true, false, false],
+      // Avoidable since #442: its ghoul held the Crypts sweep to 68.5%.
+      ["vault", "crypts", false, false, true],
+      ["well-bottom", "crypts", false, false, false],
+      ["flooded-cistern", "crypts", false, false, false],
+      ["ossuary", "crypts", false, false, false],
+      ["lords-tomb", "crypts", false, false, false],
+    ],
+  );
+  assert.deepEqual(
+    delve.endings.map(({ id, kind, xp }) => [id, kind, xp]),
+    [
+      ["out-with-the-loot", "escape-with-loot", 600],
+      ["out-empty-handed", "escape-without-loot", undefined],
+      ["lost-in-the-delve", "defeat", undefined],
+    ],
+  );
+  assert.deepEqual(delve.flags, ["goblin-freed", "delve-roused"]);
+  assert.deepEqual(delve.wanderingEncounter, {
+    encounterId: "dead-delver",
+    chance: 25,
+  });
 });
 
-test("it holds a group fight, an avoidable fight, a trap, a stuck and a locked door, and a talkable creature", () => {
-  assert.equal(encounter("barracks-skeletons").opponents.length, 2);
-  const required = requiredPath(delve).roomIds;
-  assert.deepEqual(required, ["broken-gate", "gate-hall", "guard-post"]);
-  // Every fight but the guard post's lies off the required path.
-  const fought = delve.rooms.filter(({ encounterId }) => encounterId);
+test("its fights: the ghoul is the only boss, Mags runs to the shaft when the crypts are roused, and a dead delver wanders", () => {
   assert.deepEqual(
-    fought
-      .filter(({ id }) => !required.includes(id))
-      .map(({ encounterId }) => encounterId),
-    ["barracks-skeletons", "crypt-spider", "vault-ghoul"],
+    delve.encounters.map(({ id, opponents, movesTo }) => [
+      id,
+      opponents.map(({ id: opponentId, statBlock, boss }) => [
+        opponentId,
+        statBlock.name,
+        boss === true,
+      ]),
+      movesTo,
+    ]),
+    [
+      ["guard-zombie", [["zombie", "Zombie", false]], undefined],
+      [
+        "barracks-skeletons",
+        [
+          ["skeleton-sergeant", "Skeleton", false],
+          ["skeleton-guard", "Skeleton", false],
+        ],
+        undefined,
+      ],
+      ["kitchen-wolf", [["grey-wolf", "Wolf", false]], undefined],
+      ["crypt-spider", [["giant-spider", "Giant Spider", false]], undefined],
+      ["vault-ghoul", [["ghoul", "Ghoul", true]], undefined],
+      [
+        "ossuary-rival",
+        [["mags-corrow", "Bandit", false]],
+        { roomId: "shaft-bottom", when: "delve-roused" },
+      ],
+      ["dead-delver", [["dead-delver", "Zombie", false]], undefined],
+    ],
+  );
+  assert.equal(delve.alarm.flag, "delve-roused");
+  assert.deepEqual(delve.alarm.fights, [{ region: "crypts", round: 4 }]);
+  // Nothing closes: the alarm only moves Mags, so no exit is cut off.
+  assert.ok(delve.passages.every(({ closeWhen }) => closeWhen === undefined));
+});
+
+test("two ways lead down, the shrine stair past the zombie and the goblin's well with the porter's rope", () => {
+  assert.deepEqual(
+    delve.routes.map((route) => [route.id, requiredPath(delve, route).roomIds]),
+    [
+      [
+        "shrine-stair",
+        [
+          "broken-gate",
+          "gate-hall",
+          "guard-post",
+          "dry-well",
+          "shrine",
+          "shaft-bottom",
+        ],
+      ],
+      [
+        "old-well",
+        [
+          "broken-gate",
+          "gate-hall",
+          "porters-lodge",
+          "guard-post",
+          "dry-well",
+          "well-bottom",
+          "flooded-cistern",
+          "ossuary",
+          "shaft-bottom",
+          "shrine",
+        ],
+      ],
+    ],
+  );
+  assert.deepEqual(
+    regionSweeps(delve).map(({ region, rooms }) => [region, rooms]),
+    [
+      [
+        "cellars",
+        [
+          "broken-gate",
+          "gate-hall",
+          "guard-post",
+          "storeroom",
+          "dry-well",
+          "porters-lodge",
+          "fallen-kitchen",
+        ],
+      ],
+      [
+        "crypts",
+        [
+          "shrine",
+          "shaft-bottom",
+          "well-bottom",
+          "flooded-cistern",
+          "ossuary",
+          "lords-tomb",
+        ],
+      ],
+    ],
+  );
+  // The rope on the well head opens the way down and frees the goblin.
+  assert.equal(passage("dry-well", "well-bottom").hidden, true);
+  const [use] = feature("dry-well", "well-head").uses;
+  assert.equal(use.item, "coil-of-rope");
+  assert.equal(use.consumes, true);
+  assert.deepEqual(use.effects, [
+    { type: "open", passage: "well-rope" },
+    { type: "set", flag: "goblin-freed" },
+  ]);
+  assert.deepEqual(
+    room("dry-well").creatures[0].topics.map(({ id, offeredWhile }) => [
+      id,
+      offeredWhile,
+    ]),
+    [
+      ["the-vault", undefined],
+      ["the-stair", undefined],
+      ["the-woman", "goblin-freed"],
+      ["the-tomb", "goblin-freed"],
+    ],
   );
   assert.equal(passage("dry-well", "shrine").trap.id, "loose-step");
   assert.equal(passage("gate-hall", "storeroom").door.state, "stuck");
   const vault = passage("shaft-bottom", "vault").door;
   assert.equal(vault.state, "locked");
   assert.equal(vault.keyItemId, "bronze-key");
-  const goblin = room("dry-well").creatures[0];
-  assert.ok(goblin.topics.some(({ check }) => check !== undefined));
-  assert.ok(goblin.topics.some(({ check }) => check === undefined));
-  // Only the vault's boss is exempt from the too-easy measure.
+  assert.equal(vault.break.bands["failure-by-5"].noisy, true);
+});
+
+test("the sarcophagus opens two ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe", () => {
+  const { check } = feature("lords-tomb", "sarcophagus-lid");
   assert.deepEqual(
-    delve.encounters.flatMap(({ opponents }) =>
-      opponents.filter(({ boss }) => boss).map(({ id }) => id),
+    check.approaches.map(({ skill, dc, advantage }) => [
+      skill,
+      dc,
+      advantage?.map(({ flag }) => flag),
+    ]),
+    [
+      ["athletics", 14, undefined],
+      ["investigation", 13, ["goblin-freed"]],
+    ],
+  );
+  assert.equal(check.bands["failure-by-5"].noisy, true);
+  assert.equal(check.bands["failure-by-5"].effects, undefined);
+  for (const band of ["success", "success-by-5"]) {
+    assert.deepEqual(
+      check.bands[band].effects
+        .filter(({ type }) => type === "item")
+        .map(({ item }) => item),
+      ["death-mask", "tomb-peridot"],
+      band,
+    );
+  }
+  const { fightAction } = feature("vault", "coffer-stack");
+  assert.equal(fightAction.once, "adventure");
+  assert.deepEqual(
+    fightAction.check.approaches.map(({ skill, ability, dc }) => [
+      skill ?? ability,
+      dc,
+    ]),
+    [
+      ["athletics", 13],
+      ["strength", 13],
+    ],
+  );
+  // Nothing removes the ghoul, so nothing it guards is ever lost.
+  assert.ok(
+    Object.values(fightAction.bands).every(({ effects = [] }) =>
+      effects.every(({ type }) => type !== "remove"),
     ),
-    ["ghoul"],
   );
 });
 
-test("every treasure and coin is found by examining, and the richest lies past the late choice", () => {
-  const treasures = delve.rooms.flatMap(({ id }) => treasureIn(id));
-  assert.equal(treasures.length, 6);
-  // The guard's purse and the vault's chest are coin (#208).
+test("its treasure is 98% of the long level-2 budget, with two potions and a scroll, and nothing to carry out lies unfought", () => {
+  const items = delve.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
-    treasures.filter(({ kind }) => kind === "coin").map(({ coins }) => coins),
-    [{ sp: 18 }, { gp: 40 }],
+    items
+      .filter(({ kind }) => kind === "potion-of-healing")
+      .map(({ hiddenIn }) => hiddenIn),
+    ["weapon-rack", "old-barrel"],
   );
-  assert.ok(treasures.every(({ hiddenIn }) => hiddenIn !== undefined));
-  // The shaft bottom is an exit beside the vault: leave, or push on.
-  assert.equal(room("shaft-bottom").exit, true);
-  assert.equal(treasureIn("vault").length, 2);
-  for (const safer of ["guard-post", "barracks", "shrine", "web-crypt"]) {
-    assert.equal(treasureIn(safer).length, 1, safer);
+  assert.deepEqual(
+    items
+      .filter(({ kind }) => kind === "scroll")
+      .map(({ spell, hiddenIn }) => [spell, hiddenIn]),
+    [["cure-wounds", "offering-box"]],
+  );
+  assert.deepEqual(
+    items
+      .filter(({ kind }) => kind === "treasure")
+      .map(({ id, treasure }) => [id, treasure]),
+    [
+      ["dagger-hilt", "art-25gp"],
+      ["moss-agate", "gem-10gp"],
+      ["candlesticks", "art-25gp"],
+      ["gold-ring", "art-25gp"],
+      ["jewelled-goblet", "art-25gp"],
+      ["vault-garnet", "gem-50gp"],
+      ["delvers-jasper", "gem-50gp"],
+      ["satchel-turquoise", "gem-10gp"],
+      ["death-mask", "art-25gp"],
+      ["tomb-peridot", "gem-50gp"],
+    ],
+  );
+  assert.ok(items.every(({ hiddenIn }) => hiddenIn !== undefined));
+  assert.equal(findableValue(delve), 59070);
+  assert.equal(treasureBudget(2, true), 60000);
+  // The rooms reachable from the gate without entering a fight hold no
+  // treasure or coin, so a cautious run can't take loot and leave unfought.
+  const fightless = new Set();
+  const frontier = [delve.startRoomId];
+  while (frontier.length > 0) {
+    const id = frontier.pop();
+    if (fightless.has(id) || room(id).encounterId !== undefined) {
+      continue;
+    }
+    fightless.add(id);
+    for (const { between, hidden, door } of delve.passages) {
+      if (between.includes(id) && hidden !== true && door === undefined) {
+        frontier.push(between.find((other) => other !== id));
+      }
+    }
+  }
+  assert.deepEqual([...fightless].sort(), [
+    "broken-gate",
+    "gate-hall",
+    "porters-lodge",
+  ]);
+  for (const id of fightless) {
+    assert.ok(
+      room(id).items.every(
+        ({ kind }) => kind !== "treasure" && kind !== "coin",
+      ),
+      id,
+    );
   }
 });
 
@@ -135,10 +377,77 @@ test("each feature's discovery names the gear hidden in it", () => {
       }
     }
   }
-  const barrel = room("storeroom").features.find(
-    ({ id }) => id === "old-barrel",
+  assert.doesNotMatch(
+    feature("storeroom", "old-barrel").discovery,
+    /longsword/,
   );
-  assert.doesNotMatch(barrel.discovery, /longsword/);
+});
+
+const TO_THE_WELL = [
+  ["move", "gate-hall"],
+  ["move", "porters-lodge"],
+  ["examine", "peg-rail"],
+  ["take", "coil-of-rope"],
+  ["move", "gate-hall"],
+  ["move", "guard-post"],
+  ["move", "dry-well"],
+  ["use", "well-head", "coil-of-rope"],
+  ["talk", "the-woman"],
+  ["talk", "the-tomb"],
+  ["move", "well-bottom"],
+];
+
+test("down the old well with the porter's rope: the goblin goes free and talks, Mags falls in the ossuary, and the shaft pays 600 XP", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_WELL,
+      ["examine", "silted-floor"],
+      ["take", "wishing-coins"],
+      ["move", "flooded-cistern"],
+      ["examine", "drowned-delver"],
+      ["take", "delvers-jasper"],
+      ["move", "ossuary"],
+      ["examine", "mags-satchel"],
+      ["take", "satchel-gold"],
+      ["take", "satchel-turquoise"],
+      ["move", "shaft-bottom"],
+      ["leave", "shaft-bottom"],
+    ],
+    ({ status }) => status === "escaped",
+  );
+  assert.equal(state.endingId, "out-with-the-loot");
+  assert.ok(state.flags.includes("goblin-freed"));
+  assert.ok(!state.inventory.includes("coil-of-rope"));
+  assert.deepEqual(state.clearedEncounterIds, [
+    "guard-zombie",
+    "ossuary-rival",
+  ]);
+  assert.deepEqual(xpOf(runtime, state), [
+    ["Defeated Zombie", 50],
+    ["Defeated Mags Corrow", 25],
+    ["Out with the loot", 600],
+  ]);
+});
+
+test("with the goblin's directions, the sarcophagus gives up the death mask and the peridot", () => {
+  const { state } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_WELL,
+      ["move", "flooded-cistern"],
+      ["move", "ossuary"],
+      ["move", "lords-tomb"],
+      ["examine", "sarcophagus-lid", "investigation"],
+      ["take", "death-mask"],
+      ["take", "tomb-peridot"],
+    ],
+    ({ status, inventory }) =>
+      status === "playing" && inventory.includes("tomb-peridot"),
+  );
+  assert.ok(state.inventory.includes("death-mask"));
 });
 
 function scripted(responses) {
@@ -238,11 +547,14 @@ const PUSH_DEEPER = [
   ["leave", "shaft-bottom"],
 ];
 
-/** The first seed from 0 on whose journey ends with `endingId`. */
-async function seedFor(sheet, steps, endingId) {
+/**
+ * The first seed from 0 on whose journey ends with `endingId` and, if
+ * given, whose last state `wanted` accepts.
+ */
+async function seedFor(sheet, steps, endingId, wanted = () => true) {
   for (let seed = 0; seed < 200; seed++) {
     const { state } = await journey(sheet, seed, steps);
-    if (state.endingId === endingId) {
+    if (state.endingId === endingId && wanted(state)) {
       return seed;
     }
   }
@@ -250,7 +562,12 @@ async function seedFor(sheet, steps, endingId) {
 }
 
 test("scripted DM: pushing on to the vault and climbing the shaft escapes with all the loot", async () => {
-  const seed = await seedFor(STRONG, PUSH_DEEPER, "out-with-the-loot");
+  const seed = await seedFor(
+    STRONG,
+    PUSH_DEEPER,
+    "out-with-the-loot",
+    ({ flags }) => !flags.includes("delve-roused"),
+  );
   const { state, runtime } = await journey(STRONG, seed, PUSH_DEEPER);
   assert.equal(state.status, "escaped");
   assert.deepEqual(
@@ -262,12 +579,34 @@ test("scripted DM: pushing on to the vault and climbing the shaft escapes with a
     ["candlesticks", "jewelled-goblet"],
   );
   // The guard's purse and the chest's gold went into the purse.
-  assert.equal(state.possessions.purse, 180 + 4000);
+  assert.equal(state.possessions.purse, 180 + 9000);
   assert.deepEqual(state.clearedEncounterIds, ["guard-zombie", "vault-ghoul"]);
   // The fights' XP and the ending's.
   assert.equal(
     runtime.projectSettlement(state).xp.reduce((sum, { xp }) => sum + xp, 0),
-    50 + 200 + 200,
+    50 + 200 + 600,
+  );
+});
+
+// #442: the vault's fight going on past round 4 rouses the crypts, and Mags
+// runs from the ossuary to the shaft bottom, where Ada meets her on the way
+// out.
+test("scripted DM: a long fight in the vault rouses the crypts, and Mags waits at the shaft", async () => {
+  const seed = await seedFor(
+    STRONG,
+    PUSH_DEEPER,
+    "out-with-the-loot",
+    ({ flags }) => flags.includes("delve-roused"),
+  );
+  const { state, runtime } = await journey(STRONG, seed, PUSH_DEEPER);
+  assert.deepEqual(state.clearedEncounterIds, [
+    "guard-zombie",
+    "vault-ghoul",
+    "ossuary-rival",
+  ]);
+  assert.equal(
+    runtime.projectSettlement(state).xp.reduce((sum, { xp }) => sum + xp, 0),
+    50 + 200 + 25 + 600,
   );
 });
 

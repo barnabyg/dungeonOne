@@ -1,32 +1,46 @@
 // #140: the release run plays The Abandoned Delve from start to an ending
 // through the browser server, typing every step to the AI DM and pressing
 // the step's button only when the DM's turn left it undone; the live script
-// keeps to its stated call budget and records each turn for review.
+// keeps to its stated call budget and records each turn for review. Since
+// the Delve's expansion (#442) its route is generated from the harness's
+// cautious run (#409), played by a saved level-2 Ada.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { startDelveOverHttp } from "../dist/dm-evaluation-5e.js";
+import {
+  startDelveOverHttp,
+  startSavedAdventureOverHttp,
+} from "../dist/dm-evaluation-5e.js";
 import {
   chooseFightStep,
-  DELVE_FULL_ROUTE,
+  generateReleaseRun,
   playReleaseRun,
 } from "../dist/release-run-5e.js";
+import { libraryAt } from "../dist/test-fighter-5e.js";
 import { narratingDm } from "./fixtures/session-layout.mjs";
 
-/** The seed the release run is qualified on: Ada clears every room. */
-const RELEASE_SEED = 1443;
+/** The seed the release run is qualified on: Ada escapes with loot. */
+const RELEASE_SEED = 0;
+const delve = (await loadBuiltInFifthAdventures()).find(
+  ({ id }) => id === "abandoned-delve",
+);
 const script = fileURLToPath(
   new URL("../scripts/qualify-release-live.mjs", import.meta.url),
 );
 
-const withServer = async (dmModel, work) => {
+/** With `saved`, the library starts holding level-2 Ada, already saved. */
+const withServer = async (dmModel, work, { saved = false } = {}) => {
   const directory = await mkdtemp(join(tmpdir(), "issue-140-"));
   const libraryPath = join(directory, "characters.json");
+  if (saved) {
+    await writeFile(libraryPath, JSON.stringify(libraryAt(2)));
+  }
   const server = await startFifthBrowserServer({
     libraryPath,
     seed: RELEASE_SEED,
@@ -42,43 +56,43 @@ const withServer = async (dmModel, work) => {
   }
 };
 
-test("the release run clears every room of the delve and climbs out with the loot, by button when the DM only narrates", () =>
-  withServer(narratingDm(), async (url, libraryPath) => {
-    const { session, turns } = await playReleaseRun({
-      url,
-      session: await startDelveOverHttp(url),
-    });
-    assert.equal(session.status, "escaped");
-    assert.equal(session.ending.kind, "escape-with-loot");
-    assert.deepEqual(
-      turns.filter(({ skipped }) => skipped !== undefined),
-      [],
-    );
-    const rooms = new Set(turns.map(({ room }) => room));
-    assert.equal(rooms.size, 10, [...rooms].join(", "));
-    // Every typed step went unanswered, so every step took its button.
-    assert.ok(turns.every(({ committed, fallback }) => !committed && fallback));
-    const leave = turns.at(-1);
-    assert.equal(leave.intent, "leave shaft-bottom");
-    assert.equal(leave.message, undefined);
-    // All four fights, and the ending's rewards: 750 XP is level 2.
-    assert.ok(turns.filter(({ phase }) => phase === "fight").length >= 5);
-    assert.equal(session.ending.rewards.totalXp, 750);
-    assert.equal(session.ending.rewards.level, 2);
-    assert.deepEqual(
-      session.ending.rewards.treasure.map(({ name }) => name).sort(),
-      ["Candlesticks", "Dagger Hilt", "Goblet", "Gold Ring"],
-    );
-    // The guard's purse (18 sp) and the vault's gold (40 gp) are coin.
-    assert.equal(session.ending.rewards.coin, "41 gp 8 sp");
-    // The library on disk credits them and frees Ada.
-    const library = JSON.parse(await readFile(libraryPath, "utf8"));
-    const [ada] = library.characters;
-    assert.equal(ada.sheet.level, 2);
-    assert.equal(ada.sheet.xp, 750);
-    assert.equal(ada.session, undefined);
-    assert.equal(ada.sheet.purse, 4180);
-  }));
+test("the release run plays the delve's generated route and climbs out with the loot, by button when the DM only narrates", () =>
+  withServer(
+    narratingDm(),
+    async (url, libraryPath) => {
+      const [{ sheet }] = libraryAt(2).characters;
+      const { session, turns } = await playReleaseRun({
+        url,
+        session: await startSavedAdventureOverHttp(url, "abandoned-delve"),
+        ...generateReleaseRun(delve, sheet, { seed: RELEASE_SEED }),
+      });
+      assert.equal(session.status, "escaped");
+      assert.equal(session.ending.kind, "escape-with-loot");
+      assert.deepEqual(
+        turns.filter(({ skipped }) => skipped !== undefined),
+        [],
+      );
+      // Every typed step went unanswered, so every step took its button.
+      assert.ok(
+        turns.every(({ committed, fallback }) => !committed && fallback),
+      );
+      const leave = turns.at(-1);
+      assert.equal(leave.message, undefined);
+      assert.match(leave.intent, /^leave /u);
+      // The guard post's zombie at least, and the ending's 600 XP take Ada
+      // from 300 XP to level 3.
+      assert.ok(turns.some(({ phase }) => phase === "fight"));
+      assert.ok(session.ending.rewards.totalXp >= 300 + 50 + 600);
+      assert.equal(session.ending.rewards.level, 3);
+      // The library on disk credits them and frees Ada.
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      const [ada] = library.characters;
+      assert.equal(ada.sheet.level, 3);
+      assert.equal(ada.sheet.xp, session.ending.rewards.totalXp);
+      assert.equal(ada.session, undefined);
+    },
+    { saved: true },
+  ));
 
 test("a step the DM's turn did is not pressed again; one it left undone is", () =>
   withServer(
@@ -103,7 +117,18 @@ test("a step the DM's turn did is not pressed again; one it left undone is", () 
       const { session, turns } = await playReleaseRun({
         url,
         session: await startDelveOverHttp(url),
-        route: DELVE_FULL_ROUTE.slice(0, 2),
+        route: [
+          {
+            action: "examine",
+            target: "chalk-marks",
+            say: "Read the chalk marks on the gatepost.",
+          },
+          {
+            action: "move",
+            target: "gate-hall",
+            say: "Head through the gate into the hall.",
+          },
+        ],
       });
       assert.deepEqual(
         turns.map(({ committed, matched, fallback }) => ({
@@ -211,6 +236,7 @@ test("the live release script needs --live or --dry-run, and a dry run records e
     const report = JSON.parse(await readFile(output, "utf8"));
     assert.equal(report.runDirectory, undefined);
     assert.equal(report.issue, 140);
+    assert.equal(report.generated, true);
     assert.equal(report.mode, "dry-run");
     assert.equal(report.seed, RELEASE_SEED);
     assert.equal(report.maxProviderCalls, 20);
