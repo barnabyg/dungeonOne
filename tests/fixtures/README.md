@@ -153,6 +153,17 @@ not in `FIXTURE_MODULES`: the rat tunnels with two regions, the Upper Tunnels
 den). `regionTunnelsFile` is its JSON, for the validator's refusals.
 `tests/issue-395.test.mjs` and `tests/issue-395-browser.test.mjs` use it.
 
+## The map (issue 457)
+
+`mapTunnels` (_The Mapped Tunnels_, from `mapTunnelsFile`) is the two-level
+tunnels with three more rooms for the map: a Long Gallery two cells east of
+the stair foot, with an empty cell between; a Belfry up a stair from the
+stair foot, on another cell of floor 1; and a Sump down a ladder from the
+gallery, on its own cell of floor −1; and a Cupboard north of the stair foot,
+behind a hidden passage that the Draughty Wall's Investigation check (DC 5)
+opens. It is not in `FIXTURE_MODULES`.
+`tests/issue-457.test.mjs` and `tests/issue-457-browser.test.mjs` use it.
+
 ## Long modules (issue 404)
 
 `longTunnels` (_The Long Tunnels_, from `longTunnelsFile`) is the two-level

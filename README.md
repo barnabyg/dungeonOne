@@ -364,6 +364,21 @@ Choose it again to hide the record. Choosing a room never moves you, and a
 reload shows the same rooms. The AI DM sees them too, so you can ask it where
 a door was, what a creature told you or the way back to a room.
 
+**Map** in the header bar, or the M key (not while typing), opens the map: the
+rooms you have been in, on their grid cells, yours outlined in gold and each
+shaded by its region, and every way out of them you can see. A way to a room
+you have not been in ends on that room's cell: from your room, in a dashed box
+with its name, as your exits list it; from a room you have left, in an unnamed
+"?". A hidden passage shows only once you find it. Marks on a way show its door (■ shut, □
+open), a trap you found (!) and a way closed (✕); a room's stairs, ladders and
+shafts are listed on it, up (↑) or down (↓), naming the room they lead to once
+you have been there, or from your own room; otherwise "?". One floor shows at a time, opening on yours, with a tab
+for each floor you have been on. Choose a room or a stair next to yours to go
+there, the same move as **Go to** (the map closes; it never moves you
+more than one room, and not in a fight or while the Dungeon Master answers).
+Choose any other room to see its record, as in Known rooms. Escape or
+**Close** shuts it. A wide map scrolls inside it.
+
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
 hears the full "Examine Rusted Lantern"). Outside a fight, what you carry is
@@ -429,7 +444,8 @@ another character's adventure clears it.
 
 Each module has a map of rooms: every room sits on a cell of a grid, on a
 floor, joined by straight passages and by stairs, ladders or shafts between
-floors. The map lays out rooms only. There is no tactical grid, so no
+floors; the **Map** pop-up (below) shows the part you have explored. The map
+lays out rooms only. There is no tactical grid, so no
 positions, distances or movement inside a room.
 
 Examining a feature makes its discovery and can reveal a hidden item. A Potion

@@ -208,6 +208,8 @@ function sessionView(session: FifthSession) {
     room: runtime.projectRoom(state),
     // The known rooms (#405), by region, each visited one with its record.
     knownRooms: runtime.projectKnownRooms(state),
+    // The fog-of-war map (#457): the rooms visited and the passages out of them.
+    map: runtime.projectMap(state),
     status: state.status,
     ...(ending === undefined
       ? {}

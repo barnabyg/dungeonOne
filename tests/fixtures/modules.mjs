@@ -577,6 +577,103 @@ export const regionTunnelsFile = (() => {
 export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 
 /**
+ * The map (#457): the two-level tunnels as _The Mapped Tunnels_, with a
+ * Long Gallery two cells east of the stair foot (the cell between empty),
+ * a Belfry up a stair from the stair foot on another cell, and a Sump down
+ * a ladder from the gallery on the gallery's own cell. No fight on the way.
+ * A Cupboard north of the stair foot is behind a hidden passage that the
+ * Draughty Wall's Investigation check (DC 5) opens.
+ */
+export const mapTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "map-tunnels";
+  module.title = "The Mapped Tunnels";
+  room(module, "stair-foot").features.push({
+    id: "draughty-wall",
+    name: "Draughty Wall",
+    description: "Cold air seeps between the stones of one wall.",
+    check: {
+      skill: "investigation",
+      dc: 5,
+      bands: {
+        failure: { text: "The stones give nothing away." },
+        success: {
+          text: "One stone swings in on a pivot: a cupboard lies behind it.",
+          effects: [{ type: "open", passage: "foot-to-cupboard" }],
+        },
+      },
+    },
+  });
+  module.rooms.push(
+    {
+      id: "cupboard",
+      name: "Cupboard",
+      at: [1, -1],
+      description: "A dusty cupboard behind the wall.",
+      region: "upper",
+      features: [],
+      items: [],
+    },
+    {
+      id: "gallery",
+      name: "Long Gallery",
+      at: [3, 0],
+      description: "A gallery of empty niches, its far end lost in the dark.",
+      region: "upper",
+      features: [],
+      items: [],
+    },
+    {
+      id: "belfry",
+      name: "Belfry",
+      at: [2, -1],
+      floor: 1,
+      description: "A cracked bell hangs over a hole in the floor.",
+      region: "upper",
+      features: [],
+      items: [],
+    },
+    {
+      id: "sump",
+      name: "Sump",
+      at: [3, 0],
+      floor: -1,
+      description: "Black water laps at the foot of the ladder.",
+      region: "lower",
+      features: [],
+      items: [],
+    },
+  );
+  module.passages.push(
+    {
+      id: "foot-to-gallery",
+      between: ["stair-foot", "gallery"],
+      description: "A long passage east.",
+    },
+    {
+      id: "foot-to-belfry",
+      between: ["stair-foot", "belfry"],
+      vertical: "stairs",
+      description: "A spiral stair up.",
+    },
+    {
+      id: "gallery-to-sump",
+      between: ["gallery", "sump"],
+      vertical: "ladder",
+      description: "A ladder down a shaft.",
+    },
+    {
+      id: "foot-to-cupboard",
+      between: ["stair-foot", "cupboard"],
+      hidden: true,
+      description: "The gap behind the pivoting stone.",
+    },
+  );
+  return module;
+})();
+export const mapTunnels = validateModule(structuredClone(mapTunnelsFile));
+
+/**
  * A long module (#404): the two-level tunnels as _The Long Tunnels_, level
  * 3, hard, declared `long`. The upper alcove is a rest site, and so is a
  * Cistern in the Lower Tunnels off the cellar, so each region has one. The
