@@ -172,7 +172,9 @@ async function play(seed, check, { reload = false } = {}) {
     }
     assert.match(
       shown.actions,
-      expected.forced ? /Go west to Flooded Cell\n/ : /Go west to Flooded Cell Door shut/,
+      expected.forced
+        ? /Go west to Flooded Cell\n/
+        : /Go west to Flooded Cell Door shut/,
     );
 
     await click(page, "move", "hall");

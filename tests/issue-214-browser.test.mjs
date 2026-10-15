@@ -113,7 +113,11 @@ test(
           .evaluateAll((things) =>
             things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
           ),
-        ["West: Alcove Go", "South: Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
+        [
+          "West: Alcove Go",
+          "South: Rat-Gnawed Cellar Go",
+          "Rusted Lantern Examine",
+        ],
       );
       assert.equal(
         await page
