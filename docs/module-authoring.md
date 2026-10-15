@@ -49,7 +49,7 @@ These are errors. The tool also **warns** about layouts that read badly:
   on the way.
 - **A passage longer than its words.** A passage of two cells or more whose
   description opens with a door, an arch, a gate, a hatch, a curtain or steps,
-  or says "short", "a few steps", "next door" or "beside". Describe the way
+  or says "short", "a few steps" or "next door". Describe the way
   between, or move the rooms together.
 
 A warning doesn't fail the tool. Fix it, or give a reason in the proposal.

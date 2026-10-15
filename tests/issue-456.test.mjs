@@ -226,6 +226,7 @@ test("awkward layouts only warn: a scattered region, a long passage, and a passa
     "The walkway round the cistern, to an arch.",
     "A passage lined with bones.",
     "The gatehouse wall-walk.",
+    "A tunnel beside the river, forty metres long.",
   ]) {
     assert.deepEqual(
       layoutWarnings(rooms, [{ id: "a-c", between: ["a", "c"], description }]),

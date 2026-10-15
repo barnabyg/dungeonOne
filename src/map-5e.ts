@@ -224,13 +224,12 @@ export const LONG_PASSAGE = 3;
 /**
  * Whether a passage's description reads as a doorway or a step rather than
  * a way between: a door, an arch, a gate, a hatch, a curtain or steps in
- * its first four words, or "short", "a few steps", "next door" or "beside"
- * anywhere.
+ * its first four words, or "short", "a few steps" or "next door" anywhere.
  */
 const readsShort = (description: string) =>
   /^(?:\S+\s+){0,3}?(?:door|doorway|arch|archway|gate|hatch|curtain|steps?)\b/iu.test(
     description,
-  ) || /\b(?:short|few steps|next door|beside)\b/iu.test(description);
+  ) || /\b(?:short|few steps|next door)\b/iu.test(description);
 
 /**
  * The layout's warnings: first each region whose rooms on a floor surround
