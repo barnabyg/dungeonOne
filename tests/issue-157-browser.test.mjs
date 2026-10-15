@@ -90,6 +90,7 @@ const furnishedCellar = (() => {
   module.rooms.push({
     id: "stair",
     name: "Cellar Stair",
+    at: [0, -1],
     description: "Steep steps climb to the taproom.",
     features: [],
     items: [],

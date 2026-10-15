@@ -30,6 +30,7 @@ function lockedVault(change = () => {}) {
   file.rooms.push({
     id: "bone-vault",
     name: "Bone Vault",
+    at: [2, 0],
     description: "A low vault stacked with bones.",
     features: [
       {

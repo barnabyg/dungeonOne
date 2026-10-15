@@ -79,7 +79,7 @@ const uses = (runtime, state) =>
     }));
 
 test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 62);
   assert.equal(FIFTH_TRACE_FORMAT, 56);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v44");
@@ -163,6 +163,7 @@ test("a hidden way only a use opens is a way; without it, it is refused", () => 
 function vaultDenFile(change = () => {}) {
   const module = structuredClone(snakeDoorFile);
   module.passages = module.passages.filter(({ id }) => id !== "cellar-to-den");
+  room(module, "den").at = [2, 1];
   module.passages.push({
     id: "vault-to-den",
     between: ["vault", "den"],

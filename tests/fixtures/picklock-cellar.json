@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "picklock-cellar",
   "title": "The Picklock Cellar",
   "objective": "Drive out the goblin that has locked itself in the inn's cellar.",
@@ -14,6 +14,7 @@
     {
       "id": "cellar-stair",
       "name": "Cellar Stair",
+      "at": [0, 0],
       "description": "Worn steps end at a stout oak door. Someone has locked it from the far side.",
       "features": [],
       "items": []
@@ -21,6 +22,7 @@
     {
       "id": "cellar",
       "name": "Inn Cellar",
+      "at": [1, 0],
       "description": "A low stone cellar lit by one guttering lantern. Broken casks line the walls.",
       "encounterId": "lone-goblin",
       "features": [],

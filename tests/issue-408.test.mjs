@@ -43,7 +43,7 @@ const UPPER_SWEEP = {
 };
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 42);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
 });
 
 test("a long module's region sweeps visit every room but the avoidable ones", () => {
@@ -257,6 +257,7 @@ test("the gate fails a module whose route passes an avoidable room on its way", 
   module.rooms.push({
     id: "bone-pit",
     name: "Bone Pit",
+    at: [-2, 0],
     description: "A pit heaped with old bones.",
     region: "upper",
     features: [],

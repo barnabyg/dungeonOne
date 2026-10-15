@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "rope-cove",
   "title": "The Rope Cove",
   "objective": "Climb to the gull ledge, look into the old shed and its burrow, and leave by the shingle path.",
@@ -14,6 +14,7 @@
     {
       "id": "cliff-foot",
       "name": "Cliff Foot",
+      "at": [0, 0],
       "description": "A strip of shingle under a sheer cliff. A shed leans against the rock, and an old hermit mends nets by a broken crate.",
       "exit": true,
       "features": [
@@ -125,6 +126,7 @@
     {
       "id": "gull-ledge",
       "name": "Gull Ledge",
+      "at": [0, -1],
       "description": "A windy ledge above the cove, white with droppings.",
       "features": [
         {
@@ -139,6 +141,7 @@
     {
       "id": "tool-shed",
       "name": "Tool Shed",
+      "at": [1, 0],
       "description": "A dark shed that smells of tar. A hole in the floor squeals and scrabbles.",
       "features": [
         {
@@ -182,6 +185,7 @@
     {
       "id": "rat-burrow",
       "name": "Rat Burrow",
+      "at": [2, 0],
       "description": "A low, damp burrow.",
       "encounterId": "burrow-rat",
       "features": [],

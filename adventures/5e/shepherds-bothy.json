@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "shepherds-bothy",
   "title": "The Shepherd's Bothy",
   "objective": "Find the market takings a bandit carried off to the old bothy on the moor, and get back out alive. Leave by the sheepfold gate when you are ready.",
@@ -11,6 +11,7 @@
     {
       "id": "sheepfold",
       "name": "Sheepfold",
+      "at": [0, 0],
       "description": "A ring of dry-stone walls on the open moor, empty of sheep. A squat stone bothy stands against the far wall, smoke leaking from its roof.",
       "exit": true,
       "features": [
@@ -26,6 +27,7 @@
     {
       "id": "bothy",
       "name": "Bothy",
+      "at": [1, 0],
       "description": "A single smoky room with a peat fire in the hearth, a straw pallet and a strongbox kicked open on the floor. A low door leads through to a lean-to at the back.",
       "encounterId": "bothy-bandit",
       "features": [
@@ -80,6 +82,7 @@
     {
       "id": "lean-to",
       "name": "Lean-to",
+      "at": [2, 0],
       "description": "A cramped peat store under a sagging roof, stacked with turves and old shepherd's tools.",
       "features": [
         {

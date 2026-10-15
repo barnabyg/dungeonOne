@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "wolf-pair",
   "title": "The Wolf Pair",
   "objective": "Drive off the two wolves at the ford.",
@@ -14,6 +14,7 @@
     {
       "id": "ford",
       "name": "The Ford",
+      "at": [0, 0],
       "description": "Two wolves pace the far bank, then splash across towards you.",
       "encounterId": "wolf-pair",
       "features": [],

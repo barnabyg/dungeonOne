@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "goblin-burrow",
   "title": "The Goblin Burrow",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
@@ -14,6 +14,7 @@
     {
       "id": "warren-gate",
       "name": "Warren Gate",
+      "at": [0, 0],
       "description": "A rough tunnel mouth in a hillside, hung with bones and rags. Daylight is at your back.",
       "exit": true,
       "features": [
@@ -37,6 +38,7 @@
     {
       "id": "guard-tunnel",
       "name": "Guard Tunnel",
+      "at": [1, 0],
       "description": "A low tunnel lit by a smoking brazier, littered with gnawed bones.",
       "encounterId": "tunnel-guards",
       "features": [
@@ -65,6 +67,7 @@
     {
       "id": "boss-hall",
       "name": "Boss's Hall",
+      "at": [2, 0],
       "description": "A wide cave heaped with stolen goods, with a throne of stacked crates at its far end.",
       "encounterId": "boss-fight",
       "features": [

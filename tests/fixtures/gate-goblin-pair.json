@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "goblin-pair",
   "title": "The Goblin Pair",
   "objective": "Drive two goblin warriors out of the woodshed.",
@@ -14,6 +14,7 @@
     {
       "id": "woodshed",
       "name": "Woodshed",
+      "at": [0, 0],
       "description": "Two goblin warriors look up from the kindling.",
       "encounterId": "goblin-pair",
       "features": [],

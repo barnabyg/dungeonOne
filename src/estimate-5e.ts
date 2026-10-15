@@ -245,6 +245,7 @@ function buildModule(
         {
           id: "arena",
           name: "Arena",
+          at: [0, 0],
           description: `The fight being estimated: ${title}.`,
           encounterId: "fight",
           features: [],

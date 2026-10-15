@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "coldwater-weirgate",
   "title": "The Coldwater Weirgate",
   "objective": "Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
@@ -98,6 +98,7 @@
     {
       "id": "towpath-gate",
       "name": "Towpath Gate",
+      "at": [1, 1],
       "description": "The river roars over the weir beside you, and the air smells of tar and wet stone. The towpath ends at a stone gatehouse; a narrower path runs along the slipway to the barge yard.",
       "region": "keep",
       "exit": true,
@@ -126,6 +127,7 @@
     {
       "id": "toll-hall",
       "name": "Toll Hall",
+      "at": [1, 0],
       "description": "Smoke from a brazier hangs under the beams, and the room stinks of cheap ale. A tally-board fills one wall; a chest squats by the stair door.",
       "region": "keep",
       "encounterId": "toll-hall-fight",
@@ -197,6 +199,7 @@
     {
       "id": "barge-yard",
       "name": "Barge Yard",
+      "at": [2, 1],
       "description": "Gulls cry over a cobbled yard open to the sky, slick with river spray. A barge lies beached on its side by the lock gates.",
       "region": "keep",
       "features": [
@@ -223,6 +226,7 @@
     {
       "id": "keepers-office",
       "name": "Lock-Keeper's Office",
+      "at": [2, 0],
       "description": "Damp has curled every paper in the room, and it smells of mildew and old ink. A water gauge ticks on the wall.",
       "region": "keep",
       "features": [
@@ -258,6 +262,7 @@
     {
       "id": "kennel-larder",
       "name": "Kennel Larder",
+      "at": [3, 1],
       "description": "Joints of salt meat hang from the beams, and the air reeks of brine and dog. A chain runs from a ring in the wall to a heap of straw.",
       "region": "keep",
       "encounterId": "kennel-fight",
@@ -338,6 +343,7 @@
     {
       "id": "bunk-room",
       "name": "Bunk Room",
+      "at": [4, 0],
       "description": "Snoring fills a low room of hammocks, and it smells of wet wool and spilt beer.",
       "region": "keep",
       "encounterId": "bunk-room-fight",
@@ -404,6 +410,7 @@
     {
       "id": "sluice-house",
       "name": "Sluice-House",
+      "at": [3, 2],
       "description": "Water thunders through a channel under the floor, and the whole room shakes with it. A great wheel and a smaller gear stand over a grating.",
       "region": "keep",
       "features": [
@@ -450,6 +457,8 @@
     {
       "id": "bell-tower",
       "name": "Bell Tower",
+      "at": [4, 0],
+      "floor": 1,
       "description": "Wind whistles through the arrow slits, and the tower smells of pigeons. A great bronze bell hangs under the roof.",
       "region": "keep",
       "encounterId": "bell-tower-fight",
@@ -531,6 +540,8 @@
     {
       "id": "keepers-loft",
       "name": "Keeper's Loft",
+      "at": [2, 0],
+      "floor": 1,
       "description": "A quiet room under the roof, smelling of lavender and dust. A stout door bars from inside.",
       "region": "keep",
       "restSite": true,
@@ -558,6 +569,7 @@
     {
       "id": "stair-head",
       "name": "Stair Head",
+      "at": [0, 1],
       "description": "Cold air rises from below, smelling of silt and machine oil. An iron grate closes a stair going down.",
       "region": "keep",
       "features": [
@@ -585,6 +597,8 @@
     {
       "id": "stair-foot",
       "name": "Stair Foot",
+      "at": [0, 1],
+      "floor": -1,
       "description": "Water drips from the vault, and the clank of gears echoes from somewhere beyond. A goblin lies dead at the foot of the stair.",
       "region": "culverts",
       "features": [
@@ -619,6 +633,8 @@
     {
       "id": "drain-mouth",
       "name": "Drain Mouth",
+      "at": [3, 2],
+      "floor": -1,
       "description": "The drained culvert drips and stinks of mud. Iron rungs climb back up to the sluice-house.",
       "region": "culverts",
       "features": [
@@ -645,6 +661,8 @@
     {
       "id": "pump-room",
       "name": "Pump Room",
+      "at": [1, 1],
+      "floor": -1,
       "description": "The air is dry here, and the room smells of grease. A hand pump stands by a hatch in the floor, and something huge snores beneath it. An arch opens onto a gallery loud with gears.",
       "region": "culverts",
       "restSite": true,
@@ -702,6 +720,8 @@
     {
       "id": "outfall",
       "name": "Outfall",
+      "at": [2, 2],
+      "floor": -1,
       "description": "Daylight and fresh air pour in through a broad arch where the culverts empty into the river.",
       "region": "culverts",
       "exit": true,
@@ -723,6 +743,8 @@
     {
       "id": "kobold-warren",
       "name": "Kobold Warren",
+      "at": [3, 1],
+      "floor": -1,
       "description": "A warm burrow of baskets and nests smells of fish and smoke. Little clawed hands have built a shrine of gears against the far wall.",
       "region": "culverts",
       "encounterId": "warren-fight",
@@ -844,6 +866,8 @@
     {
       "id": "wheel-pit",
       "name": "Wheel Pit",
+      "at": [1, 1],
+      "floor": -2,
       "description": "A great undershot wheel creaks round in black water, and the pit stinks of rot.",
       "region": "culverts",
       "encounterId": "wheel-pit-fight",
@@ -891,6 +915,8 @@
     {
       "id": "lock-chamber",
       "name": "Lock Chamber",
+      "at": [1, 0],
+      "floor": -1,
       "description": "A long flooded lock, its walls slick and dripping. The stench of an animal den hangs over everything. Paddle gear stands at the lower gates.",
       "region": "culverts",
       "encounterId": "lock-chamber-fight",
@@ -1001,6 +1027,8 @@
     {
       "id": "spillway",
       "name": "Spillway",
+      "at": [0, 0],
+      "floor": -1,
       "description": "Water pours over a stone weir into darkness, loud enough to drown your thoughts. Bones lie heaped against the wall.",
       "region": "culverts",
       "avoidable": true,
@@ -1032,6 +1060,8 @@
     {
       "id": "flooded-vault",
       "name": "Flooded Vault",
+      "at": [3, 0],
+      "floor": -1,
       "description": "Knee-deep water fills a vaulted strongroom, and it smells of drowned things. Shapes stand motionless in the dark.",
       "region": "culverts",
       "encounterId": "vault-fight",
@@ -1095,6 +1125,8 @@
     {
       "id": "gear-hall",
       "name": "Gear Hall",
+      "at": [2, 1],
+      "floor": -1,
       "description": "Huge gears grind and shriek in a hall of iron and stone, and the air tastes of oil. A counterweight hangs on a chain over the middle of the floor.",
       "region": "culverts",
       "encounterId": "gear-hall-fight",
@@ -1208,6 +1240,7 @@
     {
       "id": "office-to-loft",
       "between": ["keepers-office", "keepers-loft"],
+      "vertical": "ladder",
       "description": "A ladder up through a trapdoor."
     },
     {
@@ -1218,6 +1251,7 @@
     {
       "id": "bunks-to-tower",
       "between": ["bunk-room", "bell-tower"],
+      "vertical": "stairs",
       "description": "A spiral stair up into the tower."
     },
     {
@@ -1228,6 +1262,7 @@
     {
       "id": "keepers-stair",
       "between": ["stair-head", "stair-foot"],
+      "vertical": "stairs",
       "description": "A stone stair down into the culverts, behind an iron grate.",
       "door": {
         "id": "iron-grate",
@@ -1317,6 +1352,7 @@
     {
       "id": "drained-culvert",
       "between": ["sluice-house", "drain-mouth"],
+      "vertical": "ladder",
       "description": "Iron rungs down the culvert wall.",
       "hidden": true
     },
@@ -1410,6 +1446,7 @@
     {
       "id": "pump-room-to-wheel-pit",
       "between": ["pump-room", "wheel-pit"],
+      "vertical": "ladder",
       "description": "A ladder down beside the race."
     },
     {

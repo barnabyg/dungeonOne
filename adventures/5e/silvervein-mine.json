@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "silvervein-mine",
   "title": "The Silvervein Mine",
   "objective": "Kobolds have dug into the old Silvervein mine, and worse things stir below. Take what silver you can and get back out of the mine mouth alive.",
@@ -14,6 +14,7 @@
     {
       "id": "mine-mouth",
       "name": "Mine Mouth",
+      "at": [0, 0],
       "description": "A timbered adit opens in the hillside, its beams black with age. Fresh spoil spills down the slope, and a rail track runs into the dark.",
       "exit": true,
       "features": [
@@ -29,6 +30,7 @@
     {
       "id": "sorting-shed",
       "name": "Sorting Shed",
+      "at": [1, 0],
       "description": "A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill.",
       "encounterId": "shed-kobolds",
       "features": [
@@ -89,6 +91,7 @@
     {
       "id": "main-gallery",
       "name": "Main Gallery",
+      "at": [2, 0],
       "description": "A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
       "features": [
         {
@@ -103,6 +106,7 @@
     {
       "id": "flooded-drift",
       "name": "Flooded Drift",
+      "at": [2, 1],
       "description": "Black water stands knee-deep in a low drift. Picks and lamps float among fallen timbers, and burial niches are cut into the dry wall.",
       "encounterId": "drift-dead",
       "features": [
@@ -127,6 +131,7 @@
     {
       "id": "webbed-winze",
       "name": "Webbed Winze",
+      "at": [2, -1],
       "description": "A steep shaft drops away, choked with grey webs. Husks of rats and kobolds hang in the strands.",
       "encounterId": "winze-spider",
       "features": [
@@ -158,6 +163,7 @@
     {
       "id": "overseers-office",
       "name": "Overseer's Office",
+      "at": [3, 0],
       "description": "The old mine office, its shutters nailed closed. A ledger desk stands against one wall and a heavy chest against another.",
       "encounterId": "office-bugbear",
       "features": [

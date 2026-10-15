@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 42,
+  "formatVersion": 43,
   "id": "long-workings",
   "title": "The Long Workings",
   "objective": "Clear whatever has taken the old workings, down to the deep hall.",
@@ -50,6 +50,7 @@
     {
       "id": "adit",
       "name": "Adit Mouth",
+      "at": [0, 1],
       "description": "A timbered tunnel mouth in the hillside. Rails run into the dark.",
       "region": "upper",
       "exit": true,
@@ -66,6 +67,7 @@
     {
       "id": "lamp-room",
       "name": "Lamp Room",
+      "at": [0, 0],
       "description": "Shelves of dead lamps line a cramped side room.",
       "region": "upper",
       "features": [
@@ -89,6 +91,7 @@
     {
       "id": "guard-post",
       "name": "Guard Post",
+      "at": [1, 1],
       "description": "A widening of the tunnel with a brazier and two stools.",
       "region": "upper",
       "encounterId": "post-fight",
@@ -98,6 +101,7 @@
     {
       "id": "tool-store",
       "name": "Tool Store",
+      "at": [1, 0],
       "description": "Picks and shovels hang on pegs over a strongbox, its hasp rusted through.",
       "region": "upper",
       "features": [
@@ -125,6 +129,7 @@
     {
       "id": "bunkroom",
       "name": "Bunkroom",
+      "at": [2, 1],
       "description": "Rows of plank bunks. The door bars from inside.",
       "region": "upper",
       "restSite": true,
@@ -149,6 +154,7 @@
     {
       "id": "ore-chute",
       "name": "Ore Chute",
+      "at": [1, 2],
       "description": "A steep chute drops away into the lower workings, slick with ore dust.",
       "region": "upper",
       "features": [],
@@ -157,6 +163,7 @@
     {
       "id": "collapsed-drift",
       "name": "Collapsed Drift",
+      "at": [1, 3],
       "description": "A side drift half filled by a roof fall. Something growls behind the rubble.",
       "region": "upper",
       "encounterId": "drift-fight",
@@ -183,6 +190,7 @@
     {
       "id": "foreman-office",
       "name": "Foreman's Office",
+      "at": [3, 1],
       "description": "A plank office with a desk and a ledger.",
       "region": "upper",
       "features": [
@@ -216,6 +224,7 @@
     {
       "id": "winch-house",
       "name": "Winch House",
+      "at": [4, 1],
       "description": "A great winch stands over a cage shaft. Kobolds have made it a den.",
       "region": "upper",
       "encounterId": "winch-fight",
@@ -225,6 +234,7 @@
     {
       "id": "shaft-head",
       "name": "Shaft Head",
+      "at": [5, 1],
       "description": "The top of the cage shaft, where a ladder runs down beside the cables.",
       "region": "upper",
       "features": [],
@@ -233,6 +243,8 @@
     {
       "id": "shaft-foot",
       "name": "Shaft Foot",
+      "at": [4, 2],
+      "floor": -1,
       "description": "The bottom of the shaft, ankle-deep in seepage.",
       "region": "lower",
       "features": [],
@@ -241,6 +253,8 @@
     {
       "id": "pump-room",
       "name": "Pump Room",
+      "at": [5, 2],
+      "floor": -1,
       "description": "A dry room round an old beam pump. A stout door shuts it off.",
       "region": "lower",
       "restSite": true,
@@ -265,6 +279,8 @@
     {
       "id": "old-shrine",
       "name": "Old Shrine",
+      "at": [6, 2],
+      "floor": -1,
       "description": "A niche with a miner's saint carved in the rock.",
       "region": "lower",
       "features": [
@@ -289,6 +305,8 @@
     {
       "id": "flooded-gallery",
       "name": "Flooded Gallery",
+      "at": [1, 2],
+      "floor": -1,
       "description": "A long gallery under a foot of black water.",
       "region": "lower",
       "encounterId": "gallery-fight",
@@ -298,6 +316,8 @@
     {
       "id": "sump",
       "name": "Sump",
+      "at": [1, 3],
+      "floor": -1,
       "description": "The lowest point of the gallery, where silt has gathered.",
       "region": "lower",
       "features": [
@@ -324,6 +344,8 @@
     {
       "id": "cave-in",
       "name": "Cave-In",
+      "at": [1, 4],
+      "floor": -1,
       "description": "A tunnel ends at a wall of fallen stone.",
       "region": "lower",
       "features": [
@@ -338,6 +360,8 @@
     {
       "id": "crystal-cave",
       "name": "Crystal Cave",
+      "at": [0, 2],
+      "floor": -1,
       "description": "A natural cave glittering with quartz, hung with old webs.",
       "region": "lower",
       "features": [],
@@ -346,6 +370,8 @@
     {
       "id": "ore-vault",
       "name": "Ore Vault",
+      "at": [0, 3],
+      "floor": -1,
       "description": "A strongroom cut for the best ore. Bones stir by the chests.",
       "region": "lower",
       "encounterId": "vault-fight",
@@ -372,6 +398,8 @@
     {
       "id": "bone-stair",
       "name": "Bone Stair",
+      "at": [4, 3],
+      "floor": -1,
       "description": "A stair cut down into older rock, littered with bones.",
       "region": "lower",
       "features": [],
@@ -380,6 +408,8 @@
     {
       "id": "boss-hall",
       "name": "Deep Hall",
+      "at": [4, 4],
+      "floor": -1,
       "description": "A vaulted hall where the old miners broke into something older.",
       "region": "lower",
       "encounterId": "boss-fight",
@@ -452,11 +482,13 @@
     {
       "id": "shaft-head-to-shaft-foot",
       "between": ["shaft-head", "shaft-foot"],
+      "vertical": "ladder",
       "description": "The ladder down beside the cables."
     },
     {
       "id": "ore-chute-to-flooded-gallery",
       "between": ["ore-chute", "flooded-gallery"],
+      "vertical": "shaft",
       "description": "The chute, down into water."
     },
     {

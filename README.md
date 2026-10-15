@@ -10,7 +10,7 @@ the AI Dungeon Master interprets what the player types, chooses only among the
 actions the engine offers, and never invents an outcome.
 
 The [rules document](docs/character-rules.md) records the 5e rules in use, the
-house rules and each rule left out because the game has no map. The
+house rules and each rule left out because the game has no tactical grid. The
 [5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
 ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
 records how the 5e release was qualified, with manual test scenarios. The
@@ -427,6 +427,11 @@ another character's adventure clears it.
 
 ### Exploring
 
+Each module has a map of rooms: every room sits on a cell of a grid, on a
+floor, joined by straight passages and by stairs, ladders or shafts between
+floors. The map lays out rooms only. There is no tactical grid, so no
+positions, distances or movement inside a room.
+
 Examining a feature makes its discovery and can reveal a hidden item. A Potion
 of Healing restores 2d4 + 2 HP, never above your maximum; in a fight it takes
 your bonus action. A shut door blocks its exit until you **Force** it (stuck),
@@ -533,7 +538,7 @@ The shortbow, light crossbow and longbow are bought from merchants or found;
 no starting kit has one. They need both hands and attack with Dexterity. Each
 shot spends one arrow or bolt of the kind the weapon needs; with none left,
 **Attack** says "No arrows" or "No bolts" until you wield another weapon.
-There is no map, so a fight's first round is your opening volley; from the
+There is no tactical grid, so a fight's first round is your opening volley; from the
 second round your foes have closed in and ranged attacks have disadvantage.
 Winning a fight recovers half the arrows and bolts you spent in it. Arrows and
 bolts are listed under **You carry** with their count, weigh a pound or a
@@ -592,7 +597,8 @@ the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 42. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 43, and
+  each of their rooms sits on a cell of the module's map, on a floor. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 10, or author a one-off stat block inline. An opponent may
   name its own `icon` from `src/icons-5e.ts`; otherwise it has its monster's,
