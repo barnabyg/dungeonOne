@@ -2090,7 +2090,7 @@ export function loadFifthWeirgateEvaluationAdventure(): Promise<FifthAdventure> 
   );
 }
 
-/** Ada at level 3, the Weirgate's only level (D7). */
+/** Ada at level 3, the Weirgate's lowest level (D7; its only one until #443). */
 export const FIFTH_WEIRGATE_DM_CHARACTER: CharacterSheet = testFighterAt(3);
 
 // Setups, all with level-3 Ada from the Towpath Gate. Seed 0: she walks
@@ -2127,10 +2127,11 @@ const toGrisk = [
 ] as const;
 // #443. Ada beats Brindle, takes the 15 gp biscuit purse and goes on to
 // the Toll Hall. Seed 4: Larrow is indifferent and sells a dagger and
-// arrows; seed 0: she is uncertain, and trades nothing.
+// arrows (the shortbow is beyond 15 gp); seed 0: she is uncertain, and
+// trades nothing.
+const kennelWon = [...toKennel, { type: "win-fight" }] as const;
 const toTollWithCoin = [
-  ...toKennel,
-  { type: "win-fight" },
+  ...kennelWon,
   { type: "examine", targetId: "feed-bin" },
   { type: "take", itemId: "biscuit-purse" },
   { type: "move", destinationId: "barge-yard" },
@@ -2139,8 +2140,7 @@ const toTollWithCoin = [
 // Seed 0: Ada beats Brindle, sneaks unseen into the Bunk Room, slips past
 // the sleeping bandits to the Bell Tower and beats the lookout there.
 const pastTheSleepers = [
-  ...toKennel,
-  { type: "win-fight" },
+  ...kennelWon,
   { type: "sneak", destinationId: "bunk-room" },
   { type: "move", destinationId: "bell-tower" },
   { type: "win-fight" },
@@ -2347,7 +2347,7 @@ export const FIFTH_WEIRGATE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   actionCase({
     id: "weirgate-sneak-past-sleepers",
     seed: 0,
-    setup: [...toKennel, { type: "win-fight" }],
+    setup: kennelWon,
     playerInput: "I creep into the bunk room without waking anyone.",
     name: "sneak",
     arguments: { destination: "bunk-room" },

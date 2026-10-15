@@ -350,7 +350,8 @@ const QUOTED_FIGURES = {
   // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 90.5% at
   // level 3 when every check fails is 5.5 points over the 85% Medium needs,
   // and every class is under the 98% Easy needs with its slack. Three
-  // kobolds of 15 ordinary foes are over the cap at level 4. Every fight's
+  // kobolds of 15 ordinary foes are over the cap at level 4, the level too
+  // easy judges; the survival figures are level 3's. Every fight's
   // XP, the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
@@ -706,7 +707,7 @@ const CONTROL_OVER_CAP = {
   ],
 };
 
-test("in every shipped module the gate judges the casters' Sleep and Hold Person, and no ordinary foe is over the cap (#369, #412)", () => {
+test("in every shipped module the gate judges the casters' Sleep and Hold Person, and only the pinned ordinary foes are over the cap (#369, #412, #442, #443)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
       const { control } = gateOf(adventure).classes.find(
