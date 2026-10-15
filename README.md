@@ -220,8 +220,8 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   barrels in the cider store; the Pells' strongroom opens by key, pick or
   force; and something walks in the flooded sump. Come out with the Pells'
   goods for 300 XP, enough for level 2.
-- _The Coldwater Weirgate_ (`adventures/5e/coldwater-weirgate.json`, level 3,
-  Medium): a long module of twenty rooms in two regions, a dead guild's
+- _The Coldwater Weirgate_ (`adventures/5e/coldwater-weirgate.json`, levels
+  3–4, Medium): a long module of twenty rooms in two regions, a dead guild's
   lock-keep and the culverts under it, with a rest site, an exit and
   wandering monsters in each. River bandits toll the gate, and a goblin boss,
   Grisk, holds the gear hall below. Go down the keeper's stair, past a locked
@@ -229,7 +229,10 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   culvert. Off the way, kobolds will bargain, an ogre sleeps on the guild's
   strongbox (lure it away with salt pork, flush it out with the lock paddles,
   or leave it alone), a silted tunnel loops to a drowned vault, and a weir bell
-  rouses the keep if you make too much noise.
+  rouses the keep if you make too much noise. The toll sergeant may sell you
+  a bow off the last barge, a chained wolf and the drowned dead lie in wait,
+  and you can slip past the sleeping bandits for XP. Opening the sluices
+  pays 1,800 XP, enough for level 4.
 - _The Counting-House on Mallow Quay_ (`adventures/5e/mallow-counting-house.json`,
   levels 3–4, Medium; Hard until #334): six rooms in a burned guild counting-house held by
   goblins. Snikk the Toll-Taker (a Goblin Boss) reacts at the arch: pay his

@@ -182,7 +182,7 @@ const CANARY_FIGURES = {
       ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
     ],
     sweeps: [
-      ["keep", 3, "shortsword", 0.955],
+      ["keep", 3, "shortsword", 0.96],
       ["culverts", 3, "shortsword", 0.99],
     ],
   },
@@ -201,10 +201,10 @@ const CANARY_FIGURES = {
     survival: [3, "quarterstaff-and-dagger", 0.94],
     routes: [
       ["keepers-stair", 3, "quarterstaff-and-dagger", 0.94],
-      ["drained-culvert", 3, "quarterstaff-and-dagger", 0.985],
+      ["drained-culvert", 4, "quarterstaff-and-dagger", 0.95],
     ],
     sweeps: [
-      ["keep", 3, "quarterstaff-and-dagger", 0.91],
+      ["keep", 3, "quarterstaff-and-dagger", 0.895],
       ["culverts", 3, "quarterstaff-and-dagger", 0.94],
     ],
   },
@@ -347,35 +347,36 @@ const QUOTED_FIGURES = {
       xp: 537,
     },
   },
-  // Long (#412): Medium, as the Wizard's 90.5% when every check fails is 5.5
-  // points over the 85% Medium needs, and every class is under the 98% Easy
-  // needs with its slack. Three kobolds of 15 ordinary foes are over the
-  // cap. Every fight's XP, the wandering ones' included, and the ending's 500.
+  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 90.5% at
+  // level 3 when every check fails is 5.5 points over the 85% Medium needs,
+  // and every class is under the 98% Easy needs with its slack. Three
+  // kobolds of 15 ordinary foes are over the cap at level 4. Every fight's
+  // XP, the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
       survival: [3, "mace", 0.945],
       alwaysFail: [3, 0.965],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       enemyCount: 15,
-      xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 500,
+      xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 1800,
     },
     rogue: {
       survival: [3, "shortsword", 0.99],
       alwaysFail: [3, 0.985],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
-      xp: 1775,
+      xp: 3075,
     },
     cleric: {
       survival: [3, "mace-and-daggers", 0.935],
       alwaysFail: [3, 0.91],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
-      xp: 1775,
+      xp: 3075,
     },
     wizard: {
       survival: [3, "quarterstaff-and-dagger", 0.94],
       alwaysFail: [3, 0.905],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
-      xp: 1775,
+      xp: 3075,
     },
   },
   // 1 point over the 98% the #252 slack rule asks of an Easy module (1.5
@@ -594,13 +595,14 @@ const TURN_UNDEAD_FIGURES = {
       ["dead-delver", 27.5],
     ],
   },
+  // At level 4 since #443 (27.5% each at level 3).
   "coldwater-weirgate": {
     cap: 0.4,
     enemies: [
-      ["drowned-wheelwright", 27.5],
-      ["guildsman-1", 27.5],
-      ["guildsman-2", 27.5],
-      ["wandering-guildsman", 27.5],
+      ["drowned-wheelwright", 34.3],
+      ["guildsman-1", 34.3],
+      ["guildsman-2", 34.3],
+      ["wandering-guildsman", 34.3],
     ],
   },
   "drowned-chapel": { cap: 0.5, enemies: [["drowned-sexton", 27.5]] },
@@ -677,13 +679,14 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
  * module of level 3 or more with such foes (#412): the Lockjaw bandits.
  */
 const HOLD_PERSON_FIGURES = {
+  // At level 4 since #443 (27.5% each at level 3).
   "coldwater-weirgate": [
-    ["sergeant-larrow", 27.5],
-    ["bunk-bandit-1", 27.5],
-    ["bunk-bandit-2", 27.5],
-    ["lookout", 27.5],
-    ["patrol-bandit-1", 27.5],
-    ["patrol-bandit-2", 27.5],
+    ["sergeant-larrow", 34.3],
+    ["bunk-bandit-1", 34.3],
+    ["bunk-bandit-2", 34.3],
+    ["lookout", 34.3],
+    ["patrol-bandit-1", 34.3],
+    ["patrol-bandit-2", 34.3],
   ],
 };
 
@@ -692,6 +695,14 @@ const CONTROL_OVER_CAP = {
   "abandoned-delve cleric": [
     ["skeleton-sergeant", TURN_UNDEAD_ID],
     ["skeleton-guard", TURN_UNDEAD_ID],
+  ],
+  // At level 4 since #443, Sleep takes the kobolds and Old Sullage out
+  // 41.0% of the time: four of fifteen foes, no more than half.
+  "coldwater-weirgate wizard": [
+    ["kobold-1", "sleep"],
+    ["kobold-2", "sleep"],
+    ["kobold-3", "sleep"],
+    ["old-sullage", "sleep"],
   ],
 };
 
@@ -710,10 +721,10 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
         continue;
       }
       assert.equal(control.ok, true, label);
-      // Sleep's saves with advantage keep every foe under, and so do Hold
-      // Person's saves each turn on the one module's bandits. Only Turn
-      // Undead may be over: on the Delve's skeletons since it became Hard
-      // (#442), two of seven foes, no more than half.
+      // Hold Person's saves each turn keep the one module's bandits under
+      // the cap. The foes over it are pinned: Turn Undead on the Delve's
+      // skeletons since it became Hard (#442), and Sleep at level 4 in the
+      // Weirgate (#443).
       assert.deepEqual(
         control.overCap.map(({ opponentId, control: used }) => [
           opponentId,
@@ -923,10 +934,11 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["gravediggers-lodge", "2–2", "hard"],
       ["silvervein-mine", "2–3", "medium"],
       ["drowned-chapel", "3–3", "easy"],
-      ["coldwater-weirgate", "3–3", "medium"],
       ["goblin-warren", "3–3", "medium"],
       ["hollow-chantry", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],
+      // Levels 3–4 since #443 (level 3 before).
+      ["coldwater-weirgate", "3–4", "medium"],
       ["mallow-counting-house", "3–4", "medium"],
       // Level 4 and Medium since #348 (levels 3–4 and Hard before).
       ["wolfstone-hillfort", "4–4", "medium"],
