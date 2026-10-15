@@ -2125,7 +2125,27 @@ const toGrisk = [
   ...toPumpRoom,
   { type: "move", destinationId: "gear-hall" },
 ] as const;
-// Seed 266: Larrow is friendly and lets her pass; at the Stair Head her
+// #443. Ada beats Brindle, takes the 15 gp biscuit purse and goes on to
+// the Toll Hall. Seed 4: Larrow is indifferent and sells a dagger and
+// arrows; seed 0: she is uncertain, and trades nothing.
+const toTollWithCoin = [
+  ...toKennel,
+  { type: "win-fight" },
+  { type: "examine", targetId: "feed-bin" },
+  { type: "take", itemId: "biscuit-purse" },
+  { type: "move", destinationId: "barge-yard" },
+  { type: "move", destinationId: "toll-hall" },
+] as const;
+// Seed 0: Ada beats Brindle, sneaks unseen into the Bunk Room, slips past
+// the sleeping bandits to the Bell Tower and beats the lookout there.
+const pastTheSleepers = [
+  ...toKennel,
+  { type: "win-fight" },
+  { type: "sneak", destinationId: "bunk-room" },
+  { type: "move", destinationId: "bell-tower" },
+  { type: "win-fight" },
+] as const;
+// Seed 266: Larrow is indifferent and lets her pass; at the Stair Head her
 // try to break the grate fails by 5 or more, and the weir bell rings. She
 // looks at the bell-line, which lets her Tactical Mind offer go.
 const toGrate = [
@@ -2148,7 +2168,8 @@ const bellRung = [
  * on Grisk by the approach the player's words pick out but uses no feature
  * from another room, says the omen heard, and from the Culverts recalls
  * what the keeper's ledger in the Keep said and heads back there by the
- * right way.
+ * right way. Since #443 it also opens Larrow's trade when her band offers
+ * it and not otherwise, and sneaks past the sleeping bandits and back.
  */
 export const FIFTH_WEIRGATE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   actionCase({
@@ -2299,6 +2320,48 @@ export const FIFTH_WEIRGATE_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     name: "move",
     arguments: { destination: "outfall" },
     dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-trade-offered",
+    seed: 4,
+    setup: toTollWithCoin,
+    playerInput: "I'll take one of those daggers off her.",
+    name: "trade",
+    arguments: { offer: "buy:dagger" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "weirgate-trade-not-offered",
+    kind: "refusal",
+    seed: 0,
+    setup: toTollWithCoin,
+    playerInput:
+      "Forget her toll. I'll buy a dagger off her instead and walk on.",
+    reply:
+      "Larrow isn't selling today: she wants five gold to pass, or you can talk her round or fight.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-sneak-past-sleepers",
+    seed: 0,
+    setup: [...toKennel, { type: "win-fight" }],
+    playerInput: "I creep into the bunk room without waking anyone.",
+    name: "sneak",
+    arguments: { destination: "bunk-room" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "weirgate-sneak-again",
+    seed: 0,
+    setup: pastTheSleepers,
+    playerInput: "I tiptoe back into the bunk room past the sleepers.",
+    name: "sneak",
+    arguments: { destination: "bunk-room" },
+    dimensions: ["synonym-accuracy"],
     manualJudgments: [],
   }),
 ]);
