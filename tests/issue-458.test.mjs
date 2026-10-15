@@ -46,6 +46,8 @@ test("an exit's direction is the compass point between the cells, or up or down"
   // Between floors, the floor decides, wherever the other cell lies.
   assert.equal(exitDirection(from, place([1, -1], 1)), "up");
   assert.equal(exitDirection(from, place([0, 0], -1)), "down");
+  // The layout rules keep two rooms off one cell of a floor.
+  assert.throws(() => exitDirection(from, place([0, 0])), /share cell/u);
 });
 
 test("the room panel's exits carry their directions, a hidden one once found", () => {

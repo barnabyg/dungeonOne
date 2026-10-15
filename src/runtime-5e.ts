@@ -12862,7 +12862,7 @@ export function createFifthRuntime(
     // actions the player sees enabled.
     const choices = (kind: ActionKind) => accepted(state, kind);
     /** The exits `kind` goes through, each with the way it leads (#458). */
-    const exitChoices = (kind: "move" | "flee" | "sneak") =>
+    const exitTargets = (kind: "move" | "flee" | "sneak") =>
       choices(kind).map(({ id, name }) => ({
         id,
         name: `${name}, ${directionTo(state, id)}`,
@@ -12960,13 +12960,13 @@ export function createFifthRuntime(
           : state.unseenBy === undefined
             ? "Go through an exit to a neighbouring room. A fight there begins at once. Exits:"
             : "Slip past the opponents here, unseen, through an exit to a neighbouring room, leaving their fight unfought; it is met again on coming back. A fight in the next room begins at once. Exits:",
-        exitChoices("move"),
+        exitTargets("move"),
         "The id of the room to go to.",
       ),
       ...targetTool(
         "flee",
         `Only when the player asks to run, flee, retreat or make a break for an exit in the middle of the fight: the character flees through the exit with its action, leaving the fight unresolved; its standing opponents keep their wounds and are met again on coming back, and they don't follow. ${fleeTargets(state)} Exits it can flee through:`,
-        exitChoices("flee"),
+        exitTargets("flee"),
         "The id of the room to flee into.",
       ),
       ...targetTool(
@@ -13012,7 +13012,7 @@ export function createFifthRuntime(
       ...targetTool(
         "sneak",
         "Only when the player asks to sneak, creep or steal into a room: go through the exit quietly. The engine rolls the character's Stealth against the opponents' best passive Perception: on a success they have not noticed the character, who may then ambush them or slip past; on a failure the fight begins. Rooms where a fight waits:",
-        exitChoices("sneak"),
+        exitTargets("sneak"),
         "The id of the room to sneak into.",
       ),
       ...targetTool(

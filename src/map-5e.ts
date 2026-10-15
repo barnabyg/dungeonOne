@@ -129,6 +129,9 @@ export function exitDirection(
   }
   const north = Math.sign(to.at[1] - from.at[1]);
   const east = Math.sign(to.at[0] - from.at[0]);
+  if (north === 0 && east === 0) {
+    throw new Error(`Two rooms share cell ${cellText(to.at)} of a floor.`);
+  }
   return `${["north", "", "south"][north + 1]}${["west", "", "east"][east + 1]}` as Direction;
 }
 
