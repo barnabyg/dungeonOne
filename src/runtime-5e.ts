@@ -77,6 +77,7 @@ import {
   TREASURE_ICON,
   WAND_ICON,
 } from "./icons-5e.js";
+import type { Cell, VerticalKind } from "./map-5e.js";
 import {
   approachesOf,
   authoredBand,
@@ -4696,6 +4697,47 @@ export type KnownRegionView = Readonly<{
 }>;
 
 /**
+ * One end of a way on the map (#457): its room's cell and floor, and the
+ * room's id once the character has visited it. A room not yet visited is
+ * never named.
+ */
+export type MapEndView = Readonly<{ at: Cell; floor: number; room?: string }>;
+
+/**
+ * The fog-of-war map (#457): the floor the character is on, the rooms it
+ * has visited, in the module's order, and every way out of them it can
+ * see, once each.
+ */
+export type MapView = Readonly<{
+  floor: number;
+  rooms: readonly Readonly<{
+    id: string;
+    name: string;
+    at: Cell;
+    floor: number;
+    /** Its region's name and place in the module's regions, to shade it. */
+    region?: Readonly<{ name: string; shade: number }>;
+    /** The character is here. */
+    current?: true;
+  }>[];
+  /**
+   * A way out of a visited room: its two ends, the first one visited; a
+   * passage between floors is stairs, a ladder or a shaft. A hidden passage
+   * shows only once a band opens it. A closed way is marked, and so are its
+   * door and its trap, once found, as on the room panel's exits. A way from
+   * the character's room names the room it moves to.
+   */
+  ways: readonly Readonly<{
+    between: readonly [MapEndView, MapEndView];
+    vertical?: VerticalKind;
+    closed?: true;
+    door?: Readonly<{ name: string; open: boolean }>;
+    trap?: Readonly<{ name: string; state: "armed" | "disarmed" | "sprung" }>;
+    move?: string;
+  }>[];
+}>;
+
+/**
  * The player-safe room for the browser: its exits, features (with the
  * discoveries the character has made), visible items, what the character
  * carries, its hit points and health, and the ids each exploring action
@@ -5226,6 +5268,11 @@ export type FifthRuntime = Omit<
      * with its record, and those seen through their exits.
      */
     projectKnownRooms(state: FifthState): readonly KnownRegionView[];
+    /**
+     * The fog-of-war map (#457): the rooms visited, on their cells, and
+     * the ways out of them the character can see.
+     */
+    projectMap(state: FifthState): MapView;
     /** Its module's monster and item icons, for result lines (#377). */
     icons: IconLookup;
     /**
@@ -6024,15 +6071,18 @@ export function createFifthRuntime(
       add(to, from);
     }
   }
-  /** The passages out of the room, each with the room it leads to. */
-  const ways = (
+  /** The passages out of room `roomId`, each with the room it leads to. */
+  const waysFrom = (
     state: FifthState,
+    roomId: string,
   ): readonly Readonly<{ passage: FifthPassage; to: string }>[] =>
-    (passagesOut.get(state.roomId) ?? []).filter(
+    (passagesOut.get(roomId) ?? []).filter(
       ({ passage }) =>
         // A hidden passage is a way only once a check's band opens it (#282).
         passage.hidden !== true || revealedIn(state).opened.has(passage.id),
     );
+  /** The passages out of the room, each with the room it leads to. */
+  const ways = (state: FifthState) => waysFrom(state, state.roomId);
   /**
    * Whether the passage is closed: a check's band closed it (#282), or a
    * flag (#397), set to close it or not yet set to open it.
@@ -12338,6 +12388,70 @@ export function createFifthRuntime(
         });
   };
 
+  /**
+   * The fog-of-war map (#457): the rooms visited, in the module's order,
+   * and each way out of them as the room panel would show it from there,
+   * once, with the room at its far end named only once visited.
+   */
+  const projectMap = (state: FifthState): MapView => {
+    const visited = new Set(state.visitedRoomIds);
+    const rooms = adventure.rooms.filter(({ id }) => visited.has(id));
+    const end = ({ id, at, floor }: FifthRoom): MapEndView => ({
+      at,
+      floor,
+      ...(visited.has(id) ? { room: id } : {}),
+    });
+    const shown = new Set<string>();
+    const ways = rooms.flatMap((from) =>
+      waysFrom(state, from.id).flatMap(({ passage, to }) => {
+        if (shown.has(passage.id)) {
+          return [];
+        }
+        shown.add(passage.id);
+        const { vertical, door, trap } = passage;
+        const closed = isClosed(state, passage);
+        const here = [from.id, to].indexOf(state.roomId);
+        return [
+          {
+            between: [end(from), end(roomById(to))] as const,
+            ...(vertical === undefined ? {} : { vertical }),
+            ...(closed ? { closed: true as const } : {}),
+            // A closed way has no door left to deal with (#282).
+            ...(door === undefined || closed
+              ? {}
+              : { door: { name: door.name, open: isOpen(state, door) } }),
+            ...(trap === undefined || !trapKnown(state, trap.id)
+              ? {}
+              : {
+                  trap: { name: trap.name, state: trapStateOf(state, trap.id) },
+                }),
+            ...(here === -1 ? {} : { move: here === 0 ? to : from.id }),
+          },
+        ];
+      }),
+    );
+    const shade = (of: FifthRoom) => {
+      const index = (adventure.regions ?? []).findIndex(
+        ({ id }) => id === of.region,
+      );
+      return index === -1
+        ? {}
+        : { region: { name: adventure.regions![index]!.name, shade: index } };
+    };
+    return {
+      floor: room(state).floor,
+      rooms: rooms.map((of) => ({
+        id: of.id,
+        name: of.name,
+        at: of.at,
+        floor: of.floor,
+        ...shade(of),
+        ...(of.id === state.roomId ? { current: true as const } : {}),
+      })),
+      ways,
+    };
+  };
+
   /** How a known room's fight stands, for the AI DM's scene (#406). */
   const FIGHT_WORDS: Readonly<Record<KnownFightStatus, string>> = {
     "under-way": "under way",
@@ -13818,6 +13932,7 @@ export function createFifthRuntime(
     projectEffects: (state: FifthState) => effectViews(self(state)),
     projectRests,
     projectKnownRooms,
+    projectMap,
     projectRoom,
     icons,
     projectActions,

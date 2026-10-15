@@ -99,6 +99,8 @@
 // on the right; there "You carry" comes after the scene on screen but before
 // it in tab order. The page is for desktop windows (#381): below 900 x 560 px it
 // keeps that size and the window scrolls. The footer's icon credits (#377) show on every screen.
+// In an adventure the header bar's #open-map (or M) opens the map pop-up,
+// #map-dialog (#457), described at renderMap.
 //
 // A level-4 character's sheet (#286) leads with #level-choice, the level-up
 // card that asks for its Ability Score Improvement (#asi-mode-two or
@@ -134,7 +136,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
 <header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
-<p id="adventure-meta" hidden></p></header>
+<p id="adventure-meta" hidden></p><button id="open-map" type="button" class="secondary" aria-haspopup="dialog" aria-keyshortcuts="M" title="Map (M)" hidden>Map</button></header>
 <main id="content" tabindex="-1">
 <section id="library" class="panel" aria-labelledby="library-title">
 <h2 id="library-title" tabindex="-1">Your characters</h2>
@@ -224,6 +226,11 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="delete-error" class="error" role="alert"></p>
 <div class="controls"><button id="confirm-delete" type="submit" class="primary danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
 </form>
+</dialog>
+<dialog id="map-dialog" aria-labelledby="map-title">
+<div class="map-head"><h2 id="map-title">Map</h2><div id="map-floors" role="group" aria-label="Floors" hidden></div><button id="close-map" type="button" class="secondary">Close</button></div>
+<div class="map-body"><div id="map-view"><div id="map-canvas"></div></div>
+<div class="map-side"><p class="hint">Choose a room next to yours, or a ?, to go there. Choose any other room to see what you found there.</p><p id="map-status" role="status"></p><div id="map-record" aria-live="polite" hidden></div><h3 id="map-key-title">Key</h3><ul id="map-key" class="map-key" aria-labelledby="map-key-title"></ul></div></div>
 </dialog></body></html>`;
 
 // Design tokens (#152). Use these names rather than literal values:
@@ -259,6 +266,18 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
+.masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
+#map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4);--map-shade-0:#e1ebd5;--map-shade-1:#e4dbee;--map-shade-2:#f2e0c4;--map-shade-3:#d6e6ec;--map-shade-4:#f0d8d3;--map-shade-5:#e8e5c8}#map-dialog[open]{display:flex;flex-direction:column}
+.map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h2{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
+.map-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:var(--space-4)}#map-view{overflow:auto;border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface)}#map-canvas{position:relative;margin:auto}
+.map-lines{position:absolute;inset:0;pointer-events:none}.map-lines line{stroke:var(--color-ink);stroke-width:3}.map-lines line.closed{stroke:var(--color-danger);stroke-dasharray:7 5}
+.map-room{position:absolute;width:136px;height:88px;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
+.map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);overflow:hidden;overflow-wrap:anywhere}.map-room>button:hover{background:rgba(38,61,61,.08)}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
+.map-ways{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-way{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:3px;background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-way{border-color:var(--color-ink);color:var(--color-ink)}
+.map-stub{position:absolute;width:40px;height:40px;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
+.map-mark{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
+.map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
+.map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:3px;background:var(--map-shade)}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);width:100%}.choice-head button{flex:0 0 auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
@@ -355,6 +374,7 @@ function show(id, title, trail) {
   for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
   // The adventure's levels, difficulty and room share the header bar (#430).
   element("adventure-meta").hidden = id !== "adventure";
+  element("open-map").hidden = id !== "adventure";
   // Confirmations show inside the current panel, under its heading.
   element(id).querySelector("h2").after(element("feedback"));
   document.title = title + " · Dungeon One";
@@ -396,6 +416,7 @@ function route(focus) {
     restoreFocusOnClose = false;
     element("delete-dialog").close();
   }
+  if (element("map-dialog").open) closeMap(false);
   const hash = location.hash;
   const character = /^#character-([a-f0-9]{32})$/.exec(hash);
   const adventure = /^#adventure-([a-f0-9]{32})$/.exec(hash);
@@ -1075,6 +1096,7 @@ function renderAdventure() {
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
   renderKnownRooms();
+  if (element("map-dialog").open) renderMap();
   // In a fight the Fight section comes before the room (#386); otherwise after.
   const scene = element("session-scene");
   if (fighting !== (scene.firstElementChild === element("encounter"))) {
@@ -1669,15 +1691,13 @@ function renderKnownRooms() {
 function renderKnownRecord(room) {
   const record = element("known-room-record");
   record.hidden = !room;
-  if (!room) {
-    record.replaceChildren();
-    return;
-  }
+  record.replaceChildren(...(room ? recordNodes(room) : []));
+}
+
+// A known room's heading and record, in the Known rooms panel and the map (#457).
+function recordNodes(room) {
   const heading = make("h4", room.name + (room.current ? ": you are here" : ""));
-  if (!room.record) {
-    record.replaceChildren(heading, make("p", "Seen through an exit; you have not been in.", "hint"));
-    return;
-  }
+  if (!room.record) return [heading, make("p", "Seen through an exit; you have not been in.", "hint")];
   const { discoveries, creatures, doors, traps, fight } = room.record;
   const facts = [
     ...(fight ? [make("li", "Fight with " + fight.opponents.join(", ") + ": " + KNOWN_FIGHTS[fight.status] + ".")] : []),
@@ -1688,7 +1708,252 @@ function renderKnownRecord(room) {
   ];
   const list = make("ul", undefined, "things");
   list.append(...facts);
-  record.replaceChildren(heading, facts.length ? list : make("p", "Nothing learned here yet.", "hint"));
+  return [heading, facts.length ? list : make("p", "Nothing learned here yet.", "hint")];
+}
+
+// The fog-of-war map (#457), a pop-up (#map-dialog) drawn from session.map:
+// the rooms visited on their grid cells, the current one marked; every way
+// out of them, to a visited room or a "?" stub on the far room's own cell
+// (a long passage is drawn its whole length); marks on a way for its door,
+// a trap found and a closed way; and on a room, a line per stair, ladder or
+// shaft, naming where it leads once visited. Rooms are shaded by region.
+// One floor shows at a time, with a tab per floor visited, all floors drawn
+// to one origin and scale; it opens on the character's floor. Choosing the
+// room at the other end of a way from the character's room, its stub or
+// its stair makes the same move as Go to and closes the map; choosing any
+// other room shows its record, as in Known rooms. No room not yet visited
+// is ever named here. M opens it (not while typing); Escape or Close
+// returns focus to where it was.
+const MAP_CELL = { x: 176, y: 128 };
+const MAP_ROOM = { x: 136, y: 88 };
+const MAP_STUB = 40;
+const MAP_PAD = 16;
+const MAP_SHADES = 6;
+let mapFloor = 0;
+let mapRecordId = null;
+let mapReturn = null;
+let restoreMapFocus = true;
+const SVG = "http://www.w3.org/2000/svg";
+const floorName = (floor) => floor === 0 ? "Main floor" : Math.abs(floor) + (Math.abs(floor) === 1 ? " floor " : " floors ") + (floor > 0 ? "up" : "down");
+/** The compass direction from one cell to another, as a word and its letters, or "" for the same cell. */
+function compass(from, to) {
+  const north = to[1] < from[1] ? "north" : to[1] > from[1] ? "south" : "";
+  const east = to[0] > from[0] ? "east" : to[0] < from[0] ? "west" : "";
+  const word = north + east;
+  return { word, letters: (north.charAt(0) + east.charAt(0)).toUpperCase() };
+}
+/** A way's marks: its closed way, its door and its trap found. */
+const wayMarks = (way) => [
+  ...(way.closed ? [{ glyph: "✕", kind: "closed", label: "Way closed" }] : []),
+  ...(way.door ? [{ glyph: way.door.open ? "□" : "■", kind: "door", label: way.door.name + ": " + (way.door.open ? "open" : "shut") }] : []),
+  ...(way.trap ? [{ glyph: "!", kind: "trap", label: way.trap.name + ": " + TRAP_STATES[way.trap.state] }] : []),
+];
+function markNode({ glyph, kind, label }, className) {
+  const mark = make("span", glyph, className + " " + kind);
+  mark.setAttribute("role", "img");
+  mark.setAttribute("aria-label", label);
+  mark.title = label;
+  return mark;
+}
+const place = (node, left, top) => {
+  node.style.left = left + "px";
+  node.style.top = top + "px";
+  return node;
+};
+
+function openMap() {
+  if (!session || element("adventure").hidden || document.querySelector("dialog[open]")) return;
+  mapReturn = document.activeElement;
+  restoreMapFocus = true;
+  mapFloor = session.map.floor;
+  mapRecordId = null;
+  element("map-status").textContent = "";
+  renderMap();
+  element("map-dialog").showModal();
+  const here = document.querySelector("#map-canvas .map-room.current > button");
+  if (here) {
+    here.focus();
+    here.scrollIntoView({ block: "center", inline: "center" });
+  }
+}
+
+function closeMap(restore) {
+  restoreMapFocus = restore;
+  element("map-dialog").close();
+}
+
+/**
+ * Goes to the room at the other end of a way from the character's room, as
+ * Go to does, closing the map; or says in the map why not. True if it went.
+ */
+function mapGo(roomId) {
+  const option = session.actions.find(({ action, target }) => action === "move" && target.id === roomId);
+  const why = session.status !== "playing" ? "The adventure is over." : acting ? "Wait for the Dungeon Master's reply first." : !option ? (fightingNow() ? "Not in a fight: flee from the action bar instead." : "You can't go that way now.") : option.available ? "" : option.reason + ".";
+  element("map-status").textContent = why;
+  if (why) return false;
+  closeMap(false);
+  perform(option);
+  return true;
+}
+
+function renderMap() {
+  const { map } = session;
+  const floors = [...new Set(map.rooms.map(({ floor }) => floor))].sort((a, b) => b - a);
+  if (!floors.includes(mapFloor)) mapFloor = map.floor;
+  const tabs = element("map-floors");
+  tabs.hidden = floors.length < 2;
+  tabs.replaceChildren(...floors.map((floor) => {
+    const tab = make("button", floorName(floor), "secondary");
+    tab.type = "button";
+    tab.dataset.floor = String(floor);
+    tab.setAttribute("aria-pressed", String(floor === mapFloor));
+    tab.addEventListener("click", () => {
+      mapFloor = floor;
+      renderMap();
+      tabs.querySelector("[data-floor='" + floor + "']").focus();
+    });
+    return tab;
+  }));
+  // Every floor shares one origin and scale, so a stair's ends line up.
+  const flat = map.ways.filter(({ vertical }) => !vertical);
+  const cells = [...map.rooms.map(({ at }) => at), ...flat.flatMap(({ between }) => between.map(({ at }) => at))];
+  const minX = Math.min(...cells.map(([x]) => x));
+  const minY = Math.min(...cells.map(([, y]) => y));
+  const centre = ([x, y]) => [MAP_PAD + (x - minX + 0.5) * MAP_CELL.x, MAP_PAD + (y - minY + 0.5) * MAP_CELL.y];
+  const width = 2 * MAP_PAD + (Math.max(...cells.map(([x]) => x)) - minX + 1) * MAP_CELL.x;
+  const height = 2 * MAP_PAD + (Math.max(...cells.map(([, y]) => y)) - minY + 1) * MAP_CELL.y;
+  const canvas = element("map-canvas");
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+  const here = map.rooms.find(({ current }) => current);
+  const roomOf = (end) => end.room && map.rooms.find(({ id }) => id === end.room);
+  // The rooms a way from the character's room leads to: one click goes there.
+  const near = new Set(map.ways.flatMap(({ move }) => move ? [move] : []));
+  const lines = document.createElementNS(SVG, "svg");
+  lines.setAttribute("class", "map-lines");
+  lines.setAttribute("width", String(width));
+  lines.setAttribute("height", String(height));
+  lines.setAttribute("aria-hidden", "true");
+  const nodes = [lines];
+  const stubs = new Map();
+  for (const way of flat.filter(({ between }) => between[0].floor === mapFloor)) {
+    const [from, to] = way.between.map(({ at }) => centre(at));
+    const line = document.createElementNS(SVG, "line");
+    line.setAttribute("x1", String(from[0]));
+    line.setAttribute("y1", String(from[1]));
+    line.setAttribute("x2", String(to[0]));
+    line.setAttribute("y2", String(to[1]));
+    if (way.closed) line.setAttribute("class", "closed");
+    lines.append(line);
+    const marks = wayMarks(way);
+    marks.forEach((mark, index) => nodes.push(place(markNode(mark, "map-mark"), (from[0] + to[0]) / 2 + (index - (marks.length - 1) / 2) * 22, (from[1] + to[1]) / 2)));
+    for (const end of way.between) {
+      if (end.room) continue;
+      const key = end.at.join(",");
+      const stub = stubs.get(key) || { at: end.at };
+      if (way.move) stub.move = way.move;
+      stubs.set(key, stub);
+    }
+  }
+  for (const stub of stubs.values()) {
+    const [x, y] = centre(stub.at);
+    const direction = here.floor === mapFloor ? compass(here.at, stub.at).word : "";
+    const node = make(stub.move ? "button" : "span", "?", "map-stub");
+    if (stub.move) {
+      node.type = "button";
+      node.setAttribute("aria-label", "Go " + (direction ? direction + " " : "") + "to a room not yet explored");
+      node.addEventListener("click", () => mapGo(stub.move));
+    } else {
+      node.setAttribute("role", "img");
+      node.setAttribute("aria-label", "A room not yet explored");
+    }
+    nodes.push(place(node, x - MAP_STUB / 2, y - MAP_STUB / 2));
+  }
+  for (const room of map.rooms.filter(({ floor }) => floor === mapFloor)) {
+    const [x, y] = centre(room.at);
+    const box = place(make("div", undefined, "map-room" + (room.current ? " current" : "")), x - MAP_ROOM.x / 2, y - MAP_ROOM.y / 2);
+    box.dataset.room = room.id;
+    if (room.region) box.style.setProperty("--map-shade", "var(--map-shade-" + (room.region.shade % MAP_SHADES) + ")");
+    const name = make("button", room.name);
+    name.type = "button";
+    if (room.current) name.append(make("span", "You are here", "map-here"));
+    else if (near.has(room.id)) name.title = "Go to " + room.name;
+    name.addEventListener("click", () => {
+      if (near.has(room.id) && mapGo(room.id)) return;
+      mapRecordId = room.id;
+      renderMapRecord();
+    });
+    box.append(name);
+    // Each stair, ladder or shaft out of the room, naming where it leads.
+    const climbs = map.ways.filter(({ vertical, between }) => vertical && between.some((end) => end.room === room.id));
+    if (climbs.length) {
+      const list = make("ul", undefined, "map-ways");
+      list.append(...climbs.map((way) => {
+        const other = way.between.find((end) => end.room !== room.id);
+        const up = other.floor > room.floor;
+        const { word, letters } = compass(room.at, other.at);
+        const goes = roomOf(other);
+        const marks = wayMarks(way);
+        const text = (up ? "↑ " : "↓ ") + way.vertical + (letters ? " " + letters : "") + ": " + (goes ? goes.name : "?") + marks.map(({ glyph }) => " " + glyph).join("");
+        const said = (up ? "up" : "down") + " the " + way.vertical + (word ? ", " + word : "") + ", to " + (goes ? goes.name : "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
+        const moves = room.current && way.move;
+        const item = make("li");
+        const node = make(moves ? "button" : "span", text, "map-way");
+        node.title = titleCase(said);
+        node.setAttribute("aria-label", moves ? "Go " + said : titleCase(said));
+        if (moves) {
+          node.type = "button";
+          node.addEventListener("click", () => mapGo(way.move));
+        }
+        item.append(node);
+        return item;
+      }));
+      box.append(list);
+    }
+    nodes.push(box);
+  }
+  canvas.replaceChildren(...nodes);
+  renderMapKey(stubs.size > 0);
+  renderMapRecord();
+}
+
+// The key: the regions on the floor shown, then the marks.
+function renderMapKey(withStubs) {
+  const regions = new Map(session.map.rooms.filter(({ floor, region }) => floor === mapFloor && region).map(({ region }) => [region.name, region.shade]));
+  const entry = (node, text) => {
+    const item = make("li");
+    item.append(node, make("span", text));
+    return item;
+  };
+  const swatch = (shade) => {
+    const node = make("span", undefined, "map-swatch");
+    node.style.setProperty("--map-shade", "var(--map-shade-" + (shade % MAP_SHADES) + ")");
+    node.setAttribute("aria-hidden", "true");
+    return node;
+  };
+  const mark = (glyph, kind) => {
+    const node = make("span", glyph, "map-mark " + kind);
+    node.setAttribute("aria-hidden", "true");
+    return node;
+  };
+  const stub = make("span", "?", "map-stub");
+  stub.setAttribute("aria-hidden", "true");
+  element("map-key").replaceChildren(
+    ...[...regions].map(([name, shade]) => entry(swatch(shade), name)),
+    ...(withStubs ? [entry(stub, "Not yet explored")] : []),
+    entry(mark("■", "door"), "Door, shut (□ open)"),
+    entry(mark("!", "trap"), "Trap you found"),
+    entry(mark("✕", "closed"), "Way closed"),
+    entry(mark("↕", "door"), "Stairs, ladder or shaft"),
+  );
+}
+
+// The record of the room chosen on the map, as Known rooms shows it.
+function renderMapRecord() {
+  const record = element("map-record");
+  const room = session.knownRooms.flatMap(({ rooms }) => rooms).find(({ id }) => id === mapRecordId);
+  record.hidden = !room;
+  record.replaceChildren(...(room ? recordNodes(room) : []));
 }
 
 // Disclosures (#157): once the fight is over the initiative table collapses
@@ -3593,6 +3858,17 @@ element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
+element("open-map").addEventListener("click", openMap);
+element("close-map").addEventListener("click", () => closeMap(true));
+element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && mapReturn && mapReturn.isConnected) mapReturn.focus(); });
+// M opens the map (#457), but not while typing, as in the message box.
+document.addEventListener("keydown", (event) => {
+  if ((event.key !== "m" && event.key !== "M") || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+  if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]")) return;
+  if (element("adventure").hidden || document.querySelector("dialog[open]")) return;
+  event.preventDefault();
+  openMap();
+});
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 element("confirm-leave").addEventListener("click", leaveAdventure);
 element("cancel-leave").addEventListener("click", cancelLeave);
