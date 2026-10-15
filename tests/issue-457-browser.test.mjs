@@ -1,8 +1,10 @@
 // #457, browser → API → storage: Ada explores the Mapped Tunnels with the
 // map pop-up. The Map button and M open it, Escape and Close return focus;
 // M typed in the message box is just a letter. It draws only the rooms she
-// has visited and "?" stubs for the ways out of them, naming no room she
-// has not been in; a hidden passage shows once found. Choosing a stub, a
+// has visited and stubs for the ways out of them; a stub or a stair from
+// her room names its room, as her room's exits do, and any other is a bare
+// "?", so no room she has neither been in nor stands next to is named. A
+// hidden passage shows once found. Choosing a stub, a
 // room or a stair next to hers makes the same move as Go to and closes the
 // map; one click never moves more than one room, and no move is made while
 // the Dungeon Master is answering or in a fight. Each floor has a tab, all
@@ -141,14 +143,14 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
         {
           name: "Foot of the Stair!",
           at: [0, 0],
-          climbs: ["↑ stairs NE: ? [go]"],
+          climbs: ["↑ stairs NE: Belfry [go]"],
         },
       ],
       // The gallery's stub is two cells east, on its own cell.
       stubs: [
-        ["Go west to a room not yet explored", [-1, 0]],
-        ["Go south to a room not yet explored", [0, 1]],
-        ["Go east to a room not yet explored", [2, 0]],
+        ["Go to Alcove (not yet explored)", [-1, 0]],
+        ["Go to Rat-Gnawed Cellar (not yet explored)", [0, 1]],
+        ["Go to Long Gallery (not yet explored)", [2, 0]],
       ],
       marks: [],
       lines: 3,
@@ -158,20 +160,24 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
       false,
       "no floor tabs with one floor visited",
     );
-    const unvisited = [
-      "Alcove",
-      "Rat-Gnawed Cellar",
+    // Each stub shows its name; nothing beyond her exits is named.
+    assert.deepEqual(
+      await page
+        .locator("#map-canvas .map-stub .map-stub-name")
+        .allTextContents(),
+      ["Alcove", "Rat-Gnawed Cellar", "Long Gallery"],
+    );
+    const unnamed = (text, names) => {
+      for (const name of names) {
+        assert.equal(text.includes(name), false, `${name} is not named`);
+      }
+    };
+    unnamed(await dialogText(page), [
       "Smugglers' Den",
-      "Long Gallery",
-      "Belfry",
       "Sump",
       "Cupboard",
       "Lower Tunnels",
-    ];
-    const shown = await dialogText(page);
-    for (const name of unvisited) {
-      assert.equal(shown.includes(name), false, `${name} is not named`);
-    }
+    ]);
     await page.keyboard.press("Escape");
     assert.equal(await dialog.isVisible(), false);
     assert.equal(
@@ -196,13 +202,13 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     await clickAction(page, "examine", "draughty-wall");
     await openButton.click();
     assert.deepEqual((await drawn(page)).stubs.at(-1), [
-      "Go north to a room not yet explored",
+      "Go to Cupboard (not yet explored)",
       [0, -1],
     ]);
 
     // A stub two cells east is one move, to the gallery, not two.
     await moveBy(
-      page.locator("#map-canvas .map-stub[aria-label^='Go east']"),
+      page.locator("#map-canvas .map-stub[aria-label^='Go to Long Gallery']"),
       "gallery",
     );
     assert.equal(
@@ -213,7 +219,18 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     const fromGallery = await drawn(page);
     assert.deepEqual(fromGallery.rooms, [
       { name: "Foot of the Stair", at: [-2, 0], climbs: ["↑ stairs NE: ?"] },
-      { name: "Long Gallery!", at: [0, 0], climbs: ["↓ ladder: ? [go]"] },
+      { name: "Long Gallery!", at: [0, 0], climbs: ["↓ ladder: Sump [go]"] },
+    ]);
+    // Left behind, the stair foot's other ways are bare "?" again.
+    assert.deepEqual(
+      fromGallery.stubs.map(([label]) => label),
+      Array(3).fill("A room not yet explored"),
+    );
+    unnamed(await dialogText(page), [
+      "Alcove",
+      "Rat-Gnawed Cellar",
+      "Belfry",
+      "Cupboard",
     ]);
 
     // Down the ladder by its line on the gallery: the map opens on the

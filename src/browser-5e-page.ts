@@ -230,7 +230,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <dialog id="map-dialog" aria-labelledby="map-title">
 <div class="map-head"><h2 id="map-title">Map</h2><div id="map-floors" role="group" aria-label="Floors" hidden></div><button id="close-map" type="button" class="secondary">Close</button></div>
 <div class="map-body"><div id="map-view"><div id="map-canvas"></div></div>
-<div class="map-side"><p class="hint">Choose a room next to yours, or a ?, to go there. Choose any other room to see what you found there.</p><p id="map-status" role="status"></p><div id="map-record" aria-live="polite" hidden></div><h3 id="map-key-title">Key</h3><ul id="map-key" class="map-key" aria-labelledby="map-key-title"></ul></div></div>
+<div class="map-side"><p class="hint">Choose a room next to yours to go there; one you have not explored has a dashed edge. Choose any other room to see what you found there. A ? is a way you have not taken from a room you have left.</p><p id="map-status" role="status"></p><div id="map-record" aria-live="polite" hidden></div><h3 id="map-key-title">Key</h3><ul id="map-key" class="map-key" aria-labelledby="map-key-title"></ul></div></div>
 </dialog></body></html>`;
 
 // Design tokens (#152). Use these names rather than literal values:
@@ -276,7 +276,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .map-room{position:absolute;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
 .map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);text-decoration:none;overflow:hidden;overflow-wrap:anywhere}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
 .map-climbs{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-climb{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-climb{border-color:var(--color-ink);color:var(--color-ink)}
-.map-stub{position:absolute;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
+.map-stub.named{align-content:center;gap:2px;padding:4px;border-radius:var(--radius-sm);font:600 var(--text-xs)/1.2 var(--font-sans);text-align:center;overflow:hidden;overflow-wrap:anywhere}.map-stub-note{font-weight:400;color:var(--color-text-muted)}.map-stub{position:absolute;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
 .map-mark{position:absolute;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
 .map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
 .map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade)}
@@ -1715,17 +1715,20 @@ function recordNodes(room) {
 
 // The fog-of-war map (#457), a pop-up (#map-dialog) drawn from session.map:
 // the rooms visited on their grid cells, the current one marked; every
-// passage out of them, to a visited room or a "?" stub on the far room's own
-// cell (a long passage is drawn its whole length); marks on a passage for
-// its door, a trap found and a closed way; and on a room, a line per stair, ladder or
-// shaft, naming where it leads once visited. Rooms are shaded by region.
-// One floor shows at a time, with a tab per floor visited, all floors drawn
-// to one origin and scale; it opens on the character's floor. Choosing the
+// passage out of them, to a visited room or a stub on the far room's own
+// cell (a long passage is drawn its whole length): from the character's
+// room a dashed box named as its exit is, from any other room a bare "?";
+// marks on a passage for its door, a trap found and a closed way; and on a
+// room, a line per stair, ladder or shaft, naming where it leads once
+// visited or from the character's room. Rooms are shaded by region. One
+// floor shows at a time, with a tab per floor visited, all floors drawn to
+// one origin and scale; it opens on the character's floor. Choosing the
 // room at the other end of a passage from the character's room, its stub or
 // its stair makes the same move as Go to and closes the map; choosing any
-// other room shows its record, as in Known rooms. No room not yet visited
-// is ever named here. M opens it (not while typing); Escape or Close
-// returns focus to where it was.
+// other room shows its record, as in Known rooms. No room is named here
+// that is neither visited nor named by the character's room's exits. M
+// opens it (not while typing); Escape or Close returns focus to where it
+// was.
 const MAP_CELL = { x: 176, y: 128 };
 const MAP_ROOM = { x: 136, y: 88 };
 const MAP_STUB = 40;
@@ -1849,8 +1852,9 @@ function renderMap() {
   const focusedRoom = canvas.contains(document.activeElement) ? document.activeElement.closest(".map-room")?.dataset.room || session.map.rooms.find(({ current }) => current).id : null;
   canvas.style.width = width + "px";
   canvas.style.height = height + "px";
-  const here = map.rooms.find(({ current }) => current);
   const roomOf = (end) => end.room && map.rooms.find(({ id }) => id === end.room);
+  // The name of a room the character's room has an exit to, as Exits shows it.
+  const exitName = (id) => session.room.exits.find((exit) => exit.id === id).name;
   // The rooms a passage from the character's room leads to: one click goes there.
   const nextDoor = new Set(map.passages.flatMap(({ move }) => move ? [move] : []));
   const lines = document.createElementNS(SVG, "svg");
@@ -1879,18 +1883,23 @@ function renderMap() {
       stubs.set(key, stub);
     }
   }
+  // A stub next to the character's room is named, as its exit is, and
+  // drawn as a room; any other is a bare "?".
   for (const stub of stubs.values()) {
-    const direction = here.floor === mapFloor ? compass(here.at, stub.at).word : "";
-    const node = make(stub.move ? "button" : "span", "?", stub.move ? "secondary map-stub" : "map-stub");
     if (stub.move) {
+      const name = exitName(stub.move);
+      const node = make("button", undefined, "secondary map-stub named");
       node.type = "button";
-      node.setAttribute("aria-label", "Go " + (direction ? direction + " " : "") + "to a room not yet explored");
+      node.append(make("span", name, "map-stub-name"), make("span", "Not yet explored", "map-stub-note"));
+      node.setAttribute("aria-label", "Go to " + name + " (not yet explored)");
       node.addEventListener("click", () => mapGo(stub.move));
+      nodes.push(place(node, centre(stub.at), MAP_ROOM.x, MAP_ROOM.y));
     } else {
+      const node = make("span", "?", "map-stub");
       node.setAttribute("role", "img");
       node.setAttribute("aria-label", "A room not yet explored");
+      nodes.push(place(node, centre(stub.at), MAP_STUB, MAP_STUB));
     }
-    nodes.push(place(node, centre(stub.at), MAP_STUB, MAP_STUB));
   }
   for (const room of map.rooms.filter(({ floor }) => floor === mapFloor)) {
     const box = place(make("div", undefined, "map-room" + (room.current ? " current" : "")), centre(room.at), MAP_ROOM.x, MAP_ROOM.y);
@@ -1914,11 +1923,12 @@ function renderMap() {
         const other = passage.between.find((end) => end.room !== room.id);
         const up = other.floor > room.floor;
         const { word, letters } = compass(room.at, other.at);
-        const goes = roomOf(other);
-        const marks = passageMarks(passage);
-        const text = (up ? "↑ " : "↓ ") + passage.vertical + (letters ? " " + letters : "") + ": " + (goes ? goes.name : "?") + marks.map(({ glyph }) => " " + glyph).join("");
-        const said = (up ? "up" : "down") + " the " + passage.vertical + (word ? ", " + word : "") + ", to " + (goes ? goes.name : "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
         const moves = room.current && passage.move;
+        // Named once visited, or from the character's room, as its exit is.
+        const goes = roomOf(other) ? roomOf(other).name : moves ? exitName(passage.move) : "";
+        const marks = passageMarks(passage);
+        const text = (up ? "↑ " : "↓ ") + passage.vertical + (letters ? " " + letters : "") + ": " + (goes || "?") + marks.map(({ glyph }) => " " + glyph).join("");
+        const said = (up ? "up" : "down") + " the " + passage.vertical + (word ? ", " + word : "") + ", to " + (goes || "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
         const item = make("li");
         const node = make(moves ? "button" : "span", text, moves ? "secondary map-climb" : "map-climb");
         node.title = titleCase(said);
