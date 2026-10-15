@@ -330,7 +330,9 @@ have them, never the Dungeon Master's own words; screen readers skip them.
 
 The room panel shows the current room, its exits, its features (with any
 discovery you have made) and the items you can see, leaving out any list that
-is empty. On a window 1500 px wide or more the screen has three columns: your
+is empty. Each exit gives the way it leads on the map, a compass point or up or
+down a floor ("North: Press Room", "Down: Gear Hall"), and so do its **Go**
+and **Flee** buttons; you can also type "I go north" to the Dungeon Master. On a window 1500 px wide or more the screen has three columns: your
 character, the room, and the action bar with the history; narrower, your
 character's lists sit under the room, with your HP held at the top. Your
 character shows your HP and what you have left this turn, then **You carry**,

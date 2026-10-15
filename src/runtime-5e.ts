@@ -77,7 +77,8 @@ import {
   TREASURE_ICON,
   WAND_ICON,
 } from "./icons-5e.js";
-import type { Cell, VerticalKind } from "./map-5e.js";
+import { exitDirection } from "./map-5e.js";
+import type { Cell, Direction, VerticalKind } from "./map-5e.js";
 import {
   approachesOf,
   authoredBand,
@@ -324,7 +325,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v44";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v45";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1832,7 +1833,7 @@ Wandering encounters are the engine's alone. It rolls for them every so many mov
 
 The scene's known rooms are the other rooms the character knows, a line each: one only seen through an exit by its name, and one visited with its ways on as they stand now, the discoveries made there, what its creatures said, its doors, the traps found and how its fight stands. Answer what the character remembers from them (where a door was, what a creature said, the way back to a room), and when the player asks to go to a known room that is not an exit here, move one room toward it by the ways they give; a request to do something there is not a request to go. They decide nothing: move goes only through the scene's exits, and nothing in them can be examined, taken or asked from here. Never add a discovery, answer or way they don't hold; a room visited long ago may keep only its ways, and then say the character recalls no more.
 
-When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
+When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no tactical grid: do not describe distance or positions within a room as rules. The rooms do lie in directions: each exit in the scene gives the way it leads, a compass point or up or down, so describe the ways out by those directions and no others, and when the player asks to go a direction ("I go north", "take the stairs down"), move through the exit that leads that way; if none does, say so, naming the ways there are, without calling a tool.`;
 
 /** Each feature tool's description, naming the character's class (#300). */
 const featureDescriptions = (
@@ -4765,6 +4766,8 @@ export type RoomView = Readonly<{
    */
   exits: readonly (Named &
     Readonly<{
+      /** The way it leads, from the map's cells (#458). */
+      direction: Direction;
       route?: "opened" | "closed" | "open-now";
       door?: Named & Readonly<{ open: boolean }>;
       trap?: Named & Readonly<{ state: TrapState }>;
@@ -6101,6 +6104,9 @@ export function createFifthRuntime(
       name: roomById(to).name,
       description: passage.description,
     }));
+  /** The way from the character's room to the next room, `to` (#458). */
+  const directionTo = (state: FifthState, to: string) =>
+    exitDirection(room(state), roomById(to));
   /** The doors on the room's exits. */
   const doorsHere = (state: FifthState): readonly FifthDoor[] =>
     ways(state).flatMap(({ passage }) =>
@@ -12051,8 +12057,9 @@ export function createFifthRuntime(
                       : ("living" as const))),
           })),
         exits: projectRoom(state).exits.map(
-          ({ id, name, description, door, trap, route }) => ({
+          ({ id, name, description, direction, door, trap, route }) => ({
             destinationId: id,
+            direction,
             name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : route === "opened" ? " A check opened this way." : route === "open-now" ? " This way has opened." : ""})`,
             ...(door === undefined
               ? {}
@@ -12605,6 +12612,7 @@ export function createFifthRuntime(
           id: to,
           name: roomById(to).name,
           description,
+          direction: directionTo(state, to),
           ...(isClosed(state, passage)
             ? { route: "closed" as const }
             : hidden === true
@@ -12853,6 +12861,12 @@ export function createFifthRuntime(
     // The action bar's projection, so the AI DM is offered exactly the
     // actions the player sees enabled.
     const choices = (kind: ActionKind) => accepted(state, kind);
+    /** The exits `kind` goes through, each with the way it leads (#458). */
+    const exitChoices = (kind: "move" | "flee" | "sneak") =>
+      choices(kind).map(({ id, name }) => ({
+        id,
+        name: `${name}, ${directionTo(state, id)}`,
+      }));
     /** Who would attack the character as it flees now (#396). */
     const fleeTargets = (at: FifthState) => {
       const attackers =
@@ -12946,13 +12960,13 @@ export function createFifthRuntime(
           : state.unseenBy === undefined
             ? "Go through an exit to a neighbouring room. A fight there begins at once. Exits:"
             : "Slip past the opponents here, unseen, through an exit to a neighbouring room, leaving their fight unfought; it is met again on coming back. A fight in the next room begins at once. Exits:",
-        choices("move"),
+        exitChoices("move"),
         "The id of the room to go to.",
       ),
       ...targetTool(
         "flee",
         `Only when the player asks to run, flee, retreat or make a break for an exit in the middle of the fight: the character flees through the exit with its action, leaving the fight unresolved; its standing opponents keep their wounds and are met again on coming back, and they don't follow. ${fleeTargets(state)} Exits it can flee through:`,
-        choices("flee"),
+        exitChoices("flee"),
         "The id of the room to flee into.",
       ),
       ...targetTool(
@@ -12998,7 +13012,7 @@ export function createFifthRuntime(
       ...targetTool(
         "sneak",
         "Only when the player asks to sneak, creep or steal into a room: go through the exit quietly. The engine rolls the character's Stealth against the opponents' best passive Perception: on a success they have not noticed the character, who may then ambush them or slip past; on a failure the fight begins. Rooms where a fight waits:",
-        choices("sneak"),
+        exitChoices("sneak"),
         "The id of the room to sneak into.",
       ),
       ...targetTool(

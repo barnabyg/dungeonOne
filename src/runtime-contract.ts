@@ -93,6 +93,8 @@ export type DmScene = Readonly<{
     }>[];
     exits: readonly Readonly<{
       destinationId: string;
+      /** The way the exit leads, such as "north" or "up", if the runtime has a map. */
+      direction?: string;
       name: string;
       doorway?: Readonly<{
         doorId: string;

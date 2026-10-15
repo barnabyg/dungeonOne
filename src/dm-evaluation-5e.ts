@@ -279,6 +279,18 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["navigation-accuracy"],
     manualJudgments: [],
   }),
+  // A compass direction (#458): north from the Gate Hall is the Broken
+  // Gate; the Porter's Lodge lies northwest.
+  actionCase({
+    id: "direction-north",
+    seed: 0,
+    setup: toHall,
+    playerInput: "I go north.",
+    name: "move",
+    arguments: { destination: "broken-gate" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
   actionCase({
     id: "synonym-read-marks",
     seed: 0,

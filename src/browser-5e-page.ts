@@ -2114,8 +2114,8 @@ function renderRoom(room) {
       const item = make("li");
       item.dataset.id = entry.id;
       const text = make("p");
-      // An item's icon before its name (#377).
-      text.append(...iconned(entry.icon, make("strong", entry.name)), document.createTextNode(" — " + entry.description));
+      // An item's icon before its name (#377); an exit's way (#458).
+      text.append(...iconned(entry.icon, make("strong", wayName(entry.direction, entry.name))), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
@@ -2335,6 +2335,13 @@ const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : fighti
 // Leave names the adventure, not the room it is taken from.
 // An item's use (#400) names the item, then the feature.
 // A fight action (#402) names the feature, then its opponent.
+// The way an exit leads (#458), from the room's exits: for an action through
+// an exit, its words take it ("Go west to Alcove"), and its target is shown
+// as the Exits list shows it ("West: Alcove").
+const THROUGH_EXITS = ["move", "flee", "sneak"];
+const directionOf = (action, target) => THROUGH_EXITS.includes(action) ? session.room.exits.find(({ id }) => id === target.id)?.direction : undefined;
+const wayName = (direction, name) => direction ? titleCase(direction) + ": " + name : name;
+const wayLabel = (label, direction) => direction ? label.replace(" ", " " + direction + " ") : label;
 const named = (action, target, item, feature) => feature ? feature.name + " against " + target.name : item ? item.name + " on " + target.name : target && action !== "leave" ? target.name : "";
 // An attack names the weapon it is made with (#392).
 const weaponOf = (action) => {
@@ -2448,6 +2455,7 @@ function renderActions() {
     // Trades go on the merchant's wares and on "You carry" (#210).
     const group = ATTACKS.includes(action) || action === "spectral-attack" || action === "drain-attack" ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
+    const direction = directionOf(action, target);
     // A check with several approaches (#283) offers one button per skill;
     // a parley (#305) names its DC too.
     const dc = option.approach && option.approach.dc !== undefined ? " DC " + option.approach.dc : "";
@@ -2457,7 +2465,7 @@ function renderActions() {
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
     // Channel Divinity's uses show once, on its row (#392).
-    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : words.label) + named(action, target, option.item, option.feature) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
+    const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : wayLabel(words.label, direction)) + named(action, target, option.item, option.feature) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -2467,7 +2475,7 @@ function renderActions() {
     // Against several foes each one's attacks sit by its name (#392).
     const byFoe = fighting && foes.size > 1 && FOE_WORDS[action] !== undefined;
     const foeWords = byFoe ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : "";
-    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley || fleeing ? target.name : byFoe ? foeWords : label));
+    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe ? foeWords : label));
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
     if (short || parley || byFoe || fleeing) button.setAttribute("aria-label", label);
@@ -2578,7 +2586,7 @@ function renderActions() {
       thing.dataset.target = target.id;
       // An item to take shows its icon, as in the room's list (#377).
       const name = unspoken(make("span", undefined, "thing-name"));
-      name.append(...iconned(session.room.items.find(({ id }) => id === target.id)?.icon, target.name));
+      name.append(...iconned(session.room.items.find(({ id }) => id === target.id)?.icon, wayName(direction, target.name)));
       thing.append(name, make("span", undefined, "thing-verbs"));
       groups[group].push(thing);
     }
