@@ -149,6 +149,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
 <p class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
+<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <fieldset id="classes" aria-describedby="class-hint"><legend>Class</legend><div id="class-fields" class="choice-row"></div><p id="class-hint" class="hint"></p></fieldset>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
 <p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
@@ -163,7 +164,6 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
-<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
 <div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>

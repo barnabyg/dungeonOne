@@ -292,6 +292,12 @@ test(
         await page.evaluate(() => document.activeElement.id),
         "creation-title",
       );
+      // The name comes first, above the class.
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await page.evaluate(() => document.activeElement.id),
+        "character-name",
+      );
       // Every control is reachable by Tab.
       const reached = new Set();
       for (let step = 0; step < 40; step++) {
