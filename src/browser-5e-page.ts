@@ -243,6 +243,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 //   -wounded, -critical and -down for status displays.
 // - Type: --font-serif, --font-sans and the scale --text-xs to --text-2xl;
 //   h1 uses 2xl, h2 xl, h3 lg and h4 sm, so headings shrink in order.
+// - Map regions (#457): --color-region-0 to -5, the soft shades of a
+//   module's regions on the map, in its regions' order.
 // - Spacing: --space-1 (4px) to --space-6 (24px); radii --radius-sm/md/lg.
 // - Buttons: every button takes exactly one variant class. `primary` is the
 //   one main action of a region (library, creation form, sheet, room, fight,
@@ -250,7 +252,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 //   is a link-weight action such as going back; `danger` is an outlined
 //   destructive action, and `primary danger` confirms one in a dialog.
 // --ink, --gold, --line and --paper are older aliases of the colour tokens.
-export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;--color-ink:#263d3d;--color-ink-hover:#3a5451;--color-on-ink:#fff9e9;--color-paper:#f7f0e1;--color-surface:#fffaf0;--color-surface-hover:#efe5d0;--color-highlight:#efe2c0;--color-text:#292b27;--color-text-label:#4b4a3c;--color-text-muted:#615f50;--color-line:#d4c9b5;--color-control-border:#7a7260;--color-panel-border:#81785e;--color-gold:#d5b474;--color-gold-text:#7a6331;--color-discovery:#5b4a22;--color-on-dark:#f7edda;--color-night:#151f23;--color-night-light:#304043;--color-focus:#9a5a1c;--color-danger:#883c2d;--color-danger-hover:#9f4936;--color-danger-soft:#f3e0d8;--color-success:#2f6b3a;--color-warning:#8a5a00;--color-hp-healthy:var(--color-success);--color-hp-wounded:var(--color-warning);--color-hp-critical:var(--color-danger);--color-hp-down:var(--color-text-muted);--font-serif:Georgia,serif;--font-sans:system-ui,sans-serif;--text-xs:.78rem;--text-sm:.85rem;--text-md:1rem;--text-lg:1.15rem;--text-xl:1.45rem;--text-2xl:1.75rem;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--radius-sm:6px;--radius-md:8px;--radius-lg:10px;--ink:var(--color-ink);--gold:var(--color-gold);--line:var(--color-line);--paper:var(--color-paper);font-family:var(--font-serif);color:var(--color-text);background:var(--color-night);font-size:17px;line-height:1.55}
+export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;--color-ink:#263d3d;--color-ink-hover:#3a5451;--color-on-ink:#fff9e9;--color-paper:#f7f0e1;--color-surface:#fffaf0;--color-surface-hover:#efe5d0;--color-highlight:#efe2c0;--color-text:#292b27;--color-text-label:#4b4a3c;--color-text-muted:#615f50;--color-line:#d4c9b5;--color-control-border:#7a7260;--color-panel-border:#81785e;--color-gold:#d5b474;--color-gold-text:#7a6331;--color-discovery:#5b4a22;--color-on-dark:#f7edda;--color-night:#151f23;--color-night-light:#304043;--color-focus:#9a5a1c;--color-danger:#883c2d;--color-danger-hover:#9f4936;--color-danger-soft:#f3e0d8;--color-success:#2f6b3a;--color-warning:#8a5a00;--color-hp-healthy:var(--color-success);--color-hp-wounded:var(--color-warning);--color-hp-critical:var(--color-danger);--color-hp-down:var(--color-text-muted);--color-region-0:#e1ebd5;--color-region-1:#e4dbee;--color-region-2:#f2e0c4;--color-region-3:#d6e6ec;--color-region-4:#f0d8d3;--color-region-5:#e8e5c8;--font-serif:Georgia,serif;--font-sans:system-ui,sans-serif;--text-xs:.78rem;--text-sm:.85rem;--text-md:1rem;--text-lg:1.15rem;--text-xl:1.45rem;--text-2xl:1.75rem;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--radius-sm:6px;--radius-md:8px;--radius-lg:10px;--ink:var(--color-ink);--gold:var(--color-gold);--line:var(--color-line);--paper:var(--color-paper);font-family:var(--font-serif);color:var(--color-text);background:var(--color-night);font-size:17px;line-height:1.55}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,var(--color-night-light),var(--color-night) 75%);min-height:100dvh;min-width:900px}h1,h2,h3,p{margin:0 0 var(--space-3)}h1{font-size:var(--text-2xl);line-height:1.1}h2{font-size:var(--text-xl);line-height:1.2}h3{font-size:var(--text-lg);margin-top:var(--space-4)}
 button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}button[aria-busy=true]{opacity:.8;cursor:progress}
 button.primary{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-on-ink)}button.primary:hover:not(:disabled){background:var(--color-ink-hover)}button.secondary:hover:not(:disabled){background:var(--color-surface-hover)}button.quiet{border-color:transparent;text-decoration:underline;text-underline-offset:3px}button.quiet:hover:not(:disabled){background:var(--color-surface-hover)}button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}button.primary.danger{background:var(--color-danger);color:var(--color-on-ink)}button.primary.danger:hover:not(:disabled){background:var(--color-danger-hover)}
@@ -267,17 +269,17 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
-#map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4);--map-shade-0:#e1ebd5;--map-shade-1:#e4dbee;--map-shade-2:#f2e0c4;--map-shade-3:#d6e6ec;--map-shade-4:#f0d8d3;--map-shade-5:#e8e5c8}#map-dialog[open]{display:flex;flex-direction:column}
+#map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
 .map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h2{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
 .map-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:var(--space-4)}#map-view{overflow:auto;border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface)}#map-canvas{position:relative;margin:auto}
 .map-lines{position:absolute;inset:0;pointer-events:none}.map-lines line{stroke:var(--color-ink);stroke-width:3}.map-lines line.closed{stroke:var(--color-danger);stroke-dasharray:7 5}
 .map-room{position:absolute;width:136px;height:88px;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
-.map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);overflow:hidden;overflow-wrap:anywhere}.map-room>button:hover{background:rgba(38,61,61,.08)}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
-.map-ways{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-way{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:3px;background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-way{border-color:var(--color-ink);color:var(--color-ink)}
+.map-room>button{flex:1;min-height:0;border:0;border-radius:0;padding:2px 4px;font:600 var(--text-xs)/1.2 var(--font-sans);color:var(--color-text);text-decoration:none;overflow:hidden;overflow-wrap:anywhere}.map-here{display:block;font-weight:400;color:var(--color-gold-text)}
+.map-ways{list-style:none;margin:0;padding:0 2px 2px;display:grid;gap:1px}.map-way{display:block;width:100%;padding:0 3px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);font:11px/1.35 var(--font-sans);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}button.map-way{border-color:var(--color-ink);color:var(--color-ink)}
 .map-stub{position:absolute;width:40px;height:40px;padding:0;display:grid;place-items:center;border:1.5px dashed var(--color-control-border);border-radius:50%;background:var(--color-surface);font:700 var(--text-md) var(--font-sans);color:var(--color-text-muted)}button.map-stub{border-color:var(--color-ink);color:var(--color-ink)}
 .map-mark{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;display:grid;place-items:center;border:1.5px solid var(--color-ink);border-radius:50%;background:var(--color-surface);font:700 11px/1 var(--font-sans);color:var(--color-ink)}.map-mark.trap,.map-mark.closed{border-color:var(--color-danger);color:var(--color-danger)}
 .map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
-.map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:3px;background:var(--map-shade)}
+.map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade)}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);width:100%}.choice-head button{flex:0 0 auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
@@ -1734,6 +1736,7 @@ let mapRecordId = null;
 let mapReturn = null;
 let restoreMapFocus = true;
 const SVG = "http://www.w3.org/2000/svg";
+const regionShade = (shade) => "var(--color-region-" + (shade % MAP_SHADES) + ")";
 const floorName = (floor) => floor === 0 ? "Main floor" : Math.abs(floor) + (Math.abs(floor) === 1 ? " floor " : " floors ") + (floor > 0 ? "up" : "down");
 /** The compass direction from one cell to another, as a word and its letters, or "" for the same cell. */
 function compass(from, to) {
@@ -1858,7 +1861,7 @@ function renderMap() {
   for (const stub of stubs.values()) {
     const [x, y] = centre(stub.at);
     const direction = here.floor === mapFloor ? compass(here.at, stub.at).word : "";
-    const node = make(stub.move ? "button" : "span", "?", "map-stub");
+    const node = make(stub.move ? "button" : "span", "?", stub.move ? "secondary map-stub" : "map-stub");
     if (stub.move) {
       node.type = "button";
       node.setAttribute("aria-label", "Go " + (direction ? direction + " " : "") + "to a room not yet explored");
@@ -1873,8 +1876,8 @@ function renderMap() {
     const [x, y] = centre(room.at);
     const box = place(make("div", undefined, "map-room" + (room.current ? " current" : "")), x - MAP_ROOM.x / 2, y - MAP_ROOM.y / 2);
     box.dataset.room = room.id;
-    if (room.region) box.style.setProperty("--map-shade", "var(--map-shade-" + (room.region.shade % MAP_SHADES) + ")");
-    const name = make("button", room.name);
+    if (room.region) box.style.setProperty("--map-shade", regionShade(room.region.shade));
+    const name = make("button", room.name, "quiet");
     name.type = "button";
     if (room.current) name.append(make("span", "You are here", "map-here"));
     else if (near.has(room.id)) name.title = "Go to " + room.name;
@@ -1898,7 +1901,7 @@ function renderMap() {
         const said = (up ? "up" : "down") + " the " + way.vertical + (word ? ", " + word : "") + ", to " + (goes ? goes.name : "a room not yet explored") + marks.map(({ label }) => "; " + label).join("");
         const moves = room.current && way.move;
         const item = make("li");
-        const node = make(moves ? "button" : "span", text, "map-way");
+        const node = make(moves ? "button" : "span", text, moves ? "secondary map-way" : "map-way");
         node.title = titleCase(said);
         node.setAttribute("aria-label", moves ? "Go " + said : titleCase(said));
         if (moves) {
@@ -1927,7 +1930,7 @@ function renderMapKey(withStubs) {
   };
   const swatch = (shade) => {
     const node = make("span", undefined, "map-swatch");
-    node.style.setProperty("--map-shade", "var(--map-shade-" + (shade % MAP_SHADES) + ")");
+    node.style.setProperty("--map-shade", regionShade(shade));
     node.setAttribute("aria-hidden", "true");
     return node;
   };
