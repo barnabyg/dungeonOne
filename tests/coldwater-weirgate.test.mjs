@@ -1,8 +1,11 @@
 // #412: The Coldwater Weirgate, the increment 17 release module, as the
-// owner approved it in #411 with the six changes approved on #412: a long
-// level-3 Medium module of twenty rooms in two regions, the Keep above and
-// the Culverts below. Two ways lead down, the keeper's stair (Sergeant
-// Larrow's key, a pick or a break, and a bell-wire deadfall) and the culvert
+// owner approved it in #411 with the six changes approved on #412, and
+// re-qualified at levels 3–4 by #443: a long Medium module of twenty rooms
+// in two regions, the Keep above and the Culverts below. #443 also brought
+// in mechanics only a retiring module had: reaction trade (Larrow sells off
+// the last barge), lurking (Brindle and the drowned guildsmen) and authored
+// sneaking (the sleeping bandits' bypass XP and sneak again). Two ways lead
+// down, the keeper's stair (Sergeant Larrow's key, a pick or a break, and a bell-wire deadfall) and the culvert
 // the keeper's crank drains; Grisk waits in the gear hall at the end of both.
 // Off the routes, the kobolds bargain, Old Sullage the ogre can be lured
 // away with salt pork, and the weir bell raises the Keep. Journeys reach its
@@ -39,9 +42,9 @@ const feature = (roomId, id) =>
   room(roomId).features.find((entry) => entry.id === id);
 const level3 = testFighterAt(3);
 
-test("the weirgate is a long level-3 Medium module of twenty rooms in two regions, left by the towpath or the outfall", () => {
+test("the weirgate is a long level-3–4 Medium module of twenty rooms in two regions, left by the towpath or the outfall", () => {
   assert.equal(weirgate.title, "The Coldwater Weirgate");
-  assert.deepEqual(weirgate.recommendedLevels, { min: 3, max: 3 });
+  assert.deepEqual(weirgate.recommendedLevels, { min: 3, max: 4 });
   assert.equal(weirgate.difficulty, "medium");
   assert.equal(weirgate.long, true);
   assert.equal(weirgate.startRoomId, "towpath-gate");
@@ -90,7 +93,7 @@ test("the weirgate is a long level-3 Medium module of twenty rooms in two region
   assert.deepEqual(
     weirgate.endings.map(({ id, kind, xp }) => [id, kind, xp]),
     [
-      ["sluices-open", "victory", 500],
+      ["sluices-open", "victory", 1800],
       ["out-with-the-weir-goods", "escape-with-loot", undefined],
       ["out-of-the-weirgate", "escape-without-loot", undefined],
       ["fallen-at-the-weirgate", "defeat", undefined],
@@ -235,7 +238,7 @@ test("two ways lead down, the stair past the Toll Hall's fight and the culvert p
   );
 });
 
-test("its treasure is 96% of the long module's 900 gp budget, with five potions inside it and the wand outside", () => {
+test("its treasure is 83% of the long module's 1,200 gp budget at level 4, with five potions inside it and the wand outside", () => {
   const items = weirgate.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
     items
@@ -252,8 +255,10 @@ test("its treasure is 96% of the long module's 900 gp budget, with five potions 
   // Nothing to carry out of either exit room.
   assert.deepEqual(room("towpath-gate").items, []);
   assert.deepEqual(room("outfall").items, []);
-  assert.equal(findableValue(weirgate), 86730);
-  assert.equal(treasureBudget(3, true), 90000);
+  // The Day's Takings rose from 20 to 45 gp, and the River Pearl joined the
+  // spillway's bones (#443).
+  assert.equal(findableValue(weirgate), 99230);
+  assert.equal(treasureBudget(4, true), 120000);
 });
 
 const DOWN_THE_STAIR = [
@@ -284,7 +289,7 @@ test("a level-3 Fighter wins the toll hall, unlocks the grate with Larrow's key 
   assert.deepEqual(xpOf(runtime, state), [
     ["Defeated Sergeant Larrow", 25],
     ["Defeated Grisk", 200],
-    ["The sluices open", 500],
+    ["The sluices open", 1800],
   ]);
 });
 
@@ -555,4 +560,57 @@ test("its release run plays a generated route to the open sluices (#409)", async
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// #443: reaction trade, lurking and authored sneaking, which only a
+// retiring module had, moved into the Weirgate.
+test("Larrow sells off the last barge when she is indifferent or friendly, and Brindle and the drowned guildsmen lie in wait", () => {
+  const { trade, bands } = encounter("toll-hall-fight").reaction;
+  assert.deepEqual(trade, {
+    stock: ["dagger", "shortbow", "arrows"],
+    minutes: 10,
+  });
+  assert.deepEqual(
+    Object.entries(bands).map(([band, { options }]) => [band, options]),
+    [
+      ["unfriendly", ["attack", "parley", "toll"]],
+      ["uncertain", ["attack", "parley", "toll"]],
+      ["indifferent", ["let-pass", "trade", "attack"]],
+      ["friendly", ["let-pass", "trade", "attack"]],
+    ],
+  );
+  assert.deepEqual(
+    weirgate.encounters
+      .filter(({ lurking }) => lurking === true)
+      .map(({ id }) => id),
+    ["kennel-fight", "vault-fight"],
+  );
+  const bunks = encounter("bunk-room-fight");
+  assert.equal(bunks.bypassXp, 50);
+  assert.equal(bunks.sneakAgain, true);
+});
+
+test("a level-3 Fighter slips past the sleeping bandits, sneaks up on them again, and the slip pays 50 XP", () => {
+  const { state, runtime } = firstJourney(
+    weirgate,
+    level3,
+    [
+      ["move", "barge-yard"],
+      ["move", "kennel-larder"],
+      ["sneak", "bunk-room"],
+      ["move", "bell-tower"],
+      ["sneak", "bunk-room"],
+      ["move", "kennel-larder"],
+      ["move", "barge-yard"],
+      ["move", "towpath-gate"],
+      ["leave", "towpath-gate"],
+    ],
+    ({ status, bypassedEncounterIds }) =>
+      status === "escaped" && bypassedEncounterIds.includes("bunk-room-fight"),
+  );
+  assert.ok(!state.clearedEncounterIds.includes("bunk-room-fight"));
+  assert.deepEqual(
+    xpOf(runtime, state).filter(([name]) => /^Slipped past/u.test(name)),
+    [["Slipped past Sleepy Bandit and Bleary Bandit", 50]],
+  );
 });

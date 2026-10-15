@@ -244,7 +244,7 @@ test(
         .click();
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Coldwater Weirgate\nStart\nLevel 3\nMedium\n/u,
+        /The Coldwater Weirgate\nStart\nLevels 3–4\nMedium\n/u,
       );
       await startAdventure(page, "coldwater-weirgate");
       const ends = [];
@@ -320,13 +320,13 @@ test(
       assert.match(await ending(page), /^The sluices open\nVictory\n/u);
       const record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
-      // Larrow's 25, Grisk's 200 and the ending's 500.
+      // Larrow's 25, Grisk's 200 and the ending's 1,800 (500 until #443).
       assert.deepEqual(
         [record.sheet.level, record.sheet.xp],
-        [3, ada.xp + 725],
+        [4, ada.xp + 2025],
       );
-      // The Day's Takings.
-      assert.equal(record.sheet.purse, ada.purse + 2000);
+      // The Day's Takings (20 gp until #443).
+      assert.equal(record.sheet.purse, ada.purse + 4500);
     } finally {
       await close();
       await rm(directory, { recursive: true, force: true });
@@ -424,11 +424,11 @@ test(
       assert.match(await ending(page), /^The sluices open\nVictory\n/u);
       const record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
-      // The patrol's 50, Grisk's 200 and the ending's 500; nothing for the
-      // ogre she fled.
+      // The patrol's 50, Grisk's 200 and the ending's 1,800 (500 until
+      // #443); nothing for the ogre she fled.
       assert.deepEqual(
         [record.sheet.level, record.sheet.xp],
-        [3, vex.xp + 750],
+        [4, vex.xp + 2050],
       );
     } finally {
       await close();

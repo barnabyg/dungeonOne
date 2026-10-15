@@ -63,6 +63,11 @@ test("the release cases play the shipped Weirgate with Ada at level 3", async ()
       "weirgate-omen-said",
       "weirgate-ledger-recalled",
       "weirgate-way-back",
+      // #443: Larrow's trade, and sneaking past the sleeping bandits.
+      "weirgate-trade-offered",
+      "weirgate-trade-not-offered",
+      "weirgate-sneak-past-sleepers",
+      "weirgate-sneak-again",
     ],
   );
   for (const sample of FIFTH_WEIRGATE_DM_CASES) {

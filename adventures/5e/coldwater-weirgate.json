@@ -6,7 +6,7 @@
   "objective": "Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
   "recommendedLevels": {
     "min": 3,
-    "max": 3
+    "max": 4
   },
   "difficulty": "medium",
   "long": true,
@@ -170,7 +170,7 @@
           "description": "A heap of toll coin.",
           "kind": "coin",
           "coins": {
-            "gp": 20
+            "gp": 45
           },
           "hiddenIn": "toll-chest"
         },
@@ -1013,10 +1013,20 @@
         {
           "id": "bone-heap",
           "name": "Bone Heap",
-          "description": "Gnawed bones of pigs, sheep and something that might have been a goblin."
+          "description": "Gnawed bones of pigs, sheep and something that might have been a goblin.",
+          "discovery": "Wedged between two ribs is a river pearl, big as a thumbnail."
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "river-pearl",
+          "name": "River Pearl",
+          "description": "A lustrous river pearl, big as a thumbnail.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "bone-heap"
+        }
+      ],
       "creatures": []
     },
     {
@@ -1483,6 +1493,10 @@
           },
           "text": "Larrow weighs the coins in her palm and steps aside."
         },
+        "trade": {
+          "stock": ["dagger", "shortbow", "arrows"],
+          "minutes": 10
+        },
         "bands": {
           "unfriendly": {
             "options": ["attack", "parley", "toll"],
@@ -1493,18 +1507,19 @@
             "text": "Larrow looks you over. \"Walkers pay five gold today.\""
           },
           "indifferent": {
-            "options": ["let-pass", "toll", "attack"],
-            "text": "Larrow yawns. \"Pay or pass, I don't care which.\""
+            "options": ["let-pass", "trade", "attack"],
+            "text": "Larrow yawns. \"Pass, or buy something off the last barge. I don't care which.\""
           },
           "friendly": {
-            "options": ["let-pass", "attack"],
-            "text": "Larrow raises her mug to you. \"Not a barge, not my business.\""
+            "options": ["let-pass", "trade", "attack"],
+            "text": "Larrow raises her mug to you. \"Not a barge, not my business. Want a bow? Fell off a barge.\""
           }
         }
       }
     },
     {
       "id": "kennel-fight",
+      "lurking": true,
       "opponents": [
         {
           "id": "brindle",
@@ -1517,6 +1532,8 @@
     },
     {
       "id": "bunk-room-fight",
+      "sneakAgain": true,
+      "bypassXp": 50,
       "opponents": [
         {
           "id": "bunk-bandit-1",
@@ -1667,6 +1684,7 @@
     },
     {
       "id": "vault-fight",
+      "lurking": true,
       "opponents": [
         {
           "id": "guildsman-1",
@@ -1734,7 +1752,7 @@
       "kind": "victory",
       "title": "The sluices open",
       "text": "Grisk falls among the gears. You pull the chains from the levers, and with a long groan the sluices open. Far off, the marsh begins to drain toward the river.",
-      "xp": 500
+      "xp": 1800
     },
     {
       "id": "out-with-the-weir-goods",
