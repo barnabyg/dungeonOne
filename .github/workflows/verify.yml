@@ -12,10 +12,13 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    # A full verify takes about 3 minutes; a hung step should fail, not hold the
-    # PR for the 6-hour default.
-    timeout-minutes: 20
+    # Windows, the platform the game is played and developed on; Linux is not a
+    # target.
+    runs-on: windows-latest
+    # A full verify took 11–17 minutes on Linux runners before the four-module
+    # cut (#446); a hung step should fail, not hold the PR for the 6-hour
+    # default.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
