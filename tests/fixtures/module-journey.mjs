@@ -11,8 +11,8 @@ import { engineAction } from "./playthroughs.mjs";
 const PLAYER = "pc";
 
 /**
- * The route's shorthand as engine actions: `["move", "bothy"]` (or
- * `["sneak", "bothy"]`, #301) and the rest,
+ * The route's shorthand as engine actions: `["move", roomId]` (or
+ * `["sneak", roomId]`, #301) and the rest,
  * with `["ambush", roomId]` (#302) springing an ambush from unseen,
  * `["force", doorId]` (#289) forcing a stuck door, `["pick", doorId]`,
  * `["break", doorId]` and `["unlock", doorId]` (#311) opening a locked one
