@@ -86,11 +86,7 @@ export function selectForChanges(paths) {
     ) {
       files.add("tests/test-tiers.test.mjs");
       reasons.push(`${path}: its tests`);
-    } else if (
-      /\.md$/u.test(path) ||
-      path.startsWith(".github/") ||
-      path.startsWith("agent-guidance/")
-    ) {
+    } else if (/\.md$/u.test(path) || path.startsWith(".github/")) {
       reasons.push(`${path}: no test (verify checks its format)`);
     } else {
       full = true;
