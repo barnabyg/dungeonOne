@@ -13,8 +13,8 @@
  * always, uncommon from level 3, and no rare treasure yet. A module hides
  * at most one magic item (#345, D10), for level 3 and up, outside its
  * budget, and none that needs attunement (D11). The budgets, the tier levels
- * and the magic item limits are parameter tables, recorded in
- * `docs/rules/gear.md`; tune them here.
+ * and the magic item limits are parameter tables; tune them
+ * here. `docs/rules/gear.md` states the rules they serve.
  */
 import {
   POTION_WEIGHT,
