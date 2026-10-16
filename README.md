@@ -13,9 +13,8 @@ The [rules document](docs/character-rules.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no tactical grid. The
 [increment 11 handoff](docs/acceptance/increment-11-release.md) records how
 the 5e release was qualified, with manual test scenarios. The latest, the
-[increment 17 handoff](docs/acceptance/increment-17-release.md), covers the
-long release module _The Coldwater Weirgate_: fleeing, alarms, using items and
-the room, wandering monsters and the known rooms.
+[four-module handoff](docs/acceptance/four-module-release.md), plays each of
+the four shipped modules at a level of the career from 1 to 5.
 
 ## Requirements
 
