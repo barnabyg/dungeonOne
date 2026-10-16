@@ -5863,8 +5863,8 @@ export function createFifthRuntime(
     }
     const unmet =
       objectiveEnding.kind === "victory"
-        ? `You haven't met the objective: ${adventure.objective}`
-        : "You have no treasure or coin to carry out.";
+        ? `Objective not met: ${adventure.objective}`
+        : "You have found no treasure or coin here to carry out.";
     const award =
       objectiveEnding.xp === undefined
         ? []

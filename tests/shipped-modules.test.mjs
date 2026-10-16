@@ -98,22 +98,22 @@ test("the built-in modules are the four shipped ones (#437, #446)", () => {
 test("leaving any shipped module at its start warns of the objective's award lost (#475)", () => {
   const objectives = {
     "abandoned-delve": [
-      "You have no treasure or coin to carry out.",
+      "You have found no treasure or coin here to carry out.",
       "Out with the loot",
       600,
     ],
     "bramblecote-cider-house": [
-      "You have no treasure or coin to carry out.",
+      "You have found no treasure or coin here to carry out.",
       "Out with the Pells' goods",
       300,
     ],
     "coldwater-weirgate": [
-      "You haven't met the objective: Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
+      "Objective not met: Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
       "The sluices open",
       1800,
     ],
     "thornwood-lodge": [
-      "You have no treasure or coin to carry out.",
+      "You have found no treasure or coin here to carry out.",
       "Out with the spoils",
       3800,
     ],

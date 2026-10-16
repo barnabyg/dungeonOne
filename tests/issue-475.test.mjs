@@ -55,7 +55,7 @@ test("leaving the barrow empty-handed warns of the loot ending's award, and sett
       title: "Out empty-handed",
     },
     warning:
-      "You have no treasure or coin to carry out. Leaving now earns no " +
+      "You have found no treasure or coin here to carry out. Leaving now earns no " +
       "ending award, not the 250 XP for “Out with the silver”. " +
       KEPT,
   });
@@ -88,6 +88,18 @@ test("leaving the barrow with the torc meets the objective: its ending and award
   leaveAsProjected(runtime, looted);
 });
 
+test("coin brought from an earlier adventure is not loot: leaving still warns", () => {
+  const runtime = createFifthRuntime(barrow, { ...ada, purse: 250 });
+  const begun = play(runtime, [{ type: "begin" }]);
+  const { leaving } = leaveView(runtime, begun);
+  assert.equal(leaving.ending.id, "out-empty-handed");
+  assert.match(
+    leaving.warning,
+    /^You have found no treasure or coin here to carry out\. /u,
+  );
+  leaveAsProjected(runtime, begun);
+});
+
 test("once the loot ending's award is credited, leaving without loot warns of nothing and names no award", () => {
   const veteran = {
     ...ada,
@@ -117,7 +129,7 @@ test("a module with a victory warns that leaving falls short of its objective, w
       title: "Out empty-handed",
     },
     warning:
-      "You haven't met the objective: " +
+      "Objective not met: " +
       ossuary.objective +
       " Leaving now earns no ending award, not the 400 XP for “" +
       file.endings.find(({ kind }) => kind === "victory").title +
@@ -133,6 +145,6 @@ test("a victory without an award warns only that the objective is unmet", () => 
   const begun = play(runtime, [{ type: "begin" }]);
   assert.equal(
     leaveView(runtime, begun).leaving.warning,
-    "You haven't met the objective: " + ossuary.objective + " " + KEPT,
+    "Objective not met: " + ossuary.objective + " " + KEPT,
   );
 });

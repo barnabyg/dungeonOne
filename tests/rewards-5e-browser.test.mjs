@@ -84,7 +84,7 @@ async function explore(page, action, target) {
 }
 
 const NO_LOOT_WARNING =
-  "You have no treasure or coin to carry out. Leaving now earns no ending " +
+  "You have found no treasure or coin here to carry out. Leaving now earns no ending " +
   "award, not the 250 XP for “Out with the silver”. You keep the XP for any " +
   "fights you have won.";
 

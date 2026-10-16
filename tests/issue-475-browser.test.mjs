@@ -45,7 +45,7 @@ test(
       assert.equal(await warning.isVisible(), true);
       assert.equal(
         await warning.textContent(),
-        "You have no treasure or coin to carry out. Leaving now earns no " +
+        "You have found no treasure or coin here to carry out. Leaving now earns no " +
           "ending award, not the 250 XP for “Out with the silver”. You keep " +
           "the XP for any fights you have won.",
       );
