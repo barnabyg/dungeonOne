@@ -211,7 +211,7 @@ test("the estimator reports each new monster at levels 4 and 5", () => {
 
 test("the rules document lists each new monster, its source and the left-out mechanics", async () => {
   const rules = await readFile(
-    new URL("../docs/character-rules.md", import.meta.url),
+    new URL("../docs/rules/modules.md", import.meta.url),
     "utf8",
   );
   for (const { id, name } of NEW_MONSTERS) {

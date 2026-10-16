@@ -80,11 +80,9 @@ export function testFighterAt(level: Level): CharacterSheet {
 }
 
 /**
- * A character library holding only Ada at `level` (#275), as
- * `testFighterAt` raises her: the #275 player handoffs started from it
- * (docs/acceptance/inputs/issue-275/level-2-ada.json), and a generated release
- * run (#409) without a character of its own starts from it at the module's
- * lowest recommended level (#440).
+ * A character library holding only Ada at `level`, as `testFighterAt`
+ * raises her. A generated release run without a character of its own starts
+ * from it at the module's lowest recommended level.
  */
 export function libraryAt(level: Level): FifthLibraryData {
   return {
@@ -99,8 +97,7 @@ export function libraryAt(level: Level): FifthLibraryData {
 
 /**
  * A character library holding only Ada at level 3 (#241). Level-3 browser
- * journeys and the player handoff input
- * docs/acceptance/inputs/increment-13/level-3-ada.json start from it.
+ * journeys and tests/fixtures/libraries/level-3-ada.json start from it.
  */
 export function levelThreeLibrary(): FifthLibraryData {
   return libraryAt(3);
@@ -111,8 +108,7 @@ export function levelThreeLibrary(): FifthLibraryData {
  * level-4 choices made (#291): about what a career held after the modules
  * below level 4 before the four-module plan (about 2,950 on its path,
  * #437), so the Thornwood Lodge takes her to level 5. Its release runs and
- * its player handoff
- * (docs/acceptance/inputs/increment-14/level-4-ada-4100-xp.json) start from it.
+ * tests/fixtures/libraries/level-4-ada-4100-xp.json start from it.
  */
 export function levelFourCareerLibrary(): FifthLibraryData {
   const library = libraryAt(4);

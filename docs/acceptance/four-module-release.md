@@ -91,7 +91,7 @@ New-Item -ItemType Directory -Force .\.scratch\release-448\cider | Out-Null; npm
 ### 2. Level 2: a Rogue down the Abandoned Delve's well
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-448\delve | Out-Null; Copy-Item .\docs\acceptance\inputs\issue-448\level-2-vex.json .\.scratch\release-448\delve\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\delve\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-448\delve | Out-Null; Copy-Item .\tests\fixtures\libraries\level-2-vex.json .\.scratch\release-448\delve\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\delve\characters.json
 ```
 
 Vex is a level-2 Rogue (15 HP, AC 15) with a shortsword and a dagger.
@@ -118,7 +118,7 @@ Vex is a level-2 Rogue (15 HP, AC 15) with a shortsword and a dagger.
 ### 3. Level 4: the salt pork and the ogre in the Coldwater Weirgate
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-448\weirgate | Out-Null; Copy-Item .\docs\acceptance\inputs\increment-14\level-4-ada-4100-xp.json .\.scratch\release-448\weirgate\characters.json; npm.cmd run browser -- --seed 188 --characters .\.scratch\release-448\weirgate\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-448\weirgate | Out-Null; Copy-Item .\tests\fixtures\libraries\level-4-ada-4100-xp.json .\.scratch\release-448\weirgate\characters.json; npm.cmd run browser -- --seed 188 --characters .\.scratch\release-448\weirgate\characters.json
 ```
 
 Ada is a level-4 Fighter with 4,100 XP (36 HP, AC 14) and a mace.
@@ -143,7 +143,7 @@ Ada is a level-4 Fighter with 4,100 XP (36 HP, AC 14) and a mace.
 ### 4. Level 5: feeding the bear in the Thornwood Lodge
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-448\lodge | Out-Null; Copy-Item .\docs\acceptance\inputs\issue-287\level-5-ada.json .\.scratch\release-448\lodge\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\lodge\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-448\lodge | Out-Null; Copy-Item .\tests\fixtures\libraries\level-5-ada.json .\.scratch\release-448\lodge\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\lodge\characters.json
 ```
 
 Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
@@ -187,6 +187,7 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
   when it does.
 - **Throwaway formats** (ADR 0005): library 26, session 62, trace 56,
   adventure module 43, bestiary 10, prompt `5e-dm-v45`. When the library
-  format changes, regenerate the inputs from the generators their tests
+  format changes, regenerate the inputs in `tests/fixtures/libraries/` from
+  the generators their tests
   name: Vex's from `levelTwoVex` in the handoff test, Ada's from
   `levelFourCareerLibrary` and `libraryAt(5)` in `src/test-fighter-5e.ts`.

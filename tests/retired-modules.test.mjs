@@ -1,9 +1,8 @@
-// #446: the thirteen modules retired for the four-module set are named only
-// in the acceptance handoffs and live-run evidence (docs/acceptance/), kept as
-// history. Every test plays a fixture or one of the four shipped modules, and
-// the docs describe only those (#438 set this check up before the
-// retirement). The check matches module ids and titles without their article,
-// not single title words.
+// #446: the thirteen modules retired for the four-module set are named in no
+// tracked file but this check; git history keeps them. Every test plays a
+// fixture or one of the four shipped modules, and the docs describe only
+// those. The check matches module ids and titles without their article, not
+// single title words.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -40,10 +39,8 @@ const NAMES = Object.entries(RETIRED).map(([id, title]) => ({
   ),
 }));
 
-/** Whether `path` is history, or this check, and so may name a retired module. */
-const isHistory = (path) =>
-  path.startsWith("docs/acceptance/") ||
-  path === "tests/retired-modules.test.mjs";
+/** Whether `path` is this check, the one file that may name a retired module. */
+const isThisCheck = (path) => path === "tests/retired-modules.test.mjs";
 
 /** The repository's tracked files, with forward slashes. */
 function trackedFiles() {
@@ -55,10 +52,10 @@ function trackedFiles() {
   return result.stdout.split("\0").filter((path) => path !== "");
 }
 
-/** Each line of `paths` that names a retired module outside history. */
+/** Each line of `paths` that names a retired module outside this check. */
 async function strayReferences(paths) {
   const stray = [];
-  for (const path of paths.filter((entry) => !isHistory(entry))) {
+  for (const path of paths.filter((entry) => !isThisCheck(entry))) {
     const source = await readFile(`${root}${path}`, "utf8");
     source.split(/\r?\n/u).forEach((line, index) => {
       for (const { id, pattern } of NAMES) {
@@ -71,7 +68,7 @@ async function strayReferences(paths) {
   return stray;
 }
 
-test("a retired module is named only in history (#446)", async () => {
+test("a retired module is named only in this check (#446)", async () => {
   assert.deepEqual(await strayReferences(trackedFiles()), []);
 });
 

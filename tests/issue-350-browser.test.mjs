@@ -1,6 +1,6 @@
-// #350, browser → API → storage: the increment 16 player handoff
-// (docs/acceptance/increment-16-release.md), each scenario on its own
-// library and seed, in the module's fixture copy, the Sunken Chantry (#438):
+// Browser → API → storage: three level-3 journeys, one per class, each on
+// its own library (tests/fixtures/libraries/) and seed, in the fixture
+// module the Sunken Chantry:
 // - Scenario 1: the level-3 Fighter Ada takes the sexton's key, unlocks the
 //   grille, beats the ghoul in the ossuary for the founder's +1 Mace, wields
 //   it and lays the Risen Prior to rest. She can't read the Cure Wounds
@@ -29,10 +29,10 @@ import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
 const input = (path) =>
-  fileURLToPath(new URL(`../docs/acceptance/inputs/${path}`, import.meta.url));
-const ADA_LIBRARY = input("increment-13/level-3-ada.json");
-const MIRA_LIBRARY = input("increment-16/level-3-mira.json");
-const VELA_LIBRARY = input("increment-16/level-3-vela.json");
+  fileURLToPath(new URL(`./fixtures/libraries/${path}`, import.meta.url));
+const ADA_LIBRARY = input("level-3-ada.json");
+const MIRA_LIBRARY = input("level-3-mira.json");
+const VELA_LIBRARY = input("level-3-vela.json");
 
 const chantry = sunkenChantry;
 
@@ -334,7 +334,7 @@ test(
       cast: fromScroll,
     });
     assert.equal(played.state.endingId, "chantry-at-rest");
-    // The input library is the one the handoff gives the owner.
+    // The library fixture matches its generator; regenerate it when the format changes.
     assert.deepEqual(
       JSON.parse(await readFile(VELA_LIBRARY, "utf8")),
       JSON.parse(JSON.stringify(libraryOf(sheet))),

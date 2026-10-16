@@ -5827,7 +5827,7 @@ export function createFifthRuntime(
     return adventure.endings.find((candidate) => candidate.kind === kind)!;
   };
   /**
-   * The module's objective (#475), as docs/character-rules.md has it: its
+   * The module's objective (#475), as docs/rules/balance.md has it: its
    * victory, if it has one, or else getting out with loot.
    */
   const objectiveEnding =

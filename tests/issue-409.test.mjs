@@ -23,9 +23,9 @@ import { longTunnels, windingTunnels } from "./fixtures/modules.mjs";
 const SEED = 409;
 const [{ sheet }] = levelThreeLibrary().characters;
 
-test("the handoff's level-3 library is Ada at level 3, as generated release runs start", async () => {
+test("the level-3-ada library is Ada at level 3, as generated release runs start", async () => {
   const input = new URL(
-    "../docs/acceptance/inputs/increment-13/level-3-ada.json",
+    "./fixtures/libraries/level-3-ada.json",
     import.meta.url,
   );
   // Regenerate it from levelThreeLibrary() when the library format changes.

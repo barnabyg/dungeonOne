@@ -1,7 +1,7 @@
 // The test-owned adventure modules (#251). Engine, runtime, browser and
 // harness tests play these instead of the shipped adventure modules,
 // so content can change without touching engine tests. Each is named for the
-// mechanic it serves; README.md lists them.
+// mechanic it serves, and its doc comment below says what it holds.
 import { readFile } from "node:fs/promises";
 import { validateModule } from "./bestiary.mjs";
 

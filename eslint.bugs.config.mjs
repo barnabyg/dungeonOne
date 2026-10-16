@@ -3,7 +3,10 @@ import tseslint from "typescript-eslint";
 
 // Browser globals that tests use inside Playwright page.evaluate callbacks.
 // Not globals.browser: it defines names such as focus, close, find and name,
-// which would hide a call to a missing test helper (#267).
+// which would hide a call to a missing test helper (#267). Add a name here when
+// a test needs another. Call a page-script function as window.name() rather
+// than declaring it in a /* global */ comment, which would hide a missing
+// helper of the same name in the whole file.
 const PAGE_GLOBALS = Object.fromEntries(
   [
     "document",
