@@ -39,7 +39,7 @@ Before a commit, run at least the tiers that cover it; before a push, `npm.cmd r
 
 The game uses the 2024 5e rules in SRD 5.2 under [ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md); [`docs/rules/README.md`](docs/rules/README.md) indexes the rules. Use only SRD 5.2 names, rules and stat blocks.
 
-Shared infrastructure (DM turn loop, model adapters, randomness, file locking, launcher) takes a runtime (`src/runtime-contract.ts`) as an argument and must not import the 5e game; the `SHARED_MODULES` lint rule enforces this.
+Shared infrastructure (DM turn loop, model adapters, randomness, file locking, launcher) takes a runtime (`src/runtime-contract.ts`) as an argument and must not import the 5e game; the `SHARED_MODULES` lint rule enforces this, and its tests use `tests/fixtures/counter-runtime.mjs`.
 
 Formats are throwaway until the owner declares a stable release in a new ADR. The character library, save, trace, adventure module and layout sketch files each carry one format version. When you change a format, bump its version and make the loader refuse older files with a message that names the file and tells the player to move it aside. Never delete, migrate or reinterpret an older file, and add no compatibility shims, migrations, fallbacks or per-increment rules versions. This overrides any general instruction to keep released formats readable.
 
