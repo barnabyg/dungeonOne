@@ -303,10 +303,6 @@ _Avoid_: Clear, Full run, Exploration
 A long module's room marked `avoidable` (#408): left out of its region's sweep, so the gate never makes the character go there. It lies off every declared route.
 _Avoid_: Optional room (every room off the required path is optional), Secret room
 
-**Gate-time canary**:
-The shipped module whose gate figures the gate's time-budget test pins, so a speed-up that changes how the gate plays fails: the Coldwater Weirgate since #412, the costliest of the four to gate.
-_Avoid_: Benchmark module, Dummy module
-
 **Release run**:
 A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written or generated; the code calls its step list its `route`, which is not a module's declared route.
 _Avoid_: Playthrough (the harness's), Handoff run

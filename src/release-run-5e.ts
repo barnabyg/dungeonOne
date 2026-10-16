@@ -14,9 +14,8 @@
  * make the extra attack with a second light weapon.
  *
  * A route is hand-written or generated (#409). A hand-written route is for
- * a release run that checks particular moments: a trade, a parley, a
- * surrender, a retry, with phrasing chosen to test the AI DM, capped at 400
- * turns. No shipped module's release run has one since the modules that
+ * a release run that checks particular moments: a parley, a surrender, a
+ * retry, with phrasing chosen to test the AI DM, capped at 400 turns. No shipped module's release run has one since the modules that
  * had one retired (#446); tests still play short ones. `generateReleaseRun`
  * builds a route from the balance harness's cautious run on a fixed seed and
  * class instead, with plain generated words for each step and a turn cap of
@@ -295,9 +294,8 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
 /**
  * Whether `step` is done in `after`: a move or a sneak is done in its
  * destination; an examination (which stays offered, to read again) once the
- * room shows what it found; a trade (whose Buy stays offered while coin lasts) once the purse
- * changed; anything else once its action is no longer available in the room
- * it was taken in. A check step (an approach or a retry) is done once its
+ * room shows what it found; anything else once its action is no longer
+ * available in the room it was taken in. A check step (an approach or a retry) is done once its
  * button is withdrawn. A fight step is done by any committed action.
  */
 function stepDone(
@@ -321,9 +319,6 @@ function stepDone(
     return after.room.features.some(
       ({ id, discovery }) => id === step.target && discovery !== undefined,
     );
-  }
-  if (step.action === "buy" || step.action === "sell") {
-    return after.room.purse !== before.room.purse;
   }
   return (
     after.status !== "playing" ||
