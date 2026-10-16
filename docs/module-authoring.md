@@ -3,7 +3,7 @@
 Read this first when you design or build an adventure module, whether you are a
 person or an agent. It holds the rules that are settled, so each design doesn't
 learn them again. The full list of what the module validator refuses is in
-[the rules document](character-rules.md#adventure-modules); the game's terms are
+[the rules document](rules/modules.md); the game's terms are
 in [`CONTEXT.md`](../CONTEXT.md).
 
 ## The design ticket

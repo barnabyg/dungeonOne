@@ -3,7 +3,7 @@
  * character module (`character-5e.ts`) derives a Cleric's hit points,
  * saves, skills, training, spellcasting, Divine Order, Channel Divinity,
  * Ability Score Improvement, Sear Undead and Life Domain from this
- * definition alone. `docs/character-rules.md` records the numbers and the
+ * definition alone. `docs/rules/classes.md` records the numbers and the
  * abstractions.
  */
 import {
@@ -31,7 +31,7 @@ export const CLERIC_SKILLS: readonly SkillId[] = [
  * The order a fresh creation fills the abilities, highest roll first:
  * Wisdom for its spells, Constitution for hit points and concentration,
  * Strength for its mace or club, Dexterity for AC in light armour, then
- * Charisma and Intelligence. `docs/character-rules.md` records it.
+ * Charisma and Intelligence. `docs/rules/classes.md` records it.
  */
 export const CLERIC_ABILITY_PRIORITY = [
   "wisdom",

@@ -4,7 +4,7 @@
  * Pure rules: dice come only from the `RandomSource` passed in, and every
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
  * validated sheet and its class's definition (#300). A sheet names its class
- * by id; nothing here asks which class it is. `docs/character-rules.md`
+ * by id; nothing here asks which class it is. `docs/rules/classes.md`
  * records these numbers.
  *
  * A sheet keeps what the character holds (its equipment, stowed gear,

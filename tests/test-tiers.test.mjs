@@ -76,7 +76,7 @@ test("a change picks the tiers it can break, and anything else runs every test",
     "tests/fixtures/modules.mjs",
     "tests/issue-335-browser.test.mjs",
     "README.md",
-    "docs/character-rules.md",
+    "docs/rules/README.md",
   ]);
   assert.equal(ui.full, false);
   assert.deepEqual(ui.tiers, ["quick", "browser"]);

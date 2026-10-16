@@ -3,7 +3,7 @@
  * character module (`character-5e.ts`) derives a Wizard's hit points,
  * saves, skills, spellcasting, spellbook, Arcane Recovery, Scholar, the
  * Evoker, its Ability Score Improvement and Memorize Spell from this
- * definition alone. `docs/character-rules.md` records the numbers and the
+ * definition alone. `docs/rules/classes.md` records the numbers and the
  * abstractions.
  */
 import {
@@ -42,7 +42,7 @@ export const SCHOLAR_SKILLS: readonly SkillId[] = [
  * The order a fresh creation fills the abilities, highest roll first:
  * Intelligence for its spells, Dexterity for AC (with Mage Armor) and its
  * daggers, Constitution for hit points and concentration, then Wisdom,
- * Charisma and Strength. `docs/character-rules.md` records it.
+ * Charisma and Strength. `docs/rules/classes.md` records it.
  */
 export const WIZARD_ABILITY_PRIORITY = [
   "intelligence",

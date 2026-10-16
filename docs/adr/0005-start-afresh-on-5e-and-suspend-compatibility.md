@@ -2,7 +2,7 @@
 
 > **Status:** accepted. #137 made 5e the browser's only mode, and #139 removed the pre-5e game on 6 October 2026; git history keeps it.
 
-On 4 October 2026 the project owner decided to move Dungeon One to the 2024 fifth-edition rules published in the System Reference Document 5.2 (SRD 5.2, CC-BY-4.0), instead of extending the house rules in [`docs/character-rules.md`](../character-rules.md). The game is in early development, and building every feature twice (once in the house rules, once in 5e) costs more than starting again. Increment 11 is issues #125–#140.
+On 4 October 2026 the project owner decided to move Dungeon One to the 2024 fifth-edition rules published in the System Reference Document 5.2 (SRD 5.2, CC-BY-4.0), instead of extending the house rules in [`docs/rules/`](../rules/README.md). The game is in early development, and building every feature twice (once in the house rules, once in 5e) costs more than starting again. Increment 11 is issues #125–#140.
 
 ## Decision
 

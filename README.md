@@ -9,7 +9,7 @@ levels as they go. The game engine rolls every die and decides every result;
 the AI Dungeon Master interprets what the player types, chooses only among the
 actions the engine offers, and never invents an outcome.
 
-The [rules document](docs/character-rules.md) records the 5e rules in use, the
+The [rules document](docs/rules/README.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no tactical grid. The
 [increment 11 handoff](docs/acceptance/increment-11-release.md) records how
 the 5e release was qualified, with manual test scenarios. The latest, the
@@ -640,7 +640,7 @@ These are for development, not play.
   balance-gate verdict for every class, which plays every check policy and both
   casting policies (a caster's survival is judged from level 3).
   See
-  [the rules document](docs/character-rules.md#balance-harness).
+  [the rules document](docs/rules/balance.md#balance-harness).
 - **Recorded gate verdicts.** `npm.cmd run gate:verdicts` gates every built-in
   module for every class and records the verdicts in
   `adventures/5e/gate-verdicts.json`, which the browser reads at startup in
@@ -653,7 +653,7 @@ These are for development, not play.
   order, carrying its possessions and XP between them, and reports each
   module's survival and XP, the level each career reached and where it fell. It
   exits with code 1 if no career reaches the required level (5 by default). See
-  [the rules document](docs/character-rules.md#career-simulation).
+  [the rules document](docs/rules/balance.md#career-simulation).
 - **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
 [--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary
 <file>] [--json] <monster>[:<count>] ...` estimates a fight before you write
@@ -662,14 +662,14 @@ These are for development, not play.
   starting kit and every style, reporting survival, HP lost, rounds and each
   monster's one-hit-kill chance against each difficulty's cap, then the gate's
   verdict at each difficulty. See
-  [the rules document](docs/character-rules.md#encounter-estimate).
+  [the rules document](docs/rules/balance.md#encounter-estimate).
 - **Monster loot roll.** `npm.cmd run loot -- <module.json> --seed <n>` rolls
   loot for the module's bestiary opponents from their treasure types and writes
   it into the file as items they carry, so the balance gate sees exactly what a
   player finds. It skips an opponent that already carries loot, so you can
   lower what it rolled and roll again; one whose loot you removed entirely is
   rolled afresh. See
-  [the rules document](docs/character-rules.md#monster-loot-240).
+  [the rules document](docs/rules/gear.md#monster-loot-240).
 - **Mapping tool.** `npm.cmd run map -- <module-id | path>` draws a module's
   map, or a design-stage layout sketch's, as a text grid of each floor and an
   SVG in `.scratch/maps/<id>.svg`. It lists every layout error and warning and

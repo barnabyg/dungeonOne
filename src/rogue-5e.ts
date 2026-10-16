@@ -5,7 +5,7 @@
  * attacks from this definition alone. Level 2 brings Cunning Action (Hide
  * only), level 3 Steady Aim and the Thief subclass, level 4 an Ability Score
  * Improvement (with no new weapon mastery), and level 5 Cunning Strike
- * (Poison and Trip) and Uncanny Dodge. `docs/character-rules.md` records the
+ * (Poison and Trip) and Uncanny Dodge. `docs/rules/classes.md` records the
  * numbers and the abstractions.
  */
 import {
@@ -40,7 +40,7 @@ export const ROGUE_SKILLS: readonly SkillId[] = [
  * Dexterity for its Finesse attacks, AC, initiative and Stealth,
  * Constitution for hit points, Wisdom for Perception, Charisma for reaction
  * rolls and talking, then Intelligence and Strength.
- * `docs/character-rules.md` records it.
+ * `docs/rules/classes.md` records it.
  */
 export const ROGUE_ABILITY_PRIORITY = [
   "dexterity",

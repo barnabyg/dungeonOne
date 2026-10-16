@@ -2,7 +2,7 @@
  * The SRD 5.2 Fighter at levels 1–5, as class data (#300). The character
  * module (`character-5e.ts`) derives a Fighter's hit points, saves, skills,
  * masteries, features, uses, critical range and attacks from this
- * definition alone. `docs/character-rules.md` records the numbers.
+ * definition alone. `docs/rules/classes.md` records the numbers.
  */
 import {
   FIGHTING_STYLES,
@@ -31,7 +31,7 @@ export const FIGHTER_SKILLS: readonly SkillId[] = [
  * The order a fresh creation fills the abilities, highest roll first:
  * Strength for the weapon, Constitution for hit points, Dexterity for AC
  * (leather counts all of it) and initiative, Wisdom for Perception and
- * Wisdom saves, then Charisma and Intelligence. `docs/character-rules.md`
+ * Wisdom saves, then Charisma and Intelligence. `docs/rules/classes.md`
  * records it.
  */
 export const FIGHTER_ABILITY_PRIORITY = [

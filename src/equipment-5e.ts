@@ -5,7 +5,7 @@
  * Pure rules over data. Prices are in copper pieces and weights in pounds;
  * a character carries up to its Strength × 15 lb, coin included (#224). Each
  * item has an availability tier: starting kits use only common items, and
- * later tickets limit merchants and treasure by tier. `docs/character-rules.md` records the
+ * later tickets limit merchants and treasure by tier. `docs/rules/gear.md` records the
  * catalogue, the kits, the masteries and each abstraction.
  *
  * Positions are not modelled, so masteries that need distance are omitted
