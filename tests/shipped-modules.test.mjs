@@ -42,9 +42,10 @@ import {
 } from "../dist/gate-verdicts-5e.js";
 import { TURN_UNDEAD_ID } from "../dist/encounter-5e.js";
 import { MONSTER_ICONS, OPPONENT_ICON } from "../dist/icons-5e.js";
-import { creatureTypeOf } from "../dist/runtime-5e.js";
+import { createFifthRuntime, creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
+import { ada } from "./fixtures/playthroughs.mjs";
 import { gateInWorkers, JOB_TIMEOUT_MS } from "./fixtures/gate-workers.mjs";
 import { main as drawMap } from "../scripts/map-5e.mjs";
 
@@ -92,6 +93,46 @@ test("the built-in modules are the four shipped ones (#437, #446)", () => {
       "thornwood-lodge",
     ],
   );
+});
+
+test("leaving any shipped module at its start warns of the objective's award lost (#475)", () => {
+  const objectives = {
+    "abandoned-delve": [
+      "You have no treasure or coin to carry out.",
+      "Out with the loot",
+      600,
+    ],
+    "bramblecote-cider-house": [
+      "You have no treasure or coin to carry out.",
+      "Out with the Pells' goods",
+      300,
+    ],
+    "coldwater-weirgate": [
+      "You haven't met the objective: Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
+      "The sluices open",
+      1800,
+    ],
+    "thornwood-lodge": [
+      "You have no treasure or coin to carry out.",
+      "Out with the spoils",
+      3800,
+    ],
+  };
+  for (const module of shipped) {
+    const runtime = createFifthRuntime(module, ada);
+    const begun = runtime.handleAction(runtime.createSession(), {
+      type: "begin",
+    }).state;
+    const { leaving } = runtime
+      .projectActions(begun)
+      .find(({ action }) => action === "leave");
+    const [unmet, title, xp] = objectives[module.id];
+    assert.equal(
+      leaving.warning,
+      `${unmet} Leaving now earns no ending award, not the ${xp} XP for “${title}”. You keep the XP for any fights you have won.`,
+      module.id,
+    );
+  }
 });
 
 test("the mapping tool draws every shipped module by id with no layout error (#456)", async (t) => {

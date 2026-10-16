@@ -25,7 +25,7 @@ export const CONTENT_TESTS = new Map([
   ],
   [
     "tests/shipped-modules.test.mjs",
-    "loads and validates every shipped module, its budget and tiers, the gate's verdict on each, the browser's adventure list, the career through them (#290) and each one's map (#456)",
+    "loads and validates every shipped module, its budget and tiers, the gate's verdict on each, the browser's adventure list, the career through them (#290), each one's map (#456) and its Leave warning (#475)",
   ],
   [
     "tests/abandoned-delve.test.mjs",
