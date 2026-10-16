@@ -1,4 +1,4 @@
-// #410: keeping the gate within its time budget for a long module. A
+// #410: keeping the gate fast for a long module. A
 // projection may be narrowed to the entries aimed at some targets, so the
 // harness dry-runs only the move to the next room on its way, and exploring
 // projects each kind only when its choice comes. The harness plays every
