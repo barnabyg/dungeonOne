@@ -20,6 +20,10 @@ export const CONTENT_TESTS = new Map([
     "this check: it names the shipped modules to look for them",
   ],
   [
+    "tests/fixtures/gate-workers.mjs",
+    "gates shipped modules on worker threads for shipped-modules.test.mjs (#469); each worker loads its module by id",
+  ],
+  [
     "tests/shipped-modules.test.mjs",
     "loads and validates every shipped module, its budget and tiers, the gate's verdict on each, the browser's adventure list, the career through them (#290) and each one's map (#456)",
   ],

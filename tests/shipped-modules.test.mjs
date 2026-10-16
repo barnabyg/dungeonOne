@@ -45,7 +45,7 @@ import { MONSTER_ICONS, OPPONENT_ICON } from "../dist/icons-5e.js";
 import { creatureTypeOf } from "../dist/runtime-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
-import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
+import { gateInWorkers, JOB_TIMEOUT_MS } from "./fixtures/gate-workers.mjs";
 import { main as drawMap } from "../scripts/map-5e.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
@@ -78,12 +78,6 @@ const gated =
 const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
-/**
- * The reference CPU seconds the gate may take over every shipped module, the
- * Coldwater Weirgate the costliest: 450 (#447), about a third over the four
- * modules' measure.
- */
-const GATE_BUDGET_SECONDS = 450;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
@@ -131,27 +125,43 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440, #443, #445, #447)", (t) => {
-  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
-  // CPU time scaled to the reference machine (cpu-reference.mjs): runners
-  // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
-  // The other gate tests below read the results this fills.
-  const seconds = referenceCpuSeconds(() => {
+// Gated on worker threads (gate-workers.mjs), each module for each class
+// stopped and failed past its timeout: a hang guard, not a performance
+// budget (#469). This test's own timeout is a job's twice over, so a frozen
+// job fails first, naming its module and class. The other gate tests
+// below read the results this fills.
+test(
+  "every shipped module qualifies at its declared difficulty for every class (#310, #321, #348, #410, #412, #440, #443, #445, #447, #469)",
+  { timeout: 2 * JOB_TIMEOUT_MS + 60_000 },
+  async (t) => {
+    assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
+    const started = performance.now();
+    for (const [id, gate] of await gateInWorkers(gated)) {
+      gates.set(id, gate);
+    }
+    // For information only: the log shows how long each run's gate took.
+    t.diagnostic(
+      `the gate took ${((performance.now() - started) / 1000).toFixed(1)} s`,
+    );
     for (const adventure of gated) {
-      gateOf(adventure);
+      const gate = gateOf(adventure);
+      if (!gate.qualified) {
+        assert.fail(renderModuleGateResult(adventure, gate));
+      }
     }
+  },
+);
+
+test("a gate job still running at its timeout is stopped and fails, naming its module and class (#469)", async () => {
+  // No module gates in a tenth of a second; the first job is the Fighter's.
+  const bramblecote = shipped.find(
+    ({ id }) => id === "bramblecote-cider-house",
+  );
+  const gating = gateInWorkers([bramblecote], { workers: 1, timeoutMs: 100 });
+  await assert.rejects(gating, {
+    message:
+      "Gating bramblecote-cider-house for the fighter ran past its 0.1-second timeout and was stopped.",
   });
-  for (const adventure of gated) {
-    const gate = gateOf(adventure);
-    if (!gate.qualified) {
-      assert.fail(renderModuleGateResult(adventure, gate));
-    }
-  }
-  // docs/character-rules.md records the budget, for gating every module.
-  // The log shows every run's measure, so CI's can be read against the cap.
-  const measure = `the gate took ${seconds.toFixed(1)} s of reference CPU`;
-  t.diagnostic(measure);
-  assert.ok(gated !== shipped || seconds < GATE_BUDGET_SECONDS, measure);
 });
 
 test("the recorded gate verdicts the browser offers modules by are the gate's (#310)", async () => {

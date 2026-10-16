@@ -4872,12 +4872,26 @@ export function gateModule(
   adventure: FifthAdventure,
   options: Omit<GateOptions, "classId"> = {},
 ): ModuleGateResult {
-  const classes = GATE_CLASSES.map((classId) => ({
-    classId,
-    result: gateAdventure(adventure, { ...options, classId }),
-  }));
+  return moduleGateResult(
+    adventure.id,
+    GATE_CLASSES.map((classId) => ({
+      classId,
+      result: gateAdventure(adventure, { ...options, classId }),
+    })),
+  );
+}
+
+/**
+ * The module verdict for `adventureId` from each class's result, in
+ * `GATE_CLASSES` order: as `gateModule` gives it, for results gated apart
+ * (on worker threads, say).
+ */
+export function moduleGateResult(
+  adventureId: string,
+  classes: ModuleGateResult["classes"],
+): ModuleGateResult {
   return {
-    adventureId: adventure.id,
+    adventureId,
     qualified: classes.every(
       ({ result }) => result.ok && result.verdict.qualified,
     ),

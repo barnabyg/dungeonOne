@@ -10,12 +10,11 @@
 //   npm test -- tests/x.test.mjs ...          just those files
 //   npm test -- --test-name-pattern <pattern> only the tests it matches
 //
-// The test files run concurrently, then the files that measure CPU time on
-// their own: other processes sharing the cores inflate a process's CPU time
-// (by about half on a loaded machine), so a budget measured alongside them
-// fails on load, not on a slower engine. At most half the hardware threads
-// run test files at once: many test files start a browser or a launcher of
-// their own, and one per thread starves them past their timeouts.
+// The test files run concurrently, then the files that run worker threads of
+// their own, one at a time. At most half the hardware threads run test files
+// at once: many test files start a browser or a launcher of their own, and
+// one per thread, or a file's workers beside them, starves them past their
+// timeouts.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
@@ -24,7 +23,7 @@ import { pathToFileURL } from "node:url";
 import { CONTENT_TESTS } from "../tests/fixtures/content-tests.mjs";
 import { selectForChanges, TIERS, tiersOf } from "./test-tiers.mjs";
 
-/** Test files with a CPU-time budget, run after the rest, one at a time. */
+/** Test files that run worker threads, run after the rest, one at a time. */
 const ALONE = ["tests/shipped-modules.test.mjs"];
 
 /** The environment variable naming the only shipped modules to gate. */
