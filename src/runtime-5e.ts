@@ -5869,11 +5869,11 @@ export function createFifthRuntime(
       objectiveEnding.xp === undefined
         ? []
         : [
-            `Leaving now earns ${
+            `Leaving now ${
               xp === undefined
-                ? "no ending award"
-                : `${xp} XP for “${ending.title}”`
-            }, not the ${objectiveEnding.xp} XP for “${objectiveEnding.title}”.`,
+                ? ""
+                : `earns ${xp} XP for “${ending.title}” but `
+            }gives up the ${objectiveEnding.xp} XP for “${objectiveEnding.title}”.`,
           ];
     return {
       ending: brings,

@@ -129,7 +129,7 @@ test("leaving any shipped module at its start warns of the objective's award los
     const [unmet, title, xp] = objectives[module.id];
     assert.equal(
       leaving.warning,
-      `${unmet} Leaving now earns no ending award, not the ${xp} XP for “${title}”. You keep the XP for any fights you have won.`,
+      `${unmet} Leaving now gives up the ${xp} XP for “${title}”. You keep the XP for any fights you have won.`,
       module.id,
     );
   }

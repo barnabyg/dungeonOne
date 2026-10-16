@@ -55,8 +55,7 @@ test("leaving the barrow empty-handed warns of the loot ending's award, and sett
       title: "Out empty-handed",
     },
     warning:
-      "You have found no treasure or coin here to carry out. Leaving now earns no " +
-      "ending award, not the 250 XP for “Out with the silver”. " +
+      "You have found no treasure or coin here to carry out. Leaving now gives up the 250 XP for “Out with the silver”. " +
       KEPT,
   });
   leaveAsProjected(runtime, begun);
@@ -131,7 +130,7 @@ test("a module with a victory warns that leaving falls short of its objective, w
     warning:
       "Objective not met: " +
       ossuary.objective +
-      " Leaving now earns no ending award, not the 400 XP for “" +
+      " Leaving now gives up the 400 XP for “" +
       file.endings.find(({ kind }) => kind === "victory").title +
       "”. " +
       KEPT,
@@ -146,5 +145,26 @@ test("a victory without an award warns only that the objective is unmet", () => 
   assert.equal(
     leaveView(runtime, begun).leaving.warning,
     "Objective not met: " + ossuary.objective + " " + KEPT,
+  );
+});
+
+test("an escape that pays its own XP says what it earns and what it gives up", () => {
+  const file = moduleFile("shifting-ossuary");
+  file.endings.find(({ kind }) => kind === "victory").xp = 400;
+  file.endings.find(({ kind }) => kind === "escape-without-loot").xp = 50;
+  const ossuary = validateModule(file);
+  const runtime = createFifthRuntime(ossuary, ada);
+  const begun = play(runtime, [{ type: "begin" }]);
+  const { leaving } = leaveView(runtime, begun);
+  assert.equal(leaving.ending.xp, 50);
+  assert.equal(
+    leaving.warning,
+    "Objective not met: " +
+      ossuary.objective +
+      " Leaving now earns 50 XP for “Out empty-handed” but gives up the " +
+      "400 XP for “" +
+      file.endings.find(({ kind }) => kind === "victory").title +
+      "”. " +
+      KEPT,
   );
 });
