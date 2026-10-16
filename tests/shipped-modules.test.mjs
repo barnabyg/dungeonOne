@@ -82,6 +82,9 @@ const SURVIVAL_SLACK = 0.03;
  * The reference CPU seconds the gate may take over every shipped module, the
  * Coldwater Weirgate (#412) among them as the gate-time canary in place of
  * #410's fixture long module:
+ * 600 from #445 (owner's choice, until #447 lowers it), when the expanded
+ * Thornwood Lodge, about 117 alone against about 30, took the gate to 514.2
+ * locally;
  * 450 from #443 (owner's choice, until #447 lowers it), when gating the
  * Weirgate at levels 3–4 took the gate to 399.0 locally, the Weirgate alone
  * 191.9 against 79.3 at level 3;
@@ -91,7 +94,7 @@ const SURVIVAL_SLACK = 0.03;
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
  */
-const GATE_BUDGET_SECONDS = 450;
+const GATE_BUDGET_SECONDS = 600;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
@@ -152,7 +155,7 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440, #443)", () => {
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440, #443, #445)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
