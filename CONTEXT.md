@@ -1,6 +1,6 @@
 # Adventure Play
 
-This context covers the characters a player brings to adventures and what the player can learn and revisit during each journey. The game uses the 2024 5e rules in SRD 5.2 ([ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)).
+Terms for Dungeon One's characters, adventures and balance tools. The game uses the 2024 5e rules in SRD 5.2 ([ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)); this glossary holds only the project's own terms and where it narrows or departs from 5e.
 
 ## Language
 
@@ -9,536 +9,372 @@ The human who chooses a character and controls its actions during an adventure.
 _Avoid_: Character, Fighter
 
 **Character**:
-A persistent adventurer with an identity, class, ability scores, equipment, carried treasure, a purse of coin, and earned career progress that can be brought to different adventures.
+A persistent adventurer with a class, abilities, possessions and progress, brought to one adventure at a time.
 _Avoid_: Player, Adventure save
 
-**Character sheet**:
-The record of a character's identity, abilities, capabilities, health, equipment, and advancement.
-_Avoid_: Player sheet, Combat profile
+**Character library**:
+The player's saved characters, including those not on an adventure.
+_Avoid_: Party, Save slot (one adventure session's record)
+
+**Pending creation**:
+The ability rolls of a character being created, saved before the player sees them; there are no rerolls.
+_Avoid_: Roll (when the saved set is meant), Draft character
 
 **Class definition**:
-The data a class is made of: hit die, saving throws, skill choices, armour, weapon and tool training, weapon masteries by level, features by level with their uses, recovery and effects, subclasses, ability priority, default choices and starting kits. A character sheet names its class by id (the Fighter or the Rogue), and every derived number comes from its definition.
+The data a class is made of, from which every derived number on a sheet comes; no class is hard-coded in the engine.
 _Avoid_: Class rules, Hard-coded Fighter
 
+**Test caster**:
+A test-only casting class and its fixed character, Sage. Creation never offers it and the gate never plays it.
+_Avoid_: Wizard, Cleric (for the test caster)
+
+**Feature**:
+Something fixed in a room that the character can examine, such as a chest. Not a class feature, such as Second Wind, which combat code also calls a feature.
+_Avoid_: Object (too broad), Item (an item can be taken)
+
 **Feature uses**:
-How many more times the character can use each class feature with limited uses (Second Wind, Action Surge) in the current adventure, tracked by feature id; spell slots are tracked the same way. Its class definition gives the most at each level and what a short rest and a long rest each restore.
+How many more times the character can use each limited class feature, spell slots included, in the current adventure.
 _Avoid_: Charges, Second Wind counter
 
-**Hit dice**:
-The character's pool of its class's hit die, one per level, tracked by the adventure session: all available at the start of an adventure. A short rest spends them; a long rest and a rest between adventures regain them.
-_Avoid_: Hit points, HD (in player-facing text)
+**Level choice**:
+A choice a new level brings, such as an Ability Score Improvement, made on the sheet after settling. Until it is made the character cannot start another adventure.
+_Avoid_: Level-up (the card that shows a new level), Feat
+
+**Spells owed**:
+The spells and cantrips a new level lets a caster choose that it hasn't chosen yet. Like a level choice, they block the next adventure.
+
+**Preparing spells**:
+Changing a caster's prepared spells, allowed only between adventures on its sheet; Memorize Spell is the one swap made during an adventure. A Wizard prepares only from its spellbook.
+_Avoid_: Memorising (Memorize Spell is the Wizard's feature)
+
+**Ongoing effect**:
+What a spell or feature leaves on a target while it lasts. With no clock, it ends by its duration's band: the turn, the fight, the next rest or the adventure.
+_Avoid_: Buff (in player text), Aura
+
+**Area spell**:
+A spell whose effect fills an area. With no positions it catches up to a set number of opponents the caster chooses.
+_Avoid_: AoE, Splash
+
+**Turned**:
+An undead opponent held by Turn Undead until it saves or is hurt or attacked. While every foe left is turned the character may leave without fleeing; the fight stays unresolved.
+_Avoid_: Fleeing (a turned undead never leaves the fight)
+
+**Sneak Attack**:
+The Rogue's extra damage, applied by the engine whenever its rules are met. Its ally-adjacent clause is omitted, as there are no positions.
+_Avoid_: Backstab, Sneaking in (which is about surprise)
+
+**Disengage**:
+The Rogue's bonus action that lets it flee a fight later that turn without drawing attacks. It does nothing else.
+_Avoid_: Dash, Withdraw
 
 **Short rest**:
-A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure (two in each region of a long module, #404): the character spends hit dice one at a time to heal and regains its features' short-rest uses.
+A rest in a room with no foes left, limited per adventure (per region in a long module). It spends hit dice and restores short-rest uses.
 _Avoid_: Breather, Camp
 
 **Long rest**:
-A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure (one in each region of a long module, #404): it restores every hit point, hit die and feature use.
+A rest at a rest site, limited like a short rest, that restores everything.
 _Avoid_: Sleep, Camp
-
-**Spell**:
-Magic a character of a casting class casts (#336), defined as data from SRD 5.2: its level (0 for a cantrip), school, casting time and effect: a spell attack, a saving throw for half or no damage, missiles that always hit, or healing. A character casts the cantrips it knows and the spells it has prepared, both recorded on its sheet.
-_Avoid_: Power, Ability (for a spell)
-
-**Cantrip**:
-A level-0 spell, cast at will without a spell slot; its damage grows at character level 5.
-_Avoid_: Level-0 slot
-
-**Spell slot**:
-What casting a levelled spell spends (#336): one slot of the spell's level or higher, and a higher slot makes the spell stronger. A casting class's definition gives its slots of each level by character level; they are tracked as feature uses, so a long rest restores them and a short rest doesn't. Only one slot may be spent a turn.
-_Avoid_: Mana, Spell points
-
-**Ongoing effect**:
-What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance); from #340 a control spell's hold on an opponent (Sleep), which ends when it takes damage; from #341 Hold Person's hold, which damage doesn't end, Turn Undead's turning, more maximum hit points (Aid), a ward against poison, or a spectral weapon the caster attacks with. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
-_Avoid_: Buff (in player text), Aura
-
-**Concentration**:
-Holding one spell going (#337): a caster concentrates on one at a time, and casting another concentration spell ends the first. Damage calls for a Constitution saving throw to keep it; being incapacitated or falling ends it.
-
-**Area spell**:
-A spell whose effect fills an area (#338), such as Burning Hands. Without positions it catches up to a maximum number of opponents, set by its shape and size (D4), chosen by the caster; its damage is rolled once and each target saves for itself.
-_Avoid_: AoE, Splash
-
-**Reaction spell**:
-A spell cast as a reaction (#337), such as Shield: offered only while an opponent's hit waits for the caster's answer, as Uncanny Dodge is.
-
-**Divine Order**:
-The Cleric's choice at creation (#339): Protector (heavy armour and martial weapons) or Thaumaturge (one more cantrip, and its Wisdom modifier on Arcana and Religion checks).
-
-**Preparing spells**:
-Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure, but for Memorize Spell. Its cantrips are chosen once, at creation. A Wizard prepares only spells in its spellbook (#340).
-_Avoid_: Memorising (Memorize Spell is the Wizard's feature, below)
-
-**Memorize Spell**:
-The Wizard's level-5 feature (#344): a short rest may swap one prepared levelled spell for another in its spellbook. The swap lasts only the adventure; the library's prepared spells never change during one.
-
-**Casting policy**:
-How the balance harness spends a caster's spell slots in a fight (#348): conserve, the default, casts only cantrips until below its heal threshold; spend-early casts its best levelled damage or control spell on every turn it can. The gate judges each caster's kit and level on the one that survives more of its first 50 seeded runs, and reports spend-early over those beside it.
-_Avoid_: Caster style, Nova
-
-**Control chance**:
-The balance gate's measure of a control (Sleep, Hold Person, Turn Undead) against an ordinary enemy (#348, D5): the chance one use at a fight's opening keeps it from acting for three of its turns. Judged against the one-hit-kill cap.
-_Avoid_: Lockdown chance
-
-**Spellbook**:
-The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation, and two more of a level it has slots for at each level after 1st (#343), kept on the sheet, not carried as an item. It prepares spells only from it. Between adventures it may also copy a spell scroll's spell into it (#346).
-
-**Spell scroll**:
-A found item holding one levelled spell (#346): a character with the spell on its class's list reads it to cast the spell with no slot, in the spell's own casting time, and it is used up. Kept like gear on getting out alive.
-
-**Wand of Magic Missiles**:
-An uncommon magic item anyone may use (#346): its charges cast Magic Missile, one a spell level; a long rest gives some back, and between adventures it is full.
-
-**Channel Divinity**:
-The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
-
-**Turned**:
-An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it succeeds on the save it repeats at the end of each of its turns (#348), takes damage, is attacked, the turner is incapacitated or the fight ends. Sear Undead's damage (#342) is the one damage that doesn't end it. While every foe left is turned, the character may leave the room without fleeing; the fight stays unresolved and its fallen stay fallen.
-_Avoid_: Fleeing (a turned undead never leaves the fight)
-
-**Always prepared**:
-A spell a feature keeps prepared (#341, the Life Domain's Aid, Bless, Cure Wounds and Lesser Restoration): it doesn't count against the spells the character chooses, and isn't offered to prepare.
-
-**Spells owed**:
-The spells a new level lets a caster prepare, the cantrips it lets it learn (#342) and the spells it lets a Wizard write into its spellbook (#343), that it hasn't chosen yet (#341): it chooses them on its sheet before the next adventure, which waits until then. Scholar's Expertise (#343) waits the same way.
-
-**Curse**:
-Bestow Curse's lasting effect on an opponent (#342), chosen at casting: disadvantage on its attacks against the character, or extra necrotic damage from the character's attacks and spells. It ends with the caster's concentration or the fight.
-
-**Potent Cantrip**:
-The Evoker's level-3 feature (#343): a damaging cantrip that misses, or whose target succeeds on its save, still deals half its damage and nothing else.
-
-**Arcane Recovery**:
-The Wizard's once-per-long-rest recovery of spent spell slots on a short rest (#340): slot levels up to half its level, rounded up. The engine applies it by itself on the first short rest with a slot to regain.
-
-**Magic action**:
-The action a spell with a casting time of an action takes in a fight (#336); a bonus-action spell takes the bonus action instead.
-_Avoid_: Cast action
-
-**Test caster**:
-A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine; from #348 until #369 it alone could prepare Sleep and Hold Person, which had left the Wizard's and Cleric's lists. Creation never offers it and the gate never plays it.
-_Avoid_: Wizard, Cleric (for the test caster)
 
 **Rest site**:
 A room a module marks as a safe place to rest, where a long rest may be taken.
 _Avoid_: Camp, Safe room
 
-**Wandering encounter**:
-An encounter in no room that comes upon the character where it is (#335, #403). A region's **wandering encounter table** holds up to six entries, each a wandering encounter or an omen; every authored number of moves within the region, on each rest there and when the alarm is raised there, the engine rolls the table's chance on a d100, which also picks the entry. A wandering encounter's fight comes at most once and is its omen from then on. One that comes on a rest interrupts it, and the rest restores nothing. A module's single `wanderingEncounter` is a one-entry table rolled only on rests. Wandering encounters count against a module's 30 encounters. The AI DM cannot summon, roll for or keep one away.
-_Avoid_: Random encounter, Ambush, Random monster
+**Possessions**:
+What a character holds: its equipped gear, stowed gear, ammunition, treasure and purse. An adventure starts holding them, and they change only there.
+_Avoid_: Inventory (the items carried in one adventure), Loot
 
-**Omen**:
-An entry of a wandering encounter table that is words only (#403): a distant chain, wet footsteps. It brings no fight and may come again and again; a wandering encounter that has come is its omen from then on. The card says it, and the AI DM's scene holds it until the character moves on.
-_Avoid_: Clue, Sign, Portent
+**Stowed gear**:
+Gear a character carries but has not equipped, as found gear is when taken.
+_Avoid_: Pack, Backpack, Inventory
 
-**Character library**:
-The player's collection of independently saved characters, including characters not currently taking part in an adventure.
-_Avoid_: Save slots, Party
+**Gear**:
+A catalogue weapon, armour, shield or bundle of ammunition. It is equipment, not loot, so carrying only gear out is not escaping with loot.
+_Avoid_: Loot, Treasure (which has no catalogue numbers)
 
-**Pending creation**:
-The six 4d6-drop-lowest ability rolls of a character being created, saved in the character library before the player sees them. They stay the same until a character is saved from them; there are no rerolls.
-_Avoid_: Roll (when the saved set is meant), Draft character
+**Starting kit**:
+One of a class's named sets of common equipment offered at creation, roughly equal in value. There is no starting coin.
+_Avoid_: Starting gear package, Class equipment
 
-**Character level**:
-The stage of a character's advancement that determines its supported class capabilities.
-_Avoid_: Content version, Story milestone, Hint level
-
-**Level choice**:
-The Ability Score Improvement (+2 to one ability or +1 to two, none above 20) a character chooses on its sheet after settling at level 4, with a fourth weapon mastery for a Fighter (a Rogue's level 4 brings none). Until it is made the character owes it, saved in the character library, and cannot start another adventure.
-_Avoid_: Level-up (the card that shows a new level), Feat
-
-**Experience points**:
-Earned character progress awarded for authored accomplishments and used to determine advancement.
-_Avoid_: Story milestones, Player score
+**Tool**:
+A mundane item a module places, such as a rope, that does nothing by itself: a circumstance or a retry's cost names it. It is not kept after the adventure.
+_Avoid_: Gear (a catalogue item, thieves' tools included), Kit
 
 **Treasure**:
-Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Each treasure is a gem or art object with a value from the treasure catalogue, which a merchant pays in full; coin found the same way is not treasure but goes into the purse.
+A gem or art object a character finds by examining something, or is given by a named creature, with a catalogue value a merchant pays in full. It is never simply awarded, and is kept only by surviving.
 _Avoid_: Reward XP, Drop
 
-**Coin**:
-SRD 5.2 copper, silver and gold pieces (1 gp = 10 sp = 100 cp). A module hides coin, like treasure, in a feature or on an opponent's body, and the engine decides how much; taking it empties it into the purse at once. It is found once per character, recorded in the ledger like a treasure. It is spent with merchants.
-_Avoid_: Gold (for coin in general), Money
-
 **Purse**:
-The coin a character holds, one of its possessions, kept as a number of copper pieces and always shown in mixed denominations, largest first ("3 gp 4 sp"). A new character's purse is empty: there is no starting coin.
-_Avoid_: Wallet, Gold, Balance
+The coin a character holds, one sum shown in mixed denominations. Found coin goes straight into it and is not treasure. A new character's purse is empty.
+_Avoid_: Wallet, Gold (for coin in general), Balance
+
+**Pending treasure**:
+Treasure and coin carried during an adventure but not yet kept, though it can be spent there.
+_Avoid_: Loot (when kept treasure is meant), Inventory
 
 **Treasure budget**:
-The most an adventure module's findable treasure (coin, gems, art objects, potions, spell scrolls and gear) may be worth, set by its maximum recommended level. Each item must also have a tier allowed at that level.
+The most a module's findable coin, treasure, gear and consumables may be worth, set by its maximum recommended level; each item's tier must also suit that level.
 _Avoid_: Loot table, Hoard
 
 **Treasure type**:
-What a bestiary monster carries, as dice for one kind of coin and optionally one trinket (a gem or art object): none for undead and beasts, a few coppers for a goblin. An authoring-time roll turns it into the items an opponent carries in a module; the validator rejects carried loot the type couldn't produce.
+What a bestiary monster carries, as coin dice and perhaps a trinket. An authoring-time roll writes it into a module as items an opponent carries.
 _Avoid_: Loot table, Treasure class
 
-**Possessions**:
-What a character holds: its equipment, its stowed gear, its ammunition, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
-_Avoid_: Inventory (the items carried in one adventure), Loot
-
-**Equipment**:
-The weapons and armour a character has equipped, armour first and then the weapon it attacks with and any second light weapon. Its armour class and attacks are derived from it.
-_Avoid_: Gear list, Loadout (the derived reading of it, in code)
-
-**Stowed gear**:
-Catalogue weapons, armour and shields a character carries but has not equipped. Gear found is stowed as it is taken; equipping, unequipping, wielding and dropping move gear between the equipment, the stowed gear and the room.
-_Avoid_: Pack, Backpack, Inventory (the module items carried in one adventure)
-
-**Gear**:
-A catalogue weapon, armour or shield, or a bundle of 20 arrows or bolts. A module places gear as an item hidden in a feature or on an opponent, found once per character like treasure; it is equipment, not loot, so carrying it out is not escaping with loot.
-_Avoid_: Loot, Treasure (which has no catalogue numbers)
-
-**Ammunition**:
-The arrows and bolts a character holds, kept as a count of each. A ranged weapon spends one of its kind with each attack and is refused with none; half of those spent in a fight are recovered when it is won. Bought, sold and found in bundles of 20.
-_Avoid_: Quiver (a found item's name, not the count), Missiles
-
-**Object interaction**:
-The one free interaction a combatant has each turn (SRD 5.2). Drawing, stowing or swapping a weapon in a fight uses it; a second weapon change that turn is refused.
-_Avoid_: Free action, Utilize (the action a second interaction would take)
-
-**Starting kit**:
-One of the named sets of common-tier equipment a class offers at creation, of equal value within 3 gp of the class's other kits; another class's kits may be worth more. There is no starting coin.
-_Avoid_: Starting gear package, Class equipment
-
-**Weapon mastery**:
-A character's mastery of a kind of weapon it is proficient with, chosen at creation (a Fighter three at levels 1–3 and a fourth at level 4, a Rogue two). The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
-_Avoid_: Proficiency (which adds the bonus to hit), Weapon skill
-
-**Expertise**:
-A Rogue's choice, at creation, of two of its skill proficiencies whose proficiency bonus is doubled on checks with them, and in passive Perception; and a Wizard's at level 2 (#343, Scholar), of one among Arcana, History, Investigation, Medicine, Nature and Religion, made on the sheet. The engine applies it; nothing asks for it.
-_Avoid_: Mastery (a weapon's), Double proficiency
-
-**Sneak Attack**:
-A Rogue's extra damage dice, dealt once per turn on a hit with a Finesse or ranged weapon made with advantage. The engine applies it whenever its rules are met; the player and the AI DM never ask for it. Its ally-adjacent clause is omitted.
-_Avoid_: Backstab, Sneaking in (which is about surprise)
-
-**Cunning Strike**:
-A level-5 Rogue's choice, made with an attack that would deal Sneak Attack, to give up a Sneak Attack die for an effect: Poison (a Constitution save or poisoned) or Trip (a Dexterity save or prone). It applies only if the attack hits; a miss spends nothing. The engine offers it, rolls the save and decides the condition.
-_Avoid_: Trip attack (a monster's rider), Special attack
-
-**Uncanny Dodge**:
-A level-5 Rogue's reaction: when an opponent's attack roll hits it, the fight waits before the damage is rolled for the player to halve that damage or take the hit. It halves at most one hit a round. It is the only reaction the game plays.
-_Avoid_: Reaction roll (the house rule), Dodge (the action)
-
-**Tool proficiency**:
-A class's training with a set of artisan's or thieves' tools, such as the Rogue's thieves' tools: recorded on the sheet, it adds the proficiency bonus to a check made with the tools.
-_Avoid_: Tool (a module's mundane item), Kit
-
-**Extra attack (light weapon)**:
-The SRD 5.2 Light property's one extra attack with a second light weapon after attacking with a light weapon on the same turn; a bonus action unless Nick makes it part of the Attack action.
-_Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
-
-**Extra Attack**:
-The level-5 Fighter feature: the Attack action makes two attacks, each at any living opponent. Each attack is a separate action call; the engine refuses a third.
-_Avoid_: Extra attack (the light weapon's), Multiattack (a monster's)
-
 **Merchant**:
-A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices, buys carried gear at half price, and buys gems and art objects at their full value. Each trade takes its authored minutes. Merchants exist only inside adventures. Reacting opponents whose band offers trade are a merchant while the band holds (#305).
-_Avoid_: Shop, Market (there is none between adventures), Vendor
+A creature in a module that sells gear at catalogue prices and buys gear at half and treasure at full value. There is no market between adventures.
+_Avoid_: Shop, Market, Vendor
 
 **Trade**:
-Buying from or selling to a merchant, outside a fight in its room. Stock and prices are the engine's; selling equipped gear needs the player's confirmation in the panel. Trades are part of the adventure: settling a victory or an escape keeps their result, and a defeat or abandonment undoes them.
+Buying from or selling to a merchant, outside a fight in its room. Trades are part of the adventure: settling keeps them, and a defeat or abandonment undoes them.
 _Avoid_: Purchase (for selling too), Haggle
 
 **Ledger**:
-The record on a character of each treasure, coin and gear it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
+The record on a character of every treasure, coin and gear find and every XP award credited, so each is earned once. It only grows: losing an item never takes its find away.
 _Avoid_: History, Achievements
 
 **Settling**:
-Ending an adventure in the character library, once. After a victory or an escape the character's possessions are replaced with what it holds at the end, its new finds and XP awards are added to its ledger, and it rests to full health. After a defeat it is marked defeated at 0 HP with its possessions and ledger as they were at the start.
+Ending an adventure in the library, once. A victory or escape keeps what the character holds, adds its finds and awards to the ledger and rests it to full; a defeat leaves it at 0 HP as it started.
 _Avoid_: Crediting (which suggests adding), Rewarding
 
-**Pending treasure**:
-Treasure and coin the character carries during an adventure but has not kept yet. It can be used in that adventure at once, and coin spent there with a merchant. Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
-_Avoid_: Loot (when kept treasure is meant), Inventory
-
 **XP award**:
-One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP), slipping past one whose module authors XP for it instead, or ending one peacefully whose module authors XP for that (the same award, so an encounter is credited once whichever way), or reaching an ending that awards XP. Awards are credited only on surviving completion.
+One source of XP a character earns once: an encounter won, slipped past or ended peacefully (one award whichever way), or an ending. Credited only on surviving.
 _Avoid_: Milestone, Score
 
+**Objective**:
+What a module's play aims at: its victory ending if it has one, or else getting out with loot. Leaving short of it gives up the ending's award.
+_Avoid_: Goal, Quest
+
 **Exit room**:
-A room the character can leave the adventure from. Leaving is the player's final choice, never the AI DM's. Not to be confused with a room's exits, the passages out of it.
+A room the character can leave the adventure from. Leaving is the player's choice, never the AI DM's.
 _Avoid_: Exit (alone, which means a passage out of a room), Retreat
 
 **Escape**:
-An ending the player chooses by leaving from an exit room: with loot when the character carries treasure or coin found in that adventure, without it otherwise. Like a victory, it is surviving completion.
-_Avoid_: Retreat, Flee (a fled monster's, or the character's fleeing a fight, which may lead to an exit room but ends nothing), Quit
+An ending the player chooses by leaving from an exit room, with or without loot. Like a victory, it is surviving completion.
+_Avoid_: Retreat, Flee, Quit
 
 **Fleeing a fight**:
-The character leaving a fight under way through an exit it could otherwise use (#396), on its turn with its action. Each opponent still in the fight and able to act first makes one attack against it (the house rule for opportunity attacks without positions); 0 HP from one is a defeat. The fight stays unresolved in its room: the fallen stay fallen, the opponents still standing keep their wounds and are met again on coming back, and none follows.
-_Avoid_: Escape (the ending), Fled (a monster that failed morale), Retreat (the balance harness's style that flees), Running away
-
-**Disengage**:
-The Rogue's Cunning Action option (#396), a bonus action from level 2: fleeing a fight later that turn draws no attacks. It does nothing else.
-_Avoid_: Dash, Withdraw (Cunning Strike's, not offered)
+Leaving a fight under way through a usable exit with the character's action; each foe able to act first gets one attack, in place of opportunity attacks. The fight stays unresolved and nobody follows.
+_Avoid_: Escape (the ending), Fled (a monster that failed morale), Retreat (the harness style), Running away
 
 **Abandonment**:
-Giving up an adventure in progress from the character sheet. The character's possessions, ledger and XP stay as they were when the adventure started, and it can start another.
+Giving up an adventure in progress from the sheet. The character stays exactly as it was when the adventure started and can start another.
 _Avoid_: Escape, Quit
 
+**Defeated character**:
+A character whose adventure ended at 0 HP. It stays in the library but cannot adventure again; there are no death saving throws.
+_Avoid_: Dead character, Unconscious
+
 **Adventure module**:
-A playable scenario defining its setting, encounters, challenges, rewards, and intended characters.
-_Avoid_: Character sheet, Adventure session
+A playable scenario: its rooms, encounters, rewards and recommended levels.
+_Avoid_: Adventure session
+
+**Adventure session**:
+One character's playthrough of one adventure module, with its own events, world state and conversation history.
+_Avoid_: Character, Adventure module
+
+**Save slot**:
+The local record of one adventure session, saved automatically after every action beside the character library.
+_Avoid_: Manual save point
+
+**Conversation history**:
+The player's messages, AI replies and engine result cards of a session. It can be revisited but never establishes game facts.
+_Avoid_: Journal, Game state
+
+**Difficulty**:
+A module's declared challenge for its levels: Easy, Medium or Hard. The balance gate checks it is neither deadlier nor easier than declared. Not a check's DC.
+_Avoid_: Challenge rating (a monster's), DC
 
 **Room**:
-A place in an adventure module, joined to others by two-way passages. It sits on one cell of the module's map, on a floor (#455), but there is still no position inside a room: a character is in one room at a time, and entering a room whose fight has not been won begins it.
+A place in a module, joined to others by passages. A character is in one room at a time, with no position inside it.
 _Avoid_: Location, Square, Tile
 
 **Region**:
-A named part of an adventure module, such as an upper or a lower level (#395). In a module with regions every room belongs to exactly one; the room panel and the AI DM's scene name the current room's. It is a group of rooms, which the map shades; it may span floors.
+A named group of a module's rooms, such as an upper or lower level, which may span floors.
 _Avoid_: Level (a character's), Area (an area spell's), Zone
 
 **Long module**:
-An adventure module with two or more regions that declares itself long (#404): its rests are counted per region, every region has a rest site, and it has twice the treasure budget and an XP limit one level higher.
+A module of two or more regions that declares itself long: rests are counted per region, every region has a rest site, and it gets a larger treasure budget and XP limit.
 _Avoid_: Big module, Campaign
 
-**Route**:
-A way from an adventure module's entrance to its objective that the module declares (#407), such as "through the guard hall": the rooms it must pass, in order. The balance gate judges each declared route; a module that declares none is judged on its fewest-fights route.
-_Avoid_: Path (the required path is the gate's own), Branch, Track
-
-**Region sweep**:
-The balance gate's run through one region of a long module (#408): the cautious style visits every room of the region not marked avoidable, fighting what waits in each, then goes on to the objective. Each sweep is judged one difficulty lower than the module's.
-_Avoid_: Clear, Full run, Exploration
-
-**Avoidable room**:
-A long module's room marked `avoidable` (#408): left out of its region's sweep, so the gate never makes the character go there. It lies off every declared route.
-_Avoid_: Optional room (every room off the required path is optional), Secret room
-
-**Release run**:
-A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written or generated; the code calls its step list its `route`, which is not a module's declared route.
-_Avoid_: Playthrough (the harness's), Handoff run
-
-**Generated release run**:
-A release run whose steps are taken from the balance harness's cautious run on a fixed seed and class (#409): each action it took outside a fight, with words a player would type for it. Its turn cap is 40 turns a room. Every shipped module's release run is generated.
-_Avoid_: Auto route, Scripted run (the hand-written kind)
-
-**Move count**:
-How many times the character has gone from one room into another in an adventure session (#395). Refused moves add nothing; the session restores it on reload and the trace records it.
-_Avoid_: Turns, Steps, Time
-
-**Known rooms**:
-The rooms the character has visited in an adventure, or seen through a visited room's exits (#405), grouped by region with the current one marked. Each visited room keeps its record: the discoveries made there, the creatures talked to and what they said, its doors, the traps found and how its fight stands. The engine projects them; choosing one in the browser shows its record and never moves the character. The AI DM's scene holds a line for each, within a size cap (#406), so it can answer what the character remembers.
-_Avoid_: Journal, Log, Clue
-
 **Map**:
-The layout of an adventure module's rooms (#455): each room on a cell of a square grid, on a floor, joined by straight passages, and stairs, ladders or shafts between floors. The module's author places every room by hand; `src/map-5e.ts` holds the rules that keep it readable. The player sees it as fog of war: the rooms visited, with stubs for the exits not yet taken. It is not a tactical grid: there is no position, distance or movement inside a room. Each exit takes its direction from it (#458): a compass point from cell to cell, or up or down between floors.
+The layout of a module's rooms on grid cells and floors, joined by passages. It is not a tactical grid, and the player sees only what has been explored.
 _Avoid_: Grid (a tactical one), Board, Plan
 
 **Layout sketch**:
-A design-stage map of a module before its content exists (#456): its rooms, each on a cell and floor and in a region, and its passages, with their doors, traps, stairs and hidden ways marked. It is a strict subset of a module's fields, so the module is built by filling in the rest. `npm run map` draws and checks it, as it does a finished module; `docs/module-authoring.md` describes it.
+A design-stage map of a module before its content exists, a subset of a module's fields that the full module fills in.
 _Avoid_: Draft module, Mock-up, Plan
 
-**Cell**:
-One square of a map, `[x, y]`, with x growing east and y south (#455). Each room sits on one, and no two rooms on a floor share one.
-_Avoid_: Square, Tile, Position
+**Known rooms**:
+The rooms the character has visited or seen through an exit, each with a record of what it learned there, which the AI DM sees too.
+_Avoid_: Journal, Log, Clue
 
-**Floor**:
-A level of a map, 0 unless the module says otherwise, up positive and down negative (#455). Only a vertical passage (stairs, a ladder or a shaft) joins rooms on different floors, and only adjacent ones.
-_Avoid_: Level (a character's), Storey, Region
+**Discovery**:
+The authored fact a character learns by first examining a feature, which may reveal a hidden item. The AI DM cannot invent one.
+_Avoid_: Clue, Journal entry
+
+**Topic**:
+Something a creature can be asked about, with its authored answer. The AI DM offers only these.
+_Avoid_: Subject, Question
 
 **Flag**:
-A named fact about an adventure session that its adventure module declares, such as "the portcullis is raised" (#397). It only ever turns on, never off. The engine sets it from what the character does: examining a feature, taking an item, first entering a room, an encounter's outcome (won, slipped past, ended peacefully or fled), a check's band or a use of an item on a feature (#400). A passage may open once a flag is set, or close once one is, and a circumstance may name one. An encounter not yet met may appear, vanish or move to another room once one is set (#398). A feature may read differently while one is set, and a creature's topic may be offered only once one is set or only until one is (#399). The AI DM cannot set one.
+A named fact a module declares about a session, such as "the portcullis is raised", that only ever turns on. The engine sets it from what the character does; the AI DM cannot.
 _Avoid_: Switch, Variable, Trigger, Quest state
 
 **Alarm**:
-A flag of an adventure module that only noise sets (#401): once the character makes noise, the alarm is raised for the rest of the session, and what it changes (defenders gathered, an ambush laid, a gate barred, a creature that will no longer talk) is authored with flag conditions. The engine remembers what raised it; the room panel shows the module's words for it, and the card of the action that raised it names the noise. The AI DM cannot raise or lower it.
+A module's flag that only noise sets. What it changes is authored with flag conditions, and the AI DM cannot raise or lower it.
 _Avoid_: Alert, Alarm level, Awareness
 
 **Noise**:
-What raises a module's alarm (#401): a sneak that fails by 5 or more, a fight in one of the alarm's regions going on past its authored round, a check that lands in a band marked noisy (the dropped tray, the stuck door forced), or an opponent that flees a fight and survives it.
+What raises a module's alarm: an authored set of loud outcomes, such as a badly failed sneak or a long fight.
 _Avoid_: Sound, Disturbance
 
-**Feature**:
-Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
-_Avoid_: Object (too broad), Item (an item can be taken)
-
 **Use (of an item on a feature)**:
-Using an item the character carries on a feature in the room, as its adventure module allows (#400): fitting a carving into a door, pouring oil on a coffin. The module names the items a feature accepts, the words said, whether the item is used up and what it does, as a check's band would. Each use is made once. The engine refuses an item the feature doesn't accept, one not carried, and a use already made.
+Using a carried item on a room's feature as the module allows, such as fitting a carving into a door. Each use is made once.
 _Avoid_: Combine, Apply
 
 **Fight action**:
-A feature the character can use against one opponent in a fight, with its action, as its adventure module allows (#402): toppling a statue onto it, cutting a chain, pushing it into a chasm. The engine rolls the action's check once, and its band may damage the opponent, give it a condition (prone, poisoned or paralysed) for some turns, or remove it from the fight: removed, it counts as defeated, and what it carried is lost. Each is used once per fight or once per adventure; a boss is never removed. The single-player stand-in for teamwork against a big monster.
-_Avoid_: Environmental attack, Interaction, Hazard (a trap is a hazard)
-
-**Discovery**:
-The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.
-_Avoid_: Clue, Journal entry
-
-**Door**:
-A barrier in a passage between two rooms, stuck or locked. A stuck door is forced open with a check; a locked one opens with its key, is picked with thieves' tools, or is broken open with a check. Once open it stays open.
-_Avoid_: Gate, Exit (the way itself)
-
-**Trap**:
-A hidden danger in a passage. Searching a room (Perception or Investigation, the better) may find it, and a found trap may be disarmed, with thieves' tools where the module says so; going through an armed trap springs it once, with a saving throw against its damage.
-_Avoid_: Hazard
-
-**Ability check**:
-A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it; only an authored retry rolls it again.
-_Avoid_: Skill roll, Test
-
-**Sneaking in**:
-Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it leaves the character unseen; missing it starts the fight. The check is made once per fight, and sneaking up on it again is refused, unless the module lets the character sneak up on it again after slipping past it (see Bypassed encounter): then a fresh check is rolled.
-_Avoid_: Ambush roll, Sneak attack (a Rogue feature)
-
-**Unseen**:
-In a fight's room after sneaking in, before the fight begins: the character may spring an ambush, which surprises every opponent, or slip past. Anything else in the room would give it away, so it is refused.
-_Avoid_: Hidden (which a later Hide action means), Invisible
-
-**Bypassed encounter**:
-A fight the character slipped past unseen, through another way out or back the way it came. It stays unresolved: its opponents keep what they carry, and coming back meets it again, with a fresh sneak only where the module authors one. It gives no XP unless the module authors XP for slipping past.
-_Avoid_: Avoided fight, Skipped encounter, Cleared
-
-**Surprise**:
-Being caught unaware as a fight begins: a surprised combatant rolls initiative with disadvantage (SRD 5.2). Only the engine decides it.
-_Avoid_: Surprise round
-
-**Lurking encounter**:
-An encounter whose opponents lie in wait (#303). The first time the character comes into its room, the least stealthy of them rolls Stealth against the character's passive Perception; meeting it surprises the character. The roll is remembered with the fight. When the character also sneaks in, each side's check decides whether it noticed the other, and both hidden means everyone is surprised.
-_Avoid_: Ambush (the character's), Hidden monsters, Trap
-
-**Reaction roll**:
-A house rule (#304): when a reaction-eligible encounter's fight would begin with no one surprised, the engine rolls 2d6 + the character's Charisma modifier and looks it up in the reaction table for a band: hostile, unfriendly, uncertain, indifferent or friendly. Hostile always fights; every other band offers only the options its module authors (attack, let pass, and from #305 parley, toll and trade), always including attack or let pass. It is remembered with the fight and never rerolled; only a parley's band moves it. Mindless opponents never react.
-_Avoid_: Reaction (a 5e action-economy term), Attitude check, Morale
-
-**Reaction-eligible**:
-An encounter whose module gives it a reaction (#304): the options each band offers and any peaceful XP. Off by default; it may mark single opponents to react, and none of its opponents may be mindless (an Undead, or a stat block whose morale is "never").
-_Avoid_: Talkative, Peaceful encounter
-
-**Parley**:
-Talking reacting opponents round (#305): one Persuasion, Deception or Intimidation check, an approach the band offers with its own DC, graded into bands that may move the reaction up or down, let the character pass, or start the fight (on a failure by 5 or more, perhaps with the character surprised). One per encounter, remembered and never rerolled.
-_Avoid_: Diplomacy, Negotiation, Social check
-
-**Toll**:
-The coin reacting opponents let the character pass for (#305), set by the module and paid from the purse: it ends the encounter peacefully. It rolls back with the adventure, and nothing lowers or waives it.
-_Avoid_: Bribe, Fee
-
-**Peaceful resolution**:
-An encounter ended by a reaction band's let-pass option (#304), a toll paid or a parley's band (#305): settled with no fight, its room free to explore and never fought on coming back; its opponents keep what they carry. It gives the XP its module authors for it, once.
-_Avoid_: Cleared (which means won), Bypassed encounter
-
-**Passive Perception**:
-A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it. The character's (10 + Wisdom modifier + proficiency if proficient in Perception, ±5 for advantage or disadvantage) is the DC lurking opponents' Stealth must meet.
-_Avoid_: Notice score
-
-**Retry**:
-Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing. A check whose success would only open ways that are now closed offers none: there is nothing left to try for.
-_Avoid_: Reroll, Second chance
+A room feature the character can turn on one opponent in a fight, such as toppling a statue: the single-player stand-in for teamwork.
+_Avoid_: Environmental attack, Interaction, Hazard
 
 **Circumstance**:
-An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery, has won a named encounter or has a named flag set (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
+An authored fact about the session a check can depend on, such as holding a named item. It can give advantage or disadvantage, or allow a retry once it changes.
 _Avoid_: Situational modifier, Condition (which is a fight's)
 
-**Tool**:
-A mundane item a module places, such as a rope or an iron spike, that does nothing by itself: a circumstance or a retry's cost names it. It is not kept after the adventure.
-_Avoid_: Gear (a catalogue weapon, armour, shield or thieves' tools), Kit
-
-**Thieves' tools**:
-SRD 5.2 catalogue gear (25 gp) that is carried, never equipped, and kept like other gear. Picking a lock needs them, as may disarming a trap: a Dexterity check, adding the proficiency bonus with Tool proficiency. Without them the check is not offered. The Rogue's kits pack a set.
-_Avoid_: Lockpicks, Tool (a module's mundane item)
-
-**Topic**:
-Something a creature can be asked about, with its authored answer. Some need a check, with an answer for success and one for failure. The AI DM offers only these topics.
-_Avoid_: Subject, Question
-
-**Adventure session**:
-One character's particular playthrough of an adventure module, with its own events, world state, and conversation history.
-_Avoid_: Character, Adventure module
-
-**Recommended level range**:
-The inclusive span of character levels an adventure module is intended to suit for its stated character count and supported classes.
-_Avoid_: Character level, Automatic difficulty scaling
-
-**Conversation history**:
-The player's messages, AI replies, and authoritative result cards as they appeared during a saved play session. It can be revisited after resuming or completing the adventure, but it does not establish game facts.
-_Avoid_: Journal, game state
-
-**Save slot**:
-A single local record of an adventure session, including its authoritative game state and conversation history. It is saved automatically as play progresses. Each adventure session has its own save beside the character library, and the library remembers which one to continue.
-_Avoid_: Manual save point
-
-**Proficiency bonus**:
-The bonus, set by character level, that a character adds to attacks, saving throws and skill checks it is proficient in.
-_Avoid_: Level bonus, Attack bonus
-
-**Saving throw**:
-A d20 roll plus one ability's modifier, and the proficiency bonus if proficient, made to resist a trap, spell or other effect. 5e has one for each of the six abilities.
-_Avoid_: Save (which means a saved file), Resistance roll
-
-**Skill**:
-A named use of an ability, such as Athletics (Strength) or Perception (Wisdom). A skill check adds that ability's modifier, and the proficiency bonus if the character is proficient in the skill (twice with Expertise).
-_Avoid_: Ability check (when a skill is meant), Talent
+**Retry**:
+Another try at a failed check, offered only when the module authors one, after a cost or a changed circumstance. Otherwise each check is rolled once and asking again changes nothing.
+_Avoid_: Reroll, Second chance
 
 **Encounter**:
-A fight between two sides, the party and its opponents, each holding one or more combatants. It ends when every combatant on one side is defeated or has fled.
+A fight between the character and its opponents. It ends when one side is all defeated, fled or surrendered.
 _Avoid_: Battle, Combat (when one fight is meant)
 
-**Combatant**:
-One creature in an encounter, with its own hit points, armour class, attack and initiative roll. The player character is one; each opponent is another.
-_Avoid_: Monster (for the player character), Unit
-
 **Monster**:
-A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one), a default description, its level band (the character levels it suits) and its treasure type. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
+A kind of creature defined once in the bestiary. An opponent is a monster placed in an encounter, perhaps renamed; being a boss belongs to the opponent.
 _Avoid_: Enemy (an opponent, in a fight), Creature (one the character can talk to)
 
 **Bestiary**:
-The shared collection of monsters adventure modules name by id, in its own file with its own format version. A module may still author a one-off stat block inline for an opponent that no other module needs.
+The shared file of monsters that modules name by id. A module may still give a one-off stat block inline.
 _Avoid_: Monster manual, Stat block library
 
+**Ordinary enemy**:
+An opponent a module doesn't mark as a boss; only these face the gate's one-hit-kill cap.
+_Avoid_: Average enemy, Minion (a stat block's name)
+
+**Condition**:
+A state the engine puts on a combatant, such as prone or poisoned, which lasts a set number of turns or until a save and ends with the fight. The AI DM can only report it.
+_Avoid_: Status effect, Debuff
+
 **Morale**:
-A house rule on top of 5e: a side's nerve, checked when its first combatant falls and again at half strength. Each monster on it with a morale DC makes a Wisdom saving throw; one that fails is fleeing, and on its next turn it has fled: it is out of the fight, leaves no body and takes what it carried with it, and gives half its XP if it exchanged blows with the character first, or none. Undead and mindless monsters have no morale DC and never check.
+A house rule: when a side's first combatant falls and again at half strength, each monster with morale saves or flees, taking what it carries. Undead and mindless monsters never check.
 _Avoid_: Rout, Retreat
 
 **Surrender**:
-What a monster does instead of fleeing when it fails morale and its adventure module authors a surrender for it: on its next turn it yields and is out of the fight, leaving no body. Once the fight is won it is a creature to talk to about its authored topics, and a topic may have it offer what it carries: it is a named person giving treasure (see Treasure). It gives half its XP if it exchanged blows with the character first, or none, plus any XP the module awards for sparing it.
-_Avoid_: Capture (it is not taken prisoner), Yield (as a term)
+What a monster does instead of fleeing when it fails morale and its module authors a surrender: it yields, and after the fight is a creature to talk to that may hand over what it carries.
+_Avoid_: Capture, Yield (as a term)
 
-**Condition**:
-A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, or Sleep's incapacitated and unconscious (#340), or Turn Undead's frightened (#341), with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
-_Avoid_: Status effect, Debuff
+**Sneaking in**:
+Entering a fight's room with a Stealth check against its opponents' best passive Perception: success leaves the character unseen, failure starts the fight.
+_Avoid_: Ambush roll, Sneak attack (a Rogue feature)
 
-**Rider**:
-What a hit with a monster's attack does besides its damage: extra damage of its own type, and a condition, avoided by a successful saving throw if the rider names one.
-_Avoid_: On-hit effect, Proc
+**Unseen**:
+In a fight's room after sneaking in: the character may spring an ambush or slip past, and anything else is refused.
+_Avoid_: Hidden (which a later Hide action means), Invisible
 
-**Trait**:
-A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act) or Undead Fortitude (a Zombie's Constitution save to stay at 1 HP instead of falling). Multiattack, the several attacks some monsters make each turn, is an action, not a trait.
-_Avoid_: Ability (an ability score), Feature (the character's)
+**Bypassed encounter**:
+A fight the character slipped past unseen. It stays unresolved and is met again on coming back; it gives XP only where the module authors it.
+_Avoid_: Avoided fight, Skipped encounter, Cleared
 
-**Damage type**:
-One of the 13 SRD 5.2 kinds of damage, such as bludgeoning, poison or radiant, carried by every damage roll. A creature's resistance to a type halves that damage, its vulnerability doubles it and its immunity ignores it; the engine applies them after rolling.
-_Avoid_: Element, Damage kind
+**Lurking encounter**:
+An encounter whose opponents lie in wait: on first entry their Stealth is rolled against the character's passive Perception, and may surprise it.
+_Avoid_: Ambush (the character's), Hidden monsters, Trap
 
-**Initiative**:
-The d20 + initiative bonus each combatant rolls when an encounter begins; higher totals act first, ties going to the higher Dexterity and then a seeded roll-off.
-_Avoid_: Turn order (the result, not the roll)
+**Reaction roll**:
+A house rule: when a reaction-eligible fight would begin with no one surprised, 2d6 + Charisma picks the opponents' attitude band, which offers its module's options. Only a parley moves it.
+_Avoid_: Reaction (the action-economy term), Attitude check, Morale
 
-**Defeated character**:
-A character whose adventure session ended at 0 HP. It stays in the library but cannot start another adventure; there are no death saving throws.
-_Avoid_: Dead character, Unconscious
+**Reaction-eligible**:
+An encounter whose module gives it a reaction. None of its opponents may be mindless.
+_Avoid_: Talkative, Peaceful encounter
 
-**Difficulty**:
-An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares; a shipped module is declared at the strictest difficulty whose survival threshold it clears by at least 3 points (#252). Not to be confused with the Difficulty Class (DC) of a single check.
-_Avoid_: Challenge rating (a monster's, not a module's), DC
+**Parley**:
+Talking reacting opponents round with one graded social check, which may move the band, let the character pass or start the fight. One per encounter.
+_Avoid_: Diplomacy, Negotiation, Social check
 
-**Check policy**:
-How the balance harness grades checks (#285): seeded rolls them as a player meets them; always-fail and always-succeed land every check in its worst or best reachable band. The balance gate requires a module to stay completable, and within its difficulty, when every check fails.
-_Avoid_: Check mode, Dice mode
+**Toll**:
+The coin reacting opponents let the character pass for, paid from the purse; it ends the encounter peacefully. Nothing lowers or waives it.
+_Avoid_: Bribe, Fee
+
+**Peaceful resolution**:
+An encounter settled with no fight, by letting pass, a toll or a parley. The room is free and never fought; the opponents keep what they carry.
+_Avoid_: Cleared (which means won), Bypassed encounter
+
+**Wandering encounter**:
+An encounter in no room that comes upon the character where it is, from its region's table, at most once. The AI DM cannot summon or prevent one.
+_Avoid_: Random encounter, Ambush, Random monster
+
+**Omen**:
+A wandering table entry that is words only. It brings no fight and may recur; a wandering encounter that has come becomes its omen.
+_Avoid_: Clue, Sign, Portent
+
+**Balance harness**:
+The tool that plays modules through the real runtime with rolled characters, in several styles and policies, and reports the outcomes.
+_Avoid_: Simulator, Bot
+
+**Balance gate**:
+The harness's pass or fail verdict on a module at its declared difficulty, judged on its weakest character. The browser offers only modules that pass it.
+_Avoid_: Balance check, Qualification
+
+**Play style**:
+How the harness plays a run: _direct_, _cautious_ (the gate's judged style) and _avoid-optional_, plus the reported-only styles that sneak, flee or use fight actions.
+_Avoid_: Strategy, Difficulty
 
 **Stealth-first**:
-The balance harness's play style that sneaks into every fight it can and slips past those that aren't its goal (#302). The balance gate reports it beside its checks but never judges it.
+The play style that sneaks into every fight it can and slips past those that aren't its goal; reported, never judged.
 _Avoid_: Sneaky style, Rogue style
 
 **Retreat**:
-The balance harness's play style that flees (#396): it plays as cautious, but in a fight below its heal threshold with no heal left it flees toward the nearest exit room, with Disengage first if it has it, then heads out and leaves. The balance gate reports it beside its checks but never judges it: the judged styles never flee.
+The play style that flees a fight when low with no heal left, then leaves; reported, never judged.
 _Avoid_: Fleeing style, Escape (the ending)
 
+**Check policy**:
+How the harness grades checks: rolled, always in their worst band, or always in their best. A module must stay completable when every check fails.
+_Avoid_: Check mode, Dice mode
+
+**Casting policy**:
+How the harness spends a caster's slots: conserve (cantrips until hurt) or spend-early. The gate judges each caster on whichever survives more.
+_Avoid_: Caster style, Nova
+
 **Reaction policy**:
-How the balance harness answers a reaction roll's band (#304): attack, the default and the gate's judged runs, attacks whenever offered; peaceful takes a peaceful option whenever offered: let pass, then a toll it can afford, then a parley with the character's best offered skill (#305). The gate reports both for a module with a reaction-eligible encounter.
+How the harness answers a reaction band: attack whenever offered (judged) or take a peaceful option whenever offered (reported).
 _Avoid_: Diplomacy style
 
-**Ordinary enemy**:
-An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap applies only to ordinary enemies; a boss is exempt.
-_Avoid_: Average enemy, Minion (a stat block's name)
+**Control chance**:
+The gate's measure of a control spell or feature against an ordinary enemy: the chance one use keeps it out of the fight. It is judged against the one-hit-kill cap.
+_Avoid_: Lockdown chance
+
+**Required path**:
+The rooms the harness passes to the objective by the fewest fights, then the fewest moves.
+_Avoid_: Route (a declared one), Main path
+
+**Route**:
+A way from a module's entrance to its objective that the module declares, as the rooms it must pass. The gate judges each declared route.
+_Avoid_: Path (the required path), Branch, Track
+
+**Region sweep**:
+The gate's run through one region of a long module, visiting every room not marked avoidable before going on to the objective; it is judged one difficulty lower.
+_Avoid_: Clear, Full run, Exploration
+
+**Avoidable room**:
+A long module's room left out of its region's sweep, off every declared route.
+_Avoid_: Optional room (every room off the required path is optional), Secret room
+
+**Release run**:
+A test that plays a module to an ending through the browser server, typing each step to the AI DM as a player would. Its step list, called `route` in code, is not a declared route.
+_Avoid_: Playthrough (the harness's), Handoff run
+
+**Generated release run**:
+A release run whose steps come from the harness's cautious run on a fixed seed. It proves a module playable through the AI DM, not that particular moments happen.
+_Avoid_: Auto route, Scripted run (the hand-written kind)
 
 **Format version**:
-The single version number carried by a character library, adventure save, trace, adventure module or bestiary file. Changing a format bumps it; until the owner declares a stable release, a loader refuses an older version with a message naming the file, and never migrates it.
+The one version number each file format carries. A change bumps it, and until a stable release a loader refuses older files by name, never migrating them.
 _Avoid_: Rules version, Content version, Schema version
