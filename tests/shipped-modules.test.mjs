@@ -459,7 +459,7 @@ const QUOTED_FIGURES = {
   },
 };
 
-test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311, #412, #445)", () => {
+test("the gate gives each released module the figures its proposal quotes (#291, #412, #440, #442, #443, #445)", () => {
   for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
     const adventure = gated.find((entry) => entry.id === id);
     if (adventure === undefined) {

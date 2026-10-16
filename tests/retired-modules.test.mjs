@@ -83,7 +83,7 @@ test("a retired module is named only in history (#446)", async () => {
   assert.deepEqual(await strayReferences(trackedFiles()), []);
 });
 
-test("the check finds a module's id or title, not a lone title word or a longer id", () => {
+test("the check finds a module's id or title, not a lone title word or a longer id (#438)", () => {
   const named = (line) =>
     NAMES.filter(({ pattern }) => pattern.test(line)).map(({ id }) => id);
   assert.deepEqual(named('startAdventure(page, "hollow-chantry")'), [
