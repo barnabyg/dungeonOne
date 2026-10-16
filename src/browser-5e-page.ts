@@ -3900,11 +3900,15 @@ element("confirm-level-choice").addEventListener("click", confirmLevelChoice);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches() || isBusy(element("confirm-delete")); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
-element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
+// The browser queues a dialog's close event, so by the time it runs the
+// player may have moved focus on; restore focus only if it was left on the
+// page or in the closed dialog.
+const focusLeftIn = (dialog) => { const active = document.activeElement; return !active || active === document.body || dialog.contains(active); };
+element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose && focusLeftIn(element("delete-dialog"))) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
 element("open-map").addEventListener("click", openMap);
 element("close-map").addEventListener("click", () => closeMap(true));
-element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && mapReturn && mapReturn.isConnected) mapReturn.focus(); });
+element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && mapReturn && mapReturn.isConnected && focusLeftIn(element("map-dialog"))) mapReturn.focus(); });
 // M opens the map (#457), but not while typing, as in the message box.
 document.addEventListener("keydown", (event) => {
   if ((event.key !== "m" && event.key !== "M") || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
