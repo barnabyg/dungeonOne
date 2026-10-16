@@ -48,7 +48,7 @@ const USAGE = [
   "       level 3. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
-].join(" ");
+].join("\n");
 
 function argumentValue(args, index) {
   const value = args[index + 1];
@@ -148,16 +148,24 @@ function resolveOutputPath(model, requestedPath) {
   return outputPath;
 }
 
+const commandArguments = process.argv.slice(2);
+if (commandArguments.length === 1 && commandArguments[0] === "--help") {
+  process.stdout.write(`${USAGE}\n`);
+  process.exit(0);
+}
+
 let configuration;
 try {
-  configuration = parseArguments(process.argv.slice(2));
+  configuration = parseArguments(commandArguments);
   configuration.outputPath = resolveOutputPath(
     configuration.model,
     configuration.outputPath,
   );
 } catch (error) {
+  // A bad option throws the usage itself: print it once.
+  const message = error instanceof Error ? error.message : USAGE;
   process.stderr.write(
-    `${error instanceof Error ? error.message : USAGE}\n${USAGE}\n`,
+    message === USAGE ? `${USAGE}\n` : `${message}\n${USAGE}\n`,
   );
   process.exit(2);
 }
