@@ -1,10 +1,9 @@
-// #446: the thirteen modules the four-module plan (docs/four-module-plan.md)
-// retired are named only in history: the acceptance handoffs and live-run
-// evidence, the ADRs, the plans and the old ticket proposals. Every test plays
-// a fixture or one of the four shipped modules, and the README and the rules
-// describe only those (#438 set this check up before the retirement). The
-// check matches module ids and titles without their article, not single
-// title words.
+// #446: the thirteen modules retired for the four-module set are named only
+// in the acceptance handoffs and live-run evidence (docs/acceptance/), kept as
+// history. Every test plays a fixture or one of the four shipped modules, and
+// the docs describe only those (#438 set this check up before the
+// retirement). The check matches module ids and titles without their article,
+// not single title words.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -43,15 +42,8 @@ const NAMES = Object.entries(RETIRED).map(([id, title]) => ({
 
 /** Whether `path` is history, or this check, and so may name a retired module. */
 const isHistory = (path) =>
-  /^docs\/(?:acceptance|adr)\//u.test(path) ||
-  [
-    "docs/four-module-plan.md",
-    "docs/published-module-survey.md",
-    "tests/retired-modules.test.mjs",
-  ].includes(path) ||
-  /^(?:dnd-expansion-implementation-plan|increment-\d+-ticket-proposal)\.md$/u.test(
-    path,
-  );
+  path.startsWith("docs/acceptance/") ||
+  path === "tests/retired-modules.test.mjs";
 
 /** The repository's tracked files, with forward slashes. */
 function trackedFiles() {

@@ -33,7 +33,7 @@ Serpent Kings expects 12–24 hours at the table and one first session for its 7
 ## Structure
 
 - **Several ways in.** Every module has at least two entrances. Obelisk's graveyard hub has four routes underground. Each of Road of Tombs' five sections has its own entrance at ground level. Red Demon has three ways into the tank.
-- **Loops and secret shortcuts.** Serpent Kings is built as a teaching curve. Level 1 is a straight corridor, level 2 is a corridor with side rooms, and level 3 has "two horizontal and three vertical paths" plus a secret way back up and a tunnel to the surface. Road of Tombs joins its sections with secret doors and a flooded tunnel. Our modules are mostly trees: only Abandoned Delve, Hollow Chantry and Wolfstone Hillfort have as many passages as rooms.
+- **Loops and secret shortcuts.** Serpent Kings is built as a teaching curve. Level 1 is a straight corridor, level 2 is a corridor with side rooms, and level 3 has "two horizontal and three vertical paths" plus a secret way back up and a tunnel to the surface. Road of Tombs joins its sections with secret doors and a flooded tunnel. Our modules were mostly trees when surveyed, with few having as many passages as rooms.
 - **A blank to extend.** Serpent Kings leaves a treasure room and a chasm for the GM to fill.
 
 ## Contents of a room
