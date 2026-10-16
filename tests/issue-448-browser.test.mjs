@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import { characterProfile } from "../dist/character-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelFourCareerLibrary, libraryAt } from "../dist/test-fighter-5e.js";
 import { rogueLibrary, testRogueAt } from "../dist/test-rogue-5e.js";
@@ -31,7 +32,7 @@ import {
   startAdventure,
   text,
 } from "./fixtures/browser-journey.mjs";
-import { journey, xpOf } from "./fixtures/module-journey.mjs";
+import { journey } from "./fixtures/module-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
@@ -97,7 +98,7 @@ const fighting = async (page) =>
  * light weapon, then End turn. No character here has a reaction to answer a
  * hit with, so no turn offers Take the hit.
  */
-async function fightTurn(page) {
+async function ruleTurn(page) {
   for (const choice of [
     page.locator("#attack-controls button.attack"),
     page.locator('button.act[data-action="light-attack"]'),
@@ -132,7 +133,7 @@ async function play(page, route) {
     let fought = false;
     while (await fighting(page)) {
       fought = true;
-      await fightTurn(page);
+      await ruleTurn(page);
     }
     if (fought) {
       ends.push(await hp(page));
@@ -166,21 +167,25 @@ function says(log, quoted) {
 }
 
 /**
- * Plays one scenario: checks the engine journey reaches `endingId` on
- * `seed` and the input library is the generator's, then plays `route` in
- * the browser from a copy of the input (or, without one, a Fighter created
- * there) and returns the page's history, ending, fight-end HP and the saved
- * record.
+ * Plays one scenario: checks the character starts with the handoff's
+ * `[maxHp, armorClass]`, the engine journey reaches `endingId` on `seed`
+ * and the input library is the generator's, then plays `route` in the
+ * browser from a copy of the input (or, without one, the Fighter `sheet`
+ * created there) and returns the page's history, ending, fight-end HP and
+ * the saved record.
  */
 async function scenario({
   name,
   moduleId,
   seed,
-  sheet,
   library,
+  sheet = library.data.characters[0].sheet,
+  start,
   route,
   endingId,
 }) {
+  const { maxHp, armorClass } = characterProfile(sheet);
+  assert.deepEqual([maxHp, armorClass], start);
   const module = modules.get(moduleId);
   const played = journey(module, sheet, seed, route, { browser: true });
   assert.equal(played.state.endingId, endingId);
@@ -214,7 +219,6 @@ async function scenario({
       log,
       card,
       ends,
-      xp: xpOf(played.runtime, played.state),
       record: await readAda(libraryPath),
     };
   } finally {
@@ -235,6 +239,7 @@ test(
       moduleId: "bramblecote-cider-house",
       seed: CIDER_SEED,
       sheet: ada,
+      start: [13, 14],
       route: [
         ["move", "kitchen"],
         ["move", "press-house"],
@@ -263,6 +268,7 @@ test(
     assert.deepEqual(ends, ["13/13", "13/13"]);
     says(log, [
       /Nib is defeated\./u,
+      /Ada attacks Snagtooth with Mace: [^\n]*Snagtooth has 0\/10 HP\./u,
       /Snagtooth is defeated\./u,
       /Wick checks morale as the first of its side falls: a Wisdom saving throw, 6 − 1 = 5 against DC 8\. Failure: it will surrender on its turn\./u,
       /Wick throws down its arms and surrenders\./u,
@@ -277,7 +283,12 @@ test(
       ),
       card,
     );
-    assert.match(card, /Level up: Ada is now level 2\nHit points 13 → 22\./u);
+    // One blow fells Snagtooth.
+    assert.equal(log.match(/Ada attacks Snagtooth/gu).length, 1);
+    assert.match(
+      card,
+      /Level up: Ada is now level 2\nHit points 13 → 22\. New features:\nAction Surge\n.*\nTactical Mind\n/u,
+    );
     assert.equal(record.session, undefined);
     assert.deepEqual(
       [record.sheet.level, record.sheet.xp, record.sheet.purse],
@@ -301,8 +312,8 @@ test(
       name: "delve",
       moduleId: "abandoned-delve",
       seed: DELVE_SEED,
-      sheet: data.characters[0].sheet,
       library: { path: "issue-448/level-2-vex.json", data },
+      start: [15, 15],
       route: [
         ["move", "gate-hall"],
         ["move", "porters-lodge"],
@@ -333,6 +344,7 @@ test(
     assert.deepEqual(ends, ["15/15", "15/15"]);
     says(log, [
       /You take the Coil of Rope\./u,
+      /Undead Fortitude: [^\n]*Failure: Zombie stays down\./u,
       /Zombie is defeated\./u,
       /You use the Coil of Rope on the Well Head\./u,
       /The Coil of Rope is used up\./u,
@@ -373,8 +385,8 @@ test(
       name: "weirgate",
       moduleId: "coldwater-weirgate",
       seed: WEIRGATE_SEED,
-      sheet: data.characters[0].sheet,
       library: { path: "increment-14/level-4-ada-4100-xp.json", data },
+      start: [36, 14],
       route: [
         ["move", "barge-yard"],
         ["move", "kennel-larder"],
@@ -407,7 +419,8 @@ test(
       /You take the Side of Salt Pork\./u,
       /You use the Windlass Crank on the Drain Gear\./u,
       /The way to the Drain Mouth is open\./u,
-      /You use the Side of Salt Pork on the Feeding Hatch\./u,
+      /something huge snores beneath it\./u,
+      /You use the Side of Salt Pork on the Feeding Hatch\. [^\n]*Heavy steps drag after it toward the spillway/u,
       /The Side of Salt Pork is used up\./u,
       /You enter the Lock Chamber\./u,
       /You find the Gilded Guild Seal, Strongbox Gold and Wand of Magic Missiles\./u,
@@ -442,8 +455,8 @@ test(
       name: "lodge",
       moduleId: "thornwood-lodge",
       seed: LODGE_SEED,
-      sheet: data.characters[0].sheet,
       library: { path: "issue-287/level-5-ada.json", data },
+      start: [44, 14],
       route: [
         ["examine", "woodpile"],
         ["take", "woodpile-potion"],

@@ -37,7 +37,9 @@ npm.cmd run build
 $env:OPENAI_API_KEY = ""
 ```
 
-Without a key the typing box is off and the game plays with its buttons.
+The last line clears the key for this PowerShell window only: the
+scenarios use no AI DM, so the typing box is off and the game plays with its
+buttons. No key is needed.
 Each scenario has its own library under `.scratch\release-448\`; to retry,
 delete that scenario's folder and start again.
 
@@ -95,7 +97,7 @@ Vex is a level-2 Rogue (15 HP, AC 15) with a shortsword and a dagger.
 6. **Go** Well Bottom: **Examine** Silted Floor, **Take** the Wishing Coins
    (6 gp). **Go** Flooded Cistern: **Examine** Drowned Delver, **Take** the
    Jasper.
-7. **Go** Ossuary. Mags fights; Vex wins at 15/15. **Examine** Mags's
+7. **Go** Ossuary. Mags Corrow fights; Vex wins at 15/15. **Examine** Mags's
    Satchel; **Take** both finds (15 gp and the Turquoise).
 8. **Go** Shaft Bottom, then **Leave** and confirm.
 9. Expect **Out with the loot**: +50 XP for the zombie, +25 for Mags, +600
@@ -119,7 +121,7 @@ Ada is a level-4 Fighter with 4,100 XP (36 HP, AC 14) and a mace.
    Drain Gear: "The way to the Drain Mouth is open."
 5. **Go** Drain Mouth, Outfall, Pump Room. Something huge snores below.
    Press **Use Side of Salt Pork** on the Feeding Hatch: heavy steps drag
-   off toward the spillway.
+   off toward the spillway, and "The Side of Salt Pork is used up."
 6. **Go** Lock Chamber. No fight: the ogre has gone. **Examine** Guild
    Strongbox; **Take** the Wand of Magic Missiles.
 7. **Go** Pump Room, Gear Hall. Grisk fights; Ada wins at 32/36.
