@@ -184,6 +184,13 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
       await page.evaluate(() => document.activeElement.id),
       "open-map",
     );
+    // The browser queues the close event; arriving after the player has
+    // moved focus on, it must not take focus back.
+    await page.locator("#log").focus();
+    await page.evaluate(() =>
+      document.getElementById("map-dialog").dispatchEvent(new Event("close")),
+    );
+    assert.equal(await page.evaluate(() => document.activeElement.id), "log");
 
     // M opens it from anywhere but the message box; Close returns focus.
     await page.locator("#log").focus();
