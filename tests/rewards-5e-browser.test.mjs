@@ -83,13 +83,26 @@ async function explore(page, action, target) {
   );
 }
 
+const NO_LOOT_WARNING =
+  "You have found no treasure or coin here to carry out. Leaving now gives up the 250 XP for “Out with the silver”. You keep the XP for any " +
+  "fights you have won.";
+
 const focusedId = (page) => page.evaluate(() => document.activeElement?.id);
 
-/** Leaves from the barrow mouth through the confirmation in the panel. */
-async function leave(page) {
+/**
+ * Leaves from the barrow mouth through the confirmation in the panel, which
+ * names `ending`, with no warning (#475).
+ */
+async function leave(page, ending) {
   await page.locator("#leave-controls button").click();
   assert.equal(await page.locator("#leave-confirm").isVisible(), true);
   assert.equal(await focusedId(page), "confirm-leave");
+  assert.ok(
+    (await page.locator("#leave-question").textContent()).startsWith(
+      `Leave The Lintel Barrow? This ends the adventure here as ${ending}. `,
+    ),
+  );
+  assert.equal(await page.locator("#leave-warning").isVisible(), false);
   await page.locator("#confirm-leave").click();
   await page.locator("#ending").waitFor({ state: "visible" });
 }
@@ -131,9 +144,19 @@ test(
       const leaveButton = page.locator("#leave-controls button");
       assert.equal(await leaveButton.textContent(), "Leave the adventure");
       await leaveButton.click();
+      // Leaving now falls short of the objective: the warning says so, and
+      // the button reads it out with the question (#475).
       assert.match(
         await page.locator("#leave-question").textContent(),
-        /^Leave The Lintel Barrow\? This ends the adventure here/,
+        /^Leave The Lintel Barrow\? This ends the adventure here as Out empty-handed\. /,
+      );
+      assert.equal(
+        await page.locator("#leave-warning").textContent(),
+        NO_LOOT_WARNING,
+      );
+      assert.equal(
+        await page.locator("#confirm-leave").getAttribute("aria-describedby"),
+        "leave-question leave-warning",
       );
       assert.equal(await leaveButton.isVisible(), false);
       await page.locator("#cancel-leave").click();
@@ -178,7 +201,7 @@ test(
       );
       assert.equal(await page.locator("#purse").isVisible(), true);
       await explore(page, "move", "barrow-mouth");
-      await leave(page);
+      await leave(page, "Out with the silver (250 XP)");
 
       // The escape in place of the action bar, by kind in words and colour.
       assert.equal(await focusedId(page), "ending-title");
@@ -277,7 +300,8 @@ test(
         "Purse: 2 gp 5 sp",
       );
       await explore(page, "move", "barrow-mouth");
-      await leave(page);
+      // The loot ending's award was credited last time: nothing to warn of.
+      await leave(page, "Out empty-handed");
       assert.equal(
         await page.locator("#ending-kind").textContent(),
         "Escaped empty-handed",

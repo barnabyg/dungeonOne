@@ -541,7 +541,9 @@ stowed gear, treasure and purse, and a victory or an escape replaces them with w
 character holds at the end. A defeat
 or an abandoned adventure leaves the character as it started. In a room that is a way out, the action bar has
 **Leave the adventure**; it asks first, then ends the adventure as _Escaped with
-loot_ (carrying treasure, or coin found there) or _Escaped empty-handed_. Leaving is the player's choice alone: the AI
+loot_ (carrying treasure, or coin found there) or _Escaped empty-handed_. The question names the ending leaving would
+bring and its XP. When leaving falls short of the module's objective, it warns in red what is unmet and which ending
+award is given up, and that the XP for fights won is kept (#475). Leaving is the player's choice alone: the AI
 Dungeon Master has no tool for it.
 
 A surviving ending earns each won fight's stat-block XP and any XP the ending

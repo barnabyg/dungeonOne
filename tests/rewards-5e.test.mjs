@@ -105,6 +105,16 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
       {
         action: "leave",
         target: { id: "barrow-mouth", name: "Barrow Mouth" },
+        leaving: {
+          ending: {
+            id: "out-empty-handed",
+            kind: "escape-without-loot",
+            title: "Out empty-handed",
+          },
+          warning:
+            "You have found no treasure or coin here to carry out. Leaving now gives up the 250 XP for “Out with the silver”. " +
+            "You keep the XP for any fights you have won.",
+        },
         available: true,
       },
     ],

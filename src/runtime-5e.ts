@@ -108,6 +108,7 @@ import {
   type FifthEncounter,
   type FifthMerchant,
   type FifthEnding,
+  type EndingKind,
   type FeatureUse,
   fightActionBand,
   type FifthFeature,
@@ -5055,9 +5056,31 @@ export type ActionView = Readonly<{
       only?: true;
     }>;
   }>;
+  /**
+   * Leaving (#475), while the engine would accept it: the ending it would
+   * bring now and, when that falls short of the module's objective, a
+   * warning of the ending award given up.
+   */
+  leaving?: LeavingView;
   available: boolean;
   /** Present exactly when the action is unavailable. */
   reason?: string;
+}>;
+
+/**
+ * What leaving now would bring (#475): its ending, with the ending's XP, and
+ * a warning when that ending falls short of the module's objective.
+ */
+export type LeavingView = Readonly<{
+  /** The ending, with its XP unless the sheet was credited it before. */
+  ending: Readonly<{
+    id: string;
+    kind: EndingKind;
+    title: string;
+    xp?: number;
+  }>;
+  /** What leaving short of the objective gives up, and what it keeps. */
+  warning?: string;
 }>;
 
 /**
@@ -5789,6 +5812,78 @@ export function createFifthRuntime(
     state.usedItemIds
       .map((id) => items.get(id)!)
       .filter((item) => item.kind === "treasure");
+  /**
+   * The ending leaving now brings: carrying any treasure, or coin found
+   * here, out is escaping with loot; so is selling treasure found here,
+   * whose coin goes out.
+   */
+  const leavingEnding = (state: FifthState): FifthEnding => {
+    const kind =
+      carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
+      coinFound(state).length > 0 ||
+      treasureSold(state).length > 0
+        ? "escape-with-loot"
+        : "escape-without-loot";
+    return adventure.endings.find((candidate) => candidate.kind === kind)!;
+  };
+  /**
+   * The module's objective (#475), as docs/character-rules.md has it: its
+   * victory, if it has one, or else getting out with loot.
+   */
+  const objectiveEnding =
+    adventure.endings.find(({ kind }) => kind === "victory") ??
+    adventure.endings.find(({ kind }) => kind === "escape-with-loot");
+  /** The id the sheet credits an ending's XP under. */
+  const endingAwardId = (ending: FifthEnding) =>
+    `${adventure.id}/ending/${ending.id}`;
+  /** An ending's XP, unless the sheet was credited it before. */
+  const endingAward = (ending: FifthEnding) =>
+    sheet.xpAwards.includes(endingAwardId(ending)) ? undefined : ending.xp;
+  /**
+   * What Leave tells the player before they confirm (#475): the ending
+   * leaving now brings and, short of an objective not met before, what they
+   * give up.
+   */
+  const leavingView = (state: FifthState): LeavingView => {
+    const ending = leavingEnding(state);
+    const xp = endingAward(ending);
+    const brings = {
+      id: ending.id,
+      kind: ending.kind,
+      title: ending.title,
+      ...(xp === undefined ? {} : { xp }),
+    };
+    // Once its award is credited, the objective has nothing left to give up.
+    if (
+      objectiveEnding === undefined ||
+      objectiveEnding === ending ||
+      sheet.xpAwards.includes(endingAwardId(objectiveEnding))
+    ) {
+      return { ending: brings };
+    }
+    const unmet =
+      objectiveEnding.kind === "victory"
+        ? `Objective not met: ${adventure.objective}`
+        : "You have found no treasure or coin here to carry out.";
+    const award =
+      objectiveEnding.xp === undefined
+        ? []
+        : [
+            `Leaving now ${
+              xp === undefined
+                ? ""
+                : `earns ${xp} XP for “${ending.title}” but `
+            }gives up the ${objectiveEnding.xp} XP for “${objectiveEnding.title}”.`,
+          ];
+    return {
+      ending: brings,
+      warning: [
+        unmet,
+        ...award,
+        "You keep the XP for any fights you have won.",
+      ].join(" "),
+    };
+  };
   /** A treasure found here as the record the sheet keeps, with its value. */
   const treasureRecord = (item: FifthItem): TreasureRecord => ({
     id: treasureId(item),
@@ -11015,17 +11110,7 @@ export function createFifthRuntime(
         if (room(state).exit !== true) {
           return reject("not-an-exit", "There is no way out of here.");
         }
-        // Carrying any treasure, or coin found here, out is escaping with
-        // loot; so is selling treasure found here, whose coin goes out.
-        const kind =
-          carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
-          coinFound(state).length > 0 ||
-          treasureSold(state).length > 0
-            ? "escape-with-loot"
-            : "escape-without-loot";
-        const ending = adventure.endings.find(
-          (candidate) => candidate.kind === kind,
-        )!;
+        const ending = leavingEnding(state);
         // Leaving unseen slips past the fight here (#302).
         const slipped = slipOut(state);
         return {
@@ -11225,6 +11310,10 @@ export function createFifthRuntime(
           id: action.cunningStrike,
           name: CUNNING_STRIKES[action.cunningStrike].name,
         };
+      }
+      // The ending leaving would bring, and what it gives up (#475).
+      if (action.type === "leave" && refused === undefined) {
+        entry.leaving = leavingView(state);
       }
       entry.available = refused === undefined;
       if (refused !== undefined) {
@@ -13833,7 +13922,7 @@ export function createFifthRuntime(
         ? []
         : [
             {
-              id: `${adventure.id}/ending/${ending.id}`,
+              id: endingAwardId(ending),
               name: ending.title,
               xp: ending.xp,
             },
