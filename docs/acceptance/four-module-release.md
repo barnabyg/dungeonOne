@@ -26,22 +26,34 @@ content.
   an engine journey with the same clicks and against the library file, and
   assert the lines, fight-end HP and endings quoted here.
 
-## Owner scenarios
+## Playing the game
 
-Prerequisites: Node.js 24.x, npm 11.6.4, a desktop browser, and from the
-project directory:
+Prerequisites: Node.js 24.x, npm 11.6.4 and a desktop browser. From the
+project directory, one command installs, builds and launches the game:
 
 ```powershell
-npm.cmd ci
+.\run
+```
+
+It opens the character library (`characters.json` in the project
+directory). Create a character or choose one, and its sheet lists all four
+modules: **Start** any of them. The dice are random. The AI Dungeon Master
+is on when `OPENAI_API_KEY` is set in the window you launch from (model
+`gpt-5.6-luna`); without it the typing box is off and the buttons play the
+game. Press Ctrl+C to stop; rerunning `.\run` continues where you left off.
+
+## Seeded scenarios
+
+These replay fixed dice, so each has its own command with a seed and a
+fresh library under `.scratch\release-448\`; to retry, delete that
+scenario's folder and start again. They use the buttons only. Once `.\run`
+has installed the dependencies, build and clear the key in this window (it
+stays set elsewhere):
+
+```powershell
 npm.cmd run build
 $env:OPENAI_API_KEY = ""
 ```
-
-The last line clears the key for this PowerShell window only: the
-scenarios use no AI DM, so the typing box is off and the game plays with its
-buttons. No key is needed.
-Each scenario has its own library under `.scratch\release-448\`; to retry,
-delete that scenario's folder and start again.
 
 The dice are seeded, so the results hold only if you take **exactly** the
 listed actions in order. In every fight, press the first enabled button in
@@ -161,18 +173,18 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 | 2. Delve, level 2       |      |        |       |
 | 3. Weirgate, level 4    |      |        |       |
 | 4. Lodge, level 5       |      |        |       |
+| Free play: Cleric       |      |        |       |
+| Free play: Wizard       |      |        |       |
+| Free play: AI DM        |      |        |       |
 
 ## Limits
 
 - **Article slips.** Two finds read with a doubled or misplaced article:
   "You take the The King's Hanger and stow it." and "You take the Mags's
   Takings". The handoff test doesn't pin either wording.
-- **Weapons only.** The scenarios play Fighters and a Rogue. Casters are
-  covered by the gate and the career check, not by a scenario here.
 - **Fragile seeds.** A change to these modules' foes, the fight rules, the
   wandering tables or the dice order moves the seeds; the handoff test fails
   when it does.
-- **No live AI run.** The AI DM was not exercised for this release.
 - **Throwaway formats** (ADR 0005): library 26, session 62, trace 56,
   adventure module 43, bestiary 10, prompt `5e-dm-v45`. When the library
   format changes, regenerate the inputs from the generators their tests
