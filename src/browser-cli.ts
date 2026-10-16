@@ -8,7 +8,7 @@ import {
 } from "./browser-5e-server.js";
 
 const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>]
-Create or choose a saved 5e Fighter, then take it into an adventure. Default library: characters.json; its adventures are saved in the adjacent characters-adventures directory and continue when you rerun the same command.
+Create or choose a saved 5e character, then take it into an adventure. Default library: characters.json; its adventures are saved in the adjacent characters-adventures directory and continue when you rerun the same command.
 Set OPENAI_API_KEY in the environment before launch to let players type to the Dungeon Master; without it the buttons still work.`;
 
 /** Transitional flags from before 5e became the only mode, and why each is refused. */
