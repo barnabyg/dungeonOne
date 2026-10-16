@@ -1,8 +1,7 @@
 // #409: a generated release run. A release run may take its route from the
 // harness's cautious run on a fixed seed and class instead of a hand-written
 // step list, each exploring action typed to the AI DM in words a player
-// would use, with its turn cap scaled to the module's rooms. The shipped
-// modules' hand-written routes are unchanged (their own tests play them).
+// would use, with its turn cap scaled to the module's rooms.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";

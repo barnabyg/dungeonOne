@@ -191,7 +191,7 @@ tarnished locket, and a Drain Tunnel off the cistern. It is not in
 `FIXTURE_MODULES`. `tests/issue-409.test.mjs` plays its release run on a
 route generated from the harness.
 
-## The gate-time canary (issue 410)
+## The Long Workings (issue 410)
 
 `long-workings.json` (`longWorkings`, _The Long Workings_) is a long module
 of twenty rooms in two regions, level 3, medium: ten rooms in the Upper
@@ -372,7 +372,7 @@ group the dice by action.
 
 `module-journey.mjs` is for content tests that play a shipped module along a
 fixed route. `journey(adventure, sheet, seed, route)` plays the route's steps
-(`["move", "bothy"]`, `["examine", …]`, `["take", …]`, `["leave", …]`) and
+(`["move", roomId]`, `["examine", …]`, `["take", …]`, `["leave", …]`) and
 fights each fight as the handoffs do: Second Wind or a potion at half HP or
 less, else attack the first target, else end the turn. `firstJourney(…,
 wanted)` searches seeds from 0 for the first journey whose end state `wanted`
@@ -467,7 +467,7 @@ takes in the same process, timed before and after `work`, against its
 `REFERENCE_SECONDS` on the machine the budget was set on. CI runners differ in
 speed by nearly 2× between runs of one commit, so plain CPU seconds judge the
 runner rather than the code. `shipped-modules.test.mjs` uses it for the
-default qualification's 180-second budget (45 for the Fighter alone until #310).
+gate's 450-second budget over every shipped module.
 
 Browser and server tests that start the browser server on fixture modules
 pass `qualifies: () => true`: the fixtures are engine material, and since

@@ -1591,9 +1591,9 @@ export const forkedTunnels = validateModule(
 /**
  * The gate-time canary (#410): _The Long Workings_, a long module of twenty
  * rooms in two regions, level 3, medium, with two declared routes, an
- * avoidable room in each region and a wandering table in the lower. It
- * stands in for a shipped long module in the gate's time budget until one
- * replaces it.
+ * avoidable room in each region and a wandering table in the lower. A
+ * shipped long module replaced it in the gate's time budget (#412); the
+ * projection tests still play it.
  */
 export const longWorkings = validateModule(moduleFile("long-workings"));
 

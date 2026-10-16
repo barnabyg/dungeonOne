@@ -304,7 +304,7 @@ A long module's room marked `avoidable` (#408): left out of its region's sweep, 
 _Avoid_: Optional room (every room off the required path is optional), Secret room
 
 **Gate-time canary**:
-_The Long Workings_ (#410), a test-owned long module of twenty rooms in two regions, with routes and sweeps, that the balance gate's time budget gates beside the shipped modules until the first shipped long module replaces it. It stands in for that module's cost; it is never offered to players.
+The shipped module whose gate figures the gate's time-budget test pins, so a speed-up that changes how the gate plays fails: the Coldwater Weirgate since #412, the costliest of the four to gate.
 _Avoid_: Benchmark module, Dummy module
 
 **Release run**:

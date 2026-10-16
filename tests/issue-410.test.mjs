@@ -2,9 +2,9 @@
 // projection may be narrowed to the entries aimed at some targets, so the
 // harness dry-runs only the move to the next room on its way, and exploring
 // projects each kind only when its choice comes. The harness plays every
-// run of the gate-time canary, along each route and sweep, as it would with
+// run of The Long Workings, along each route and sweep, as it would with
 // the full projection; tests/shipped-modules.test.mjs pins every shipped
-// module's figures and the canary's.
+// module's figures.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -114,7 +114,7 @@ const unfiltered = (runtime) => ({
   projectActions: (state) => runtime.projectActions(state),
 });
 
-test("every run of the gate-time canary is the same with the full projection, along each route and sweep (#410)", () => {
+test("every run of The Long Workings is the same with the full projection, along each route and sweep (#410)", () => {
   const ways = [
     {},
     ...longWorkings.routes.map((route) => ({ route })),
