@@ -124,11 +124,11 @@ export const ROGUE: ClassDefinition = {
     },
     WEAPON_MASTERY_FEATURE,
     {
-      // Dash and Disengage need positions: only Hide is offered (#307).
+      // Hide (#307) and Disengage (#396); Dash needs positions and is omitted.
       id: "cunning-action",
       level: 2,
       name: "Cunning Action",
-      text: "Bonus action: Hide. The engine rolls your Stealth against the best passive Perception among your opponents; on a success your next attack roll has advantage, which sets up Sneak Attack. Hiding lasts until you attack; it doesn't stop your foes attacking you. Dash and Disengage need positions, so they are not offered.",
+      text: "Bonus action: Hide or Disengage. Hide: the engine rolls your Stealth against the best passive Perception among your opponents; on a success your next attack roll has advantage, which sets up Sneak Attack. Hiding lasts until you attack; it doesn't stop your foes attacking you. Disengage: if you flee the fight later this turn, no foe gets an attack on you as you go; it is offered only while a way out is open. Dash needs positions, so it is not offered.",
       effect: { kind: "cunning-action" },
     },
     {

@@ -83,9 +83,10 @@ test("table: a level-2 Rogue gains Cunning Action (Hide), and keeps 1d6 Sneak At
     "Cunning Action",
   ]);
   const cunning = profile.features.find(({ id }) => id === "cunning-action");
-  assert.match(cunning.text, /^Bonus action: Hide\./u);
+  assert.match(cunning.text, /^Bonus action: Hide or Disengage\./u);
   assert.match(cunning.text, /best passive Perception/u);
-  assert.match(cunning.text, /Dash and Disengage need positions/u);
+  assert.match(cunning.text, /no foe gets an attack on you as you go/u);
+  assert.match(cunning.text, /Dash needs positions, so it is not offered/u);
   // The level-up card names the new feature; Sneak Attack holds at 1d6.
   const up = levelUpChanges(VEX, LEVEL_2);
   assert.deepEqual(names(up.features), ["Cunning Action"]);
