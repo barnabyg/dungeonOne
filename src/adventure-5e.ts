@@ -4777,20 +4777,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "abandoned-delve": "abandoned-delve.json",
   "bramblecote-cider-house": "bramblecote-cider-house.json",
   "coldwater-weirgate": "coldwater-weirgate.json",
-  "drowned-chapel": "drowned-chapel.json",
-  "goblin-warren": "goblin-warren.json",
-  "gravediggers-lodge": "gravediggers-lodge.json",
-  "hollow-chantry": "hollow-chantry.json",
-  "mallow-counting-house": "mallow-counting-house.json",
-  "ravagers-tower": "ravagers-tower.json",
-  "robbers-barrow": "robbers-barrow.json",
-  "shepherds-bothy": "shepherds-bothy.json",
-  "silvervein-mine": "silvervein-mine.json",
-  "smugglers-cellar": "smugglers-cellar.json",
   "thornwood-lodge": "thornwood-lodge.json",
-  "tinkers-toll": "tinkers-toll.json",
-  "warden-crypt": "warden-crypt.json",
-  "wolfstone-hillfort": "wolfstone-hillfort.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 

@@ -1,18 +1,13 @@
 // Opt-in live release run: a module played from start to an ending through
 // the 5e browser server, its API and its saves (The Abandoned Delve for #140
 // by default, on a generated route since its expansion (#442), played by a
-// saved level-2 Ada, The Tinker's Toll for #211 with --adventure tinkers-toll, or
-// The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
-// saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
-// #291 with --adventure thornwood-lodge, on a generated route since its
-// expansion (#445), played by a saved level-4 Ada with 4,100 XP, or The
-// Counting-House on Mallow Quay for #311 with --adventure
-// mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
-// or, with --generated, any built-in module on a route generated from the
-// harness's cautious run on the seed (#409), played by the run's saved
-// character or else a saved Ada at the module's lowest recommended level
-// (level 3 for the Coldwater Weirgate, level 1 for the Bramblecote Cider
-// House, #440),
+// saved level-2 Ada, or The Thornwood Lodge for #291 with --adventure
+// thornwood-lodge, on a generated route since its expansion (#445), played by
+// a saved level-4 Ada with 4,100 XP), or, with --generated, any built-in
+// module on a route generated from the harness's cautious run on the seed
+// (#409), played by the run's saved character or else a saved Ada at the
+// module's lowest recommended level (level 3 for the Coldwater Weirgate,
+// level 1 for the Bramblecote Cider House, #440),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -45,19 +40,8 @@ import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
 } from "../dist/openai-dm-model.js";
-import {
-  COUNTING_HOUSE_ROUTE,
-  generateReleaseRun,
-  MINE_FULL_ROUTE,
-  playReleaseRun,
-  TOLL_FULL_ROUTE,
-} from "../dist/release-run-5e.js";
-import {
-  levelFourCareerLibrary,
-  levelThreeLibrary,
-  libraryAt,
-} from "../dist/test-fighter-5e.js";
-import { rogueLibrary } from "../dist/test-rogue-5e.js";
+import { generateReleaseRun, playReleaseRun } from "../dist/release-run-5e.js";
+import { levelFourCareerLibrary, libraryAt } from "../dist/test-fighter-5e.js";
 
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>] [--generated]";
@@ -69,24 +53,11 @@ const USAGE =
 // does, under its own issue.
 const RUNS = {
   "abandoned-delve": { issue: 140, generated: true, seed: "0" },
-  "tinkers-toll": { issue: 211, route: TOLL_FULL_ROUTE, seed: "0" },
-  "silvervein-mine": {
-    issue: 241,
-    route: MINE_FULL_ROUTE,
-    seed: "47",
-    character: levelThreeLibrary,
-  },
   "thornwood-lodge": {
     issue: 291,
     generated: true,
     seed: "1",
     character: levelFourCareerLibrary,
-  },
-  "mallow-counting-house": {
-    issue: 311,
-    route: COUNTING_HOUSE_ROUTE,
-    seed: "8",
-    character: rogueLibrary,
   },
 };
 const usage = () => {

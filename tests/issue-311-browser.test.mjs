@@ -44,7 +44,7 @@ const input = (path) =>
 const VEX_LIBRARY = input("increment-15/level-3-vex.json");
 const ADA_LIBRARY = input("increment-13/level-3-ada.json");
 
-// The handoff's module, retiring, is played as a fixture copy since #438.
+// The handoff's module, retired in #446, is played as a fixture copy (#438).
 const quay = quayStrongroom;
 
 /** A browser on a server for `libraryPath` on `seed`, and its page. */

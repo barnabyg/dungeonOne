@@ -2,7 +2,7 @@
 // buy a shortsword from the pedlar at the mouth, wield it, sell the mace and
 // (after confirming in the panel) the leather armour, and escape: the sheet
 // and the saved library hold the shortsword and the change. Abandoning
-// after a purchase is checked in issue-211-browser.test.mjs.
+// after a purchase restores the sheet (#206; rewards-5e.test.mjs).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";

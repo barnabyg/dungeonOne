@@ -449,8 +449,8 @@ export const banditTollFile = (() => {
 export const banditToll = validateModule(structuredClone(banditTollFile));
 
 /**
- * A retiring release module's mechanics together, kept for #311's handoff
- * journeys when it retires (#438): levels 3–4, medium. A toll-taker at the
+ * A retired release module's mechanics together, kept for #311's handoff
+ * journeys since it retired (#438, #446): levels 3–4, medium. A toll-taker at the
  * arch who reacts, parleys and charges a toll; a goblin lurking in the
  * counting hall, past which the character may sneak (springing a scything
  * blade) and sneak back to ambush it; and a strongroom door to pick or break,
@@ -459,8 +459,8 @@ export const banditToll = validateModule(structuredClone(banditTollFile));
 export const quayStrongroom = validateModule(moduleFile("quay-strongroom"));
 
 /**
- * A retiring release module's mechanics together, kept for #350's handoff
- * journeys when it retires (#438): level 3, medium. A sexton's key to a
+ * A retired release module's mechanics together, kept for #350's handoff
+ * journeys since it retired (#438, #446): level 3, medium. A sexton's key to a
  * locked grille, a ward read with Arcana, undead to turn, a +1 Mace, spell
  * scrolls, and a vestry whose long rests the restless dead may interrupt.
  */
