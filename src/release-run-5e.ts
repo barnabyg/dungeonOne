@@ -1,9 +1,10 @@
 /**
  * The release runs: a module played from start to an ending through a
  * browser server's API, every turn typed to the AI DM as a player would.
- * The #140 run plays The Abandoned Delve on a generated route (#442). The
- * #211 run clears The Tinker's Toll, equips the shield it finds, buys and
- * wields a shortsword with the coin it finds, sells its mace and walks out.
+ * The #140 run plays The Abandoned Delve on a generated route (#442), and
+ * the #291 run The Thornwood Lodge (#445). The #211 run clears The
+ * Tinker's Toll, equips the shield it finds, buys and wields a shortsword
+ * with the coin it finds, sells its mace and walks out.
  * The #311 run takes a Rogue through The Counting-House on Mallow Quay: a
  * parley and a toll, a sneak past a lurking goblin and an ambush, and a
  * picked lock.
@@ -325,112 +326,6 @@ export const MINE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
     say: "Walk out to the mine mouth.",
   },
   { action: "leave", target: "mine-mouth" },
-]);
-
-/**
- * The Thornwood Lodge (#291) from the gate to the hall and out: Brann's
- * topics, the poachers' path by Persuasion, the kennel yard and the bear,
- * the trophy wall by History, the hatch by Perception (and its retry when it
- * holds), the man-trap found and disarmed. It leaves the Owlbear and Captain
- * Hesk alone, as a cautious player would. A step a check's band leaves
- * unoffered (the hide when Brann says no, the potion the wall keeps) is
- * recorded as skipped.
- */
-export const LODGE_ROUTE: readonly ReleaseStep[] = Object.freeze([
-  { action: "examine", target: "woodpile", say: "Search the woodpile." },
-  {
-    action: "take",
-    target: "woodpile-potion",
-    say: "Take the vial from the woodpile.",
-  },
-  { action: "take", target: "hooded-lantern", say: "Take the lantern." },
-  {
-    action: "talk",
-    target: "the-lodge",
-    say: "Ask Brann about the lodge.",
-  },
-  {
-    action: "talk",
-    target: "the-poachers-path",
-    approach: "persuasion",
-    say: "Try to persuade Brann to tell me about the poachers' path.",
-  },
-  {
-    action: "move",
-    target: "poachers-hide",
-    say: "Follow the poachers' path to their hide.",
-  },
-  {
-    action: "examine",
-    target: "poachers-cache",
-    say: "Look in the sack hanging from the branch.",
-  },
-  { action: "take", target: "hide-potion", say: "Take the vial." },
-  { action: "take", target: "trap-tongs", say: "Take the iron tongs." },
-  {
-    action: "move",
-    target: "forest-gate",
-    say: "Go back to the forest gate.",
-  },
-  {
-    action: "move",
-    target: "kennel-yard",
-    say: "Head round the palisade to the kennels.",
-  },
-  {
-    action: "examine",
-    target: "hounds-kennel",
-    say: "Search the hound's kennel.",
-  },
-  { action: "take", target: "hunting-cup", say: "Take the gilt cup." },
-  { action: "take", target: "kennel-gold", say: "Take the purse of gold." },
-  {
-    action: "move",
-    target: "lodge-hall",
-    say: "Go through the kennel door into the hall.",
-  },
-  {
-    action: "examine",
-    target: "trophy-wall",
-    approach: "history",
-    say: "Study the old hunting shields on the trophy wall for anything out of place, using what I know of history.",
-  },
-  { action: "take", target: "trophy-topaz", say: "Take the jewel." },
-  { action: "take", target: "trophy-potion", say: "Take the vial too." },
-  {
-    action: "examine",
-    target: "ice-house-hatch",
-    approach: "perception",
-    say: "Look the frozen hatch over for a release.",
-  },
-  {
-    action: "examine",
-    target: "ice-house-hatch",
-    approach: "perception",
-    retry: true,
-    say: "Try the hatch again.",
-  },
-  {
-    action: "search",
-    target: "lodge-hall",
-    say: "Check the gallery stair for traps.",
-  },
-  {
-    action: "disarm",
-    target: "gallery-man-trap",
-    say: "Disarm the man-trap with the tongs.",
-  },
-  {
-    action: "move",
-    target: "kennel-yard",
-    say: "That's enough. Back out to the kennel yard.",
-  },
-  {
-    action: "move",
-    target: "forest-gate",
-    say: "Back to the forest gate.",
-  },
-  { action: "leave", target: "forest-gate" },
 ]);
 
 /**

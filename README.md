@@ -292,12 +292,22 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   bridge to the keep can open or fall, a brown bear dens in the undercroft,
   and the Reaver (a Bandit Captain) holds the keep's strongbox.
 - _The Thornwood Lodge_ (`adventures/5e/thornwood-lodge.json`, levels 4–5,
-  Hard): six rooms in a deserter's hunting lodge. Brann the charcoal-burner
-  trades shield, chain mail, longsword and greatsword at the forest gate;
-  Captain Hesk's dire wolf and two mastiffs hold the kennel yard. A bear
-  baits in the hall, whose trophy wall hides a jewel, a frozen hatch opens on
-  an owlbear's ice house, and Captain Hesk (a Warrior Veteran) waits in the
-  solar beyond a man-trap. Its ending carries a career to level 5.
+  Hard): a long module of sixteen rooms in two regions, a deserter
+  captain's hunting lodge and the Wolfstone hillfort on the crag above it,
+  joined by the hunt ride, with a rest site, an exit and a wandering beast
+  in each. Brann the charcoal-burner sells weapons at the
+  forest gate and Wenna the drover armour at the camp below the hillfort.
+  Captain Hesk's dire wolf and a mastiff hold the kennel yard; the hall door
+  is nailed shut, so the way in is the kitchen, where a haunch thrown through
+  the serving hatch feeds the bear that baits in the hall (or haul it off
+  its feet by its chain). The hall's trophy wall hides a jewel and its hearth
+  the King's Hanger, a +1 Shortsword; a frozen hatch opens on an owlbear's
+  ice house, and Hesk (a Warrior Veteran) waits in the solar beyond a
+  man-trap. Up the hill, the Reaver's dire wolf guards the ditch under loose
+  rampart stones; past a rusted portcullis (a crowbar helps), a bugbear
+  gaoler dozes in the guardroom, a rope bridge to the keep can open or fall,
+  a brown bear dens in the undercroft, and the Reaver (a Bandit Captain)
+  holds the keep. Leave with loot for 3,800 XP, enough for level 5.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.
@@ -751,7 +761,9 @@ These are for development, not play.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
   `--max-calls`, default 160) plays The Abandoned Delve on a route generated
   from the balance harness's cautious run (#442; seed 0 by default) from a
-  saved level-2 Ada, or with `--adventure tinkers-toll` The Tinker's Toll with its
+  saved level-2 Ada, or with `--adventure thornwood-lodge` The Thornwood
+  Lodge on its generated route (#445; seed 1) from a saved level-4 Ada with
+  4,100 XP, or with `--adventure tinkers-toll` The Tinker's Toll with its
   trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
   (seed 47) from a saved level-3 Ada, through the browser server, typing every
   step to the AI DM

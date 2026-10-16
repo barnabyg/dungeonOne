@@ -19,11 +19,14 @@ const PLAYER = "pc";
  * (with `undefined, true` after the door, another try at it),
  * `["talk", topicId, approach]` (#291) asking about a topic with a check,
  * `["react", option, approach]` (#311) answering a reaction,
- * `["examine", featureId, approach]` (#350) choosing a check's approach,
+ * `["examine", featureId, approach]` (#350) choosing a check's approach
+ * (with `true` after the approach, another try at it, #445),
  * `["long-rest"]` and `["rest", hitDice]` (#350) resting, and
  * `["equip", itemId]` or `["swap", itemId]` (#350) wielding found gear and
  * `["read", itemId, spellId]` (#350) reading a held scroll on oneself, and
- * `["use", featureId, itemId]` (#412) using a carried item on a feature.
+ * `["use", featureId, itemId]` (#412) using a carried item on a feature,
+ * and `["search", roomId]` and `["disarm", trapId]` (#445) finding and
+ * disarming a trap.
  */
 export function routeAction([type, target, approach, retry]) {
   switch (type) {
@@ -35,6 +38,7 @@ export function routeAction([type, target, approach, retry]) {
         type,
         targetId: target,
         ...(approach === undefined ? {} : { approach }),
+        ...(retry ? { retry: true } : {}),
       };
     case "long-rest":
       return { type };
@@ -53,6 +57,10 @@ export function routeAction([type, target, approach, retry]) {
       };
     case "take":
       return { type, itemId: target };
+    case "search":
+      return { type, roomId: target };
+    case "disarm":
+      return { type, trapId: target };
     case "use":
       return { type: "use-on", featureId: target, itemId: approach };
     case "leave":

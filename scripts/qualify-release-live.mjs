@@ -4,8 +4,9 @@
 // saved level-2 Ada, The Tinker's Toll for #211 with --adventure tinkers-toll, or
 // The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
 // saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
-// #291 with --adventure thornwood-lodge, played by a saved level-4 Ada with
-// 4,100 XP, or The Counting-House on Mallow Quay for #311 with --adventure
+// #291 with --adventure thornwood-lodge, on a generated route since its
+// expansion (#445), played by a saved level-4 Ada with 4,100 XP, or The
+// Counting-House on Mallow Quay for #311 with --adventure
 // mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
 // or, with --generated, any built-in module on a route generated from the
 // harness's cautious run on the seed (#409), played by the run's saved
@@ -47,7 +48,6 @@ import {
 import {
   COUNTING_HOUSE_ROUTE,
   generateReleaseRun,
-  LODGE_ROUTE,
   MINE_FULL_ROUTE,
   playReleaseRun,
   TOLL_FULL_ROUTE,
@@ -78,8 +78,8 @@ const RUNS = {
   },
   "thornwood-lodge": {
     issue: 291,
-    route: LODGE_ROUTE,
-    seed: "2",
+    generated: true,
+    seed: "1",
     character: levelFourCareerLibrary,
   },
   "mallow-counting-house": {
