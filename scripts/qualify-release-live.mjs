@@ -32,7 +32,6 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   OUTCOME_CLAIM,
-  startAdventureOverHttp,
   startSavedAdventureOverHttp,
 } from "../dist/dm-evaluation-5e.js";
 import { createDmCallBudget } from "../dist/dm-turn.js";
@@ -46,16 +45,16 @@ import { levelFourCareerLibrary, libraryAt } from "../dist/test-fighter-5e.js";
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>] [--generated]";
 
-// Each release run's issue, route and default seed, on which its character
-// clears the route and walks out when each step is taken as planned. A run with a
-// `character` starts from a library holding it, already saved. A `generated`
-// run always plays the route generated on its seed (#409), as --generated
-// does, under its own issue.
+// Each module's own release run: its issue and default seed, on which its
+// character walks out with loot, and the saved character it starts from when
+// that isn't Ada at the module's lowest recommended level. Every run plays the
+// route generated on its seed (#409); the hand-written routes retired with
+// their modules (#446). --generated plays a module with no run of its own,
+// under #409.
 const RUNS = {
-  "abandoned-delve": { issue: 140, generated: true, seed: "0" },
+  "abandoned-delve": { issue: 140, seed: "0" },
   "thornwood-lodge": {
     issue: 291,
-    generated: true,
     seed: "1",
     character: levelFourCareerLibrary,
   },
@@ -94,30 +93,25 @@ for (let index = 0; index < args.length; index += 1) {
   }
 }
 const own = RUNS[options.adventure];
-generated ||= own?.generated === true;
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === options.adventure,
 );
 if (
   mode === undefined ||
-  (generated
-    ? adventure === undefined
-    : !Object.hasOwn(RUNS, options.adventure))
+  adventure === undefined ||
+  (own === undefined && !generated)
 ) {
   usage();
 }
 // A generated route (#409) is the harness's run with a saved character's
 // sheet: the run's own, or else Ada at the module's lowest recommended level.
-const run = generated
-  ? {
-      seed: "0",
-      ...own,
-      // A run that is always generated keeps its own issue.
-      issue: own?.generated ? own.issue : 409,
-      character:
-        own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
-    }
-  : own;
+const run = {
+  seed: "0",
+  issue: 409,
+  ...own,
+  character:
+    own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
+};
 const dryRun = mode === "--dry-run";
 options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
 options.seed ??= run.seed;
@@ -156,7 +150,7 @@ const report = {
   issue: run.issue,
   mode: dryRun ? "dry-run" : "live",
   adventureId: options.adventure,
-  generated,
+  generated: true,
   // A dry run's folder is gone once it finishes.
   ...(dryRun ? {} : { runDirectory: relative(process.cwd(), directory) }),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
@@ -196,9 +190,7 @@ const model = {
 };
 
 const libraryPath = join(directory, "characters.json");
-if (run.character !== undefined) {
-  await writeFile(libraryPath, JSON.stringify(run.character()));
-}
+await writeFile(libraryPath, JSON.stringify(run.character()));
 const server = await startFifthBrowserServer({
   libraryPath,
   seed,
@@ -210,16 +202,10 @@ const server = await startFifthBrowserServer({
 try {
   const { session } = await playReleaseRun({
     url: server.url,
-    session: await (
-      run.character === undefined
-        ? startAdventureOverHttp
-        : startSavedAdventureOverHttp
-    )(server.url, options.adventure),
-    ...(generated
-      ? generateReleaseRun(adventure, run.character().characters[0].sheet, {
-          seed,
-        })
-      : { route: run.route }),
+    session: await startSavedAdventureOverHttp(server.url, options.adventure),
+    ...generateReleaseRun(adventure, run.character().characters[0].sheet, {
+      seed,
+    }),
     onTurn(turn) {
       report.turns.push({
         ...turn,
