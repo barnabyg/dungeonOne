@@ -456,15 +456,17 @@ library's character and plays `actions`, each accepted; `WIN_THE_BURIAL_HALL`
 among them moves into the hall and wins its fight, on the seed
 `winBarrowSeed` finds.
 
-## CPU budgets
+## Gating
 
-`cpu-reference.mjs` holds a fixed, engine-free CPU workload. A timing budget
-measured with `referenceCpuSeconds(work)` is scaled by how long that workload
-takes in the same process, timed before and after `work`, against its
-`REFERENCE_SECONDS` on the machine the budget was set on. CI runners differ in
-speed by nearly 2× between runs of one commit, so plain CPU seconds judge the
-runner rather than the code. `shipped-modules.test.mjs` uses it for the
-gate's 450-second budget over every shipped module.
+`gate-workers.mjs` gates shipped modules on worker threads (#469):
+`gateInWorkers(adventures)` runs one job per module and class
+(`gateAdventure`), at most `GATE_WORKERS` (8) at once, and returns each
+module's result as `gateModule` would. A job still running after
+`JOB_TIMEOUT_MS` (10 minutes) is stopped and fails, naming its module and
+class. That is a guard against a frozen gate, not a performance budget.
+`shipped-modules.test.mjs` uses it for the gate over every shipped module.
+Each worker loads its module by id, so it is a content fixture
+(`content-tests.mjs`).
 
 Browser and server tests that start the browser server on fixture modules
 pass `qualifies: () => true`: the fixtures are engine material, and since
