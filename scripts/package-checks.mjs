@@ -102,7 +102,17 @@ try {
   const caller = path.join(temporary, "caller with spaces");
   mkdirSync(extracted);
   mkdirSync(caller);
-  const unpack = spawnSync("tar", ["-xzf", archive, "-C", extracted], {
+  // Windows' own tar: Git's GNU tar, often first on the PATH, reads the C: of
+  // an absolute path as a remote host.
+  const tar =
+    process.platform === "win32"
+      ? path.join(
+          process.env.SystemRoot ?? "C:\\Windows",
+          "System32",
+          "tar.exe",
+        )
+      : "tar";
+  const unpack = spawnSync(tar, ["-xzf", archive, "-C", extracted], {
     encoding: "utf8",
   });
   if (unpack.status !== 0) {
