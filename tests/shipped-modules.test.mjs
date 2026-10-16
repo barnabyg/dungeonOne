@@ -80,8 +80,8 @@ const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 const SURVIVAL_SLACK = 0.03;
 /**
  * The reference CPU seconds the gate may take over every shipped module, the
- * Coldwater Weirgate (#412) among them as the gate-time canary: 450 (#447),
- * about a third over the four modules' measure.
+ * Coldwater Weirgate the costliest: 450 (#447), about a third over the four
+ * modules' measure.
  */
 const GATE_BUDGET_SECONDS = 450;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
@@ -154,84 +154,6 @@ test("every shipped module qualifies at its declared difficulty for every class 
   assert.ok(gated !== shipped || seconds < GATE_BUDGET_SECONDS, measure);
 });
 
-/**
- * The gate-time canary's figures (#410), the Coldwater Weirgate's since it
- * shipped (#412), for each class: the weakest character's survival as
- * [level, kit, rate], then each declared route's and each region sweep's. A
- * speed-up must leave them as they are.
- */
-const CANARY_ID = "coldwater-weirgate";
-const CANARY_FIGURES = {
-  fighter: {
-    survival: [3, "mace", 0.945],
-    routes: [
-      ["keepers-stair", 3, "mace", 0.945],
-      ["drained-culvert", 3, "mace", 0.95],
-    ],
-    sweeps: [
-      ["keep", 3, "mace", 0.96],
-      ["culverts", 3, "mace", 0.945],
-    ],
-  },
-  rogue: {
-    survival: [3, "shortsword", 0.99],
-    routes: [
-      ["keepers-stair", 3, "shortsword", 0.99],
-      ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
-    ],
-    sweeps: [
-      ["keep", 3, "shortsword", 0.96],
-      ["culverts", 3, "shortsword", 0.99],
-    ],
-  },
-  cleric: {
-    survival: [3, "mace-and-daggers", 0.935],
-    routes: [
-      ["keepers-stair", 3, "mace-and-daggers", 0.935],
-      ["drained-culvert", 3, "club-and-shield", 0.965],
-    ],
-    sweeps: [
-      ["keep", 3, "mace-and-daggers", 0.88],
-      ["culverts", 3, "mace-and-daggers", 0.935],
-    ],
-  },
-  wizard: {
-    survival: [3, "quarterstaff-and-dagger", 0.94],
-    routes: [
-      ["keepers-stair", 3, "quarterstaff-and-dagger", 0.94],
-      ["drained-culvert", 4, "quarterstaff-and-dagger", 0.95],
-    ],
-    sweeps: [
-      ["keep", 3, "quarterstaff-and-dagger", 0.895],
-      ["culverts", 3, "quarterstaff-and-dagger", 0.94],
-    ],
-  },
-};
-
-test("the gate gives the gate-time canary its pinned figures (#410, #412)", (t) => {
-  const canary = gated.find(({ id }) => id === CANARY_ID);
-  if (canary === undefined) {
-    t.skip("the canary is gated only when it is named or every module is");
-    return;
-  }
-  const figures = ({ level, kit, rate }) => [level, kit, rate];
-  for (const { classId, result } of gateOf(canary).classes) {
-    const { survival, routes, sweeps } = result.verdict;
-    assert.deepEqual(
-      {
-        survival: figures(survival),
-        routes: routes.map(({ id, survival: way }) => [id, ...figures(way)]),
-        sweeps: sweeps.map(({ region, survival: way }) => [
-          region,
-          ...figures(way),
-        ]),
-      },
-      CANARY_FIGURES[classId],
-      classId,
-    );
-  }
-});
-
 test("the recorded gate verdicts the browser offers modules by are the gate's (#310)", async () => {
   assert.deepEqual(
     {
@@ -302,7 +224,8 @@ test("every shipped module declares the strictest difficulty every class passes 
  * the one-hit-kill cap, each enemy's one-hit-kill chance in percent, the XP
  * available, and each declared route's and region sweep's survival as
  * [id, level, kit, rate]. They are checked here, beside the gate run they read, rather
- * than in each module's own tests, so the gate plays each module once.
+ * than in each module's own tests, so the gate plays each module once. A
+ * speed-up of the gate must leave every one as it is (#410).
  */
 const QUOTED_FIGURES = {
   // Long and level 2 (#442): Hard, as the Rogue's weakest is 84.5% on the
@@ -359,24 +282,56 @@ const QUOTED_FIGURES = {
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       enemyCount: 15,
       xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 1800,
+      routes: [
+        ["keepers-stair", 3, "mace", 0.945],
+        ["drained-culvert", 3, "mace", 0.95],
+      ],
+      sweeps: [
+        ["keep", 3, "mace", 0.96],
+        ["culverts", 3, "mace", 0.945],
+      ],
     },
     rogue: {
       survival: [3, "shortsword", 0.99],
       alwaysFail: [3, 0.985],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
+      routes: [
+        ["keepers-stair", 3, "shortsword", 0.99],
+        ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
+      ],
+      sweeps: [
+        ["keep", 3, "shortsword", 0.96],
+        ["culverts", 3, "shortsword", 0.99],
+      ],
     },
     cleric: {
       survival: [3, "mace-and-daggers", 0.935],
       alwaysFail: [3, 0.91],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
+      routes: [
+        ["keepers-stair", 3, "mace-and-daggers", 0.935],
+        ["drained-culvert", 3, "club-and-shield", 0.965],
+      ],
+      sweeps: [
+        ["keep", 3, "mace-and-daggers", 0.88],
+        ["culverts", 3, "mace-and-daggers", 0.935],
+      ],
     },
     wizard: {
       survival: [3, "quarterstaff-and-dagger", 0.94],
       alwaysFail: [3, 0.905],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
+      routes: [
+        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.94],
+        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.95],
+      ],
+      sweeps: [
+        ["keep", 3, "quarterstaff-and-dagger", 0.895],
+        ["culverts", 3, "quarterstaff-and-dagger", 0.94],
+      ],
     },
   },
   // Long and levels 4–5 since its expansion (#445): Hard, as the Cleric's
@@ -448,7 +403,7 @@ const QUOTED_FIGURES = {
   },
 };
 
-test("the gate gives each released module the figures its proposal quotes (#291, #412, #440, #442, #443, #445)", () => {
+test("the gate gives each released module the figures its proposal quotes (#291, #410, #412, #440, #442, #443, #445)", () => {
   for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
     const adventure = gated.find((entry) => entry.id === id);
     if (adventure === undefined) {
