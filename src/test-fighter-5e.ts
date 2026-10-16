@@ -108,9 +108,10 @@ export function levelThreeLibrary(): FifthLibraryData {
 
 /**
  * A character library holding only Ada at level 4 with 4,100 XP, her
- * level-4 choices made (#291): about what a career holds after the modules
- * below level 4, so the Thornwood Lodge takes her to level 5. Its release
- * runs and its player handoff
+ * level-4 choices made (#291): about what a career held after the modules
+ * below level 4 before the four-module plan (about 2,950 on its path,
+ * #437), so the Thornwood Lodge takes her to level 5. Its release runs and
+ * its player handoff
  * (docs/acceptance/inputs/increment-14/level-4-ada-4100-xp.json) start from it.
  */
 export function levelFourCareerLibrary(): FifthLibraryData {

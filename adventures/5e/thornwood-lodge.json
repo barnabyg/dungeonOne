@@ -3,19 +3,64 @@
   "formatVersion": 43,
   "id": "thornwood-lodge",
   "title": "The Thornwood Lodge",
-  "objective": "Get past Captain Hesk's beasts into the old hunting lodge, take what you can from it, and leave by the forest gate.",
-  "recommendedLevels": {
-    "min": 4,
-    "max": 5
-  },
+  "objective": "Get into Captain Hesk's lodge or the Wolfstone above it, take what you can of the deserters' plunder, and leave the Thornwood alive.",
+  "recommendedLevels": { "min": 4, "max": 5 },
   "difficulty": "hard",
+  "long": true,
+  "regions": [
+    {
+      "id": "lodge",
+      "name": "The Lodge",
+      "wandering": {
+        "chance": 15,
+        "every": 4,
+        "entries": [
+          {
+            "encounterId": "loose-mastiff",
+            "omen": "Claws skitter across the yard, and a loose mastiff noses out of the dark."
+          },
+          { "omen": "The bear rattles its chain in the hall." },
+          { "omen": "A hound bays somewhere behind the palisade." }
+        ]
+      }
+    },
+    {
+      "id": "wolfstone",
+      "name": "The Wolfstone",
+      "wandering": {
+        "chance": 15,
+        "every": 4,
+        "entries": [
+          {
+            "encounterId": "crag-wolf",
+            "omen": "Wolves howl on the crag, nearer than before."
+          },
+          { "omen": "Wind moans through the broken gatehouse." },
+          { "omen": "A sheep bell clanks far down the drove road." }
+        ]
+      }
+    }
+  ],
+  "flags": ["bear-fed"],
+  "routes": [
+    {
+      "id": "lodge-hall",
+      "name": "Into the lodge hall",
+      "rooms": ["kennel-yard", "lodge-kitchen", "lodge-hall"]
+    },
+    {
+      "id": "wolfstone-gate",
+      "name": "Through the Wolfstone's gate",
+      "rooms": ["drovers-camp", "outer-ditch", "gatehouse"]
+    }
+  ],
   "startRoomId": "forest-gate",
   "rooms": [
     {
       "id": "forest-gate",
       "name": "Forest Gate",
       "at": [1, 2],
-      "description": "A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile.",
+      "description": "A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile. The hunt ride climbs east through the thorn towards the Wolfstone.",
       "exit": true,
       "features": [
         {
@@ -50,7 +95,7 @@
             {
               "id": "the-lodge",
               "name": "the lodge",
-              "reply": "\"Captain Hesk took the king's lodge when he quit the war. His hound runs the kennel yard, and a bear baits in the hall.\""
+              "reply": "\"Captain Hesk took the king's lodge when he quit the war. His hound runs the kennel yard, and a bear baits in the hall. Hesk feeds it from the kitchen, or it would have had him by now.\""
             },
             {
               "id": "the-poachers-path",
@@ -59,34 +104,21 @@
               "failure": "\"I don't know any poachers.\"",
               "check": {
                 "approaches": [
-                  {
-                    "skill": "persuasion",
-                    "dc": 14
-                  },
-                  {
-                    "skill": "intimidation",
-                    "dc": 16
-                  }
+                  { "skill": "persuasion", "dc": 14 },
+                  { "skill": "intimidation", "dc": 16 }
                 ],
                 "bands": {
                   "success": {
-                    "effects": [
-                      {
-                        "type": "open",
-                        "passage": "gate-to-hide"
-                      }
-                    ]
+                    "effects": [{ "type": "open", "passage": "gate-to-hide" }]
                   }
                 }
               }
             }
           ],
-          "merchant": {
-            "stock": ["shield", "chain-mail", "longsword", "greatsword"],
-            "minutes": 10
-          }
+          "merchant": { "stock": ["longsword", "greatsword"], "minutes": 10 }
         }
-      ]
+      ],
+      "region": "lodge"
     },
     {
       "id": "poachers-hide",
@@ -116,13 +148,16 @@
           "kind": "tool",
           "hiddenIn": "poachers-cache"
         }
-      ]
+      ],
+      "region": "lodge",
+      "avoidable": true,
+      "creatures": []
     },
     {
       "id": "kennel-yard",
       "name": "Kennel Yard",
       "at": [1, 1],
-      "description": "A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall.",
+      "description": "A muddy yard ringed with kennels and strewn with gnawed antlers. The hall door is nailed shut; a low door leads to the kitchen, and a gate to the falconer's mews.",
       "encounterId": "yard-hound",
       "features": [
         {
@@ -146,25 +181,102 @@
           "name": "Purse of Gold",
           "description": "A purse of gold pieces.",
           "kind": "coin",
-          "coins": {
-            "gp": 30
-          },
+          "coins": { "gp": 30 },
           "hiddenIn": "hounds-kennel"
         }
-      ]
+      ],
+      "region": "lodge",
+      "creatures": []
+    },
+    {
+      "id": "falconers-mews",
+      "name": "Falconer's Mews",
+      "at": [2, 1],
+      "region": "lodge",
+      "restSite": true,
+      "description": "A whitewashed mews of empty perches, quiet and dry. Its door bars from inside.",
+      "features": [
+        {
+          "id": "perches",
+          "name": "Perches",
+          "description": "Bare perches crusted with old mutes; the hawks are long gone."
+        },
+        {
+          "id": "falconers-bench",
+          "name": "Falconer's Bench",
+          "description": "A bench of hoods and jesses.",
+          "discovery": "A note in a careful hand: \"The bear will let anyone by while it has meat. Hesk feeds it through the kitchen hatch.\""
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "lodge-kitchen",
+      "name": "Lodge Kitchen",
+      "at": [0, 0],
+      "region": "lodge",
+      "description": "A smoky kitchen, its fire banked low and its hooks hung with game. A serving hatch looks down into the hall, with a door beside it.",
+      "features": [
+        {
+          "id": "larder-hooks",
+          "name": "Larder Hooks",
+          "description": "Iron hooks hung with game.",
+          "discovery": "A haunch of venison hangs among the hares, and a purse is tucked behind it."
+        },
+        {
+          "id": "serving-hatch",
+          "name": "Serving Hatch",
+          "description": "A hatch into the lodge hall, over the bear pit. Bones litter the sill.",
+          "changed": {
+            "when": "bear-fed",
+            "description": "Below the hatch the bear tears at the haunch, deaf to everything else."
+          },
+          "uses": [
+            {
+              "item": "venison-haunch",
+              "text": "You heave the haunch through the hatch. The bear falls on it with a roar.",
+              "consumes": true,
+              "effects": [{ "type": "set", "flag": "bear-fed" }]
+            }
+          ]
+        }
+      ],
+      "items": [
+        {
+          "id": "venison-haunch",
+          "name": "Haunch of Venison",
+          "description": "A heavy haunch of venison, half roasted.",
+          "kind": "tool",
+          "hiddenIn": "larder-hooks"
+        },
+        {
+          "id": "cooks-purse",
+          "name": "Cook's Purse",
+          "description": "A greasy purse of gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 15 },
+          "hiddenIn": "larder-hooks"
+        }
+      ],
+      "creatures": []
     },
     {
       "id": "lodge-hall",
       "name": "Lodge Hall",
       "at": [1, 0],
-      "description": "A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, and a hatch in the floor leads down to the ice house.",
+      "description": "A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, a hatch in the floor leads down to the ice house, and a gallery stair climbs to the captain's solar.",
       "encounterId": "hall-bear",
       "features": [
         {
           "id": "bear-pit",
           "name": "Bear Pit",
           "description": "A pit of churned earth at the end of the chain.",
-          "discovery": "Nothing but churned earth and bones."
+          "discovery": "Nothing but churned earth and bones.",
+          "changed": {
+            "when": "bear-fed",
+            "description": "The bear sprawls in its pit, tearing at the haunch, and pays you no mind."
+          }
         },
         {
           "id": "trophy-wall",
@@ -172,14 +284,8 @@
           "description": "Antlers, boar tusks and the king's old hunting shields crowd the wall.",
           "check": {
             "approaches": [
-              {
-                "skill": "perception",
-                "dc": 15
-              },
-              {
-                "skill": "history",
-                "dc": 13
-              }
+              { "skill": "perception", "dc": 15 },
+              { "skill": "history", "dc": 13 }
             ],
             "retry": {
               "after": {
@@ -207,24 +313,13 @@
               },
               "success": {
                 "text": "One shield bears no king's arms. Behind it, in a hollow in the wall, lies a jewel.",
-                "effects": [
-                  {
-                    "type": "item",
-                    "item": "trophy-topaz"
-                  }
-                ]
+                "effects": [{ "type": "item", "item": "trophy-topaz" }]
               },
               "success-by-5": {
                 "text": "One shield bears no king's arms. Behind it, in a hollow in the wall, lie a jewel and a stoppered vial.",
                 "effects": [
-                  {
-                    "type": "item",
-                    "item": "trophy-topaz"
-                  },
-                  {
-                    "type": "item",
-                    "item": "trophy-potion"
-                  }
+                  { "type": "item", "item": "trophy-topaz" },
+                  { "type": "item", "item": "trophy-potion" }
                 ]
               }
             }
@@ -236,14 +331,8 @@
           "description": "A heavy hatch in the hall floor, frozen shut over the ice-house steps.",
           "check": {
             "approaches": [
-              {
-                "skill": "athletics",
-                "dc": 15
-              },
-              {
-                "skill": "perception",
-                "dc": 14
-              }
+              { "skill": "athletics", "dc": 15 },
+              { "skill": "perception", "dc": 14 }
             ],
             "retry": {
               "cost": {
@@ -256,20 +345,44 @@
               }
             },
             "bands": {
-              "failure": {
-                "text": "The ice holds the hatch fast."
-              },
+              "failure": { "text": "The ice holds the hatch fast." },
               "success": {
                 "text": "The ice cracks and the hatch lifts onto the ice-house steps.",
+                "effects": [{ "type": "open", "passage": "hall-to-ice-house" }]
+              }
+            }
+          }
+        },
+        {
+          "id": "bear-chain",
+          "name": "Bear Chain",
+          "description": "A heavy chain from the post to the bear's collar.",
+          "fightAction": {
+            "once": "fight",
+            "check": {
+              "approaches": [
+                { "skill": "athletics", "dc": 15 },
+                { "ability": "strength", "dc": 15 }
+              ]
+            },
+            "bands": {
+              "failure": {
+                "text": "The bear drags you a step before you let go."
+              },
+              "success": {
+                "text": "You haul on the chain and the bear crashes onto its side.",
                 "effects": [
-                  {
-                    "type": "open",
-                    "passage": "hall-to-ice-house"
-                  }
+                  { "type": "condition", "condition": "prone", "turns": 1 }
                 ]
               }
             }
           }
+        },
+        {
+          "id": "hall-hearth",
+          "name": "Hearth",
+          "description": "A great hearth with a hunting sword hung above it.",
+          "discovery": "The sword is a king's hanger, its blade bright under the soot."
         }
       ],
       "items": [
@@ -287,8 +400,18 @@
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
           "hiddenIn": "trophy-wall"
+        },
+        {
+          "id": "kings-hanger",
+          "name": "The King's Hanger",
+          "description": "A short hunting sword with a faint silver sheen.",
+          "kind": "gear",
+          "gear": "shortsword-plus-1",
+          "hiddenIn": "hall-hearth"
         }
-      ]
+      ],
+      "region": "lodge",
+      "creatures": []
     },
     {
       "id": "ice-house",
@@ -321,7 +444,10 @@
           "treasure": "gem-100gp",
           "hiddenIn": "owlbear-nest"
         }
-      ]
+      ],
+      "region": "lodge",
+      "avoidable": true,
+      "creatures": []
     },
     {
       "id": "captains-solar",
@@ -352,9 +478,7 @@
           "name": "Hesk's Gold",
           "description": "A bag of gold pieces.",
           "kind": "coin",
-          "coins": {
-            "gp": 30
-          },
+          "coins": { "gp": 30 },
           "hiddenIn": "hesk-strongbox"
         },
         {
@@ -362,12 +486,410 @@
           "name": "Captain Hesk's Coins",
           "description": "A heavy pouch of gold pieces.",
           "kind": "coin",
-          "coins": {
-            "gp": 8
-          },
+          "coins": { "gp": 8 },
           "hiddenIn": "captain-hesk"
         }
-      ]
+      ],
+      "region": "lodge",
+      "avoidable": true,
+      "creatures": []
+    },
+    {
+      "id": "drovers-camp",
+      "name": "Drovers' Camp",
+      "at": [3, 2],
+      "description": "A cold camp below the hillfort's ditch, where the hunt ride comes up out of the thorn. A drover sits by a cart beside a sheepfold, and a sheep track winds up the hill behind it.",
+      "exit": true,
+      "features": [
+        {
+          "id": "drovers-cart",
+          "name": "Drover's Cart",
+          "description": "A two-wheeled cart loaded with sacks.",
+          "discovery": "Wedged under the sacks are a stoppered vial of red liquid and an iron crowbar."
+        }
+      ],
+      "items": [
+        {
+          "id": "cart-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "drovers-cart"
+        },
+        {
+          "id": "crowbar",
+          "name": "Crowbar",
+          "description": "An iron crowbar, flattened at one end.",
+          "kind": "tool",
+          "hiddenIn": "drovers-cart"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "wenna",
+          "name": "Wenna the Drover",
+          "description": "A weathered drover with a crook across her knees and a pack of goods to sell.",
+          "topics": [
+            {
+              "id": "the-hillfort",
+              "name": "the hillfort",
+              "reply": "\"The Reaver took the keep when he fell out with Captain Hesk over the plunder. His wolf runs the ditch, and there's a bear in the old undercroft.\""
+            },
+            {
+              "id": "the-sheep-track",
+              "name": "the sheep track",
+              "reply": "\"Up past the thorn and you'll find the old watchtower. Mind the stair.\"",
+              "failure": "\"That track's for sheep, not strangers.\"",
+              "check": {
+                "approaches": [
+                  { "skill": "persuasion", "dc": 13 },
+                  { "skill": "intimidation", "dc": 15 }
+                ],
+                "bands": {
+                  "success": {
+                    "effects": [
+                      { "type": "open", "passage": "camp-to-watchtower" }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "merchant": {
+            "stock": ["shield", "chain-shirt", "chain-mail"],
+            "minutes": 10
+          }
+        }
+      ],
+      "region": "wolfstone"
+    },
+    {
+      "id": "sheepfold",
+      "name": "Sheepfold",
+      "at": [3, 3],
+      "region": "wolfstone",
+      "restSite": true,
+      "description": "A drystone fold where the drovers pen their sheep at night, its gate hung with hurdles.",
+      "features": [
+        {
+          "id": "fold-hurdles",
+          "name": "Hurdles",
+          "description": "Woven hurdles that close the fold's gap."
+        }
+      ],
+      "items": [],
+      "creatures": []
+    },
+    {
+      "id": "watchtower",
+      "name": "Old Watchtower",
+      "at": [3, 1],
+      "description": "A roofless tower on the hill's shoulder, looking down into the fort.",
+      "features": [
+        {
+          "id": "lookout-niche",
+          "name": "Lookout's Niche",
+          "description": "A niche in the wall, out of the wind.",
+          "discovery": "A coil of knotted rope and a stoppered vial of red liquid lie in the niche."
+        }
+      ],
+      "items": [
+        {
+          "id": "knotted-rope",
+          "name": "Knotted Rope",
+          "description": "Fifty feet of hempen rope, knotted every foot.",
+          "kind": "tool",
+          "hiddenIn": "lookout-niche"
+        },
+        {
+          "id": "watchtower-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "lookout-niche"
+        }
+      ],
+      "region": "wolfstone",
+      "avoidable": true,
+      "creatures": []
+    },
+    {
+      "id": "outer-ditch",
+      "name": "Outer Ditch",
+      "at": [4, 2],
+      "description": "A deep ditch below the rampart, littered with gnawed bones. A rusted portcullis blocks the gate passage.",
+      "encounterId": "ditch-wolf",
+      "features": [
+        {
+          "id": "wolf-lair",
+          "name": "Wolf's Lair",
+          "description": "A hollow under the rampart, matted with fur.",
+          "discovery": "Among the bones lie a drover's purse and a silver sheep bell."
+        },
+        {
+          "id": "rampart-stones",
+          "name": "Loose Rampart Stones",
+          "description": "Facing stones hang loose at the top of the rampart.",
+          "fightAction": {
+            "once": "adventure",
+            "check": {
+              "approaches": [
+                { "skill": "athletics", "dc": 14 },
+                { "ability": "strength", "dc": 14 }
+              ]
+            },
+            "bands": {
+              "failure": { "text": "The stones grind but hold." },
+              "success": {
+                "text": "The stones tumble down onto your foe.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "drovers-purse",
+          "name": "Drover's Purse",
+          "description": "A purse of gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 25 },
+          "hiddenIn": "wolf-lair"
+        },
+        {
+          "id": "silver-bell",
+          "name": "Silver Sheep Bell",
+          "description": "A silver bell engraved with a running wolf.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "wolf-lair"
+        }
+      ],
+      "region": "wolfstone",
+      "creatures": []
+    },
+    {
+      "id": "gatehouse",
+      "name": "Gatehouse",
+      "at": [5, 2],
+      "description": "A broken gatehouse inside the rampart. A rope bridge sags across a ravine towards the keep, steps lead down into the undercroft, and a door opens into the rampart.",
+      "features": [
+        {
+          "id": "rope-bridge",
+          "name": "Rope Bridge",
+          "description": "Frayed ropes and rotten planks over a deep ravine.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "acrobatics",
+                "dc": 13,
+                "advantage": [
+                  {
+                    "type": "holds",
+                    "item": "knotted-rope",
+                    "name": "Knotted Rope"
+                  }
+                ]
+              },
+              { "skill": "athletics", "dc": 15, "movement": "climb" }
+            ],
+            "retry": {
+              "cost": {
+                "type": "damage",
+                "dice": 1,
+                "sides": 4,
+                "modifier": 0,
+                "damageType": "bludgeoning",
+                "defeatEndingId": "fallen-in-the-thornwood"
+              }
+            },
+            "bands": {
+              "failure-by-5": {
+                "text": "Planks snap under you. You catch a rope and swing into the ravine wall, and the bridge falls away behind you.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "fallen-in-the-thornwood"
+                  },
+                  { "type": "close", "passage": "gatehouse-to-keep-bridge" }
+                ]
+              },
+              "failure": {
+                "text": "The bridge bucks and sways, and you scramble back to the gatehouse."
+              },
+              "success": {
+                "text": "You cross the bridge plank by plank to the keep's door.",
+                "effects": [
+                  { "type": "open", "passage": "gatehouse-to-keep-bridge" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "guard-locker",
+          "name": "Guard Locker",
+          "description": "A dented iron locker against the wall.",
+          "discovery": "At the back of the locker is a red-veined bloodstone."
+        }
+      ],
+      "items": [
+        {
+          "id": "bloodstone",
+          "name": "Bloodstone",
+          "description": "A dark green stone flecked with red.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "guard-locker"
+        }
+      ],
+      "region": "wolfstone",
+      "creatures": []
+    },
+    {
+      "id": "guardroom",
+      "name": "Guardroom",
+      "at": [5, 1],
+      "region": "wolfstone",
+      "description": "A low guardroom in the rampart, where the Reaver's gaoler dozes over a dice table.",
+      "encounterId": "guardroom-gaoler",
+      "avoidable": true,
+      "features": [
+        {
+          "id": "dice-table",
+          "name": "Dice Table",
+          "description": "A barrel-head table strewn with cups.",
+          "discovery": "Among the cups are a pot of winnings and a pair of ivory dice."
+        }
+      ],
+      "items": [
+        {
+          "id": "guardroom-winnings",
+          "name": "Dice Winnings",
+          "description": "A pot of mixed coin.",
+          "kind": "coin",
+          "coins": { "gp": 20 },
+          "hiddenIn": "dice-table"
+        },
+        {
+          "id": "ivory-dice",
+          "name": "Ivory Dice",
+          "description": "A pair of carved ivory dice with garnet pips.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "dice-table"
+        },
+        {
+          "id": "reavers-gaoler-coins",
+          "name": "Reaver's Gaoler's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 8 },
+          "hiddenIn": "reavers-gaoler"
+        },
+        {
+          "id": "reavers-gaoler-trinket",
+          "name": "Reaver's Gaoler's Rough Gem",
+          "description": "A cloudy, roughly cut stone that a jeweller would buy.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "reavers-gaoler"
+        }
+      ],
+      "creatures": []
+    },
+    {
+      "id": "undercroft",
+      "name": "Undercroft",
+      "at": [6, 2],
+      "floor": -1,
+      "description": "A collapsed undercroft that stinks of bear. A stair at the far end climbs towards the keep.",
+      "encounterId": "undercroft-bear",
+      "features": [
+        {
+          "id": "bear-bones",
+          "name": "Heap of Bones",
+          "description": "Bones and rags dragged into a corner.",
+          "discovery": "Under the rags are a stoppered vial of red liquid and a milky moonstone."
+        }
+      ],
+      "items": [
+        {
+          "id": "undercroft-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "bear-bones"
+        },
+        {
+          "id": "moonstone",
+          "name": "Moonstone",
+          "description": "A milky, glowing moonstone.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "bear-bones"
+        }
+      ],
+      "region": "wolfstone",
+      "avoidable": true,
+      "creatures": []
+    },
+    {
+      "id": "keep-hall",
+      "name": "Keep Hall",
+      "at": [7, 2],
+      "description": "The hall of the old keep, hung with stolen banners. The Reaver's strongbox sits under the high table.",
+      "encounterId": "keep-reaver",
+      "features": [
+        {
+          "id": "reaver-strongbox",
+          "name": "Reaver's Strongbox",
+          "description": "An iron-bound strongbox under the high table.",
+          "discovery": "Inside are a silver-gilt drinking horn and a bag of gold."
+        }
+      ],
+      "items": [
+        {
+          "id": "drinking-horn",
+          "name": "Silver-gilt Drinking Horn",
+          "description": "A drinking horn bound in silver-gilt and carved with hunting scenes.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "reaver-strongbox"
+        },
+        {
+          "id": "reaver-gold",
+          "name": "Reaver's Gold",
+          "description": "A bag of gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 30 },
+          "hiddenIn": "reaver-strongbox"
+        },
+        {
+          "id": "wolfstone-reaver-coins",
+          "name": "Reaver's Coins",
+          "description": "A heavy pouch of gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 6 },
+          "hiddenIn": "wolfstone-reaver"
+        }
+      ],
+      "region": "wolfstone",
+      "avoidable": true,
+      "creatures": []
     }
   ],
   "passages": [
@@ -383,9 +905,19 @@
       "hidden": true
     },
     {
-      "id": "yard-to-hall",
-      "between": ["kennel-yard", "lodge-hall"],
-      "description": "The kennel door into the hall."
+      "id": "yard-to-mews",
+      "between": ["kennel-yard", "falconers-mews"],
+      "description": "The gate to the mews."
+    },
+    {
+      "id": "yard-to-kitchen",
+      "between": ["kennel-yard", "lodge-kitchen"],
+      "description": "The low kitchen door."
+    },
+    {
+      "id": "kitchen-to-hall",
+      "between": ["lodge-kitchen", "lodge-hall"],
+      "description": "The serving door beside the hatch."
     },
     {
       "id": "hall-to-ice-house",
@@ -403,9 +935,7 @@
         "id": "gallery-man-trap",
         "name": "Man-trap",
         "description": "Iron jaws hidden under the rushes on the gallery stair.",
-        "find": {
-          "dc": 14
-        },
+        "find": { "dc": 14 },
         "disarm": {
           "approaches": [
             {
@@ -434,18 +964,87 @@
           ]
         },
         "trigger": "Iron jaws slam shut on your leg.",
-        "save": {
-          "ability": "dexterity",
-          "dc": 13
-        },
-        "damage": {
-          "dice": 2,
-          "sides": 6,
-          "modifier": 0,
-          "type": "piercing"
-        },
+        "save": { "ability": "dexterity", "dc": 13 },
+        "damage": { "dice": 2, "sides": 6, "modifier": 0, "type": "piercing" },
         "defeatEndingId": "fallen-in-the-thornwood"
       }
+    },
+    {
+      "id": "hunt-ride",
+      "between": ["forest-gate", "drovers-camp"],
+      "description": "The hunt ride, climbing through the thorn to the drovers' camp under the Wolfstone."
+    },
+    {
+      "id": "camp-to-fold",
+      "between": ["drovers-camp", "sheepfold"],
+      "description": "The fold gate."
+    },
+    {
+      "id": "camp-to-watchtower",
+      "between": ["drovers-camp", "watchtower"],
+      "description": "The sheep track up the hill.",
+      "hidden": true
+    },
+    {
+      "id": "camp-to-ditch",
+      "between": ["drovers-camp", "outer-ditch"],
+      "description": "The track down into the ditch."
+    },
+    {
+      "id": "ditch-to-gatehouse",
+      "between": ["outer-ditch", "gatehouse"],
+      "description": "The gate passage.",
+      "door": {
+        "id": "rusted-portcullis",
+        "name": "Rusted Portcullis",
+        "description": "A rusted portcullis, jammed a foot off the ground.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 15,
+          "disadvantage": [
+            {
+              "type": "holds",
+              "item": "crowbar",
+              "not": true,
+              "name": "without a lever"
+            }
+          ],
+          "retry": {
+            "cost": {
+              "type": "damage",
+              "dice": 1,
+              "sides": 4,
+              "modifier": 0,
+              "damageType": "bludgeoning",
+              "defeatEndingId": "fallen-in-the-thornwood"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "gatehouse-to-guardroom",
+      "between": ["gatehouse", "guardroom"],
+      "description": "A door in the rampart."
+    },
+    {
+      "id": "gatehouse-to-undercroft",
+      "between": ["gatehouse", "undercroft"],
+      "vertical": "stairs",
+      "description": "The steps down into the undercroft."
+    },
+    {
+      "id": "undercroft-to-keep",
+      "between": ["undercroft", "keep-hall"],
+      "vertical": "stairs",
+      "description": "The undercroft stair."
+    },
+    {
+      "id": "gatehouse-to-keep-bridge",
+      "between": ["gatehouse", "keep-hall"],
+      "description": "The rope bridge over the ravine.",
+      "hidden": true
     }
   ],
   "encounters": [
@@ -473,19 +1072,15 @@
           "id": "baiting-bear",
           "monster": "brown-bear",
           "name": "Baiting Bear",
-          "description": "A scarred brown bear dragging a broken chain, mad with rage."
+          "description": "A scarred brown bear straining at a heavy chain, mad with rage."
         }
       ],
-      "defeatEndingId": "fallen-in-the-thornwood"
+      "defeatEndingId": "fallen-in-the-thornwood",
+      "presentUntil": "bear-fed"
     },
     {
       "id": "ice-house-owlbear",
-      "opponents": [
-        {
-          "id": "ice-house-owlbear",
-          "monster": "owlbear"
-        }
-      ],
+      "opponents": [{ "id": "ice-house-owlbear", "monster": "owlbear" }],
       "defeatEndingId": "fallen-in-the-thornwood"
     },
     {
@@ -500,6 +1095,67 @@
         }
       ],
       "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "ditch-wolf",
+      "opponents": [
+        {
+          "id": "reavers-wolf",
+          "monster": "dire-wolf",
+          "name": "Reaver's Wolf",
+          "description": "A dire wolf the size of a pony, a spiked collar round its neck."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "guardroom-gaoler",
+      "opponents": [
+        {
+          "id": "reavers-gaoler",
+          "monster": "bugbear-warrior",
+          "name": "Reaver's Gaoler"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "undercroft-bear",
+      "opponents": [
+        {
+          "id": "undercroft-bear",
+          "monster": "brown-bear",
+          "name": "Undercroft Bear"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "keep-reaver",
+      "opponents": [
+        {
+          "id": "wolfstone-reaver",
+          "monster": "bandit-captain",
+          "name": "The Wolfstone Reaver",
+          "description": "A scarred bandit captain in a wolfskin cloak, a scimitar in each hand.",
+          "boss": true
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "loose-mastiff",
+      "opponents": [
+        { "id": "loose-mastiff", "monster": "mastiff", "name": "Loose Mastiff" }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "crag-wolf",
+      "opponents": [
+        { "id": "crag-wolf", "monster": "wolf", "name": "Crag Wolf" }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
     }
   ],
   "endings": [
@@ -507,14 +1163,14 @@
       "id": "out-with-the-spoils",
       "kind": "escape-with-loot",
       "title": "Out with the spoils",
-      "text": "You leave the Thornwood by the forest gate with spoils from the captain's lodge.",
-      "xp": 2350
+      "text": "You leave the Thornwood with spoils from the deserters' holds.",
+      "xp": 3800
     },
     {
       "id": "out-empty-handed",
       "kind": "escape-without-loot",
       "title": "Out empty-handed",
-      "text": "You leave the Thornwood by the forest gate with nothing to show for it."
+      "text": "You leave the Thornwood with nothing to show for it."
     },
     {
       "id": "fallen-in-the-thornwood",

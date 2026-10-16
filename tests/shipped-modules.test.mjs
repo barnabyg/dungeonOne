@@ -82,6 +82,9 @@ const SURVIVAL_SLACK = 0.03;
  * The reference CPU seconds the gate may take over every shipped module, the
  * Coldwater Weirgate (#412) among them as the gate-time canary in place of
  * #410's fixture long module:
+ * 600 from #445 (owner's choice, until #447 lowers it), when the expanded
+ * Thornwood Lodge, about 117 alone against about 30, took the gate to 514.2
+ * locally;
  * 450 from #443 (owner's choice, until #447 lowers it), when gating the
  * Weirgate at levels 3–4 took the gate to 399.0 locally, the Weirgate alone
  * 191.9 against 79.3 at level 3;
@@ -91,7 +94,7 @@ const SURVIVAL_SLACK = 0.03;
  * four classes; 110 from #343, 100 from #342 (owner's choices under D12),
  * 90 before.
  */
-const GATE_BUDGET_SECONDS = 450;
+const GATE_BUDGET_SECONDS = 600;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
@@ -152,7 +155,7 @@ test("every shipped opponent shows its own monster's icon (#377)", () => {
   }
 });
 
-test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440, #443)", () => {
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321, #348, #410, #412, #440, #443, #445)", () => {
   assert.deepEqual(GATE_CLASSES, ["fighter", "rogue", "cleric", "wizard"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
@@ -320,8 +323,9 @@ test("every shipped module declares the strictest difficulty every class passes 
  * The gate figures each module's proposal or handoff quotes, for each class
  * named: the weakest character's survival as [level, kit, rate], its
  * [level, rate] when every check fails, the ids of the ordinary enemies over
- * the one-hit-kill cap, each enemy's one-hit-kill chance in percent, and the
- * XP available. They are checked here, beside the gate run they read, rather
+ * the one-hit-kill cap, each enemy's one-hit-kill chance in percent, the XP
+ * available, and each declared route's and region sweep's survival as
+ * [id, level, kit, rate]. They are checked here, beside the gate run they read, rather
  * than in each module's own tests, so the gate plays each module once.
  */
 const QUOTED_FIGURES = {
@@ -504,23 +508,71 @@ const QUOTED_FIGURES = {
       xp: 862,
     },
   },
-  // The Fighter is 8.5 points over the 88% that would make it Medium (4
-  // until the Champion's initiative advantage, #315); the Rogue, 10.5 over
-  // Hard's 75% and 2.5 under 88%, keeps it Hard. One of four ordinary
-  // enemies is over the cap, under the more-than-half that fails it. Every
-  // fight's XP and the spoils' 2,350.
+  // Long and levels 4–5 since its expansion (#445): Hard, as the Cleric's
+  // 82.5% on the lodge-hall route is 7.5 points over Hard's 75% and under
+  // the 88% Medium needs with its slack (the Rogue's 85.0% is too). Each
+  // route and sweep holds one fight; the hall's bear is fed. At level 5 the
+  // two mastiffs and the crag wolf of nine ordinary foes are over the cap
+  // (the mastiffs alone for the Cleric), no more than half. Every fight's
+  // XP, the wandering ones' included, and the spoils' 3,800 (2,350
+  // before).
   "thornwood-lodge": {
     fighter: {
-      survival: [4, "mace", 0.965],
-      alwaysFail: [4, 0.965],
-      overCap: ["kennel-mastiff"],
-      xp: 200 + 25 + 200 + 700 + 700 + 2350,
+      survival: [4, "two-daggers", 0.945],
+      alwaysFail: [4, 0.945],
+      overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
+      enemyCount: 9,
+      xp: 200 + 25 + 200 + 700 + 700 + 200 + 200 + 200 + 450 + 25 + 50 + 3800,
+      routes: [
+        ["lodge-hall", 4, "two-daggers", 0.945],
+        ["wolfstone-gate", 4, "mace", 0.975],
+      ],
+      sweeps: [
+        ["lodge", 4, "two-daggers", 0.945],
+        ["wolfstone", 4, "mace", 0.975],
+      ],
     },
     rogue: {
-      survival: [4, "shortsword", 0.855],
-      alwaysFail: [4, 0.855],
-      overCap: ["kennel-mastiff"],
-      xp: 200 + 25 + 200 + 700 + 700 + 2350,
+      survival: [4, "shortsword", 0.85],
+      alwaysFail: [4, 0.85],
+      overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
+      xp: 6750,
+      routes: [
+        ["lodge-hall", 4, "shortsword", 0.85],
+        ["wolfstone-gate", 4, "shortsword-and-dagger", 0.97],
+      ],
+      sweeps: [
+        ["lodge", 4, "shortsword", 0.85],
+        ["wolfstone", 4, "shortsword-and-dagger", 0.97],
+      ],
+    },
+    cleric: {
+      survival: [4, "mace-and-daggers", 0.825],
+      alwaysFail: [4, 0.825],
+      overCap: ["kennel-mastiff", "loose-mastiff"],
+      xp: 6750,
+      routes: [
+        ["lodge-hall", 4, "mace-and-daggers", 0.825],
+        ["wolfstone-gate", 4, "club-and-shield", 0.96],
+      ],
+      sweeps: [
+        ["lodge", 4, "mace-and-daggers", 0.825],
+        ["wolfstone", 4, "club-and-shield", 0.96],
+      ],
+    },
+    wizard: {
+      survival: [4, "quarterstaff-and-dagger", 0.925],
+      alwaysFail: [4, 0.925],
+      overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
+      xp: 6750,
+      routes: [
+        ["lodge-hall", 4, "quarterstaff-and-dagger", 0.925],
+        ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.95],
+      ],
+      sweeps: [
+        ["lodge", 4, "quarterstaff-and-dagger", 0.925],
+        ["wolfstone", 4, "quarterstaff-and-dagger", 0.95],
+      ],
     },
   },
   // Level 4 and Medium since #348: at level 3 the weakest Cleric survived
@@ -551,7 +603,7 @@ const QUOTED_FIGURES = {
   },
 };
 
-test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311, #412)", () => {
+test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311, #412, #445)", () => {
   for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
     const adventure = gated.find((entry) => entry.id === id);
     if (adventure === undefined) {
@@ -595,6 +647,28 @@ test("the gate gives each released module the figures its proposal quotes (#241,
         assert.equal(oneHitKill.enemies.length, quoted.enemyCount, label);
       }
       assert.equal(xp.available, quoted.xp, label);
+      // Each declared route's and region sweep's figures (#445), where quoted.
+      const figures = ({ level, kit, rate }) => [level, kit, rate];
+      if (quoted.routes !== undefined) {
+        assert.deepEqual(
+          verdict.routes.map(({ id: route, survival: way }) => [
+            route,
+            ...figures(way),
+          ]),
+          quoted.routes,
+          label,
+        );
+      }
+      if (quoted.sweeps !== undefined) {
+        assert.deepEqual(
+          verdict.sweeps.map(({ region, survival: way }) => [
+            region,
+            ...figures(way),
+          ]),
+          quoted.sweeps,
+          label,
+        );
+      }
     }
   }
 });
@@ -724,9 +798,12 @@ const CONTROL_OVER_CAP = {
     ["kobold-3", "sleep"],
     ["old-sullage", "sleep"],
   ],
+  // Since #445, Sleep takes the Reaver's Gaoler out 31.6% of the time: one
+  // of nine foes.
+  "thornwood-lodge wizard": [["reavers-gaoler", "sleep"]],
 };
 
-test("in every shipped module the gate judges the casters' Sleep and Hold Person, and only the pinned ordinary foes are over the cap (#369, #412, #442, #443)", () => {
+test("in every shipped module the gate judges the casters' Sleep and Hold Person, and only the pinned ordinary foes are over the cap (#369, #412, #442, #443, #445)", () => {
   for (const adventure of gated) {
     for (const classId of ["wizard", "cleric"]) {
       const { control } = gateOf(adventure).classes.find(
@@ -743,8 +820,8 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
       assert.equal(control.ok, true, label);
       // Hold Person's saves each turn keep the one module's bandits under
       // the cap. The foes over it are pinned: Turn Undead on the Delve's
-      // skeletons since it became Hard (#442), and Sleep at level 4 in the
-      // Weirgate (#443).
+      // skeletons since it became Hard (#442), Sleep at level 4 in the
+      // Weirgate (#443), and Sleep on the Lodge's Gaoler (#445).
       assert.deepEqual(
         control.overCap.map(({ opponentId, control: used }) => [
           opponentId,
@@ -927,6 +1004,9 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     "silvervein-mine/kobold-lookout-coins@kobold-lookout",
     "silvervein-mine/kobold-tunneller-coins@kobold-tunneller",
     "thornwood-lodge/captain-hesk-coins@captain-hesk",
+    "thornwood-lodge/reavers-gaoler-coins@reavers-gaoler",
+    "thornwood-lodge/reavers-gaoler-trinket@reavers-gaoler",
+    "thornwood-lodge/wolfstone-reaver-coins@wolfstone-reaver",
     "wolfstone-hillfort/wolfstone-reaver-coins@wolfstone-reaver",
   ]);
 });
