@@ -1,18 +1,13 @@
 // Opt-in live release run: a module played from start to an ending through
 // the 5e browser server, its API and its saves (The Abandoned Delve for #140
 // by default, on a generated route since its expansion (#442), played by a
-// saved level-2 Ada, The Tinker's Toll for #211 with --adventure tinkers-toll, or
-// The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
-// saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
-// #291 with --adventure thornwood-lodge, on a generated route since its
-// expansion (#445), played by a saved level-4 Ada with 4,100 XP, or The
-// Counting-House on Mallow Quay for #311 with --adventure
-// mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
-// or, with --generated, any built-in module on a route generated from the
-// harness's cautious run on the seed (#409), played by the run's saved
-// character or else a saved Ada at the module's lowest recommended level
-// (level 3 for the Coldwater Weirgate, level 1 for the Bramblecote Cider
-// House, #440),
+// saved level-2 Ada, or The Thornwood Lodge for #291 with --adventure
+// thornwood-lodge, on a generated route since its expansion (#445), played by
+// a saved level-4 Ada with 4,100 XP), or, with --generated, any built-in
+// module on a route generated from the harness's cautious run on the seed
+// (#409), played by the run's saved character or else a saved Ada at the
+// module's lowest recommended level (level 3 for the Coldwater Weirgate,
+// level 1 for the Bramblecote Cider House, #440),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -37,7 +32,6 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   OUTCOME_CLAIM,
-  startAdventureOverHttp,
   startSavedAdventureOverHttp,
 } from "../dist/dm-evaluation-5e.js";
 import { createDmCallBudget } from "../dist/dm-turn.js";
@@ -45,48 +39,24 @@ import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
 } from "../dist/openai-dm-model.js";
-import {
-  COUNTING_HOUSE_ROUTE,
-  generateReleaseRun,
-  MINE_FULL_ROUTE,
-  playReleaseRun,
-  TOLL_FULL_ROUTE,
-} from "../dist/release-run-5e.js";
-import {
-  levelFourCareerLibrary,
-  levelThreeLibrary,
-  libraryAt,
-} from "../dist/test-fighter-5e.js";
-import { rogueLibrary } from "../dist/test-rogue-5e.js";
+import { generateReleaseRun, playReleaseRun } from "../dist/release-run-5e.js";
+import { levelFourCareerLibrary, libraryAt } from "../dist/test-fighter-5e.js";
 
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>] [--generated]";
 
-// Each release run's issue, route and default seed, on which its character
-// clears the route and walks out when each step is taken as planned. A run with a
-// `character` starts from a library holding it, already saved. A `generated`
-// run always plays the route generated on its seed (#409), as --generated
-// does, under its own issue.
+// Each module's own release run: its issue and default seed, on which its
+// character walks out with loot, and the saved character it starts from when
+// that isn't Ada at the module's lowest recommended level. Every run plays the
+// route generated on its seed (#409); the hand-written routes retired with
+// their modules (#446). --generated plays a module with no run of its own,
+// under #409.
 const RUNS = {
-  "abandoned-delve": { issue: 140, generated: true, seed: "0" },
-  "tinkers-toll": { issue: 211, route: TOLL_FULL_ROUTE, seed: "0" },
-  "silvervein-mine": {
-    issue: 241,
-    route: MINE_FULL_ROUTE,
-    seed: "47",
-    character: levelThreeLibrary,
-  },
+  "abandoned-delve": { issue: 140, seed: "0" },
   "thornwood-lodge": {
     issue: 291,
-    generated: true,
     seed: "1",
     character: levelFourCareerLibrary,
-  },
-  "mallow-counting-house": {
-    issue: 311,
-    route: COUNTING_HOUSE_ROUTE,
-    seed: "8",
-    character: rogueLibrary,
   },
 };
 const usage = () => {
@@ -123,30 +93,25 @@ for (let index = 0; index < args.length; index += 1) {
   }
 }
 const own = RUNS[options.adventure];
-generated ||= own?.generated === true;
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === options.adventure,
 );
 if (
   mode === undefined ||
-  (generated
-    ? adventure === undefined
-    : !Object.hasOwn(RUNS, options.adventure))
+  adventure === undefined ||
+  (own === undefined && !generated)
 ) {
   usage();
 }
 // A generated route (#409) is the harness's run with a saved character's
 // sheet: the run's own, or else Ada at the module's lowest recommended level.
-const run = generated
-  ? {
-      seed: "0",
-      ...own,
-      // A run that is always generated keeps its own issue.
-      issue: own?.generated ? own.issue : 409,
-      character:
-        own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
-    }
-  : own;
+const run = {
+  seed: "0",
+  issue: 409,
+  ...own,
+  character:
+    own?.character ?? (() => libraryAt(adventure.recommendedLevels.min)),
+};
 const dryRun = mode === "--dry-run";
 options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
 options.seed ??= run.seed;
@@ -185,7 +150,7 @@ const report = {
   issue: run.issue,
   mode: dryRun ? "dry-run" : "live",
   adventureId: options.adventure,
-  generated,
+  generated: true,
   // A dry run's folder is gone once it finishes.
   ...(dryRun ? {} : { runDirectory: relative(process.cwd(), directory) }),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
@@ -225,9 +190,7 @@ const model = {
 };
 
 const libraryPath = join(directory, "characters.json");
-if (run.character !== undefined) {
-  await writeFile(libraryPath, JSON.stringify(run.character()));
-}
+await writeFile(libraryPath, JSON.stringify(run.character()));
 const server = await startFifthBrowserServer({
   libraryPath,
   seed,
@@ -239,16 +202,10 @@ const server = await startFifthBrowserServer({
 try {
   const { session } = await playReleaseRun({
     url: server.url,
-    session: await (
-      run.character === undefined
-        ? startAdventureOverHttp
-        : startSavedAdventureOverHttp
-    )(server.url, options.adventure),
-    ...(generated
-      ? generateReleaseRun(adventure, run.character().characters[0].sheet, {
-          seed,
-        })
-      : { route: run.route }),
+    session: await startSavedAdventureOverHttp(server.url, options.adventure),
+    ...generateReleaseRun(adventure, run.character().characters[0].sheet, {
+      seed,
+    }),
     onTurn(turn) {
       report.turns.push({
         ...turn,

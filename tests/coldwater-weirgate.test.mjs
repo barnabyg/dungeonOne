@@ -2,7 +2,7 @@
 // owner approved it in #411 with the six changes approved on #412, and
 // re-qualified at levels 3–4 by #443: a long Medium module of twenty rooms
 // in two regions, the Keep above and the Culverts below. #443 also brought
-// in mechanics only a retiring module had: reaction trade (Larrow sells off
+// in mechanics only a retired module had: reaction trade (Larrow sells off
 // the last barge), lurking (Brindle and the drowned guildsmen) and authored
 // sneaking (the sleeping bandits' bypass XP and sneak again). Two ways lead
 // down, the keeper's stair (Sergeant Larrow's key, a pick or a break, and a bell-wire deadfall) and the culvert
@@ -563,7 +563,7 @@ test("its release run plays a generated route to the open sluices (#409)", async
 });
 
 // #443: reaction trade, lurking and authored sneaking, which only a
-// retiring module had, moved into the Weirgate.
+// retired module had, moved into the Weirgate.
 test("Larrow sells off the last barge when she is indifferent or friendly, and Brindle and the drowned guildsmen lie in wait", () => {
   const { trade, bands } = encounter("toll-hall-fight").reaction;
   assert.deepEqual(trade, {

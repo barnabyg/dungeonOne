@@ -37,64 +37,12 @@ export const CONTENT_TESTS = new Map([
   ],
   ["tests/issue-140.test.mjs", "the #140 release run of the Abandoned Delve"],
   [
-    "tests/issue-211.test.mjs",
-    "the Tinker's Toll's content, gate verdict and #211 release run",
-  ],
-  [
-    "tests/issue-211-browser.test.mjs",
-    "the Tinker's Toll's handoff run through the browser",
-  ],
-  [
-    "tests/issue-241.test.mjs",
-    "the Silvervein Mine's content, scripted-DM journeys and #241 release run",
-  ],
-  [
-    "tests/issue-241-browser.test.mjs",
-    "the Silvervein Mine's handoff run through the browser",
-  ],
-  [
-    "tests/shepherds-bothy.test.mjs",
-    "the Shepherd's Bothy's content, gate verdict and journeys",
-  ],
-  [
-    "tests/drowned-chapel.test.mjs",
-    "the Drowned Chapel's content, gate verdict and journeys",
-  ],
-  [
-    "tests/gravediggers-lodge.test.mjs",
-    "the Gravedigger's Lodge's content, gate verdict and journeys",
-  ],
-  [
-    "tests/hollow-chantry.test.mjs",
-    "the Hollow Chantry's content, routes, rests, magic items and journeys",
-  ],
-  [
-    "tests/ravagers-tower.test.mjs",
-    "the Ravager's Tower's content, gate verdict and journeys",
-  ],
-  [
-    "tests/issue-275-browser.test.mjs",
-    "the #275 modules' handoff runs through the browser",
-  ],
-  [
-    "tests/wolfstone-hillfort.test.mjs",
-    "the Wolfstone Hillfort's content, gate verdict, checks and journeys",
-  ],
-  [
-    "tests/issue-289-browser.test.mjs",
-    "the Wolfstone Hillfort's handoff runs through the browser",
-  ],
-  [
     "tests/thornwood-lodge.test.mjs",
     "the Thornwood Lodge's content, gate verdict, checks and journeys",
   ],
   [
     "tests/issue-291-browser.test.mjs",
     "the increment 14 handoff runs through the browser",
-  ],
-  [
-    "tests/mallow-counting-house.test.mjs",
-    "the Counting-House on Mallow Quay's content, gate verdict, reactions, locks, trap, journeys and release run",
   ],
   [
     "tests/coldwater-weirgate.test.mjs",

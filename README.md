@@ -11,12 +11,11 @@ actions the engine offers, and never invents an outcome.
 
 The [rules document](docs/character-rules.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no tactical grid. The
-[5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
-ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
-records how the 5e release was qualified, with manual test scenarios. The
-latest, the [increment 17 handoff](docs/acceptance/increment-17-release.md),
-covers the long release module _The Coldwater Weirgate_: fleeing, alarms,
-using items and the room, wandering monsters and the known rooms.
+[increment 11 handoff](docs/acceptance/increment-11-release.md) records how
+the 5e release was qualified, with manual test scenarios. The latest, the
+[increment 17 handoff](docs/acceptance/increment-17-release.md), covers the
+long release module _The Coldwater Weirgate_: fleeing, alarms, using items and
+the room, wandering monsters and the known rooms.
 
 ## Requirements
 
@@ -233,64 +232,6 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   a bow off the last barge, a chained wolf and the drowned dead lie in wait,
   and you can slip past the sleeping bandits for XP. Opening the sluices
   pays 1,800 XP, enough for level 4.
-- _The Counting-House on Mallow Quay_ (`adventures/5e/mallow-counting-house.json`,
-  levels 3–4, Medium; Hard until #334): six rooms in a burned guild counting-house held by
-  goblins. Snikk the Toll-Taker (a Goblin Boss) reacts at the arch: pay his
-  toll, talk him round, trade, or fight. A goblin lurks in the counting hall,
-  a scything blade guards the gallery stair, and a bugbear lurks in the
-  records loft with the key to the strongroom's iron door, which a rogue can
-  pick and anyone can try to break.
-- _The Drowned Chapel_ (`adventures/5e/drowned-chapel.json`, level 3, Easy):
-  three rooms in a flooded marsh chapel. The drowned sexton (a Zombie) guards
-  the chapel's silver reliquary at the altar, and the vestry beyond holds the
-  parish alms, a potion and a chrysoprase.
-- _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, level 3, Medium): a
-  potion among the charms at the gate, a Goblin Warrior in the tunnel where
-  another lies under the gnawed bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
-  among it, and a way out.
-- _The Gravedigger's Lodge_ (`adventures/5e/gravediggers-lodge.json`, level 2,
-  Hard): two rooms in a churchyard. Two potions wait at the lychgate; in the
-  dead-house a false gravedigger (a Bandit) and a corpse he dug up (a Zombie)
-  fight together over a coffin packed with grave goods.
-- _The Hollow Chantry_ (`adventures/5e/hollow-chantry.json`, level 3,
-  Medium): eight rooms under a hillside chantry whose dead have woken. A
-  barred vestry is the place for a long rest, if the wandering dead let you.
-  Two ways lead down to the Risen Prior: the sexton's iron grille, opened
-  with his key, a pick or a strong shoulder, or a warded stair that a caster
-  can read open with Arcana or Religion. Two spell scrolls wait on the way,
-  and an optional Ghoul guards the founder's +1 Mace.
-- _The Ravager's Tower_ (`adventures/5e/ravagers-tower.json`, level 3, Hard):
-  two rooms in a ruined watchtower. A dead pedlar at the tower's foot still
-  has three potions; at the top a Gnoll Ravager guards the plunder of the road.
-- _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
-  Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
-  a garnet under the bier, a sack of grave gold and a way out.
-- _The Shepherd's Bothy_ (`adventures/5e/shepherds-bothy.json`, level 2,
-  Easy): three rooms on the moor. A lone bandit (a Bandit) holds the bothy
-  with the market's takings, a brooch and a sapphire, and a lean-to behind it
-  hides a potion and a bloodstone.
-- _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3, Medium):
-  six rooms in an old silver mine. Two kobolds in the sorting shed may flee or
-  surrender, and the one that surrenders gives up the key to the overseer's
-  door; drowned miners (a Zombie and a Skeleton), a Giant Spider and a Bugbear
-  overseer guard the rest of the silver.
-- _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`, level 1,
-  Hard): four rooms with a Goblin Warrior, a Potion of Healing hidden in a
-  chest and the smugglers' leavings to find on the way.
-- _The Tinker's Toll_ (`adventures/5e/tinkers-toll.json`, level 1, Hard): four rooms on a
-  river road. Merrow the tinker trades dagger, shortsword, shield and chain
-  shirt from the cart; a Wolf guards the ford, where a shield and a purse lie
-  in the reeds, and two Bandits hold the toll tower with their takings.
-- _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`, level 2, Medium):
-  six rooms with a stuck door, a locked door and its key, a dart trap, a bound
-  smuggler to question, the warden's hoard in the strongroom and the warden
-  risen as a Zombie in the tomb.
-- _The Wolfstone Hillfort_ (`adventures/5e/wolfstone-hillfort.json`, level 4,
-  Medium): six rooms in a bandit-held hillfort. Wenna the drover trades
-  shield, chain shirt, longsword and chain mail at the camp below; the
-  Reaver's dire wolf guards the ditch. Past a rusted portcullis, a rope
-  bridge to the keep can open or fall, a brown bear dens in the undercroft,
-  and the Reaver (a Bandit Captain) holds the keep's strongbox.
 - _The Thornwood Lodge_ (`adventures/5e/thornwood-lodge.json`, levels 4–5,
   Hard): a long module of sixteen rooms in two regions, a deserter
   captain's hunting lodge and the Wolfstone hillfort on the crag above it,
@@ -763,26 +704,24 @@ These are for development, not play.
   from the balance harness's cautious run (#442; seed 0 by default) from a
   saved level-2 Ada, or with `--adventure thornwood-lodge` The Thornwood
   Lodge on its generated route (#445; seed 1) from a saved level-4 Ada with
-  4,100 XP, or with `--adventure tinkers-toll` The Tinker's Toll with its
-  trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
-  (seed 47) from a saved level-3 Ada, through the browser server, typing every
-  step to the AI DM
-  and pressing a step's button only when the DM's turn left it undone, and
+  4,100 XP, through the browser server, typing every step to the AI DM and
+  pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
   seed and `--dry-run` checks the harness offline. With `--generated`
   (#409) it plays any built-in module (`--adventure <id>`) on a route
   generated from the balance harness's cautious run on the seed (0 unless
-  the module has a hand-written run), from the module's saved character or
-  else a saved level-3 Ada, capped at 40 turns a room, and writes
-  `.verify-artifacts/issue-409-live.json`.
-- **Hand-written or generated release runs.** A shipped module's release run
-  follows a hand-written route when it checks particular moments (a trade, a
-  parley, a surrender, a retry) with phrasing chosen to test the AI DM;
-  those routes stay as they are. A module too long to write a route for by
-  hand, or whose content is still changing, uses `generateReleaseRun`
-  instead: the steps the harness took outside fights on a fixed seed and
-  class, each with plain generated words, which proves the module can be
-  played through the AI DM but not that particular moments happen.
+  the module has its own run), from the module's saved character or else a
+  saved Ada at the module's lowest recommended level, capped at 40 turns a
+  room, and writes `.verify-artifacts/issue-409-live.json`.
+- **Hand-written or generated release runs.** A release run can follow a
+  hand-written route when it checks particular moments (a trade, a parley,
+  a surrender, a retry) with phrasing chosen to test the AI DM; the live
+  script has none since the modules that had one retired (#446). A module
+  too long to write a route for by hand, or whose content is still changing,
+  uses `generateReleaseRun` instead: the steps the harness took outside
+  fights on a fixed seed and class, each with plain generated words, which
+  proves the module can be played through the AI DM but not that particular
+  moments happen.
 - **Where the live checks write.** Both scripts write their report to
   `--output`, by default `.verify-artifacts/issue-<n>-live.json` (`<n>` is
   138 for the delve qualification, otherwise the module's issue), and keep the

@@ -13,60 +13,8 @@
       "hash": "30c9a2d549dce70f531a43adb8761f82d19fdda3f4c1d214b187767498cc359a",
       "qualified": true
     },
-    "drowned-chapel": {
-      "hash": "dfdee62892c1e824c4739d57df4908df309d7b253cb2074df3efb28097dc3d72",
-      "qualified": true
-    },
-    "goblin-warren": {
-      "hash": "3ef913c4e28ef97e789cdb9d896be0ae334f10a58915b2c59bc09f3d03c6e674",
-      "qualified": true
-    },
-    "gravediggers-lodge": {
-      "hash": "6c8bb7fe08a9ec6cd998b1c47417b18c41636ca6962fbd8efe6f6ef912e5e02c",
-      "qualified": true
-    },
-    "hollow-chantry": {
-      "hash": "d9b42a6cc480b5292f3f86dc72f8fcd2f1a5ef3636a421a0943fbcaca73ab6ad",
-      "qualified": true
-    },
-    "mallow-counting-house": {
-      "hash": "6636894b17a100dc2d4684529a81806c26408d41076a952dc524b18afae898da",
-      "qualified": true
-    },
-    "ravagers-tower": {
-      "hash": "bf95a53662c1d7b365e284fee1982a71c2567a7f8ba7d6c648b56d5de12d6e08",
-      "qualified": true
-    },
-    "robbers-barrow": {
-      "hash": "b58ec4b5c02ee94e927def54ab85129124cc02687880231adf28daba4800c46d",
-      "qualified": true
-    },
-    "shepherds-bothy": {
-      "hash": "c83a3127267aea6afc8a853e618c56b7e772350185548d9528ce516fa107b236",
-      "qualified": true
-    },
-    "silvervein-mine": {
-      "hash": "022644f3cf2185a7e9fd4032760c7cae46aa433a03b3d79b0dfa312054c1429e",
-      "qualified": true
-    },
-    "smugglers-cellar": {
-      "hash": "7966694ebc4800205da8615eac45a96493bb1f980e4c582e96c17775d3cae2e5",
-      "qualified": true
-    },
     "thornwood-lodge": {
       "hash": "5873dfdf7df987f601f944560debc300c71a90c71952f7de8695025b5f78604a",
-      "qualified": true
-    },
-    "tinkers-toll": {
-      "hash": "84f4e90903e107654c310f3104415565e4524c631d60d9592ab88aacdf5a06f4",
-      "qualified": true
-    },
-    "warden-crypt": {
-      "hash": "75901c56a9a5382385cf3a47914fae3f1ef8fee46e6e92e95f0245d03bc35605",
-      "qualified": true
-    },
-    "wolfstone-hillfort": {
-      "hash": "1d9704a0f0375ef12a2f42394623da27dd4dffd8713700eaca1cb6234d9ec516",
       "qualified": true
     }
   }

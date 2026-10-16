@@ -26,12 +26,6 @@ const LAUNCHER_TESTS = new Set([
   "tests/fixtures/quiet-launcher.mjs",
 ]);
 
-/**
- * Tests that name shipped modules' ids and titles only to check where the
- * repository names them, and read none of them.
- */
-const NAMING_CHECKS = new Set(["tests/retiring-modules.test.mjs"]);
-
 /** An `adventures` option given a value, or shorthand, in an object. */
 const ADVENTURES_OPTION =
   /(?:^|[{,\s])adventures\s*(?::\s*(?!undefined\b)[^\s,}]|[,}]|$)/mu;
@@ -149,10 +143,7 @@ test("only the content tests read a shipped module (#251)", async () => {
     if (CONTENT_TESTS.has(file)) {
       continue;
     }
-    const found = violations(file, await readFile(path, "utf8")).filter(
-      (reason) =>
-        !NAMING_CHECKS.has(file) || !reason.startsWith("names shipped module"),
-    );
+    const found = violations(file, await readFile(path, "utf8"));
     if (found.length > 0) {
       reaching.push(`${file}: ${found.join("; ")}`);
     }
