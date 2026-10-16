@@ -29,11 +29,11 @@ git branch -D <merged-branch>
 
 `npm.cmd test` runs every test file, and `npm.cmd run verify` and CI run it that way. While you work, run the tests your change can break, and leave the full run for before you open or update the PR. The test files fall into tiers (`scripts/test-tiers.mjs`):
 
-| Tier      | What it holds                                                                                      | About                     |
-| --------- | -------------------------------------------------------------------------------------------------- | ------------------------- |
-| `quick`   | engine, rules, harness, server and script tests on fixture modules: no browser, no shipped content | 12 s                      |
-| `browser` | tests that drive a browser or start the real launcher, release handoffs included                   | 60 s                      |
-| `content` | tests of the shipped modules in `adventures/5e/`, including the balance gate over every module     | 60 s; 30 s for one module |
+| Tier      | What it holds                                                                                      | About                                                  |
+| --------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `quick`   | engine, rules, harness, server and script tests on fixture modules: no browser, no shipped content | 15 s                                                   |
+| `browser` | tests that drive a browser or start the real launcher, release handoffs included                   | 60 s                                                   |
+| `content` | tests of the shipped modules in `adventures/5e/`, including the balance gate over every module     | 5 min; for one module 45 s, up to 3 min (the Weirgate) |
 
 Pick by what you changed:
 
