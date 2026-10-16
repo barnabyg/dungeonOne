@@ -16,14 +16,14 @@
  * A route is hand-written or generated (#409). A hand-written route is for
  * a release run that checks particular moments: a trade, a parley, a
  * surrender, a retry, with phrasing chosen to test the AI DM, capped at 400
- * turns; none is left since the modules that had one retired (#446).
- * `generateReleaseRun` builds a route from the balance
- * harness's cautious run on a fixed seed and class instead, with plain
- * generated words for each step and a turn cap of 40 turns a room. Use it
- * for a module too long to write a route for by hand, or one whose content
- * is still changing; its steps follow wherever the harness went, so it
- * proves the module can be played through the AI DM, not that particular
- * moments happen.
+ * turns. No shipped module's release run has one since the modules that
+ * had one retired (#446); tests still play short ones. `generateReleaseRun`
+ * builds a route from the balance harness's cautious run on a fixed seed and
+ * class instead, with plain generated words for each step and a turn cap of
+ * 40 turns a room. Use it for a module too long to write a route for by
+ * hand, or one whose content is still changing; its steps follow wherever
+ * the harness went, so it proves the module can be played through the AI
+ * DM, not that particular moments happen.
  */
 import type { FifthAdventure } from "./adventure-5e.js";
 import { GATE_STYLE, playAdventure, type PlayStyle } from "./balance-5e.js";

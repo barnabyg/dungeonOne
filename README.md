@@ -716,12 +716,13 @@ These are for development, not play.
   room, and writes `.verify-artifacts/issue-409-live.json`.
 - **Hand-written or generated release runs.** A release run can follow a
   hand-written route when it checks particular moments (a trade, a parley,
-  a surrender, a retry) with phrasing chosen to test the AI DM; none is left
-  since the modules that had one retired (#446). A module too long to write
-  a route for by hand, or whose content is still changing, uses
-  `generateReleaseRun` instead: the steps the harness took outside fights on a fixed seed and
-  class, each with plain generated words, which proves the module can be
-  played through the AI DM but not that particular moments happen.
+  a surrender, a retry) with phrasing chosen to test the AI DM; the live
+  script has none since the modules that had one retired (#446). A module
+  too long to write a route for by hand, or whose content is still changing,
+  uses `generateReleaseRun` instead: the steps the harness took outside
+  fights on a fixed seed and class, each with plain generated words, which
+  proves the module can be played through the AI DM but not that particular
+  moments happen.
 - **Where the live checks write.** Both scripts write their report to
   `--output`, by default `.verify-artifacts/issue-<n>-live.json` (`<n>` is
   138 for the delve qualification, otherwise the module's issue), and keep the
