@@ -2,7 +2,7 @@
 
 > **Status:** accepted. #137 made 5e the browser's only mode, and #139 removed the pre-5e game on 6 October 2026; git history keeps it.
 
-On 4 October 2026 the project owner decided to move Dungeon One to the 2024 fifth-edition rules published in the System Reference Document 5.2 (SRD 5.2, CC-BY-4.0), instead of extending the house rules in [`docs/character-rules.md`](../character-rules.md). The game is in early development, and building every feature twice (once in the house rules, once in 5e) costs more than starting again. The plan is the [D&D 5e expansion plan](../../dnd-expansion-implementation-plan.md); increment 11 is issues #125–#140.
+On 4 October 2026 the project owner decided to move Dungeon One to the 2024 fifth-edition rules published in the System Reference Document 5.2 (SRD 5.2, CC-BY-4.0), instead of extending the house rules in [`docs/character-rules.md`](../character-rules.md). The game is in early development, and building every feature twice (once in the house rules, once in 5e) costs more than starting again. Increment 11 is issues #125–#140.
 
 ## Decision
 
@@ -35,7 +35,7 @@ No migration is offered. A new 5e adventure module replaces them. Shared infrast
 - The 5e XP table.
 - SRD 5.2 stat blocks for monsters.
 
-Other 5e rules arrive in later increments as the expansion plan schedules them (for example short and long rests, conditions and spellcasting).
+Other 5e rules arrive in later increments (for example short and long rests, conditions and spellcasting).
 
 ## 5e left out, and why
 
