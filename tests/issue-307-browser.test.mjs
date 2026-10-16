@@ -145,7 +145,10 @@ test(
         .click();
       const sheetText = await text(page.locator("#sheet-body"));
       assert.match(sheetText, /^Level 3 Rogue/u);
-      assert.match(sheetText, /Cunning Action\. Bonus action: Hide\./u);
+      assert.match(
+        sheetText,
+        /Cunning Action\. Bonus action: Hide or Disengage\./u,
+      );
       assert.match(sheetText, /Steady Aim\. Bonus action/u);
       assert.match(sheetText, /Thief: Fast Hands\./u);
       assert.match(sheetText, /Thief: Second-Story Work\./u);

@@ -116,6 +116,8 @@ test("help describes only the 5e browser", () => {
   assert.match(result.stdout, /--characters <library\.json>/);
   assert.match(result.stdout, /Default library: characters\.json/);
   assert.match(result.stdout, /characters-adventures/);
+  // Every class is offered, so the help names none of them.
+  assert.match(result.stdout, /Create or choose a saved 5e character,/);
   assert.doesNotMatch(result.stdout, /--legacy|--5e|--save|--artwork/);
 });
 

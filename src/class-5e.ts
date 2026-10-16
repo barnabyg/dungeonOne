@@ -273,9 +273,10 @@ export type FeatureEffect = Readonly<
    */
   | { kind: "expertise"; count: number; skills?: readonly SkillId[] }
   /**
-   * Cunning Action (#307): Hide as a bonus action, a Stealth check against
-   * the opponents' best passive Perception; success gives advantage on the
-   * next attack roll. Dash and Disengage need positions and are omitted.
+   * Cunning Action: a bonus action to Hide (#307), a Stealth check against
+   * the opponents' best passive Perception whose success gives advantage on
+   * the next attack roll, or to Disengage (#396), so fleeing this turn draws
+   * no attacks. Dash needs positions and is omitted.
    */
   | { kind: "cunning-action" }
   /** Steady Aim (#307): a bonus action for advantage on the next attack this turn. */
