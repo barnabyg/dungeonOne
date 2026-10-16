@@ -528,7 +528,7 @@ test("the gate gives each released module the figures its proposal quotes (#291,
  * Turn Undead in each shipped module with undead opponents (#349): the cap
  * the module's difficulty sets and, for each ordinary undead enemy, the
  * Cleric's chance in percent that one use at the fight's opening keeps it
- * out of the fight (the figures docs/rules/balance.md quotes).
+ * out of the fight, pinned here so a change that moves them is noticed.
  */
 const TURN_UNDEAD_FIGURES = {
   "abandoned-delve": {
