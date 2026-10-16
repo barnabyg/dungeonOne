@@ -308,11 +308,11 @@ The shipped module whose gate figures the gate's time-budget test pins, so a spe
 _Avoid_: Benchmark module, Dummy module
 
 **Release run**:
-A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written for the shipped modules that have one; the code calls its step list its `route`, which is not a module's declared route.
+A test that plays a module from start to an ending through the browser server, typing each of its steps to the AI DM as a player would and pressing a step's button only when the DM's turn left it undone (`src/release-run-5e.ts`). Its steps are hand-written or generated; the code calls its step list its `route`, which is not a module's declared route.
 _Avoid_: Playthrough (the harness's), Handoff run
 
 **Generated release run**:
-A release run whose steps are taken from the balance harness's cautious run on a fixed seed and class (#409): each action it took outside a fight, with words a player would type for it. Its turn cap is 40 turns a room. Used for a module without hand-written steps, such as a long one.
+A release run whose steps are taken from the balance harness's cautious run on a fixed seed and class (#409): each action it took outside a fight, with words a player would type for it. Its turn cap is 40 turns a room. Every shipped module's release run is generated.
 _Avoid_: Auto route, Scripted run (the hand-written kind)
 
 **Move count**:

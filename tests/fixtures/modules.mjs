@@ -1589,11 +1589,10 @@ export const forkedTunnels = validateModule(
 );
 
 /**
- * The gate-time canary (#410): _The Long Workings_, a long module of twenty
- * rooms in two regions, level 3, medium, with two declared routes, an
- * avoidable room in each region and a wandering table in the lower. A
- * shipped long module replaced it in the gate's time budget (#412); the
- * projection tests still play it.
+ * _The Long Workings_ (#410), a long module of twenty rooms in two regions,
+ * level 3, medium, with two declared routes, an avoidable room in each
+ * region and a wandering table in the lower, on which the projection tests
+ * check the harness's narrowed projection.
  */
 export const longWorkings = validateModule(moduleFile("long-workings"));
 

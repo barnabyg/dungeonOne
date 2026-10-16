@@ -80,10 +80,8 @@ const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 const SURVIVAL_SLACK = 0.03;
 /**
  * The reference CPU seconds the gate may take over every shipped module, the
- * Coldwater Weirgate (#412) among them as the gate-time canary: 450 since
- * #447, when the four modules measured 316.3–329.5 locally (the Weirgate
- * about 150 of it), with the headroom #412 and #440 left; 600 over the
- * seventeen modules before the retirement (#446).
+ * Coldwater Weirgate (#412) among them as the gate-time canary: 450 (#447),
+ * about a third over the four modules' measure.
  */
 const GATE_BUDGET_SECONDS = 450;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
@@ -151,11 +149,9 @@ test("every shipped module qualifies at its declared difficulty for every class 
   }
   // docs/character-rules.md records the budget, for gating every module.
   // The log shows every run's measure, so CI's can be read against the cap.
-  t.diagnostic(`the gate took ${seconds.toFixed(1)} s of reference CPU`);
-  assert.ok(
-    gated !== shipped || seconds < GATE_BUDGET_SECONDS,
-    `the gate took ${seconds.toFixed(1)} s of reference CPU`,
-  );
+  const measure = `the gate took ${seconds.toFixed(1)} s of reference CPU`;
+  t.diagnostic(measure);
+  assert.ok(gated !== shipped || seconds < GATE_BUDGET_SECONDS, measure);
 });
 
 /**
