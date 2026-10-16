@@ -1,7 +1,5 @@
-// #291, browser → API → storage: the increment 14 player handoff
-// (docs/acceptance/increment-14-release.md), each scenario on its own library
-// and seed, with the numbers the handoff quotes (scenario 1's since #438 are
-// the fixture's):
+// Browser → API → storage: three level-4 and level-5 Fighter journeys, each
+// on its own library (tests/fixtures/libraries/) and seed:
 // - Scenario 1: the 2,690 XP Ada of #286 wins a fight (the Lone Goblin
 //   fixture, since #438) and settles at level 4, owing her choices.
 // - Scenario 2: a level-4 Ada with 4,100 XP (about a career's after the
@@ -38,10 +36,7 @@ import { loneGoblin } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 
 const LIBRARY = fileURLToPath(
-  new URL(
-    "../docs/acceptance/inputs/increment-14/level-4-ada-4100-xp.json",
-    import.meta.url,
-  ),
+  new URL("./fixtures/libraries/level-4-ada-4100-xp.json", import.meta.url),
 );
 
 const lodge = (await loadBuiltInFifthAdventures()).find(
@@ -88,7 +83,7 @@ test(
       "Defeated Hesk's Hound and Kennel Mastiff",
       225,
     ]);
-    // The input library is the one the handoff gives the owner.
+    // The library fixture matches its generator; regenerate it when the format changes.
     assert.deepEqual(
       JSON.parse(await readFile(LIBRARY, "utf8")),
       JSON.parse(JSON.stringify(levelFourCareerLibrary())),
@@ -181,10 +176,7 @@ test(
 );
 
 const LEVEL_FIVE = fileURLToPath(
-  new URL(
-    "../docs/acceptance/inputs/issue-287/level-5-ada.json",
-    import.meta.url,
-  ),
+  new URL("./fixtures/libraries/level-5-ada.json", import.meta.url),
 );
 /**
  * The checks scenario's seed. The handoff quoted seed 1's numbers; with one
@@ -324,10 +316,7 @@ test(
 );
 
 const LEVEL_THREE = fileURLToPath(
-  new URL(
-    "../docs/acceptance/inputs/issue-286/level-3-ada-2690-xp.json",
-    import.meta.url,
-  ),
+  new URL("./fixtures/libraries/level-3-ada-2690-xp.json", import.meta.url),
 );
 
 test(

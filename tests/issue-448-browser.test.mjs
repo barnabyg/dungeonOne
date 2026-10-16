@@ -1,6 +1,7 @@
-// #448, browser → API → storage: the four-module player handoff
-// (docs/acceptance/four-module-release.md), each scenario on its own library
-// and seed, one per shipped module at a level of the career:
+// Browser → API → storage: the scenarios of the four-module release handoff
+// (docs/acceptance/four-module-release.md), each on its own library
+// (tests/fixtures/libraries/) and seed, one per shipped module at a level of
+// the career:
 // - Scenario 1: a level-1 Fighter created in the browser beats Nib and
 //   Snagtooth in the Bramblecote Cider House, takes the strongroom key from
 //   Wick when he surrenders, empties the Pells' strongroom and leaves by the
@@ -37,15 +38,15 @@ import { readAda } from "./fixtures/save-files.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 const input = (path) =>
-  fileURLToPath(new URL(`../docs/acceptance/inputs/${path}`, import.meta.url));
+  fileURLToPath(new URL(`./fixtures/libraries/${path}`, import.meta.url));
 
 const modules = new Map(
   (await loadBuiltInFifthAdventures()).map((module) => [module.id, module]),
 );
 
 /**
- * A library holding only Vex at level 2: the handoff's input
- * docs/acceptance/inputs/issue-448/level-2-vex.json. Regenerate the file
+ * A library holding only Vex at level 2, as in
+ * tests/fixtures/libraries/level-2-vex.json. Regenerate the file
  * from this when the library format changes.
  */
 const levelTwoVex = () => ({
@@ -312,7 +313,7 @@ test(
       name: "delve",
       moduleId: "abandoned-delve",
       seed: DELVE_SEED,
-      library: { path: "issue-448/level-2-vex.json", data },
+      library: { path: "level-2-vex.json", data },
       start: [15, 15],
       route: [
         ["move", "gate-hall"],
@@ -385,7 +386,7 @@ test(
       name: "weirgate",
       moduleId: "coldwater-weirgate",
       seed: WEIRGATE_SEED,
-      library: { path: "increment-14/level-4-ada-4100-xp.json", data },
+      library: { path: "level-4-ada-4100-xp.json", data },
       start: [36, 14],
       route: [
         ["move", "barge-yard"],
@@ -455,7 +456,7 @@ test(
       name: "lodge",
       moduleId: "thornwood-lodge",
       seed: LODGE_SEED,
-      library: { path: "issue-287/level-5-ada.json", data },
+      library: { path: "level-5-ada.json", data },
       start: [44, 14],
       route: [
         ["examine", "woodpile"],

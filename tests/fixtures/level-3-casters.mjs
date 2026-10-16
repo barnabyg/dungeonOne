@@ -1,8 +1,8 @@
-// The level-3 casters the increment 16 release handoff plays (#350): Mira,
-// a Life Domain Cleric, and Vela, an Evoker, each created from the same dice
-// with her class's default choices and kit, raised to level 3 as the gate
-// raises a character, and alone in a library
-// (docs/acceptance/inputs/increment-16/).
+// The level-3 casters of the Sunken Chantry browser journeys: Mira, a Life
+// Domain Cleric, and Vela, an Evoker, each created from the same dice with
+// her class's default choices and kit, raised to level 3 as the gate raises a
+// character, and alone in a library (tests/fixtures/libraries/level-3-mira.json
+// and level-3-vela.json).
 import { characterAtLevel } from "../../dist/balance-5e.js";
 import { FIFTH_LIBRARY_FORMAT } from "../../dist/character-library-5e.js";
 import { validateCharacter } from "../../dist/character-5e.js";

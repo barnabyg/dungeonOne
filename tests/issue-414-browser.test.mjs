@@ -1,6 +1,5 @@
-// #414, browser → API → storage: the increment 17 player handoff
-// (docs/acceptance/increment-17-release.md), each scenario on its own
-// library and seed, in The Coldwater Weirgate:
+// Browser → API → storage: two level-3 journeys through The Coldwater
+// Weirgate, each on its own library (tests/fixtures/libraries/) and seed:
 // - Scenario 1: the level-3 Fighter Ada beats Sergeant Larrow for the grate
 //   key, rings the weir bell by failing to break the grate, unlocks it, and
 //   drops the counterweight on Grisk in the gear hall. On the way, the Known
@@ -26,9 +25,9 @@ import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
 const input = (path) =>
-  fileURLToPath(new URL(`../docs/acceptance/inputs/${path}`, import.meta.url));
-const ADA_LIBRARY = input("increment-13/level-3-ada.json");
-const VEX_LIBRARY = input("increment-15/level-3-vex.json");
+  fileURLToPath(new URL(`./fixtures/libraries/${path}`, import.meta.url));
+const ADA_LIBRARY = input("level-3-ada.json");
+const VEX_LIBRARY = input("level-3-vex.json");
 
 const weirgate = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "coldwater-weirgate",

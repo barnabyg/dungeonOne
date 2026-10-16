@@ -536,10 +536,10 @@ test("the gate's XP limit counts up to level 6 for a module whose maximum is 4",
   assert.equal(over.ok, false);
 });
 
-test("the handoff's input library is Ada at level 3, 10 XP short of level 4", async () => {
+test("the level-3-ada-2690-xp library is Ada at level 3, 10 XP short of level 4", async () => {
   // Regenerate it from libraryAt(3) with 2,690 XP when the library format changes.
   const input = new URL(
-    "../docs/acceptance/inputs/issue-286/level-3-ada-2690-xp.json",
+    "./fixtures/libraries/level-3-ada-2690-xp.json",
     import.meta.url,
   );
   const expected = libraryAt(3);

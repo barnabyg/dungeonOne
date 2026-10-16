@@ -1,6 +1,6 @@
-// #311, browser → API → storage: the increment 15 player handoff
-// (docs/acceptance/increment-15-release.md), each scenario on its own library
-// and seed, with the numbers the handoff quotes:
+// Browser → API → storage: Rogue creation and two level-3 journeys through
+// the toll and strongroom, each on its own library
+// (tests/fixtures/libraries/) and seed:
 // - Scenario 1: a new Rogue is created with the default choices.
 // - Scenario 2: the level-3 Rogue Vex meets an unfriendly Snikk at the toll
 //   arch, wins him round with Persuasion and pays his toll, sneaks into the
@@ -40,9 +40,9 @@ import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
 const input = (path) =>
-  fileURLToPath(new URL(`../docs/acceptance/inputs/${path}`, import.meta.url));
-const VEX_LIBRARY = input("increment-15/level-3-vex.json");
-const ADA_LIBRARY = input("increment-13/level-3-ada.json");
+  fileURLToPath(new URL(`./fixtures/libraries/${path}`, import.meta.url));
+const VEX_LIBRARY = input("level-3-vex.json");
+const ADA_LIBRARY = input("level-3-ada.json");
 
 // The handoff's module, retired in #446, is played as a fixture copy (#438).
 const quay = quayStrongroom;
@@ -202,7 +202,7 @@ test(
       { browser: true },
     );
     assert.equal(played.state.endingId, "out-with-the-guild-gold");
-    // The input library is the one the handoff gives the owner.
+    // The library fixture matches its generator; regenerate it when the format changes.
     assert.deepEqual(
       JSON.parse(await readFile(VEX_LIBRARY, "utf8")),
       JSON.parse(JSON.stringify(rogueLibrary())),

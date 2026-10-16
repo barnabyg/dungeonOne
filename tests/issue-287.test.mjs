@@ -465,10 +465,10 @@ test("the gate builds level-5 Fighters with Extra Attack and plays it", () => {
   assert.equal(result.verdict.xp.endLevel, 6);
 });
 
-test("the handoff's input library is Ada at level 5", async () => {
+test("the level-5-ada library is Ada at level 5", async () => {
   // Regenerate it from libraryAt(5) when the library format changes.
   const input = new URL(
-    "../docs/acceptance/inputs/issue-287/level-5-ada.json",
+    "./fixtures/libraries/level-5-ada.json",
     import.meta.url,
   );
   assert.deepEqual(
