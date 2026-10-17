@@ -11,15 +11,21 @@ import { readFile } from "node:fs/promises";
 
 export type SoundLicence = "CC0 1.0" | "CC BY 3.0" | "CC BY 4.0";
 
-export type Sound = Readonly<{
-  /** Its file in sounds/. */
-  file: string;
-  /** Where the file came from: a URL, or the script that makes it. */
-  source: string;
-  licence: SoundLicence;
-  /** Who made it; required for CC BY, which the footer credits. */
-  author?: string;
-}>;
+export type Sound = Readonly<
+  {
+    /** Its file in sounds/. */
+    file: string;
+    /** Where the file came from: a URL, or the script that makes it. */
+    source: string;
+  } & (
+    | { licence: "CC0 1.0"; author?: string }
+    | {
+        licence: Exclude<SoundLicence, "CC0 1.0">;
+        /** Who made it, which the footer credits. */
+        author: string;
+      }
+  )
+>;
 
 export const SOUNDS = {
   // When the Dungeon Master's reply is shown and it is the player's turn again.
@@ -68,13 +74,13 @@ export function soundCredits(
   sounds: Readonly<Record<string, Sound>> = SOUNDS,
 ): string {
   const credits = new Map<string, Set<string>>();
-  for (const { author, licence } of Object.values(sounds)) {
-    if (licence === "CC0 1.0") {
+  for (const sound of Object.values(sounds)) {
+    if (sound.licence === "CC0 1.0") {
       continue;
     }
-    const authors = credits.get(licence) ?? new Set<string>();
-    authors.add(author ?? "");
-    credits.set(licence, authors);
+    const authors = credits.get(sound.licence) ?? new Set<string>();
+    authors.add(sound.author);
+    credits.set(sound.licence, authors);
   }
   return [...credits]
     .sort(([a], [b]) => a.localeCompare(b))
