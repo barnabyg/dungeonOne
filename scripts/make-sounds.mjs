@@ -113,9 +113,16 @@ const whoosh = (seconds, at, seed) => {
   };
 };
 
-/** One die's click on a table: a very short burst of bright noise at `at`. */
-const click = (at, seed) => {
+/**
+ * A die striking the table at `at`, `gain` loud: a tick of bright noise and
+ * the short high rings of its body, three resonances drawn from `seed`.
+ */
+const clack = (at, gain, seed) => {
   const random = noise(seed);
+  const rings = [0, 1, 2].map(() => ({
+    frequency: 2400 + 2000 * (random() + 1),
+    decay: 0.006 + 0.004 * (random() + 1),
+  }));
   let previous = 0;
   return (time) => {
     const grit = random();
@@ -123,7 +130,43 @@ const click = (at, seed) => {
     // The difference of successive samples keeps only the bright part.
     const bright = grit - previous;
     previous = grit;
-    return t < 0 ? 0 : 0.6 * bright * Math.exp(-t / 0.006);
+    if (t < 0) {
+      return 0;
+    }
+    const ring = rings.reduce(
+      (sum, { frequency, decay }) =>
+        sum + Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t / decay),
+      0,
+    );
+    return gain * (0.5 * ring + 0.6 * bright * Math.exp(-t / 0.0015));
+  };
+};
+
+/**
+ * One die thrown at `at`: it bounces, each bounce sooner and softer than
+ * the last, then tumbles to rest in a run of quick, quiet ticks.
+ */
+const die = (at, first, seed) => {
+  const impacts = [];
+  let time = at;
+  let gap = first;
+  let gain = 1;
+  while (gap > 0.012) {
+    impacts.push(clack(time, gain, seed + impacts.length));
+    time += gap;
+    gap *= 0.72;
+    gain *= 0.78;
+  }
+  return impacts;
+};
+
+/** The table under rolling dice: a soft, low rumble fading over `seconds`. */
+const table = (seconds, seed) => {
+  const random = noise(seed);
+  let low = 0;
+  return (time) => {
+    low += 0.08 * (random() - low);
+    return 0.5 * low * Math.max(0, 1 - time / seconds);
   };
 };
 
@@ -213,16 +256,14 @@ write(
     horn(1046.5, 1046.5, 0.5, 0.36),
   ]),
 );
-// A check or save: dice rattling on a table.
+// A check or save: two dice thrown onto a table.
 write(
   "dice",
-  wav(
-    0.4,
-    0.5,
-    [0, 0.045, 0.08, 0.13, 0.165, 0.22, 0.27, 0.33].map((at, index) =>
-      click(at, 20 + index),
-    ),
-  ),
+  wav(0.45, 0.65, [
+    ...die(0, 0.11, 20),
+    ...die(0.03, 0.09, 40),
+    table(0.4, 60),
+  ]),
 );
 // Success: two rising notes, G5 then C6.
 write("success", wav(0.5, 0.45, [bell(783.99, 0), bell(1046.5, 0.1)]));
