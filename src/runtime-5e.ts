@@ -79,7 +79,7 @@ import {
 } from "./icons-5e.js";
 import { exitDirection } from "./map-5e.js";
 import type { Cell, Direction, VerticalKind } from "./map-5e.js";
-import type { SoundId } from "./sounds-5e.js";
+import { castSound, type SoundId } from "./sounds-5e.js";
 import {
   approachesOf,
   authoredBand,
@@ -3771,8 +3771,8 @@ export type ResultLine = Readonly<{
   icons?: readonly LineIcon[];
   /**
    * The named sound the line asks for (#484), for what its rolls cannot
-   * show: loot found, taken or traded. The browser plays it only for a
-   * result that arrives now.
+   * show: loot found, taken or traded, and a spell cast (#485). The browser
+   * plays it only for a result that arrives now.
    */
   sound?: SoundId;
 }>;
@@ -3916,7 +3916,8 @@ const LOOT_SOUNDS = {
  * taken, and when the character buys or sells; a magic item chimes when it
  * is found or taken; an ordinary item taken is picked up. A line finding
  * several plays the most notable, a magic item before coin; finding an
- * ordinary item is silent until it is taken.
+ * ordinary item is silent until it is taken. A spell cast, by anyone and
+ * from a slot, scroll or wand, plays its family's sound (#485).
  */
 function lineSound(
   event: FifthEvent | undefined,
@@ -3945,6 +3946,8 @@ function lineSound(
     case "traded":
     case "sold-treasure":
       return LOOT_SOUNDS.coin;
+    case "cast":
+      return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
     default:
       return undefined;
   }

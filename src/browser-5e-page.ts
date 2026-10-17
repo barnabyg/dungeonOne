@@ -135,7 +135,12 @@ import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
-import { resultSounds, soundCredits, soundUrls } from "./sounds-5e.js";
+import {
+  resultSounds,
+  soundCredits,
+  soundGains,
+  soundUrls,
+} from "./sounds-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -393,6 +398,8 @@ const isBusy = (button) => button.getAttribute("aria-busy") === "true";
 // (before the first click, or headless), which is ignored. An answer's
 // sounds play one after another, each a short gap after the last ends.
 const SOUND_FILES = ${JSON.stringify(soundUrls())};
+// A cantrip's cast plays quieter than a levelled spell's (#485).
+const SOUND_GAINS = ${JSON.stringify(soundGains())};
 const SOUND_SETTINGS = "dungeon-one-sound";
 const soundControls = element("sound-controls");
 const soundPlayers = new Map();
@@ -457,7 +464,7 @@ function playSounds(names) {
       soundPlayers.set(names[index], player);
     }
     queue.player = player;
-    player.volume = soundSettings.volume;
+    player.volume = soundSettings.volume * (SOUND_GAINS[names[index]] ?? 1);
     player.currentTime = 0;
     player.onended = () => {
       queue.timer = setTimeout(() => next(index + 1), SOUND_GAP);

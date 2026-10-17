@@ -10,6 +10,7 @@
 import { readFile } from "node:fs/promises";
 import type { EndingKind } from "./adventure-5e.js";
 import type { FightView, RollGroup } from "./runtime-5e.js";
+import { SPELLS, type SpellId } from "./spells-5e.js";
 
 export type SoundLicence = "CC0 1.0" | "CC BY 3.0" | "CC BY 4.0";
 
@@ -19,6 +20,8 @@ export type Sound = Readonly<
     file: string;
     /** Where the file came from: a URL, or the script that makes it. */
     source: string;
+    /** How loud it plays, of the player's volume; all of it unless given. */
+    gain?: number;
   } & (
     | { licence: "CC0 1.0"; author?: string }
     | {
@@ -31,6 +34,38 @@ export type Sound = Readonly<
 
 // The source of each sound synthesised by our own script.
 const MADE = "scripts/make-sounds.mjs (made for Dungeon One)";
+
+/**
+ * The families of spells that sound alike when cast (#485): by damage type
+ * for a spell that harms (acid with poison, and arcane for force and
+ * psychic), and otherwise by what it does.
+ */
+export const SPELL_FAMILIES = [
+  "fire",
+  "cold",
+  "lightning",
+  "thunder",
+  "acid",
+  "necrotic",
+  "radiant",
+  "arcane",
+  "healing",
+  "buff",
+  "control",
+] as const;
+export type SpellFamily = (typeof SPELL_FAMILIES)[number];
+
+/** A spell family's cast sound, synthesised by our script. */
+const spellSound = (family: SpellFamily) =>
+  ({
+    file: `spell-${family}.wav`,
+    source: MADE,
+    licence: "CC0 1.0",
+  }) as const;
+
+/** A cantrip's cast sound: its family's, quieter, as cantrips are cast all the time. */
+const cantripSound = (family: SpellFamily) =>
+  ({ ...spellSound(family), gain: 0.5 }) as const;
 
 export const SOUNDS = {
   // The character's attack hits (#481).
@@ -153,12 +188,102 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
+  // A spell cast, by its family (#485); a cantrip's is quieter.
+  "spell-fire": spellSound("fire"),
+  "spell-fire-cantrip": cantripSound("fire"),
+  "spell-cold": spellSound("cold"),
+  "spell-cold-cantrip": cantripSound("cold"),
+  "spell-lightning": spellSound("lightning"),
+  "spell-lightning-cantrip": cantripSound("lightning"),
+  "spell-thunder": spellSound("thunder"),
+  "spell-acid": spellSound("acid"),
+  "spell-necrotic": spellSound("necrotic"),
+  "spell-necrotic-cantrip": cantripSound("necrotic"),
+  "spell-radiant": spellSound("radiant"),
+  "spell-radiant-cantrip": cantripSound("radiant"),
+  "spell-arcane": spellSound("arcane"),
+  "spell-healing": spellSound("healing"),
+  "spell-buff": spellSound("buff"),
+  "spell-buff-cantrip": cantripSound("buff"),
+  "spell-control": spellSound("control"),
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
 
 export function isSoundId(value: unknown): value is SoundId {
   return typeof value === "string" && Object.hasOwn(SOUNDS, value);
+}
+
+/** Each spell's family (#485): every spell has one. */
+export const SPELL_FAMILY = {
+  "fire-bolt": "fire",
+  "burning-hands": "fire",
+  "scorching-ray": "fire",
+  fireball: "fire",
+  "ray-of-frost": "cold",
+  // Its shard bursts in a blast of cold.
+  "ice-knife": "cold",
+  "shocking-grasp": "lightning",
+  "lightning-bolt": "lightning",
+  thunderwave: "thunder",
+  shatter: "thunder",
+  "acid-arrow": "acid",
+  "ray-of-sickness": "acid",
+  "chill-touch": "necrotic",
+  "inflict-wounds": "necrotic",
+  "bestow-curse": "necrotic",
+  "vampiric-touch": "necrotic",
+  "sacred-flame": "radiant",
+  "guiding-bolt": "radiant",
+  "spirit-guardians": "radiant",
+  light: "radiant",
+  "magic-missile": "arcane",
+  // Its damage type is chosen as it is cast; its sound is not.
+  "chromatic-orb": "arcane",
+  "spiritual-weapon": "arcane",
+  "mind-spike": "arcane",
+  "cure-wounds": "healing",
+  "healing-word": "healing",
+  "prayer-of-healing": "healing",
+  "mass-healing-word": "healing",
+  "lesser-restoration": "healing",
+  guidance: "buff",
+  resistance: "buff",
+  thaumaturgy: "buff",
+  bless: "buff",
+  "shield-of-faith": "buff",
+  "mage-armor": "buff",
+  shield: "buff",
+  aid: "buff",
+  "protection-from-poison": "buff",
+  blur: "buff",
+  "mirror-image": "buff",
+  "beacon-of-hope": "buff",
+  "protection-from-energy": "buff",
+  haste: "buff",
+  sleep: "control",
+  "hold-person": "control",
+  slow: "control",
+} as const satisfies Readonly<Record<SpellId, SpellFamily>>;
+
+/**
+ * The sound of casting `spell` (#485): its family's, or for a cantrip the
+ * family's quieter one. A spell cast from a scroll or wand sounds the same.
+ */
+export function castSound(spell: SpellId): SoundId {
+  const family = SPELL_FAMILY[spell];
+  return SPELLS[spell].level === 0
+    ? (`spell-${family}-cantrip` as SoundId)
+    : `spell-${family}`;
+}
+
+/** Each named sound's gain where it is not all of the player's volume. */
+export function soundGains(): Readonly<Partial<Record<SoundId, number>>> {
+  return Object.fromEntries(
+    Object.entries(SOUNDS).flatMap(([id, sound]: [string, Sound]) =>
+      sound.gain === undefined ? [] : [[id, sound.gain]],
+    ),
+  );
 }
 
 const TYPES: Readonly<Record<string, string>> = {
