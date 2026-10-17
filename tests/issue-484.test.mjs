@@ -15,7 +15,7 @@ import {
 } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { SOUNDS, resultSounds } from "../dist/sounds-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { FIFTH_TRACE_FORMAT, verifyFifthTraceFile } from "../dist/trace-5e.js";
 import { BEA } from "./fixtures/charismatic-fighter.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { findsYard } from "./fixtures/finds-yard.mjs";
@@ -123,6 +123,45 @@ test("buying, selling and selling a treasure clink coin", () => {
   }
 });
 
+test("items a creature gives or a check reveals sound as found ones do", () => {
+  // Told through the runtime's own lookup: reaching a surrender's gift or a
+  // check band's reveal in play takes a module of its own (#238, #281).
+  const runtime = createFifthRuntime(findsYard, BEA);
+  const { state } = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    dice(),
+  );
+  const talked = (given) => ({
+    type: "talked",
+    topicId: "mercy",
+    creature: "Pedlar",
+    words: '"Take it."',
+    given,
+  });
+  const revealed = (itemId, name) => ({ type: "revealed", itemId, name });
+  const lines = describeFifthResult(
+    {
+      state,
+      events: [
+        talked(["Dagger", "Sealed Parchment"]),
+        talked(["Lost Purse"]),
+        talked(["Azurite"]),
+        revealed("yard-potion", "Potion of Healing"),
+        revealed("lost-purse", "Lost Purse"),
+        revealed("cart-gem", "Azurite"),
+      ],
+    },
+    [],
+    "Bea",
+    runtime.lineLookup,
+  );
+  assert.deepEqual(
+    lines.map(({ sound }) => sound),
+    ["magic-item", "coins", undefined, "magic-item", "coins", undefined],
+  );
+});
+
 test("paying a toll clinks coin", () => {
   const runtime = createFifthRuntime(banditToll, { ...BEA, purse: 200 });
   const begun = runtime.handleAction(
@@ -189,7 +228,7 @@ test("a line's sound plays before the sounds its rolls ask for", () => {
   );
 });
 
-test("a saved line keeps its sound; an unknown sound and an older save are refused", async () => {
+test("a saved line keeps its sound; an unknown sound, an older save and an older trace are refused", async () => {
   const directory = await mkdtemp(join(tmpdir(), "issue-484-"));
   try {
     const path = join(directory, "session.json");
@@ -223,6 +262,21 @@ test("a saved line keeps its sound; an unknown sound and an older save are refus
         /Invalid adventure session/u,
       );
     }
+
+    const tracePath = join(directory, "trace.json");
+    const trace = JSON.stringify({
+      kind: "dungeon-one-5e-trace",
+      formatVersion: 56,
+    });
+    await writeFile(tracePath, trace);
+    await assert.rejects(
+      verifyFifthTraceFile(tracePath, [findsYard]),
+      new RegExp(
+        String.raw`trace\.json is a trace in format version 56, not ${FIFTH_TRACE_FORMAT}\. This build cannot replay it\. Move it aside; the file has not been changed\.`,
+        "u",
+      ),
+    );
+    assert.equal(await readFile(tracePath, "utf8"), trace);
 
     const older = { ...file, formatVersion: 62 };
     await writeFile(path, JSON.stringify(older));
