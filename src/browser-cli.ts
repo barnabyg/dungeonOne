@@ -40,6 +40,7 @@ async function main(): Promise<void> {
   let sound = true;
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]!;
+    // A second --no-sound falls through to the usage, as a repeated option does.
     if (argument === "--no-sound" && sound) {
       sound = false;
       continue;

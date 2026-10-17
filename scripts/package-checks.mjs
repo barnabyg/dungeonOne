@@ -62,7 +62,7 @@ const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
   await import("../dist/adventure-5e.js");
 const { FIFTH_BESTIARY_FILE, loadFifthBestiary } =
   await import("../dist/bestiary-5e.js");
-const { SOUNDS } = await import("../dist/sounds-5e.js");
+const { SOUNDS, soundUrl } = await import("../dist/sounds-5e.js");
 const fifthBestiary = `adventures/5e/${FIFTH_BESTIARY_FILE}`;
 const bestiary = await loadFifthBestiary(fifthBestiary);
 const fifthAdventures = Object.values(FIFTH_ADVENTURE_FILES).map(
@@ -138,10 +138,10 @@ try {
     libraryPath: path.join(caller, "characters.json"),
     seed: 42,
   });
-  for (const { file } of Object.values(SOUNDS)) {
-    const served = await fetch(`${fifthServer.url}/sounds/${file}`);
+  for (const sound of Object.values(SOUNDS)) {
+    const served = await fetch(`${fifthServer.url}${soundUrl(sound)}`);
     if (served.status !== 200) {
-      throw new Error(`Extracted package did not serve sounds/${file}.`);
+      throw new Error(`Extracted package did not serve ${soundUrl(sound)}.`);
     }
   }
   await fifthServer.close();
