@@ -128,9 +128,11 @@ test(
         assert.equal(await mute.getAttribute("aria-pressed"), "false");
         assert.equal(await volume.inputValue(), "50");
 
+        assert.equal(await mute.getAttribute("title"), "Mute sound");
         await mute.click();
         await volume.fill("20");
         assert.equal(await mute.getAttribute("aria-pressed"), "true");
+        assert.equal(await mute.getAttribute("title"), "Unmute sound");
         await page.reload();
         await page.locator("#open-creation").waitFor();
         assert.equal(await mute.getAttribute("aria-pressed"), "true");

@@ -422,6 +422,8 @@ function changeSoundSettings(change) {
 function renderSoundControls() {
   if (!soundControls) return;
   element("sound-mute").setAttribute("aria-pressed", String(soundSettings.muted));
+  // Its name stays "Mute sound", pressed while muted; the tooltip says what a click does.
+  element("sound-mute").title = soundSettings.muted ? "Unmute sound" : "Mute sound";
   element("sound-volume").value = String(Math.round(soundSettings.volume * 100));
 }
 
