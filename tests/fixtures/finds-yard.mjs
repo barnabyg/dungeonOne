@@ -1,5 +1,5 @@
-// The goblin yard with loot of every kind to find and take, and a pedlar
-// to trade with (#484's loot sounds).
+// The goblin yard with every sort of item to find and take (coin, magic
+// items and ordinary ones), and a pedlar to trade with (#484's sounds).
 import { validateModule } from "./bestiary.mjs";
 import { PEDLAR } from "./market-barrow.mjs";
 import { goblinYardFile, room } from "./modules.mjs";
@@ -9,9 +9,9 @@ import { goblinYardFile, room } from "./modules.mjs";
  * beside the dagger, a gem and a ring in the handcart, a +1 shortsword in
  * the trough, a potion in plain sight, and a pedlar who trades in daggers.
  */
-export const lootYard = (() => {
+export const findsYard = (() => {
   const module = structuredClone(goblinYardFile);
-  module.id = "loot-yard";
+  module.id = "finds-yard";
   // Uncommon treasure, such as a +1 weapon, is found from level 3.
   module.recommendedLevels = { min: 3, max: 3 };
   const yard = room(module, "yard");

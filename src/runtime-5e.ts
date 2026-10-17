@@ -3771,7 +3771,7 @@ export type ResultLine = Readonly<{
   icons?: readonly LineIcon[];
   /**
    * The named sound the line asks for (#484), for what its rolls cannot
-   * show: loot found, taken or traded, and a spell cast (#485). The browser
+   * show: an item found, taken or traded, and a spell cast (#485). The browser
    * plays it only for a result that arrives now.
    */
   sound?: SoundId;
@@ -3779,12 +3779,15 @@ export type ResultLine = Readonly<{
 
 export type LineIcon = Readonly<{ at: number; icon: GameIconId }>;
 
-/** What an item found, given or taken is, for its sound (#484). */
-export type Loot = "coin" | "magic" | "ordinary";
+/**
+ * The sort of item found, given or taken, for its sound (#484): coin, a
+ * magic item, or any other.
+ */
+export type ItemSort = "coin" | "magic" | "ordinary";
 
 /**
- * Where a result's monsters and items get their icons (#377) and loot its
- * sounds (#484): the runtime's own, from its module.
+ * Where a result's monsters and items get their icons (#377) and its items
+ * their sounds (#484): the runtime's own, from its module.
  */
 export type LineLookup = Readonly<{
   /** The icon of opponent `id` in the character's fight or room. */
@@ -3793,10 +3796,10 @@ export type LineLookup = Readonly<{
   item(id: string): GameIconId | undefined;
   /** The icon of a module item, by name. */
   itemNamed(name: string): GameIconId | undefined;
-  /** What a module item or catalogue item is, by id. */
-  loot(id: string): Loot | undefined;
-  /** What a module item is, by name. */
-  lootNamed(name: string): Loot | undefined;
+  /** The sort of a module item or catalogue item, by id. */
+  itemSort(id: string): ItemSort | undefined;
+  /** The sort of a module item, by name. */
+  itemSortNamed(name: string): ItemSort | undefined;
 }>;
 
 /** Fields of an event that may hold the ids of the fight's combatants. */
@@ -3904,12 +3907,12 @@ function lineIcons(
     .filter((one, index, sorted) => sorted[index - 1]?.at !== one.at);
 }
 
-/** The sound each kind of loot makes when found or taken (#484). */
-const LOOT_SOUNDS = {
+/** The sound each sort of item makes when found or taken (#484). */
+const ITEM_SOUNDS = {
   coin: "coins",
   magic: "magic-item",
   ordinary: "pickup",
-} as const satisfies Readonly<Record<Loot, SoundId>>;
+} as const satisfies Readonly<Record<ItemSort, SoundId>>;
 
 /**
  * The named sound a line asks for (#484): coin clinks when it is found or
@@ -3923,29 +3926,29 @@ function lineSound(
   event: FifthEvent | undefined,
   lookup: LineLookup,
 ): SoundId | undefined {
-  /** The most notable sound of the loot found. */
-  const found = (loot: readonly (Loot | undefined)[]) =>
-    loot.includes("magic")
-      ? LOOT_SOUNDS.magic
-      : loot.includes("coin")
-        ? LOOT_SOUNDS.coin
+  /** The most notable sound of the items found. */
+  const found = (sorts: readonly (ItemSort | undefined)[]) =>
+    sorts.includes("magic")
+      ? ITEM_SOUNDS.magic
+      : sorts.includes("coin")
+        ? ITEM_SOUNDS.coin
         : undefined;
   switch (event?.type) {
     case "examined":
-      return found(event.found.map((name) => lookup.lootNamed(name)));
+      return found(event.found.map((name) => lookup.itemSortNamed(name)));
     case "talked":
-      return found(event.given.map((name) => lookup.lootNamed(name)));
+      return found(event.given.map((name) => lookup.itemSortNamed(name)));
     case "revealed":
-      return found([lookup.loot(event.itemId)]);
+      return found([lookup.itemSort(event.itemId)]);
     case "taken":
-      return LOOT_SOUNDS[
+      return ITEM_SOUNDS[
         event.coin === undefined
-          ? (lookup.loot(event.itemId) ?? "ordinary")
+          ? (lookup.itemSort(event.itemId) ?? "ordinary")
           : "coin"
       ];
     case "traded":
     case "sold-treasure":
-      return LOOT_SOUNDS.coin;
+      return ITEM_SOUNDS.coin;
     case "cast":
       return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
     default:
@@ -5810,8 +5813,8 @@ export function createFifthRuntime(
   const itemIconsByName = new Map(
     [...items.values()].map((item) => [item.name, itemIcon(item)] as const),
   );
-  /** What a module item is, for its sound (#484). */
-  const lootOf = (item: FifthItem): Loot => {
+  /** The sort of a module item, for its sound (#484). */
+  const sortOf = (item: FifthItem): ItemSort => {
     switch (item.kind) {
       case "coin":
         return "coin";
@@ -5826,8 +5829,8 @@ export function createFifthRuntime(
         return "magic";
     }
   };
-  const lootByName = new Map(
-    [...items.values()].map((item) => [item.name, lootOf(item)] as const),
+  const sortsByName = new Map(
+    [...items.values()].map((item) => [item.name, sortOf(item)] as const),
   );
   const lineLookup: LineLookup = {
     opponent: (state, id) =>
@@ -5842,10 +5845,10 @@ export function createFifthRuntime(
       return isCatalogueId(gear) ? catalogueIcon(gear) : undefined;
     },
     itemNamed: (name) => itemIconsByName.get(name),
-    loot: (id) => {
+    itemSort: (id) => {
       const item = items.get(id);
       if (item !== undefined) {
-        return lootOf(item);
+        return sortOf(item);
       }
       const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
       return !isCatalogueId(gear)
@@ -5854,7 +5857,7 @@ export function createFifthRuntime(
           ? "ordinary"
           : "magic";
     },
-    lootNamed: (name) => lootByName.get(name),
+    itemSortNamed: (name) => sortsByName.get(name),
   };
   const featureById = new Map(
     adventure.rooms.flatMap(({ features }) =>

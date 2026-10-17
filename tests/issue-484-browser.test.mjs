@@ -1,6 +1,6 @@
-// #484, browser → API → storage: loot's sound tags reach the page, which
-// plays each for the answer that brings it, and not for the history shown
-// on reload.
+// #484, browser → API → storage: the sound tags of items found, taken and
+// traded reach the page, which plays each for the answer that brings it,
+// and not for the history shown on reload.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
-import { lootYard } from "./fixtures/loot-yard.mjs";
+import { findsYard } from "./fixtures/finds-yard.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
 /** The sounds the page has asked for since it loaded. */
@@ -22,14 +22,14 @@ async function answerSounds(page, run) {
 }
 
 test(
-  "finding, taking and trading loot play its sounds, answer by answer, and not on reload",
+  "finding, taking and trading items play their sounds, answer by answer, and not on reload",
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-484-browser-"));
     const server = await startFifthBrowserServer({
       libraryPath: join(directory, "characters.json"),
       seed: 0,
-      adventures: [lootYard],
+      adventures: [findsYard],
       qualifies: () => true,
     });
     const browser = await launch();
@@ -38,7 +38,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await createAndStart(page, server.url, lootYard.id);
+      await createAndStart(page, server.url, findsYard.id);
       assert.deepEqual(await requested(page), []);
 
       const act = (action, target) =>

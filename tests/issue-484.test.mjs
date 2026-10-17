@@ -1,5 +1,5 @@
 // #484: the engine tags a result line with a named sound where its rolls
-// cannot show what happened, and loot is the first: coin clinks when it is
+// cannot show what happened, and items are the first: coin clinks when it is
 // found or taken and when the character buys or sells, a magic item chimes
 // when it is found or taken, and an ordinary item taken is picked up. The
 // tag is saved with its line; older saves and traces are refused.
@@ -13,7 +13,7 @@ import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { SOUNDS, resultSounds } from "../dist/sounds-5e.js";
 import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { BEA } from "./fixtures/charismatic-fighter.mjs";
-import { lootYard } from "./fixtures/loot-yard.mjs";
+import { findsYard } from "./fixtures/finds-yard.mjs";
 
 /** Each action's card, as the browser server records it. */
 function play(session, ...actions) {
@@ -35,14 +35,14 @@ const sounded = (card) =>
     sound === undefined ? [text] : [text, sound],
   );
 
-test("each loot sound is a named, bundled sound", () => {
+test("each item sound is a named, bundled sound", () => {
   for (const id of ["coins", "magic-item", "pickup"]) {
     assert.ok(Object.hasOwn(SOUNDS, id), id);
   }
 });
 
-test("finding loot sounds for coin and magic items; an ordinary find is silent until taken", () => {
-  const session = FifthSession.begin(7, lootYard, BEA);
+test("finding coin or a magic item sounds; an ordinary find is silent until taken", () => {
+  const session = FifthSession.begin(7, findsYard, BEA);
   const [woodpile, butt, cart] = play(
     session,
     examine("woodpile"),
@@ -65,7 +65,7 @@ test("finding loot sounds for coin and magic items; an ordinary find is silent u
 });
 
 test("taking coin clinks, a magic item chimes and an ordinary item is picked up", () => {
-  const session = FifthSession.begin(7, lootYard, BEA);
+  const session = FifthSession.begin(7, findsYard, BEA);
   play(
     session,
     examine("woodpile"),
@@ -99,7 +99,7 @@ test("taking coin clinks, a magic item chimes and an ordinary item is picked up"
 });
 
 test("buying, selling and selling a treasure clink coin", () => {
-  const session = FifthSession.begin(7, lootYard, BEA);
+  const session = FifthSession.begin(7, findsYard, BEA);
   play(session, examine("handcart"), take("yard-ring"));
   // The ring's price buys the dagger, which is sold back.
   const cards = play(
@@ -117,8 +117,8 @@ test("buying, selling and selling a treasure clink coin", () => {
   }
 });
 
-test("talking, moving and fighting lines carry no loot sound", () => {
-  const session = FifthSession.begin(7, lootYard, BEA);
+test("talking, moving and fighting lines carry no item sound", () => {
+  const session = FifthSession.begin(7, findsYard, BEA);
   const cards = play(
     session,
     { type: "talk", topicId: "the-barrow" },
@@ -166,12 +166,12 @@ test("a saved line keeps its sound; an unknown sound and an older save are refus
       path,
       "c".repeat(32),
       7,
-      lootYard,
+      findsYard,
       BEA,
     );
     play(session, take("yard-potion"));
     await session.persist();
-    const loaded = await FifthSession.load(path, [lootYard]);
+    const loaded = await FifthSession.load(path, [findsYard]);
     assert.deepEqual(loaded.history, session.history);
     const file = JSON.parse(await readFile(path, "utf8"));
     assert.equal(file.formatVersion, FIFTH_SESSION_FORMAT);
@@ -182,7 +182,7 @@ test("a saved line keeps its sound; an unknown sound and an older save are refus
       tampered.history.at(-1).cards[0].lines[0].sound = sound;
       await writeFile(path, JSON.stringify(tampered));
       await assert.rejects(
-        FifthSession.load(path, [lootYard]),
+        FifthSession.load(path, [findsYard]),
         /Invalid adventure session/u,
       );
     }
@@ -190,7 +190,7 @@ test("a saved line keeps its sound; an unknown sound and an older save are refus
     const older = { ...file, formatVersion: 62 };
     await writeFile(path, JSON.stringify(older));
     await assert.rejects(
-      FifthSession.load(path, [lootYard]),
+      FifthSession.load(path, [findsYard]),
       new RegExp(
         String.raw`session\.json is an adventure session in format version 62, not ${FIFTH_SESSION_FORMAT}\. This build cannot continue it\. Move it aside; the file has not been changed\.`,
         "u",
