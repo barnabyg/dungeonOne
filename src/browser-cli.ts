@@ -7,8 +7,9 @@ import {
   startFifthBrowserServer,
 } from "./browser-5e-server.js";
 
-const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>]
+const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>] [--no-sound]
 Create or choose a saved 5e character, then take it into an adventure. Default library: characters.json; its adventures are saved in the adjacent characters-adventures directory and continue when you rerun the same command.
+--no-sound turns sound off completely: the page shows no sound controls and loads no sound files.
 Set OPENAI_API_KEY in the environment before launch to let players type to the Dungeon Master; without it the buttons still work.`;
 
 /** Transitional flags from before 5e became the only mode, and why each is refused. */
@@ -36,8 +37,13 @@ async function main(): Promise<void> {
     }
   }
   const values = new Map<string, string>();
+  let sound = true;
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]!;
+    if (argument === "--no-sound" && sound) {
+      sound = false;
+      continue;
+    }
     const equals = argument.indexOf("=");
     const name = equals < 0 ? argument : argument.slice(0, equals);
     const value = equals < 0 ? args[++index] : argument.slice(equals + 1);
@@ -60,6 +66,7 @@ async function main(): Promise<void> {
     libraryPath: resolve(values.get("--characters") ?? "characters.json"),
     seed,
     apiKey: process.env.OPENAI_API_KEY ?? "",
+    sound,
   });
   const stop = () => {
     void server.close().catch(() => {

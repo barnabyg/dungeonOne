@@ -62,6 +62,7 @@ const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
   await import("../dist/adventure-5e.js");
 const { FIFTH_BESTIARY_FILE, loadFifthBestiary } =
   await import("../dist/bestiary-5e.js");
+const { SOUNDS } = await import("../dist/sounds-5e.js");
 const fifthBestiary = `adventures/5e/${FIFTH_BESTIARY_FILE}`;
 const bestiary = await loadFifthBestiary(fifthBestiary);
 const fifthAdventures = Object.values(FIFTH_ADVENTURE_FILES).map(
@@ -80,6 +81,8 @@ for (const required of [
   ...fifthAdventures,
   fifthBestiary,
   "adventures/5e/gate-verdicts.json",
+  // The browser serves its sounds from the installed package (#480).
+  ...Object.values(SOUNDS).map(({ file }) => `sounds/${file}`),
   "package.json",
   "README.md",
 ]) {
@@ -135,6 +138,12 @@ try {
     libraryPath: path.join(caller, "characters.json"),
     seed: 42,
   });
+  for (const { file } of Object.values(SOUNDS)) {
+    const served = await fetch(`${fifthServer.url}/sounds/${file}`);
+    if (served.status !== 200) {
+      throw new Error(`Extracted package did not serve sounds/${file}.`);
+    }
+  }
   await fifthServer.close();
   // The CLI test adapter plays and replays a built-in module from the
   // installed package, run from another directory.

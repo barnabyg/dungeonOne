@@ -5,3 +5,5 @@
 !adventures/
 !adventures/5e/
 !adventures/5e/*.json
+!sounds/
+!sounds/*.wav

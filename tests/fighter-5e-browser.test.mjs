@@ -279,8 +279,11 @@ test(
     try {
       await page.goto(server.url);
       await page.locator("#no-characters").waitFor();
-      // Skip link, then the create button.
-      await page.keyboard.press("Tab");
+      // Skip link, the header's sound controls (#480), then the create button.
+      for (const id of ["", "sound-mute", "sound-volume"]) {
+        await page.keyboard.press("Tab");
+        assert.equal(await page.evaluate(() => document.activeElement.id), id);
+      }
       await page.keyboard.press("Tab");
       assert.equal(
         await page.evaluate(() => document.activeElement.id),

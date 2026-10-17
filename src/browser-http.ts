@@ -23,14 +23,14 @@ export function respond(
   response: ServerResponse,
   status: number,
   type: string,
-  body: string,
+  body: string | Buffer,
 ): void {
   response.writeHead(status, {
     "Content-Type": type,
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
     "Content-Security-Policy":
-      "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
     "Referrer-Policy": "no-referrer",
   });
   response.end(body);

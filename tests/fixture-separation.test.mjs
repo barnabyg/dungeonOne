@@ -21,6 +21,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
  */
 const LAUNCHER_TESTS = new Set([
   "tests/issue-137.test.mjs",
+  "tests/issue-480-launch.test.mjs",
   "tests/fighter-5e-browser.test.mjs",
   "tests/fixtures/default-launch.mjs",
   "tests/fixtures/quiet-launcher.mjs",
