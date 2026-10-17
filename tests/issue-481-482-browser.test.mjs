@@ -99,7 +99,7 @@ test(
       );
       // Seed 0 rolls a 12: no natural 20 or 1.
       assert.deepEqual(await lastTags(page), ["Success"]);
-      assert.deepEqual(sounds, ["dice", "success", "reply-ready"]);
+      assert.deepEqual(sounds, ["dice", "success"]);
     }),
 );
 
@@ -113,19 +113,15 @@ test(
         clickAction(page, "move", "rat-cellar"),
       );
       assert.deepEqual(await lastTags(page), ["Miss"]);
-      assert.deepEqual(start, ["fight-start", "miss", "reply-ready"]);
+      assert.deepEqual(start, ["fight-start", "miss"]);
       // They play one at a time, each a gap after the one before ends.
       await page.waitForFunction(
-        () => window.playedSounds.length === 3 && window.playedSounds[2].end,
+        () => window.playedSounds.length === 2 && window.playedSounds[1].end,
       );
       const played = await page.evaluate(() => window.playedSounds);
       assert.deepEqual(
         played.map(({ src }) => src),
-        [
-          "/sounds/fight-start.wav",
-          "/sounds/miss.wav",
-          "/sounds/reply-ready.wav",
-        ],
+        ["/sounds/fight-start.wav", "/sounds/miss.wav"],
       );
       for (let index = 1; index < played.length; index += 1) {
         assert.ok(
@@ -139,24 +135,21 @@ test(
       assert.deepEqual(await answerSounds(page, () => fightTurn(page)), [
         "hit",
         "miss",
-        "reply-ready",
       ]);
       await page.locator("#sound-mute").click();
       await page.waitForTimeout(1500);
       assert.deepEqual(
         (await page.evaluate(() => window.playedSounds))
-          .slice(3)
+          .slice(2)
           .map(({ src }) => src),
         ["/sounds/hit.wav"],
       );
       assert.deepEqual(await lastTags(page), ["Hit", "Miss"]);
-      // Ada's next hit drops the rat, which ends the fight: the adventure
-      // plays on, so the reply-ready tone follows the victory.
+      // Ada's next hit drops the rat, which ends the fight.
       assert.deepEqual(await answerSounds(page, () => fightTurn(page)), [
         "hit",
         "fall",
         "victory",
-        "reply-ready",
       ]);
       assert.equal(
         await page.locator("#turn").textContent(),

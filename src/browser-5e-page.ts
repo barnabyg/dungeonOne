@@ -2354,7 +2354,6 @@ async function act(path, body, control, busyLabel, pendingMessage) {
         cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),
         before,
         after: session.encounter,
-        playing: session.status === "playing",
       }));
     }
   }

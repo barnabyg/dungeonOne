@@ -37,12 +37,11 @@ function attack(roller, target, outcome, { d20 = 13, hpAfter } = {}) {
   return { text: `${roller} attacks ${target}.`, rolls };
 }
 
-/** The sounds an answer playing on asks for, before its reply-ready tone. */
+/** The sounds an answer whose lines are `lines` asks for. */
 const sounds = (...lines) =>
   resultSounds({
     character: ADA,
     cards: [{ kind: "result", text: "", lines }],
-    playing: false,
   });
 
 test("resultSounds runs on its own, as the page embeds its source", () => {
@@ -57,10 +56,9 @@ test("resultSounds runs on its own, as the page embeds its source", () => {
         lines: [attack(ADA, "Goblin", "critical", { d20: 20, hpAfter: 0 })],
       },
     ],
-    playing: true,
   };
   assert.deepEqual(embedded(answer), resultSounds(answer));
-  assert.deepEqual(embedded(answer), ["natural-20", "fall", "reply-ready"]);
+  assert.deepEqual(embedded(answer), ["natural-20", "fall"]);
 });
 
 test("each combat sound is a named, bundled sound", () => {
@@ -211,7 +209,6 @@ test("several attacks on one card play in order", () => {
           lines: [attack("Goblin", ADA, "hit", { hpAfter: 3 })],
         },
       ],
-      playing: false,
     }),
     ["miss", "hurt"],
   );
@@ -249,18 +246,8 @@ test("lines without attacks or falls, and narration, ask for nothing", () => {
   );
 });
 
-test("the reply-ready tone follows the result's sounds while the adventure plays on", () => {
-  assert.deepEqual(
-    resultSounds({
-      character: ADA,
-      cards: [
-        { kind: "result", text: "", lines: [attack(ADA, "Goblin", "miss")] },
-      ],
-      playing: true,
-    }),
-    ["miss", "reply-ready"],
-  );
-  assert.deepEqual(resultSounds({ character: ADA, cards: [], playing: true }), [
-    "reply-ready",
-  ]);
+test("no sound marks the reply itself: an answer asks only for its results' sounds (#480)", () => {
+  assert.deepEqual(sounds(attack(ADA, "Goblin", "miss")), ["miss"]);
+  assert.deepEqual(resultSounds({ character: ADA, cards: [] }), []);
+  assert.equal(Object.hasOwn(SOUNDS, "reply-ready"), false);
 });
