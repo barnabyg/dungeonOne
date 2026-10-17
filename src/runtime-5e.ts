@@ -3828,7 +3828,7 @@ function lineIcons(
   state: FifthState,
   event: FifthEvent | undefined,
   text: string,
-  icons: LineLookup,
+  lookup: LineLookup,
 ): LineIcon[] {
   if (event === undefined) {
     return [];
@@ -3847,7 +3847,7 @@ function lineIcons(
     }
     for (const name of names) {
       const at = text.indexOf(name, from);
-      mark(at, icons.itemNamed(name));
+      mark(at, lookup.itemNamed(name));
       from = at < 0 ? from : at + name.length;
     }
   };
@@ -3856,7 +3856,7 @@ function lineIcons(
     case "arrived": {
       let at = text.length - event.opponents.join(" ").length;
       event.opponents.forEach((description, index) => {
-        mark(at, icons.opponent(state, event.opponentIds[index]!));
+        mark(at, lookup.opponent(state, event.opponentIds[index]!));
         at += description.length + 1;
       });
       break;
@@ -3869,13 +3869,13 @@ function lineIcons(
       break;
     case "taken":
     case "potion":
-      mark(0, icons.item(event.itemId));
+      mark(0, lookup.item(event.itemId));
       break;
     case "used-on":
-      mark(text.indexOf(event.item), icons.item(event.itemId));
+      mark(text.indexOf(event.item), lookup.item(event.itemId));
       break;
     case "sold-treasure":
-      mark(0, icons.item(event.item) ?? TREASURE_ICON);
+      mark(0, lookup.item(event.item) ?? TREASURE_ICON);
       break;
     case "recovered":
       mark(0, catalogueIcon(event.kind));
@@ -3897,7 +3897,7 @@ function lineIcons(
               ? state.encounter.combatants.find((entrant) => entrant.id === id)
               : undefined;
           if (opponent !== undefined) {
-            mark(text.indexOf(opponent.name), icons.opponent(state, id));
+            mark(text.indexOf(opponent.name), lookup.opponent(state, id));
           }
         }
       }
@@ -5813,21 +5813,31 @@ export function createFifthRuntime(
   const itemIconsByName = new Map(
     [...items.values()].map((item) => [item.name, itemIcon(item)] as const),
   );
+  /** The sort of catalogue gear, for its sound (#484): a +1 item is magic. */
+  const gearSort = (gear: CatalogueId): ItemSort =>
+    magicOf(gear) === undefined ? "ordinary" : "magic";
   /** The sort of a module item, for its sound (#484). */
   const sortOf = (item: FifthItem): ItemSort => {
     switch (item.kind) {
       case "coin":
         return "coin";
       case "gear":
-        return magicOf(item.gear!) === undefined ? "ordinary" : "magic";
+        return gearSort(item.gear!);
+      case "scroll":
+      case "wand":
+      case "potion-of-healing":
+      case "potion-of-greater-healing":
+        return "magic";
       case "key":
       case "tool":
       case "treasure":
         return "ordinary";
-      default:
-        // Spell scrolls, wands and potions.
-        return "magic";
     }
+  };
+  /** The catalogue gear a dropped or catalogue item id names, if any. */
+  const gearOf = (id: string): CatalogueId | undefined => {
+    const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
+    return isCatalogueId(gear) ? gear : undefined;
   };
   const sortsByName = new Map(
     [...items.values()].map((item) => [item.name, sortOf(item)] as const),
@@ -5841,8 +5851,8 @@ export function createFifthRuntime(
       if (item !== undefined) {
         return itemIcon(item);
       }
-      const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
-      return isCatalogueId(gear) ? catalogueIcon(gear) : undefined;
+      const gear = gearOf(id);
+      return gear === undefined ? undefined : catalogueIcon(gear);
     },
     itemNamed: (name) => itemIconsByName.get(name),
     itemSort: (id) => {
@@ -5850,12 +5860,8 @@ export function createFifthRuntime(
       if (item !== undefined) {
         return sortOf(item);
       }
-      const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
-      return !isCatalogueId(gear)
-        ? undefined
-        : magicOf(gear) === undefined
-          ? "ordinary"
-          : "magic";
+      const gear = gearOf(id);
+      return gear === undefined ? undefined : gearSort(gear);
     },
     itemSortNamed: (name) => sortsByName.get(name),
   };
