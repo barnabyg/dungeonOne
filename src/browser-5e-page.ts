@@ -142,7 +142,7 @@ export const FIFTH_DM_OFF_NOTICE =
   "Typing to the Dungeon Master is off. Use the buttons.";
 
 // The header's sound controls (#480): a speaker that is crossed out while muted.
-const SOUND_CONTROLS = `<div id="sound-controls" role="group" aria-label="Sound"><button id="sound-mute" type="button" class="secondary" aria-pressed="false" title="Mute sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6m0-6-6 6"/></svg><span class="visually-hidden">Mute sound</span></button><input id="sound-volume" type="range" min="0" max="100" step="5" value="50" aria-label="Volume"></div>`;
+const SOUND_CONTROLS = `<div id="sound-controls" role="group" aria-label="Sound"><button id="sound-mute" type="button" class="secondary" aria-pressed="false" title="Mute sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6m0-6-6 6"/></svg><span class="visually-hidden">Mute sound</span></button><input id="sound-volume" type="range" min="0" max="100" step="5" aria-label="Volume"></div>`;
 
 /** The page, with its sound controls unless the launch turned sound off. */
 export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
