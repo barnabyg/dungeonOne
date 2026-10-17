@@ -8,6 +8,7 @@
  * also names its author, and the footer credits it.
  */
 import { readFile } from "node:fs/promises";
+import type { RollGroup } from "./runtime-5e.js";
 
 export type SoundLicence = "CC0 1.0" | "CC BY 3.0" | "CC BY 4.0";
 
@@ -27,11 +28,50 @@ export type Sound = Readonly<
   )
 >;
 
+// The source of each sound synthesised by our own script.
+const MADE = "scripts/make-sounds.mjs (made for Dungeon One)";
+
 export const SOUNDS = {
   // When the Dungeon Master's reply is shown and it is the player's turn again.
   "reply-ready": {
     file: "reply-ready.wav",
-    source: "scripts/make-sounds.mjs (made for Dungeon One)",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The character's attack hits (#481).
+  hit: {
+    file: "hit.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The character's attack is a critical hit.
+  critical: {
+    file: "critical.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // An attack misses: the character's, or one against it.
+  miss: {
+    file: "miss.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // An attack hits the character.
+  hurt: {
+    file: "hurt.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A creature drops to 0 HP.
+  fall: {
+    file: "fall.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The character drops to 0 HP.
+  "fall-you": {
+    file: "fall-you.wav",
+    source: MADE,
     licence: "CC0 1.0",
   },
 } as const satisfies Readonly<Record<string, Sound>>;
@@ -89,4 +129,84 @@ export function soundCredits(
         `Sounds by ${[...authors].sort().join(", ")} under ${licence}.`,
     )
     .join(" ");
+}
+
+/** What an answer to the player's action or message changed, for its sounds. */
+export type SoundAnswer = Readonly<{
+  /** The character's name: the roller or target its own rolls give. */
+  character: string;
+  /** The cards of the history entries the answer added, in order. */
+  cards: readonly Readonly<{
+    lines: readonly Readonly<{ rolls: readonly RollGroup[] }>[];
+  }>[];
+  /** Whether the adventure plays on, so it is the player's move again. */
+  playing: boolean;
+}>;
+
+/**
+ * The sounds an answer asks for, in the order its cards give them (#481),
+ * worked out from roll data, never from narration:
+ *
+ * - an attack, one sound however many dice: the character's hit, critical
+ *   or miss, or for an attack on the character, hurt or the miss's whoosh;
+ *   a hit waiting for the character's reaction sounds with its answer, and
+ *   damage landing on the character without an attack or save is hurt;
+ * - damage leaving a creature at 0 HP: fall, or fall-you for the character,
+ *   unless Undead Fortitude keeps it standing;
+ * - while the adventure plays on, the reply-ready tone last.
+ *
+ * The page embeds this function's source, so it uses nothing outside it.
+ */
+export function resultSounds(answer: SoundAnswer): SoundId[] {
+  const { character } = answer;
+  const sounds: SoundId[] = [];
+  const lines = answer.cards.flatMap((card) => card.lines);
+  lines.forEach(({ rolls }, index) => {
+    const attack = rolls.find(({ purpose }) => purpose === "attack");
+    const first = rolls[0];
+    if (attack !== undefined) {
+      // Mirror Image (#343): a duplicate took the hit instead.
+      const missed =
+        attack.outcome === "miss" ||
+        rolls.some(
+          ({ purpose, outcome }) =>
+            purpose === "duplicates" && outcome === "success",
+        );
+      if (attack.roller === character) {
+        sounds.push(
+          missed ? "miss" : attack.outcome === "critical" ? "critical" : "hit",
+        );
+      } else if (missed) {
+        sounds.push("miss");
+      } else if (rolls.some(({ purpose }) => purpose === "damage")) {
+        sounds.push(attack.target === character ? "hurt" : "hit");
+      }
+      // A hit with no damage yet waits for the character's reaction
+      // (#308): its answer sounds, once the damage lands or Shield turns it.
+    } else if (
+      first !== undefined &&
+      first.purpose === "damage" &&
+      first.target === character
+    ) {
+      // Damage landing on the character with no roll of its own on the
+      // line: a hit it answered with Uncanny Dodge or took, or a trap.
+      sounds.push("hurt");
+    }
+    for (const { purpose, target, hpAfter } of rolls) {
+      // Undead Fortitude: a save on the next line may leave it standing.
+      const stands = lines[index + 1]?.rolls.some(
+        (group) =>
+          group.purpose === "save" &&
+          group.roller === target &&
+          (group.hpAfter ?? 0) > 0,
+      );
+      if (purpose === "damage" && hpAfter === 0 && !stands) {
+        sounds.push(target === character ? "fall-you" : "fall");
+      }
+    }
+  });
+  if (answer.playing) {
+    sounds.push("reply-ready");
+  }
+  return sounds;
 }

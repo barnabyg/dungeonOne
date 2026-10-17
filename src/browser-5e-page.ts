@@ -135,7 +135,7 @@ import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
-import { soundCredits, soundUrls } from "./sounds-5e.js";
+import { resultSounds, soundCredits, soundUrls } from "./sounds-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -383,12 +383,14 @@ function clearBusy(button) {
 const isBusy = (button) => button.getAttribute("aria-busy") === "true";
 
 // Sound (#480): each named sound's file, and the player. Only a result that
-// answers the player's action or message asks for sound (resultSounds);
-// opening, reloading or rerunning an adventure plays nothing for the history
-// shown. Every sound asked for is added to window.requestedSounds, for
-// tests, whether or not it can play: it plays only with the header's
-// controls on the page, unmuted and above zero volume, and the browser may
-// refuse it (before the first click, or headless), which is ignored.
+// answers the player's action or message asks for sound (resultSounds, from
+// its roll data, #481); opening,
+// reloading or rerunning an adventure plays nothing for the history shown.
+// Every sound asked for is added to window.requestedSounds, for tests,
+// whether or not it can play: it plays only with the header's controls on
+// the page, unmuted and above zero volume, and the browser may refuse it
+// (before the first click, or headless), which is ignored. An answer's
+// sounds play one after another, each a short gap after the last ends.
 const SOUND_FILES = ${JSON.stringify(soundUrls())};
 const SOUND_SETTINGS = "dungeon-one-sound";
 const soundControls = element("sound-controls");
@@ -411,6 +413,8 @@ function readSoundSettings() {
 
 function changeSoundSettings(change) {
   soundSettings = { ...soundSettings, ...change };
+  // Muting stops what is left of a playing answer's sounds.
+  if (soundSettings.muted || soundSettings.volume === 0) stopSounds();
   try {
     localStorage.setItem(SOUND_SETTINGS, JSON.stringify(soundSettings));
   } catch {
@@ -427,32 +431,49 @@ function renderSoundControls() {
   element("sound-volume").value = String(Math.round(soundSettings.volume * 100));
 }
 
-function playSound(name) {
-  window.requestedSounds.push(name);
-  if (!soundControls || soundSettings.muted || soundSettings.volume === 0 || typeof Audio !== "function") return;
-  let player = soundPlayers.get(name);
-  if (!player) {
-    player = new Audio(SOUND_FILES[name]);
-    soundPlayers.set(name, player);
-  }
-  player.volume = soundSettings.volume;
-  player.currentTime = 0;
-  try {
-    const playing = player.play();
-    if (playing) playing.catch(() => {});
-  } catch {
-    // No audio here: the page says everything without it.
-  }
+const SOUND_GAP = 120;
+// The sound playing now and the timer for the next, so a new answer's
+// sounds replace what is left of the last answer's.
+let soundQueue = { player: undefined, timer: undefined };
+
+function stopSounds() {
+  clearTimeout(soundQueue.timer);
+  soundQueue.player?.pause();
+  soundQueue = { player: undefined, timer: undefined };
 }
 
-/**
- * The sounds a result that answers the player asks for, once it is shown:
- * the reply-ready tone while the adventure plays on, as it is the player's
- * move again.
- */
-function resultSounds() {
-  return session.status === "playing" ? ["reply-ready"] : [];
+/** Plays the named sounds in order, each SOUND_GAP ms after the one before ends. */
+function playSounds(names) {
+  window.requestedSounds.push(...names);
+  stopSounds();
+  if (!soundControls || soundSettings.muted || soundSettings.volume === 0 || typeof Audio !== "function") return;
+  const queue = soundQueue;
+  const next = (index) => {
+    if (index >= names.length || soundQueue !== queue) return;
+    let player = soundPlayers.get(names[index]);
+    if (!player) {
+      player = new Audio(SOUND_FILES[names[index]]);
+      soundPlayers.set(names[index], player);
+    }
+    queue.player = player;
+    player.volume = soundSettings.volume;
+    player.currentTime = 0;
+    player.onended = () => {
+      queue.timer = setTimeout(() => next(index + 1), SOUND_GAP);
+    };
+    try {
+      const playing = player.play();
+      // Refused (before the first click, or headless): go on without it.
+      if (playing) playing.catch(() => player.onended());
+    } catch {
+      // No audio here: the page says everything without it.
+      player.onended();
+    }
+  };
+  next(0);
 }
+
+${resultSounds}
 
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
@@ -2311,6 +2332,8 @@ async function act(path, body, control, busyLabel, pendingMessage) {
   const button = document.querySelector(control);
   if (button) setBusy(button, busyLabel);
   let answered = false;
+  // The history before the answer, for the sounds of what it adds.
+  const earlier = session.history;
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
@@ -2325,7 +2348,13 @@ async function act(path, body, control, busyLabel, pendingMessage) {
     if (button) clearBusy(button);
     acting = false;
     renderAdventure();
-    if (answered) for (const name of resultSounds()) playSound(name);
+    if (answered) {
+      playSounds(resultSounds({
+        character: findEntry(session.characterId)?.sheet.name ?? "",
+        cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),
+        playing: session.status === "playing",
+      }));
+    }
   }
 }
 
