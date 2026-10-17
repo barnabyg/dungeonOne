@@ -109,6 +109,11 @@ for (const viewport of [
         await text(page.locator("#adventure-meta")),
         new RegExp(` · ${goblinYard.rooms[0].name}$`, "u"),
       );
+      // Cut short in a narrow bar, it shows in full on hover (#480).
+      assert.equal(
+        await page.locator("#adventure-meta").getAttribute("title"),
+        await page.locator("#adventure-meta").textContent(),
+      );
       assert.equal(
         await text(page.locator("#breadcrumb [aria-current=page]")),
         goblinYard.title,
