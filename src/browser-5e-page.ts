@@ -384,8 +384,9 @@ const isBusy = (button) => button.getAttribute("aria-busy") === "true";
 
 // Sound (#480): each named sound's file, and the player. Only a result that
 // answers the player's action or message asks for sound (resultSounds, from
-// its roll data and the fight before and after it, #481, #482); opening,
-// reloading or rerunning an adventure plays nothing for the history shown.
+// its roll data, the fight before and after it and the ending it brings,
+// #481-#483); opening, reloading or rerunning an adventure plays nothing for
+// the history shown.
 // Every sound asked for is added to window.requestedSounds, for tests,
 // whether or not it can play: it plays only with the header's controls on
 // the page, unmuted and above zero volume, and the browser may refuse it
@@ -2332,8 +2333,9 @@ async function act(path, body, control, busyLabel, pendingMessage) {
   const button = document.querySelector(control);
   if (button) setBusy(button, busyLabel);
   let answered = false;
-  // What the answer changes, for its sounds: the history it adds and the fight.
-  const { history: earlier, encounter: before } = session;
+  // What the answer changes, for its sounds: the history it adds, the fight
+  // and the ending, which sounds only when this answer brings it (#483).
+  const { history: earlier, encounter: before, ending: ended } = session;
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
@@ -2354,6 +2356,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
         cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),
         before,
         after: session.encounter,
+        ending: ended || !session.ending ? undefined : { kind: session.ending.kind, levelUp: Boolean(session.ending.rewards?.levelUp) },
       }));
     }
   }

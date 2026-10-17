@@ -292,3 +292,47 @@ write(
     horn(277.18, 233.08, 0.45, 0.48),
   ]),
 );
+
+// Adventure endings (#483). Victory: a longer fanfare, G4 C5 E5, then a
+// held C major chord.
+write(
+  "ending-victory",
+  wav(1.5, 0.2, [
+    horn(392, 392, 0.14, 0),
+    horn(523.25, 523.25, 0.14, 0.14),
+    horn(659.25, 659.25, 0.14, 0.28),
+    ...[523.25, 659.25, 783.99, 1046.5].map((frequency) =>
+      horn(frequency, frequency, 0.95, 0.42),
+    ),
+  ]),
+);
+// An escape: a rush of air, then two light rising notes, D5 then A5.
+write(
+  "ending-escape",
+  wav(1.0, 0.45, [
+    louder(0.6, whoosh(0.4, 0, 9)),
+    bell(587.33, 0.25),
+    bell(880, 0.42),
+  ]),
+);
+// A defeat: a low drum, then a slow falling minor phrase, G4 E♭4 C4.
+write(
+  "ending-defeat",
+  wav(1.6, 0.18, [
+    louder(2.5, thud(90, 40, 0.2, 0, 10)),
+    horn(392, 392, 0.3, 0.1),
+    horn(311.13, 311.13, 0.3, 0.42),
+    horn(261.63, 246.94, 0.75, 0.74),
+  ]),
+);
+// A level-up: a sparkling run over two octaves, C6 to C8, ringing on.
+write(
+  "level-up",
+  wav(
+    1.2,
+    0.4,
+    [1046.5, 1318.5, 1568, 2093, 2637, 3136, 4186].map((frequency, index) =>
+      bell(frequency, index * 0.06),
+    ),
+  ),
+);

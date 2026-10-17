@@ -8,6 +8,7 @@
  * also names its author, and the footer credits it.
  */
 import { readFile } from "node:fs/promises";
+import type { EndingKind } from "./adventure-5e.js";
 import type { FightView, RollGroup } from "./runtime-5e.js";
 
 export type SoundLicence = "CC0 1.0" | "CC BY 3.0" | "CC BY 4.0";
@@ -110,6 +111,30 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
+  // The adventure ends in victory (#483), in place of the fight's victory.
+  "ending-victory": {
+    file: "ending-victory.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The character escapes the adventure, with loot or without.
+  "ending-escape": {
+    file: "ending-escape.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The adventure ends in the character's defeat.
+  "ending-defeat": {
+    file: "ending-defeat.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The ending's level-up card, after the ending's sound.
+  "level-up": {
+    file: "level-up.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
@@ -190,6 +215,11 @@ export type SoundAnswer = Readonly<{
   /** The fight before the answer and after it, when there was one. */
   before?: SoundFight | undefined;
   after?: SoundFight | undefined;
+  /**
+   * The adventure's ending, only when this answer brought it (#483): its
+   * kind, and whether its rewards carry a level-up card.
+   */
+  ending?: Readonly<{ kind: EndingKind; levelUp: boolean }> | undefined;
 }>;
 
 /**
@@ -209,6 +239,8 @@ export type SoundAnswer = Readonly<{
  *   unless Undead Fortitude keeps it standing;
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
+ * - the adventure ending (#483): its kind's sound, in place of the fight's
+ *   victory, then the fanfare when the ending carries a level-up;
  *
  * Nothing marks the reply itself or the player's turn: the owner found a
  * reply-ready tone irritating in play (#480).
@@ -216,7 +248,7 @@ export type SoundAnswer = Readonly<{
  * The page embeds this function's source, so it uses nothing outside it.
  */
 export function resultSounds(answer: SoundAnswer): SoundId[] {
-  const { character, before, after } = answer;
+  const { character, before, after, ending } = answer;
   const sounds: SoundId[] = [];
   const natural = (group: RollGroup): SoundId | undefined => {
     const d20 = group.dice.find((die) => die.sides === 20 && !die.dropped);
@@ -292,7 +324,18 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
   const self = after?.combatants.find(({ id }) => id === after.playerId);
   const fought =
     started || (before !== undefined && before.currentTurn !== null);
-  if (
+  if (ending !== undefined) {
+    sounds.push(
+      ending.kind === "victory"
+        ? "ending-victory"
+        : ending.kind === "defeat"
+          ? "ending-defeat"
+          : "ending-escape",
+    );
+    if (ending.levelUp) {
+      sounds.push("level-up");
+    }
+  } else if (
     after !== undefined &&
     after.currentTurn === null &&
     fought &&
