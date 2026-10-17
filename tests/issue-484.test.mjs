@@ -8,12 +8,18 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FIFTH_PROMPT_VERSION } from "../dist/runtime-5e.js";
+import {
+  createFifthRuntime,
+  describeFifthResult,
+  FIFTH_PROMPT_VERSION,
+} from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { SOUNDS, resultSounds } from "../dist/sounds-5e.js";
 import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { BEA } from "./fixtures/charismatic-fighter.mjs";
+import { dice } from "./fixtures/engine-dice.mjs";
 import { findsYard } from "./fixtures/finds-yard.mjs";
+import { banditToll } from "./fixtures/modules.mjs";
 
 /** Each action's card, as the browser server records it. */
 function play(session, ...actions) {
@@ -115,6 +121,31 @@ test("buying, selling and selling a treasure clink coin", () => {
       card.text,
     );
   }
+});
+
+test("paying a toll clinks coin", () => {
+  const runtime = createFifthRuntime(banditToll, { ...BEA, purse: 200 });
+  const begun = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    dice(),
+  ).state;
+  // Bea's reaction roll of 2 + 3 leaves the bandit unfriendly.
+  const facing = runtime.handleAction(
+    begun,
+    { type: "move", destinationId: "rat-cellar" },
+    dice([6, 1], [6, 1]),
+  ).state;
+  const sounds = (action) =>
+    describeFifthResult(
+      runtime.handleAction(facing, action, dice()),
+      [],
+      "Bea",
+      runtime.lineLookup,
+    ).map(({ text, sound }) => [text.split(".")[0], sound]);
+  assert.deepEqual(sounds({ type: "react", option: "toll" }), [
+    ["You pay the toll of 5 sp", "coins"],
+  ]);
 });
 
 test("talking, moving and fighting lines carry no item sound", () => {

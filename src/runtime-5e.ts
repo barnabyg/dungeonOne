@@ -3916,7 +3916,8 @@ const ITEM_SOUNDS = {
 
 /**
  * The named sound a line asks for (#484): coin clinks when it is found or
- * taken, and when the character buys or sells; a magic item chimes when it
+ * taken, when the character buys or sells, and when it pays a toll; a
+ * magic item chimes when it
  * is found or taken; an ordinary item taken is picked up. A line finding
  * several plays the most notable, a magic item before coin; finding an
  * ordinary item is silent until it is taken. A spell cast, by anyone and
@@ -3949,6 +3950,8 @@ function lineSound(
     case "traded":
     case "sold-treasure":
       return ITEM_SOUNDS.coin;
+    case "reacted":
+      return event.toll === undefined ? undefined : ITEM_SOUNDS.coin;
     case "cast":
       return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
     default:
