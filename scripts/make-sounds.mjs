@@ -1,4 +1,4 @@
-// Writes the sounds Dungeon One makes itself (#480, #481) into sounds/, as 16-bit
+// Writes the sounds Dungeon One makes itself (#480–#482) into sounds/, as 16-bit
 // mono WAV. Each is synthesised here, so it is ours to release under CC0;
 // src/sounds-5e.ts records it with this script as its source. Run it again
 // after changing a sound: `node scripts/make-sounds.mjs`.
@@ -113,6 +113,20 @@ const whoosh = (seconds, at, seed) => {
   };
 };
 
+/** One die's click on a table: a very short burst of bright noise at `at`. */
+const click = (at, seed) => {
+  const random = noise(seed);
+  let previous = 0;
+  return (time) => {
+    const grit = random();
+    const t = time - at;
+    // The difference of successive samples keeps only the bright part.
+    const bright = grit - previous;
+    previous = grit;
+    return t < 0 ? 0 : 0.6 * bright * Math.exp(-t / 0.006);
+  };
+};
+
 /**
  * A soft brass note: a sine with odd overtones that slides from `from` to
  * `to` Hz with a little vibrato, held for `seconds` from `at`.
@@ -184,5 +198,59 @@ write(
     thud(110, 40, 0.14, 0, 7),
     louder(0.45, horn(330, 311, 0.3, 0.05)),
     louder(0.45, horn(262, 220, 0.6, 0.38)),
+  ]),
+);
+
+// Fights and checks (#482). Initiative: a deep drum hit.
+write("fight-start", wav(0.7, 0.65, [thud(110, 55, 0.22, 0, 8)]));
+// Victory: a short rising fanfare, C5 E5 G5 C6.
+write(
+  "victory",
+  wav(1.0, 0.2, [
+    horn(523.25, 523.25, 0.12, 0),
+    horn(659.25, 659.25, 0.12, 0.12),
+    horn(783.99, 783.99, 0.12, 0.24),
+    horn(1046.5, 1046.5, 0.5, 0.36),
+  ]),
+);
+// A check or save: dice rattling on a table.
+write(
+  "dice",
+  wav(
+    0.4,
+    0.5,
+    [0, 0.045, 0.08, 0.13, 0.165, 0.22, 0.27, 0.33].map((at, index) =>
+      click(at, 20 + index),
+    ),
+  ),
+);
+// Success: two rising notes, G5 then C6.
+write("success", wav(0.5, 0.45, [bell(783.99, 0), bell(1046.5, 0.1)]));
+// Failure: two dull falling notes, E4 then C4.
+write(
+  "failure",
+  wav(0.5, 0.18, [
+    horn(329.63, 329.63, 0.16, 0),
+    horn(261.63, 246.94, 0.28, 0.17),
+  ]),
+);
+// A natural 20: a quick sparkling run up to C7.
+write(
+  "natural-20",
+  wav(
+    0.9,
+    0.45,
+    [1046.5, 1318.5, 1568, 2093].map((frequency, index) =>
+      bell(frequency, index * 0.07),
+    ),
+  ),
+);
+// A natural 1: a sagging "wah-wah" down to a low note.
+write(
+  "natural-1",
+  wav(0.95, 0.18, [
+    horn(311.13, 293.66, 0.22, 0),
+    horn(293.66, 277.18, 0.22, 0.24),
+    horn(277.18, 233.08, 0.45, 0.48),
   ]),
 );

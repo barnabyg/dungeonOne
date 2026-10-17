@@ -54,13 +54,13 @@ test("resultSounds runs on its own, as the page embeds its source", () => {
       {
         kind: "result",
         text: "",
-        lines: [attack(ADA, "Goblin", "critical", { d20: 19, hpAfter: 0 })],
+        lines: [attack(ADA, "Goblin", "critical", { d20: 20, hpAfter: 0 })],
       },
     ],
     playing: true,
   };
   assert.deepEqual(embedded(answer), resultSounds(answer));
-  assert.deepEqual(embedded(answer), ["critical", "fall", "reply-ready"]);
+  assert.deepEqual(embedded(answer), ["natural-20", "fall", "reply-ready"]);
 });
 
 test("each combat sound is a named, bundled sound", () => {
