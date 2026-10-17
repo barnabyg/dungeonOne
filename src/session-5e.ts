@@ -149,12 +149,9 @@ function validHistory(value: unknown): value is HistoryEntry[] {
             card.lines.every(
               (line) =>
                 isRecord(line) &&
-                [
-                  "rolls,text",
-                  "icons,rolls,text",
-                  "rolls,sound,text",
-                  "icons,rolls,sound,text",
-                ].includes(Object.keys(line).sort().join(",")) &&
+                Object.keys(line).every((key) =>
+                  ["text", "rolls", "icons", "sound"].includes(key),
+                ) &&
                 text(line.text) &&
                 Array.isArray(line.rolls) &&
                 line.rolls.every(validRollGroup) &&

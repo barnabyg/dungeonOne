@@ -177,9 +177,15 @@ test("a saved line keeps its sound; an unknown sound and an older save are refus
     assert.equal(file.formatVersion, FIFTH_SESSION_FORMAT);
     assert.equal(file.history.at(-1).cards[0].lines[0].sound, "magic-item");
 
-    for (const sound of ["fanfare", 3, null]) {
+    // An unknown sound, or a field no line has, is refused.
+    for (const change of [
+      { sound: "fanfare" },
+      { sound: 3 },
+      { sound: null },
+      { volume: 1 },
+    ]) {
       const tampered = structuredClone(file);
-      tampered.history.at(-1).cards[0].lines[0].sound = sound;
+      Object.assign(tampered.history.at(-1).cards[0].lines[0], change);
       await writeFile(path, JSON.stringify(tampered));
       await assert.rejects(
         FifthSession.load(path, [findsYard]),
