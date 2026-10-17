@@ -8,7 +8,9 @@
  * also names its author, and the footer credits it.
  */
 import { readFile } from "node:fs/promises";
+import type { EndingKind } from "./adventure-5e.js";
 import type { FightView, RollGroup } from "./runtime-5e.js";
+import { SPELLS, type SpellId } from "./spells-5e.js";
 
 export type SoundLicence = "CC0 1.0" | "CC BY 3.0" | "CC BY 4.0";
 
@@ -18,6 +20,8 @@ export type Sound = Readonly<
     file: string;
     /** Where the file came from: a URL, or the script that makes it. */
     source: string;
+    /** How loud it plays, of the player's volume; all of it unless given. */
+    gain?: number;
   } & (
     | { licence: "CC0 1.0"; author?: string }
     | {
@@ -30,6 +34,47 @@ export type Sound = Readonly<
 
 // The source of each sound synthesised by our own script.
 const MADE = "scripts/make-sounds.mjs (made for Dungeon One)";
+
+/**
+ * The families of spells that sound alike when cast (#485): by damage type
+ * for a spell that harms (acid with poison, and arcane for force and
+ * psychic), and otherwise by what it does.
+ */
+export const SPELL_FAMILIES = [
+  "fire",
+  "cold",
+  "lightning",
+  "thunder",
+  "acid",
+  "necrotic",
+  "radiant",
+  "arcane",
+  "healing",
+  "buff",
+  "control",
+] as const;
+export type SpellFamily = (typeof SPELL_FAMILIES)[number];
+
+/**
+ * Each spell family's cast sound, synthesised by our script, and a
+ * cantrip's: the same file at half the gain, as cantrips are cast all the
+ * time.
+ */
+const SPELL_SOUNDS = Object.fromEntries(
+  SPELL_FAMILIES.flatMap((family) => {
+    const sound: Sound = {
+      file: `spell-${family}.wav`,
+      source: MADE,
+      licence: "CC0 1.0",
+    };
+    return [
+      [`spell-${family}`, sound],
+      [`spell-${family}-cantrip`, { ...sound, gain: 0.5 }],
+    ];
+  }),
+) as Readonly<
+  Record<`spell-${SpellFamily}` | `spell-${SpellFamily}-cantrip`, Sound>
+>;
 
 export const SOUNDS = {
   // The character's attack hits (#481).
@@ -110,9 +155,129 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
+  // The adventure ends in victory (#483), in place of the fight's victory.
+  "ending-victory": {
+    file: "ending-victory.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The character escapes the adventure, with loot or without.
+  "ending-escape": {
+    file: "ending-escape.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The adventure ends in the character's defeat.
+  "ending-defeat": {
+    file: "ending-defeat.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The ending's level-up card, after the ending's sound.
+  "level-up": {
+    file: "level-up.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // Coin found or taken, or paid or received at a merchant (#484).
+  coins: {
+    file: "coins.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A magic item found or taken.
+  "magic-item": {
+    file: "magic-item.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // An ordinary item taken.
+  pickup: {
+    file: "pickup.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A spell cast, by its family (#485); a cantrip's is quieter.
+  ...SPELL_SOUNDS,
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
+
+export function isSoundId(value: unknown): value is SoundId {
+  return typeof value === "string" && Object.hasOwn(SOUNDS, value);
+}
+
+/** Each spell's family (#485): every spell has one. */
+export const SPELL_FAMILY = {
+  "fire-bolt": "fire",
+  "burning-hands": "fire",
+  "scorching-ray": "fire",
+  fireball: "fire",
+  "ray-of-frost": "cold",
+  // Its shard bursts in a blast of cold.
+  "ice-knife": "cold",
+  "shocking-grasp": "lightning",
+  "lightning-bolt": "lightning",
+  thunderwave: "thunder",
+  shatter: "thunder",
+  "acid-arrow": "acid",
+  "ray-of-sickness": "acid",
+  "chill-touch": "necrotic",
+  "inflict-wounds": "necrotic",
+  "bestow-curse": "necrotic",
+  "vampiric-touch": "necrotic",
+  "sacred-flame": "radiant",
+  "guiding-bolt": "radiant",
+  "spirit-guardians": "radiant",
+  light: "radiant",
+  "magic-missile": "arcane",
+  // Its damage type is chosen as it is cast; its sound is not.
+  "chromatic-orb": "arcane",
+  "spiritual-weapon": "arcane",
+  "mind-spike": "arcane",
+  "cure-wounds": "healing",
+  "healing-word": "healing",
+  "prayer-of-healing": "healing",
+  "mass-healing-word": "healing",
+  "lesser-restoration": "healing",
+  guidance: "buff",
+  resistance: "buff",
+  thaumaturgy: "buff",
+  bless: "buff",
+  "shield-of-faith": "buff",
+  "mage-armor": "buff",
+  shield: "buff",
+  aid: "buff",
+  "protection-from-poison": "buff",
+  blur: "buff",
+  "mirror-image": "buff",
+  "beacon-of-hope": "buff",
+  "protection-from-energy": "buff",
+  haste: "buff",
+  sleep: "control",
+  "hold-person": "control",
+  slow: "control",
+} as const satisfies Readonly<Record<SpellId, SpellFamily>>;
+
+/**
+ * The sound of casting `spell` (#485): its family's, or for a cantrip the
+ * family's quieter one. A spell cast from a scroll or wand sounds the same.
+ */
+export function castSound(spell: SpellId): SoundId {
+  const family = SPELL_FAMILY[spell];
+  return SPELLS[spell].level === 0
+    ? `spell-${family}-cantrip`
+    : `spell-${family}`;
+}
+
+/** Each named sound's gain where it is not all of the player's volume. */
+export function soundGains(): Readonly<Partial<Record<SoundId, number>>> {
+  return Object.fromEntries(
+    Object.entries(SOUNDS).flatMap(([id, sound]: [string, Sound]) =>
+      sound.gain === undefined ? [] : [[id, sound.gain]],
+    ),
+  );
+}
 
 const TYPES: Readonly<Record<string, string>> = {
   wav: "audio/wav",
@@ -185,17 +350,27 @@ export type SoundAnswer = Readonly<{
   character: string;
   /** The cards of the history entries the answer added, in order. */
   cards: readonly Readonly<{
-    lines: readonly Readonly<{ rolls: readonly RollGroup[] }>[];
+    lines: readonly Readonly<{
+      rolls: readonly RollGroup[];
+      sound?: SoundId | undefined;
+    }>[];
   }>[];
   /** The fight before the answer and after it, when there was one. */
   before?: SoundFight | undefined;
   after?: SoundFight | undefined;
+  /**
+   * The adventure's ending, only when this answer brought it (#483): its
+   * kind, and whether its rewards carry a level-up card.
+   */
+  ending?: Readonly<{ kind: EndingKind; levelUp: boolean }> | undefined;
 }>;
 
 /**
  * The sounds an answer asks for, in the order its cards give them (#481,
  * #482), worked out from roll data and the fight, never from narration:
  *
+ * - a line's own sound (#484), the engine's tag for what its rolls cannot
+ *   show, before any its rolls call for;
  * - initiative rolled: the fight-start drum;
  * - an attack, one sound however many dice: the character's hit, critical
  *   or miss, or for an attack on the character, hurt or the miss's whoosh;
@@ -209,6 +384,8 @@ export type SoundAnswer = Readonly<{
  *   unless Undead Fortitude keeps it standing;
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
+ * - the adventure ending (#483): its kind's sound, in place of the fight's
+ *   victory, then the fanfare when the ending carries a level-up;
  *
  * Nothing marks the reply itself or the player's turn: the owner found a
  * reply-ready tone irritating in play (#480).
@@ -216,7 +393,7 @@ export type SoundAnswer = Readonly<{
  * The page embeds this function's source, so it uses nothing outside it.
  */
 export function resultSounds(answer: SoundAnswer): SoundId[] {
-  const { character, before, after } = answer;
+  const { character, before, after, ending } = answer;
   const sounds: SoundId[] = [];
   const natural = (group: RollGroup): SoundId | undefined => {
     const d20 = group.dice.find((die) => die.sides === 20 && !die.dropped);
@@ -228,7 +405,10 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
   };
   const lines = answer.cards.flatMap((card) => card.lines);
   let started = false;
-  lines.forEach(({ rolls }, index) => {
+  lines.forEach(({ rolls, sound }, index) => {
+    if (sound !== undefined) {
+      sounds.push(sound);
+    }
     const attack = rolls.find(({ purpose }) => purpose === "attack");
     const first = rolls[0];
     if (rolls.some(({ purpose }) => purpose === "initiative")) {
@@ -292,7 +472,18 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
   const self = after?.combatants.find(({ id }) => id === after.playerId);
   const fought =
     started || (before !== undefined && before.currentTurn !== null);
-  if (
+  if (ending !== undefined) {
+    sounds.push(
+      ending.kind === "victory"
+        ? "ending-victory"
+        : ending.kind === "defeat"
+          ? "ending-defeat"
+          : "ending-escape",
+    );
+    if (ending.levelUp) {
+      sounds.push("level-up");
+    }
+  } else if (
     after !== undefined &&
     after.currentTurn === null &&
     fought &&

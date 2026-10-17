@@ -38,7 +38,7 @@ const passages = (map) =>
   });
 
 test("the formats stay as they were", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 62);
+  assert.equal(FIFTH_SESSION_FORMAT, 63);
 });
 
 test("the map shows the rooms visited, and ways to the rooms beyond by cell only", () => {

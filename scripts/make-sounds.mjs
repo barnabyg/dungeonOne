@@ -292,3 +292,231 @@ write(
     horn(277.18, 233.08, 0.45, 0.48),
   ]),
 );
+
+// Adventure endings (#483). Victory: a longer fanfare, G4 C5 E5, then a
+// held C major chord.
+write(
+  "ending-victory",
+  wav(1.5, 0.2, [
+    horn(392, 392, 0.14, 0),
+    horn(523.25, 523.25, 0.14, 0.14),
+    horn(659.25, 659.25, 0.14, 0.28),
+    ...[523.25, 659.25, 783.99, 1046.5].map((frequency) =>
+      horn(frequency, frequency, 0.95, 0.42),
+    ),
+  ]),
+);
+// An escape: a rush of air, then two light rising notes, D5 then A5.
+write(
+  "ending-escape",
+  wav(1.0, 0.45, [
+    louder(0.6, whoosh(0.4, 0, 9)),
+    bell(587.33, 0.25),
+    bell(880, 0.42),
+  ]),
+);
+// A defeat: a low drum, then a slow falling minor phrase, G4 E♭4 C4.
+write(
+  "ending-defeat",
+  wav(1.6, 0.18, [
+    louder(2.5, thud(90, 40, 0.2, 0, 10)),
+    horn(392, 392, 0.3, 0.1),
+    horn(311.13, 311.13, 0.3, 0.42),
+    horn(261.63, 246.94, 0.75, 0.74),
+  ]),
+);
+// A level-up: a sparkling run over two octaves, C6 to C8, ringing on.
+write(
+  "level-up",
+  wav(
+    1.2,
+    0.4,
+    [1046.5, 1318.5, 1568, 2093, 2637, 3136, 4186].map((frequency, index) =>
+      bell(frequency, index * 0.06),
+    ),
+  ),
+);
+
+/**
+ * A coin striking coin at `at`, `gain` loud: a metal ring of inharmonic
+ * partials over `frequency` that dies away quickly.
+ */
+const clink = (frequency, at, gain) => (time) => {
+  const t = time - at;
+  if (t < 0) {
+    return 0;
+  }
+  const ring = [1, 2.76, 5.4].reduce(
+    (sum, ratio, index) =>
+      sum +
+      Math.sin(2 * Math.PI * frequency * ratio * t) *
+        Math.exp(-t / (0.09 / (index + 1))),
+    0,
+  );
+  return gain * Math.min(1, t / 0.001) * ring;
+};
+
+// Loot (#484). Coins: a handful clinking together.
+write(
+  "coins",
+  wav(0.5, 0.4, [
+    clink(2100, 0, 1),
+    clink(2480, 0.05, 0.8),
+    clink(1870, 0.11, 0.7),
+    clink(2300, 0.16, 0.5),
+    clink(2650, 0.22, 0.35),
+  ]),
+);
+// A magic item: a shimmering chime, E6 G#6 B6 E7, ringing on.
+write(
+  "magic-item",
+  wav(
+    1.0,
+    0.35,
+    [1318.5, 1661.2, 1975.5, 2637].map((frequency, index) =>
+      louder(1 - index * 0.15, bell(frequency, index * 0.09)),
+    ),
+  ),
+);
+// An ordinary item taken: a soft grab and a light knock as it is stowed.
+write(
+  "pickup",
+  wav(0.3, 0.5, [
+    louder(0.5, whoosh(0.12, 0, 11)),
+    louder(0.8, thud(320, 160, 0.03, 0.1, 12)),
+  ]),
+);
+
+/** Fire's crackle: sparse sharp pops of noise over `seconds` from `at`. */
+const crackle = (seconds, at, seed) => {
+  const random = noise(seed);
+  let pop = 0;
+  return (time) => {
+    const grit = random();
+    const t = time - at;
+    if (t < 0 || t > seconds) {
+      return 0;
+    }
+    // A pop starts on about one sample in 400 and dies in a few ms.
+    if (Math.abs(grit) > 0.995) {
+      pop = 1;
+    }
+    pop *= 0.985;
+    return pop * random() * (1 - t / seconds);
+  };
+};
+
+/**
+ * A buzzing sweep: a square-ish tone gliding from `from` to `to` Hz over
+ * `seconds` from `at`, fading as it goes.
+ */
+const zap = (from, to, seconds, at) => {
+  let phase = 0;
+  return (time) => {
+    const t = time - at;
+    if (t < 0 || t > seconds) {
+      return 0;
+    }
+    const frequency = from * (to / from) ** (t / seconds);
+    phase += (2 * Math.PI * frequency) / RATE;
+    const square = Math.tanh(4 * Math.sin(phase));
+    return square * Math.min(1, t / 0.003) * (1 - t / seconds);
+  };
+};
+
+/** A bubble popping at `at`: a short sine rising from `frequency`. */
+const bubble = (frequency, at) => (time) => {
+  const t = time - at;
+  if (t < 0 || t > 0.06) {
+    return 0;
+  }
+  const phase = 2 * Math.PI * frequency * (t + 8 * t * t);
+  return Math.sin(phase) * Math.sin((Math.PI * t) / 0.06);
+};
+
+/** A slow wobble: `voice` swelling and fading `rate` times a second. */
+const tremolo = (rate, voice) => (time) =>
+  (0.6 + 0.4 * Math.sin(2 * Math.PI * rate * time)) * voice(time);
+
+// Spells by family (#485). Fire: a rush of flame with a crackle.
+write(
+  "spell-fire",
+  wav(0.6, 0.55, [whoosh(0.5, 0, 13), louder(0.8, crackle(0.55, 0.05, 14))]),
+);
+// Cold: a crystalline shimmer of high, glassy notes.
+write(
+  "spell-cold",
+  wav(
+    0.7,
+    0.35,
+    [2793.8, 3520, 3135.9, 4186].map((frequency, index) =>
+      clink(frequency, index * 0.05, 1 - index * 0.15),
+    ),
+  ),
+);
+// Lightning: a crackling zap falling from high to low.
+write(
+  "spell-lightning",
+  wav(0.45, 0.35, [zap(1600, 180, 0.4, 0), louder(0.6, crackle(0.3, 0, 15))]),
+);
+// Thunder: a deep boom and its rumble.
+write(
+  "spell-thunder",
+  wav(0.9, 0.65, [thud(90, 30, 0.3, 0, 16), louder(0.5, table(0.85, 17))]),
+);
+// Acid and poison: a sizzle with bubbles rising through it.
+write(
+  "spell-acid",
+  wav(0.6, 0.4, [
+    louder(0.4, whoosh(0.55, 0, 18)),
+    ...[420, 560, 380, 640, 500].map((frequency, index) =>
+      bubble(frequency, 0.05 + index * 0.09),
+    ),
+  ]),
+);
+// Necrotic: a low, falling, hollow drone.
+write(
+  "spell-necrotic",
+  wav(0.8, 0.2, [
+    horn(146.83, 110, 0.7, 0),
+    louder(0.6, horn(155.56, 116.54, 0.7, 0)),
+  ]),
+);
+// Radiant: a bright, swelling chord, C6 E6 G6.
+write(
+  "spell-radiant",
+  wav(
+    0.8,
+    0.35,
+    [1046.5, 1318.5, 1568].map((frequency) => bell(frequency, 0)),
+  ),
+);
+// Arcane (force and psychic): a quick rising "pew" with a ring.
+write(
+  "spell-arcane",
+  wav(0.45, 0.22, [horn(520, 1040, 0.18, 0), louder(0.5, bell(1568, 0.15))]),
+);
+// Healing: a warm rising phrase, C5 E5 G5.
+write(
+  "spell-healing",
+  wav(
+    0.8,
+    0.4,
+    [523.25, 659.25, 783.99].map((frequency, index) =>
+      bell(frequency, index * 0.11),
+    ),
+  ),
+);
+// Buffs and wards: a quick upward shimmer, E5 A5 E6.
+write(
+  "spell-buff",
+  wav(
+    0.6,
+    0.4,
+    [659.25, 880, 1318.5].map((frequency, index) =>
+      bell(frequency, index * 0.05),
+    ),
+  ),
+);
+// Control: a slow, wobbling, sinking tone.
+write("spell-control", wav(0.8, 0.2, [tremolo(6, horn(440, 330, 0.75, 0))]));

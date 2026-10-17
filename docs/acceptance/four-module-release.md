@@ -185,7 +185,7 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 - **Fragile seeds.** A change to these modules' foes, the fight rules, the
   wandering tables or the dice order moves the seeds; the handoff test fails
   when it does.
-- **Throwaway formats** (ADR 0005): library 26, session 62, trace 56,
+- **Throwaway formats** (ADR 0005): library 26, session 63, trace 57,
   adventure module 43, bestiary 10, prompt `5e-dm-v45`. When the library
   format changes, regenerate the inputs in `tests/fixtures/libraries/` from
   the generators their tests

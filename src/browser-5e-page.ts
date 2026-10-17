@@ -135,7 +135,12 @@ import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
-import { resultSounds, soundCredits, soundUrls } from "./sounds-5e.js";
+import {
+  resultSounds,
+  soundCredits,
+  soundGains,
+  soundUrls,
+} from "./sounds-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -384,14 +389,17 @@ const isBusy = (button) => button.getAttribute("aria-busy") === "true";
 
 // Sound (#480): each named sound's file, and the player. Only a result that
 // answers the player's action or message asks for sound (resultSounds, from
-// its roll data and the fight before and after it, #481, #482); opening,
-// reloading or rerunning an adventure plays nothing for the history shown.
+// its roll data, the fight before and after it and the ending it brings,
+// #481-#483); opening, reloading or rerunning an adventure plays nothing for
+// the history shown.
 // Every sound asked for is added to window.requestedSounds, for tests,
 // whether or not it can play: it plays only with the header's controls on
 // the page, unmuted and above zero volume, and the browser may refuse it
 // (before the first click, or headless), which is ignored. An answer's
 // sounds play one after another, each a short gap after the last ends.
 const SOUND_FILES = ${JSON.stringify(soundUrls())};
+// A cantrip's cast plays quieter than a levelled spell's (#485).
+const SOUND_GAINS = ${JSON.stringify(soundGains())};
 const SOUND_SETTINGS = "dungeon-one-sound";
 const soundControls = element("sound-controls");
 const soundPlayers = new Map();
@@ -456,7 +464,7 @@ function playSounds(names) {
       soundPlayers.set(names[index], player);
     }
     queue.player = player;
-    player.volume = soundSettings.volume;
+    player.volume = soundSettings.volume * (SOUND_GAINS[names[index]] ?? 1);
     player.currentTime = 0;
     player.onended = () => {
       queue.timer = setTimeout(() => next(index + 1), SOUND_GAP);
@@ -2332,8 +2340,9 @@ async function act(path, body, control, busyLabel, pendingMessage) {
   const button = document.querySelector(control);
   if (button) setBusy(button, busyLabel);
   let answered = false;
-  // What the answer changes, for its sounds: the history it adds and the fight.
-  const { history: earlier, encounter: before } = session;
+  // What the answer changes, for its sounds: the history it adds, the fight
+  // and the ending, which sounds only when this answer brings it (#483).
+  const { history: earlier, encounter: before, ending: ended } = session;
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
@@ -2354,6 +2363,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
         cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),
         before,
         after: session.encounter,
+        ending: ended || !session.ending ? undefined : { kind: session.ending.kind, levelUp: Boolean(session.ending.rewards?.levelUp) },
       }));
     }
   }
