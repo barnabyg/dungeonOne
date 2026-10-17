@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 62).
+ * A 5e adventure session and its save file (format version 63).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -12,6 +12,7 @@
  * file, and left untouched.
  */
 import { isGameIconId } from "./icons-5e.js";
+import { isSoundId } from "./sounds-5e.js";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -48,7 +49,7 @@ import {
   SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 62;
+export const FIFTH_SESSION_FORMAT = 63;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -148,14 +149,18 @@ function validHistory(value: unknown): value is HistoryEntry[] {
             card.lines.every(
               (line) =>
                 isRecord(line) &&
-                ["rolls,text", "icons,rolls,text"].includes(
-                  Object.keys(line).sort().join(","),
-                ) &&
+                [
+                  "rolls,text",
+                  "icons,rolls,text",
+                  "rolls,sound,text",
+                  "icons,rolls,sound,text",
+                ].includes(Object.keys(line).sort().join(",")) &&
                 text(line.text) &&
                 Array.isArray(line.rolls) &&
                 line.rolls.every(validRollGroup) &&
                 (line.icons === undefined ||
-                  validIcons(line.icons, line.text as string)),
+                  validIcons(line.icons, line.text as string)) &&
+                (line.sound === undefined || isSoundId(line.sound)),
             ) &&
             card.lines.map((line) => (line as ResultLine).text).join("\n") ===
               card.text,
@@ -421,7 +426,7 @@ export class FifthSession {
       result,
       rolls,
       this.character.name,
-      this.runtime.icons,
+      this.runtime.lineLookup,
     );
     return {
       kind:

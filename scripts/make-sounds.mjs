@@ -336,3 +336,53 @@ write(
     ),
   ),
 );
+
+/**
+ * A coin striking coin at `at`, `gain` loud: a metal ring of inharmonic
+ * partials over `frequency` that dies away quickly.
+ */
+const clink = (frequency, at, gain) => (time) => {
+  const t = time - at;
+  if (t < 0) {
+    return 0;
+  }
+  const ring = [1, 2.76, 5.4].reduce(
+    (sum, ratio, index) =>
+      sum +
+      Math.sin(2 * Math.PI * frequency * ratio * t) *
+        Math.exp(-t / (0.09 / (index + 1))),
+    0,
+  );
+  return gain * Math.min(1, t / 0.001) * ring;
+};
+
+// Loot (#484). Coins: a handful clinking together.
+write(
+  "coins",
+  wav(0.5, 0.4, [
+    clink(2100, 0, 1),
+    clink(2480, 0.05, 0.8),
+    clink(1870, 0.11, 0.7),
+    clink(2300, 0.16, 0.5),
+    clink(2650, 0.22, 0.35),
+  ]),
+);
+// A magic item: a shimmering chime, E6 G#6 B6 E7, ringing on.
+write(
+  "magic-item",
+  wav(
+    1.0,
+    0.35,
+    [1318.5, 1661.2, 1975.5, 2637].map((frequency, index) =>
+      louder(1 - index * 0.15, bell(frequency, index * 0.09)),
+    ),
+  ),
+);
+// An ordinary item taken: a soft grab and a light knock as it is stowed.
+write(
+  "pickup",
+  wav(0.3, 0.5, [
+    louder(0.5, whoosh(0.12, 0, 11)),
+    louder(0.8, thud(320, 160, 0.03, 0.1, 12)),
+  ]),
+);

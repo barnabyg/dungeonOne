@@ -79,6 +79,7 @@ import {
 } from "./icons-5e.js";
 import { exitDirection } from "./map-5e.js";
 import type { Cell, Direction, VerticalKind } from "./map-5e.js";
+import type { SoundId } from "./sounds-5e.js";
 import {
   approachesOf,
   authoredBand,
@@ -3768,21 +3769,34 @@ export type ResultLine = Readonly<{
    * about one item.
    */
   icons?: readonly LineIcon[];
+  /**
+   * The named sound the line asks for (#484), for what its rolls cannot
+   * show: loot found, taken or traded. The browser plays it only for a
+   * result that arrives now.
+   */
+  sound?: SoundId;
 }>;
 
 export type LineIcon = Readonly<{ at: number; icon: GameIconId }>;
 
+/** What an item found, given or taken is, for its sound (#484). */
+export type Loot = "coin" | "magic" | "ordinary";
+
 /**
- * Where a result's monsters and items get their icons (#377): the runtime's
- * own, from its module.
+ * Where a result's monsters and items get their icons (#377) and loot its
+ * sounds (#484): the runtime's own, from its module.
  */
-export type IconLookup = Readonly<{
+export type LineLookup = Readonly<{
   /** The icon of opponent `id` in the character's fight or room. */
   opponent(state: FifthState, id: string): GameIconId | undefined;
   /** The icon of a module item, catalogue item or treasure kept, by id. */
   item(id: string): GameIconId | undefined;
   /** The icon of a module item, by name. */
   itemNamed(name: string): GameIconId | undefined;
+  /** What a module item or catalogue item is, by id. */
+  loot(id: string): Loot | undefined;
+  /** What a module item is, by name. */
+  lootNamed(name: string): Loot | undefined;
 }>;
 
 /** Fields of an event that may hold the ids of the fight's combatants. */
@@ -3811,7 +3825,7 @@ function lineIcons(
   state: FifthState,
   event: FifthEvent | undefined,
   text: string,
-  icons: IconLookup,
+  icons: LineLookup,
 ): LineIcon[] {
   if (event === undefined) {
     return [];
@@ -3890,6 +3904,52 @@ function lineIcons(
     .filter((one, index, sorted) => sorted[index - 1]?.at !== one.at);
 }
 
+/** The sound each kind of loot makes when found or taken (#484). */
+const LOOT_SOUNDS = {
+  coin: "coins",
+  magic: "magic-item",
+  ordinary: "pickup",
+} as const satisfies Readonly<Record<Loot, SoundId>>;
+
+/**
+ * The named sound a line asks for (#484): coin clinks when it is found or
+ * taken, and when the character buys or sells; a magic item chimes when it
+ * is found or taken; an ordinary item taken is picked up. A line finding
+ * several plays the most notable, a magic item before coin; finding an
+ * ordinary item is silent until it is taken.
+ */
+function lineSound(
+  event: FifthEvent | undefined,
+  lookup: LineLookup,
+): SoundId | undefined {
+  /** The most notable sound of the loot found. */
+  const found = (loot: readonly (Loot | undefined)[]) =>
+    loot.includes("magic")
+      ? LOOT_SOUNDS.magic
+      : loot.includes("coin")
+        ? LOOT_SOUNDS.coin
+        : undefined;
+  switch (event?.type) {
+    case "examined":
+      return found(event.found.map((name) => lookup.lootNamed(name)));
+    case "talked":
+      return found(event.given.map((name) => lookup.lootNamed(name)));
+    case "revealed":
+      return found([lookup.loot(event.itemId)]);
+    case "taken":
+      return LOOT_SOUNDS[
+        event.coin === undefined
+          ? (lookup.loot(event.itemId) ?? "ordinary")
+          : "coin"
+      ];
+    case "traded":
+    case "sold-treasure":
+      return LOOT_SOUNDS.coin;
+    default:
+      return undefined;
+  }
+}
+
 /** How an attack's d20s were rolled, for its roll group. */
 function modeLabel(mode: RollMode): string {
   const sources = (names: readonly string[]) => `(${names.join(", ")})`;
@@ -3912,7 +3972,7 @@ export function describeFifthResult(
   result: FifthResult,
   rolls: readonly Readonly<{ sides: number; value: number }>[],
   playerName: string,
-  icons?: IconLookup,
+  lookup?: LineLookup,
 ): ResultLine[] {
   // Each event is told against its line's state (#396: what happened in
   // a fight fled reads the fight left behind).
@@ -4599,11 +4659,13 @@ export function describeFifthResult(
   const lines = resultLines(result).map(({ text, event, state: told }) => {
     state = told;
     const marks =
-      icons === undefined ? [] : lineIcons(state, event, text, icons);
+      lookup === undefined ? [] : lineIcons(state, event, text, lookup);
+    const sound = lookup === undefined ? undefined : lineSound(event, lookup);
     return {
       text,
       rolls: groups(event),
       ...(marks.length === 0 ? {} : { icons: marks }),
+      ...(sound === undefined ? {} : { sound }),
     };
   });
   if (next !== rolls.length) {
@@ -5302,8 +5364,11 @@ export type FifthRuntime = Omit<
      * the passages out of them the character can see.
      */
     projectMap(state: FifthState): MapView;
-    /** Its module's monster and item icons, for result lines (#377). */
-    icons: IconLookup;
+    /**
+     * Its module's monster and item icons and what its items are, for
+     * result lines' icons (#377) and sounds (#484).
+     */
+    lineLookup: LineLookup;
     /**
      * The action bar: in a fight, the character's whole toolkit (an attack
      * on each living opponent, drinking each carried potion, Second Wind,
@@ -5742,7 +5807,26 @@ export function createFifthRuntime(
   const itemIconsByName = new Map(
     [...items.values()].map((item) => [item.name, itemIcon(item)] as const),
   );
-  const icons: IconLookup = {
+  /** What a module item is, for its sound (#484). */
+  const lootOf = (item: FifthItem): Loot => {
+    switch (item.kind) {
+      case "coin":
+        return "coin";
+      case "gear":
+        return magicOf(item.gear!) === undefined ? "ordinary" : "magic";
+      case "key":
+      case "tool":
+      case "treasure":
+        return "ordinary";
+      default:
+        // Spell scrolls, wands and potions.
+        return "magic";
+    }
+  };
+  const lootByName = new Map(
+    [...items.values()].map((item) => [item.name, lootOf(item)] as const),
+  );
+  const lineLookup: LineLookup = {
     opponent: (state, id) =>
       encounterOf(state)?.opponents.find((opponent) => opponent.id === id)
         ?.icon,
@@ -5755,6 +5839,19 @@ export function createFifthRuntime(
       return isCatalogueId(gear) ? catalogueIcon(gear) : undefined;
     },
     itemNamed: (name) => itemIconsByName.get(name),
+    loot: (id) => {
+      const item = items.get(id);
+      if (item !== undefined) {
+        return lootOf(item);
+      }
+      const gear = id.startsWith(DROPPED) ? id.slice(DROPPED.length) : id;
+      return !isCatalogueId(gear)
+        ? undefined
+        : magicOf(gear) === undefined
+          ? "ordinary"
+          : "magic";
+    },
+    lootNamed: (name) => lootByName.get(name),
   };
   const featureById = new Map(
     adventure.rooms.flatMap(({ features }) =>
@@ -14033,7 +14130,7 @@ export function createFifthRuntime(
         self(state),
         options(state),
         attackTargets(state),
-        (id) => icons.opponent(state, id),
+        (id) => lineLookup.opponent(state, id),
       ),
     projectHitDice,
     projectEffects: (state: FifthState) => effectViews(self(state)),
@@ -14041,7 +14138,7 @@ export function createFifthRuntime(
     projectKnownRooms,
     projectMap,
     projectRoom,
-    icons,
+    lineLookup,
     projectActions,
     actionOf: (view) => projectedActions.get(view),
     projectSettlement,

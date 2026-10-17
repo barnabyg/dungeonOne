@@ -145,6 +145,8 @@ test("the engine's lines mark the items and the goblin without changing their te
     text: "You take the Lost Purse and put 5 sp in your purse.",
     rolls: [],
     icons: [{ at: 0, icon: "two-coins" }],
+    // Its coin clinks (#484).
+    sound: "coins",
   });
   assert.deepEqual(dagger.lines[0].icons, [{ at: 0, icon: "plain-dagger" }]);
   // Entering the cellar starts the fight: the goblin's line is marked

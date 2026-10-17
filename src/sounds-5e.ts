@@ -135,9 +135,31 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
+  // Coin found or taken, or paid or received at a merchant (#484).
+  coins: {
+    file: "coins.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A magic item found or taken.
+  "magic-item": {
+    file: "magic-item.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // An ordinary item taken.
+  pickup: {
+    file: "pickup.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
+
+export function isSoundId(value: unknown): value is SoundId {
+  return typeof value === "string" && Object.hasOwn(SOUNDS, value);
+}
 
 const TYPES: Readonly<Record<string, string>> = {
   wav: "audio/wav",
@@ -210,7 +232,10 @@ export type SoundAnswer = Readonly<{
   character: string;
   /** The cards of the history entries the answer added, in order. */
   cards: readonly Readonly<{
-    lines: readonly Readonly<{ rolls: readonly RollGroup[] }>[];
+    lines: readonly Readonly<{
+      rolls: readonly RollGroup[];
+      sound?: SoundId | undefined;
+    }>[];
   }>[];
   /** The fight before the answer and after it, when there was one. */
   before?: SoundFight | undefined;
@@ -226,6 +251,8 @@ export type SoundAnswer = Readonly<{
  * The sounds an answer asks for, in the order its cards give them (#481,
  * #482), worked out from roll data and the fight, never from narration:
  *
+ * - a line's own sound (#484), the engine's tag for what its rolls cannot
+ *   show, before any its rolls call for;
  * - initiative rolled: the fight-start drum;
  * - an attack, one sound however many dice: the character's hit, critical
  *   or miss, or for an attack on the character, hurt or the miss's whoosh;
@@ -260,7 +287,10 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
   };
   const lines = answer.cards.flatMap((card) => card.lines);
   let started = false;
-  lines.forEach(({ rolls }, index) => {
+  lines.forEach(({ rolls, sound }, index) => {
+    if (sound !== undefined) {
+      sounds.push(sound);
+    }
     const attack = rolls.find(({ purpose }) => purpose === "attack");
     const first = rolls[0];
     if (rolls.some(({ purpose }) => purpose === "initiative")) {
