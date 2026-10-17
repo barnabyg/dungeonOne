@@ -1,4 +1,4 @@
-// Writes the sounds Dungeon One makes itself (#480–#482) into sounds/, as 16-bit
+// Writes the sounds Dungeon One makes itself (#481, #482) into sounds/, as 16-bit
 // mono WAV. Each is synthesised here, so it is ours to release under CC0;
 // src/sounds-5e.ts records it with this script as its source. Run it again
 // after changing a sound: `node scripts/make-sounds.mjs`.
@@ -201,9 +201,6 @@ const louder = (gain, voice) => (time) => gain * voice(time);
 
 const write = (name, sound) =>
   writeFileSync(new URL(`../sounds/${name}.wav`, import.meta.url), sound);
-
-// The reply-ready tone: two soft rising notes, E5 then A5.
-write("reply-ready", wav(0.7, 0.5, [bell(659.25, 0), bell(880, 0.12)]));
 
 // Combat (#481). Your hit: a dull blow.
 write("hit", wav(0.3, 0.6, [thud(180, 70, 0.07, 0, 1)]));

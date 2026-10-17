@@ -31,7 +31,8 @@ async function withServer(options, work) {
 }
 
 test("every sound is a short, small file with its source and licence", async () => {
-  assert.ok(Object.keys(SOUNDS).includes("reply-ready"));
+  // The reply-ready tone was removed: the owner found it irritating in play.
+  assert.equal(Object.hasOwn(SOUNDS, "reply-ready"), false);
   for (const [id, sound] of Object.entries(SOUNDS)) {
     assert.ok(sound.source.length > 0, id);
     assert.ok(LICENCES.includes(sound.licence), `${id}: ${sound.licence}`);
@@ -91,15 +92,18 @@ test("with sound on, the header has its controls and the server serves only the 
     assert.match(html, /<footer class="credits">[^<]*Icons by /u);
     assert.ok(html.includes(soundCredits()));
 
-    const tone = await fetch(`${url}/sounds/reply-ready.wav`);
-    assert.equal(tone.status, 200);
-    assert.equal(tone.headers.get("content-type"), "audio/wav");
-    assert.deepEqual(
-      Buffer.from(await tone.arrayBuffer()),
-      await readFile(new URL("../sounds/reply-ready.wav", import.meta.url)),
-    );
+    for (const sound of Object.values(SOUNDS)) {
+      const served = await fetch(`${url}/sounds/${sound.file}`);
+      assert.equal(served.status, 200, sound.file);
+      assert.equal(served.headers.get("content-type"), "audio/wav");
+      assert.deepEqual(
+        Buffer.from(await served.arrayBuffer()),
+        await readFile(new URL(`../sounds/${sound.file}`, import.meta.url)),
+      );
+    }
     for (const path of [
       "/sounds/missing.wav",
+      "/sounds/reply-ready.wav",
       "/sounds/../package.json",
       "/sounds/%2e%2e/package.json",
       "/sounds/",
@@ -112,5 +116,5 @@ test("with sound off, the page has no sound controls and no sound is served", as
   withServer({ sound: false }, async (url) => {
     const html = await (await fetch(url)).text();
     assert.doesNotMatch(html, /sound-controls|sound-mute|sound-volume/u);
-    assert.equal((await fetch(`${url}/sounds/reply-ready.wav`)).status, 404);
+    assert.equal((await fetch(`${url}/sounds/hit.wav`)).status, 404);
   }));

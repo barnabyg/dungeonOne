@@ -104,7 +104,7 @@ const fight = (currentTurn, { ada = 9, goblin = 7, morale } = {}) => ({
 });
 
 const sounds = (answer) =>
-  resultSounds({ character: ADA, cards: [], playing: false, ...answer });
+  resultSounds({ character: ADA, cards: [], ...answer });
 
 test("each fight and check sound is a named, bundled sound", () => {
   for (const id of [
@@ -136,9 +136,8 @@ test("a fight ending with the character standing plays the victory last", () => 
       cards: [card(attack(ADA, "Goblin", "hit", 14))],
       before: fight("pc"),
       after: fight(null, { goblin: 0 }),
-      playing: true,
     }),
-    ["hit", "victory", "reply-ready"],
+    ["hit", "victory"],
   );
   // A foe that fled or surrendered is beaten too.
   for (const morale of ["fled", "surrendered"]) {

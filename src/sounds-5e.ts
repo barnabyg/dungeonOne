@@ -32,12 +32,6 @@ export type Sound = Readonly<
 const MADE = "scripts/make-sounds.mjs (made for Dungeon One)";
 
 export const SOUNDS = {
-  // When the Dungeon Master's reply is shown and it is the player's turn again.
-  "reply-ready": {
-    file: "reply-ready.wav",
-    source: MADE,
-    licence: "CC0 1.0",
-  },
   // The character's attack hits (#481).
   hit: {
     file: "hit.wav",
@@ -196,8 +190,6 @@ export type SoundAnswer = Readonly<{
   /** The fight before the answer and after it, when there was one. */
   before?: SoundFight | undefined;
   after?: SoundFight | undefined;
-  /** Whether the adventure plays on, so it is the player's move again. */
-  playing: boolean;
 }>;
 
 /**
@@ -217,7 +209,9 @@ export type SoundAnswer = Readonly<{
  *   unless Undead Fortitude keeps it standing;
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
- * - while the adventure plays on, the reply-ready tone last.
+ *
+ * Nothing marks the reply itself or the player's turn: the owner found a
+ * reply-ready tone irritating in play (#480).
  *
  * The page embeds this function's source, so it uses nothing outside it.
  */
@@ -313,9 +307,6 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
     )
   ) {
     sounds.push("victory");
-  }
-  if (answer.playing) {
-    sounds.push("reply-ready");
   }
   return sounds;
 }

@@ -1,14 +1,14 @@
-// #480, browser → API → storage: the reply-ready tone is asked for once per
-// reply to the player's action or message, and never for the history shown
-// on reloading or rerunning; mute and volume are kept per browser; and with
-// sound off no sound controls show and no sound file is fetched.
+// #480, browser → API → storage: no sound marks a reply to the player's
+// action or message, and the history shown on reloading or rerunning asks
+// for none; mute and volume are kept per browser; and with sound off no
+// sound controls show and no sound file is fetched.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { lintelBarrow as barrow } from "./fixtures/modules.mjs";
+import { lintelBarrow as barrow, obstacleYard } from "./fixtures/modules.mjs";
 import {
   clickAction,
   createFighter,
@@ -21,7 +21,7 @@ const serve = (libraryPath, options = {}) =>
   startFifthBrowserServer({
     libraryPath,
     seed: 0,
-    adventures: [barrow],
+    adventures: [barrow, obstacleYard],
     qualifies: () => true,
     dmModel: narratingDm(),
     ...options,
@@ -41,6 +41,16 @@ function soundFetches(page) {
   });
   return fetched;
 }
+
+/** Climbs the obstacle yard's crumbling wall: on seed 0, dice then success. */
+const climbWall = (page) =>
+  settled(page, () =>
+    page
+      .locator(
+        '#action-bar button[data-target="crumbling-wall"][data-approach="athletics"]',
+      )
+      .click(),
+  );
 
 async function sendMessage(page, message) {
   await page.locator("#message").fill(message);
@@ -64,7 +74,7 @@ async function withPage(work) {
 }
 
 test(
-  "the reply-ready tone is asked for once per reply, never for history shown on reload or rerun",
+  "a reply asks for no sound of its own, and history shown on reload or rerun asks for none",
   { timeout: 120000 },
   () =>
     withPage(async (page, libraryPath) => {
@@ -77,17 +87,11 @@ test(
         // Starting the adventure is not a reply: its opening is silent.
         assert.deepEqual(await requested(page), []);
 
-        const tone = page.waitForRequest((request) =>
-          request.url().endsWith("/sounds/reply-ready.wav"),
-        );
+        // The owner removed the reply-ready tone: nothing marks a reply.
         await clickAction(page, "examine", "scratched-lintel");
-        assert.deepEqual(await requested(page), ["reply-ready"]);
-        // The tone's file is fetched to play it.
-        await tone;
-        assert.deepEqual(fetched, ["/sounds/reply-ready.wav"]);
-
         await sendMessage(page, "I listen at the barrow mouth.");
-        assert.deepEqual(await requested(page), ["reply-ready", "reply-ready"]);
+        assert.deepEqual(await requested(page), []);
+        assert.deepEqual(fetched, []);
 
         await page.reload();
         await page.locator("#log li").first().waitFor();
@@ -109,7 +113,7 @@ test(
 );
 
 test(
-  "mute and volume are kept across reloads, and a muted reply fetches no sound",
+  "mute and volume are kept across reloads, and a muted answer fetches no sound",
   { timeout: 120000 },
   () =>
     withPage(async (page, libraryPath) => {
@@ -139,11 +143,11 @@ test(
         assert.equal(await volume.inputValue(), "20");
 
         await createFighter(page);
-        await startAdventure(page, "lintel-barrow");
+        await startAdventure(page, "obstacle-yard");
         // The header still has them, in one bar, in an adventure.
         assert.equal(await mute.isVisible(), true);
-        await clickAction(page, "examine", "scratched-lintel");
-        assert.deepEqual(await requested(page), ["reply-ready"]);
+        await climbWall(page);
+        assert.deepEqual(await requested(page), ["dice", "success"]);
         assert.deepEqual(fetched, []);
 
         await mute.click();
@@ -168,10 +172,9 @@ test(
         await page.goto(server.url);
         assert.equal(await page.locator("#sound-controls").count(), 0);
         await createFighter(page);
-        await startAdventure(page, "lintel-barrow");
-        await clickAction(page, "examine", "scratched-lintel");
-        await sendMessage(page, "I listen at the barrow mouth.");
-        assert.deepEqual(await requested(page), ["reply-ready", "reply-ready"]);
+        await startAdventure(page, "obstacle-yard");
+        await climbWall(page);
+        assert.deepEqual(await requested(page), ["dice", "success"]);
         assert.deepEqual(fetched, []);
       } finally {
         await server.close();
