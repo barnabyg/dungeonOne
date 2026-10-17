@@ -107,10 +107,11 @@ import {
 } from "./browser-http.js";
 import {
   FIFTH_BROWSER_CSS,
-  FIFTH_BROWSER_HTML,
   FIFTH_BROWSER_SCRIPT,
   FIFTH_DM_OFF_NOTICE,
+  fifthBrowserHtml,
 } from "./browser-5e-page.js";
+import { readSound, soundAt, soundType } from "./sounds-5e.js";
 
 export type FifthBrowserOptions = Readonly<{
   libraryPath: string;
@@ -127,6 +128,11 @@ export type FifthBrowserOptions = Readonly<{
   qualifies?: (adventure: FifthAdventure) => boolean;
   /** The modules to offer in place of the built-in ones, for tests. */
   adventures?: readonly FifthAdventure[];
+  /**
+   * Whether the page has sound (#480), on unless the launcher turns it off:
+   * then the page has no sound controls and no sound file is served.
+   */
+  sound?: boolean;
 }>;
 
 /**
@@ -628,6 +634,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
   );
   const view = (data: FifthLibraryData) => libraryView(data, offered);
+  const sound = options.sound ?? true;
+  const html = fifthBrowserHtml(sound);
   // The file lock fails rather than waits, so this server's own changes queue.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -1289,14 +1297,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         json(response, 405, { error: "Method not allowed." });
         return;
       }
+      const playable = sound ? soundAt(request.url ?? "") : undefined;
+      if (playable !== undefined) {
+        respond(response, 200, soundType(playable), await readSound(playable));
+        return;
+      }
       switch (request.url) {
         case "/":
-          respond(
-            response,
-            200,
-            "text/html; charset=utf-8",
-            FIFTH_BROWSER_HTML,
-          );
+          respond(response, 200, "text/html; charset=utf-8", html);
           break;
         case "/app.css":
           respond(response, 200, "text/css; charset=utf-8", FIFTH_BROWSER_CSS);

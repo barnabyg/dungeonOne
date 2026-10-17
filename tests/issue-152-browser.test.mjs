@@ -149,12 +149,15 @@ const audit = (page) =>
         const around = background(control.parentElement);
         const border = parse(style.borderTopColor);
         const fill = parse(style.backgroundColor);
+        // A slider (#480) shows its track and thumb in its accent colour.
         const edge =
-          parseFloat(style.borderTopWidth) > 0 && border[3] > 0
-            ? border
-            : fill[3] > 0
-              ? fill
-              : undefined;
+          control.type === "range"
+            ? parse(style.accentColor)
+            : parseFloat(style.borderTopWidth) > 0 && border[3] > 0
+              ? border
+              : fill[3] > 0
+                ? fill
+                : undefined;
         // Quiet buttons read as underlined links and need no boundary.
         if (control.classList.contains("quiet")) {
           continue;

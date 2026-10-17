@@ -36,6 +36,9 @@ Options, which `run.bat` passes through:
 - `--characters <library.json>` chooses the character library (default
   `characters.json` in the current directory).
 - `--seed <0-4294967295>` fixes the startup seed for repeatable dice.
+- `--no-sound` turns sound off completely. Otherwise sound is on at a
+  moderate volume, with a mute button and volume slider in the header that
+  the browser remembers.
 
 ```powershell
 $env:OPENAI_API_KEY = "<your key>"

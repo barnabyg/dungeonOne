@@ -104,6 +104,14 @@
 // In an adventure the header bar's #open-map (or M) opens the map pop-up,
 // #map-dialog (#457), described at renderMap.
 //
+// Sound (#480): the header bar ends with #sound-controls on every screen, a
+// mute toggle (#sound-mute, aria-pressed) and a volume slider
+// (#sound-volume), kept per browser. They come first in the DOM, so the
+// breadcrumb stays just before each view's heading in tab order. A launch
+// with sound off leaves them out of the page, and then no sound file is
+// fetched. Sound is never the only signal: the text, rolls and icons still
+// say everything.
+//
 // A level-4 character's sheet (#286) leads with #level-choice, the level-up
 // card that asks for its Ability Score Improvement (#asi-mode-two or
 // #asi-mode-split, then #asi-<ability>) and, for a Fighter, its fourth weapon
@@ -127,16 +135,21 @@ import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
+import { soundCredits, soundUrls } from "./sounds-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
   "Typing to the Dungeon Master is off. Use the buttons.";
 
-export const FIFTH_BROWSER_HTML = `<!doctype html>
+// The header's sound controls (#480): a speaker that is crossed out while muted.
+const SOUND_CONTROLS = `<div id="sound-controls" role="group" aria-label="Sound"><button id="sound-mute" type="button" class="secondary" aria-pressed="false" title="Mute sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6m0-6-6 6"/></svg><span class="visually-hidden">Mute sound</span></button><input id="sound-volume" type="range" min="0" max="100" step="5" aria-label="Volume"></div>`;
+
+/** The page, with its sound controls unless the launch turned sound off. */
+export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
 <body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
-<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>
+<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>${sound ? SOUND_CONTROLS : ""}
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <p id="adventure-meta" hidden></p><button id="open-map" type="button" class="secondary" aria-haspopup="dialog" aria-keyshortcuts="M" title="Map (M)" hidden>Map</button></header>
 <main id="content" tabindex="-1">
@@ -219,7 +232,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </div>
 </section>
 </main>
-<footer class="credits">${iconCredits()}</footer>
+<footer class="credits">${[iconCredits(), soundCredits()].filter(Boolean).join(" ")}</footer>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
@@ -260,7 +273,7 @@ button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-
 button.primary{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-on-ink)}button.primary:hover:not(:disabled){background:var(--color-ink-hover)}button.secondary:hover:not(:disabled){background:var(--color-surface-hover)}button.quiet{border-color:transparent;text-decoration:underline;text-underline-offset:3px}button.quiet:hover:not(:disabled){background:var(--color-surface-hover)}button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}button.primary.danger{background:var(--color-danger);color:var(--color-on-ink)}button.primary.danger:hover:not(:disabled){background:var(--color-danger-hover)}
 :focus-visible{outline:3px solid var(--color-focus);outline-offset:3px}[tabindex="-1"]:focus{outline:none}[hidden]{display:none!important}
 .skip{position:absolute;top:-100px;left:12px;background:var(--color-paper);padding:10px;z-index:20}.skip:focus{top:12px}
-.masthead{max-width:860px;margin:auto;padding:6px var(--space-4);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-5);color:var(--color-on-dark)}.brand{display:flex;align-items:center;gap:var(--space-2)}.brand-mark{font-size:1.4rem;line-height:1;color:var(--color-gold)}.masthead h1{font-size:1.5rem;line-height:1;margin:0;white-space:nowrap}#adventure-meta{margin:0 0 0 auto;font:var(--text-sm) var(--font-sans)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
+.masthead{max-width:860px;margin:auto;padding:6px var(--space-4);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-5);color:var(--color-on-dark)}.brand{display:flex;align-items:center;gap:var(--space-2)}.brand-mark{font-size:1.4rem;line-height:1;color:var(--color-gold)}.masthead h1{font-size:1.5rem;line-height:1;margin:0;white-space:nowrap}#adventure-meta{flex:1 1 0;min-width:4em;margin:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--text-sm) var(--font-sans)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
 #feedback{color:var(--color-text);font-size:var(--text-sm);background:var(--color-surface);border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0;font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
@@ -271,6 +284,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
+#sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
 .map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h2{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
 .map-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:var(--space-4)}#map-view{overflow:auto;border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface)}#map-canvas{position:relative;margin:auto}
@@ -367,6 +381,78 @@ function clearBusy(button) {
 }
 
 const isBusy = (button) => button.getAttribute("aria-busy") === "true";
+
+// Sound (#480): each named sound's file, and the player. Only a result that
+// answers the player's action or message asks for sound (resultSounds);
+// opening, reloading or rerunning an adventure plays nothing for the history
+// shown. Every sound asked for is added to window.requestedSounds, for
+// tests, whether or not it can play: it plays only with the header's
+// controls on the page, unmuted and above zero volume, and the browser may
+// refuse it (before the first click, or headless), which is ignored.
+const SOUND_FILES = ${JSON.stringify(soundUrls())};
+const SOUND_SETTINGS = "dungeon-one-sound";
+const soundControls = element("sound-controls");
+const soundPlayers = new Map();
+window.requestedSounds = [];
+let soundSettings = readSoundSettings();
+
+/** The mute and volume this browser kept; on at a moderate volume at first. */
+function readSoundSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SOUND_SETTINGS) ?? "null");
+    if (saved && typeof saved.muted === "boolean" && Number.isFinite(saved.volume)) {
+      return { muted: saved.muted, volume: Math.min(1, Math.max(0, saved.volume)) };
+    }
+  } catch {
+    // Storage that is off or unreadable keeps the defaults.
+  }
+  return { muted: false, volume: 0.5 };
+}
+
+function changeSoundSettings(change) {
+  soundSettings = { ...soundSettings, ...change };
+  try {
+    localStorage.setItem(SOUND_SETTINGS, JSON.stringify(soundSettings));
+  } catch {
+    // Kept for this page only.
+  }
+  renderSoundControls();
+}
+
+function renderSoundControls() {
+  if (!soundControls) return;
+  element("sound-mute").setAttribute("aria-pressed", String(soundSettings.muted));
+  // Its name stays "Mute sound", pressed while muted; the tooltip says what a click does.
+  element("sound-mute").title = soundSettings.muted ? "Unmute sound" : "Mute sound";
+  element("sound-volume").value = String(Math.round(soundSettings.volume * 100));
+}
+
+function playSound(name) {
+  window.requestedSounds.push(name);
+  if (!soundControls || soundSettings.muted || soundSettings.volume === 0 || typeof Audio !== "function") return;
+  let player = soundPlayers.get(name);
+  if (!player) {
+    player = new Audio(SOUND_FILES[name]);
+    soundPlayers.set(name, player);
+  }
+  player.volume = soundSettings.volume;
+  player.currentTime = 0;
+  try {
+    const playing = player.play();
+    if (playing) playing.catch(() => {});
+  } catch {
+    // No audio here: the page says everything without it.
+  }
+}
+
+/**
+ * The sounds a result that answers the player asks for, once it is shown:
+ * the reply-ready tone while the adventure plays on, as it is the player's
+ * move again.
+ */
+function resultSounds() {
+  return session.status === "playing" ? ["reply-ready"] : [];
+}
 
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
@@ -1092,7 +1178,9 @@ function showAdventure(value) {
 
 function renderAdventure() {
   const { adventure, encounter } = session;
+  // It takes the bar's spare width, so the bar never wraps (#430, #480); cut short, it shows in full on hover.
   element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
+  element("adventure-meta").title = element("adventure-meta").textContent;
   element("adventure-title").textContent = adventure.title;
   // One line under the header bar (#430); a long objective shows in full on hover.
   element("adventure-objective").textContent = adventure.objective;
@@ -2222,11 +2310,13 @@ async function act(path, body, control, busyLabel, pendingMessage) {
   if (pendingMessage !== undefined) showPending(pendingMessage);
   const button = document.querySelector(control);
   if (button) setBusy(button, busyLabel);
+  let answered = false;
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
     session = result.session;
     if (result.rejection) element("adventure-error").textContent = result.rejection;
+    answered = true;
     return true;
   } catch (error) {
     element("adventure-error").textContent = error.message;
@@ -2235,6 +2325,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
     if (button) clearBusy(button);
     acting = false;
     renderAdventure();
+    if (answered) for (const name of resultSounds()) playSound(name);
   }
 }
 
@@ -3906,6 +3997,11 @@ element("cancel-delete").addEventListener("click", () => element("delete-dialog"
 const focusLeftIn = (dialog) => { const active = document.activeElement; return !active || active === document.body || dialog.contains(active); };
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose && focusLeftIn(element("delete-dialog"))) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
+if (soundControls) {
+  renderSoundControls();
+  element("sound-mute").addEventListener("click", () => changeSoundSettings({ muted: !soundSettings.muted }));
+  element("sound-volume").addEventListener("input", (event) => changeSoundSettings({ volume: Number(event.target.value) / 100 }));
+}
 element("open-map").addEventListener("click", openMap);
 element("close-map").addEventListener("click", () => closeMap(true));
 element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && mapReturn && mapReturn.isConnected && focusLeftIn(element("map-dialog"))) mapReturn.focus(); });
