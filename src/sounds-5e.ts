@@ -55,17 +55,26 @@ export const SPELL_FAMILIES = [
 ] as const;
 export type SpellFamily = (typeof SPELL_FAMILIES)[number];
 
-/** A spell family's cast sound, synthesised by our script. */
-const spellSound = (family: SpellFamily) =>
-  ({
-    file: `spell-${family}.wav`,
-    source: MADE,
-    licence: "CC0 1.0",
-  }) as const;
-
-/** A cantrip's cast sound: its family's, quieter, as cantrips are cast all the time. */
-const cantripSound = (family: SpellFamily) =>
-  ({ ...spellSound(family), gain: 0.5 }) as const;
+/**
+ * Each spell family's cast sound, synthesised by our script, and a
+ * cantrip's: the same file at half the gain, as cantrips are cast all the
+ * time.
+ */
+const SPELL_SOUNDS = Object.fromEntries(
+  SPELL_FAMILIES.flatMap((family) => {
+    const sound: Sound = {
+      file: `spell-${family}.wav`,
+      source: MADE,
+      licence: "CC0 1.0",
+    };
+    return [
+      [`spell-${family}`, sound],
+      [`spell-${family}-cantrip`, { ...sound, gain: 0.5 }],
+    ];
+  }),
+) as Readonly<
+  Record<`spell-${SpellFamily}` | `spell-${SpellFamily}-cantrip`, Sound>
+>;
 
 export const SOUNDS = {
   // The character's attack hits (#481).
@@ -189,23 +198,7 @@ export const SOUNDS = {
     licence: "CC0 1.0",
   },
   // A spell cast, by its family (#485); a cantrip's is quieter.
-  "spell-fire": spellSound("fire"),
-  "spell-fire-cantrip": cantripSound("fire"),
-  "spell-cold": spellSound("cold"),
-  "spell-cold-cantrip": cantripSound("cold"),
-  "spell-lightning": spellSound("lightning"),
-  "spell-lightning-cantrip": cantripSound("lightning"),
-  "spell-thunder": spellSound("thunder"),
-  "spell-acid": spellSound("acid"),
-  "spell-necrotic": spellSound("necrotic"),
-  "spell-necrotic-cantrip": cantripSound("necrotic"),
-  "spell-radiant": spellSound("radiant"),
-  "spell-radiant-cantrip": cantripSound("radiant"),
-  "spell-arcane": spellSound("arcane"),
-  "spell-healing": spellSound("healing"),
-  "spell-buff": spellSound("buff"),
-  "spell-buff-cantrip": cantripSound("buff"),
-  "spell-control": spellSound("control"),
+  ...SPELL_SOUNDS,
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
@@ -273,7 +266,7 @@ export const SPELL_FAMILY = {
 export function castSound(spell: SpellId): SoundId {
   const family = SPELL_FAMILY[spell];
   return SPELLS[spell].level === 0
-    ? (`spell-${family}-cantrip` as SoundId)
+    ? `spell-${family}-cantrip`
     : `spell-${family}`;
 }
 

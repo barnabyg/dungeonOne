@@ -48,7 +48,7 @@ test("every spell, and every spell on a class list, has a family and a bundled c
     assert.ok(SPELL_FAMILIES.includes(SPELL_FAMILY[spell]), spell);
     assert.ok(Object.hasOwn(SOUNDS, castSound(spell)), spell);
   }
-  // Each family is used, and each sound file is bundled once per family.
+  // Every family has a spell in it.
   assert.deepEqual(
     [...new Set(Object.values(SPELL_FAMILY))].sort(),
     [...SPELL_FAMILIES].sort(),
