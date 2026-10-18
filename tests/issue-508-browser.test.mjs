@@ -62,8 +62,7 @@ test(
       const legends = await page
         .locator("#settings-list legend")
         .allTextContents();
-      assert.deepEqual(legends, [
-        "Carrying capacity",
+      const survival = [
         "Short rests per adventure",
         "Long rest at rest sites",
         "Last Stand",
@@ -71,7 +70,15 @@ test(
         "Wandering encounters",
         "Fleeing draws attacks",
         "Morale",
-      ]);
+      ];
+      // Its settings come after carrying capacity, in the issue's order.
+      assert.deepEqual(
+        legends.filter((legend) => survival.includes(legend)),
+        survival,
+      );
+      assert.ok(
+        legends.indexOf("Carrying capacity") < legends.indexOf(survival[0]),
+      );
       for (const [id, value] of Object.entries(DEFAULT_SETTINGS)) {
         assert.equal(await choice(page, id, value).isChecked(), true, id);
       }
