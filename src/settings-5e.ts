@@ -43,10 +43,10 @@ export const SETTINGS = {
     name: "Carrying capacity",
     text: "How much a character can carry: its Strength score times the pounds chosen, or no limit.",
     choices: [
+      { value: 5, label: "Strength × 5 lb" },
       { value: 10, label: "Strength × 10 lb" },
       { value: 15, label: "Strength × 15 lb" },
       { value: 20, label: "Strength × 20 lb" },
-      { value: 30, label: "Strength × 30 lb" },
       { value: "unlimited", label: "Unlimited" },
     ],
     default: 15,
@@ -57,9 +57,9 @@ export const SETTINGS = {
     text: "What coin, gems and art objects are worth when found: the coin taken and each gem or art object's value. Potions, scrolls, gear and magic items are unchanged.",
     choices: [
       { value: 50, label: "50%" },
+      { value: 75, label: "75%" },
       { value: 100, label: "100%" },
       { value: 150, label: "150%" },
-      { value: 200, label: "200%" },
     ],
     default: 100,
   },

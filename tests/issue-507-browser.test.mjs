@@ -1,9 +1,9 @@
 // #507, browser → API → storage: the Settings page lists the loot and
 // economy settings with their defaults marked. With starting coin 25 gp, a
 // Fighter created in the page starts with 25 gp. On Scarce items found,
-// treasure 200%, merchant prices × 2 and full buy-back, the adventure's
+// treasure 150%, merchant prices × 2 and full buy-back, the adventure's
 // potion in plain sight is missing (and still missing after a reload), the
-// pedlar asks double and pays full price, and a found gem is worth double.
+// pedlar asks double and pays full price, and a found gem is worth half again.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -49,7 +49,7 @@ async function choose(page, id, value) {
 }
 
 test(
-  "the loot settings give starting coin, leave out scarce items through a reload, double treasure and change the pedlar's prices",
+  "the loot settings give starting coin, leave out scarce items through a reload, raise treasure and change the pedlar's prices",
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-507-browser-"));
@@ -93,7 +93,7 @@ test(
       }
       await choose(page, "startingCoin", 25);
       await choose(page, "itemsFound", "scarce");
-      await choose(page, "treasureFound", 200);
+      await choose(page, "treasureFound", 150);
       await choose(page, "merchantPrices", 2);
       await choose(page, "merchantBuyBack", 100);
       const saved = JSON.parse(
@@ -120,12 +120,12 @@ test(
         /Pays full price: [^.]*Leather armour 10 gp/,
       );
 
-      // The handcart's gem is worth double.
+      // The handcart's 10 gp gem is worth half again.
       await explore(page, "examine", "handcart");
       await explore(page, "take", "cart-gem");
       assert.match(
         await page.locator('#inventory li[data-id="cart-gem"]').innerText(),
-        /20 gp/,
+        /15 gp/,
       );
       await explore(page, "buy", "dagger");
       assert.equal(await page.locator("#purse").textContent(), "Purse: 21 gp");

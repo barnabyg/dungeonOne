@@ -8,8 +8,8 @@ The Settings page (the header's **Settings** button) changes how the game plays.
 
 | Setting                   | Choices                                                                          | Default         | Rules                                                                               |
 | ------------------------- | -------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------- |
-| Carrying capacity         | Strength × 10, × 15, × 20 or × 30 lb, or unlimited                               | × 15            | [Gear](gear.md#carrying-capacity)                                                   |
-| Treasure found            | 50%, 100%, 150% or 200% of coin taken and of gems' and art's value               | 100%            | [Gear](gear.md#treasure), [Characters](characters.md#leaving-coin-and-settling)     |
+| Carrying capacity         | Strength × 5, × 10, × 15 or × 20 lb, or unlimited                               | × 15            | [Gear](gear.md#carrying-capacity)                                                   |
+| Treasure found            | 50%, 75%, 100% or 150% of coin taken and of gems' and art's value               | 100%            | [Gear](gear.md#treasure), [Characters](characters.md#leaving-coin-and-settling)     |
 | Items found               | Normal, or Scarce: each potion, gear, scroll or wand missing with an even chance | Normal          | [Gear](gear.md#treasure)                                                            |
 | Merchant prices           | × 0.5, × 0.75, × 1, × 1.5 or × 2 the catalogue price                             | × 1             | [Gear](gear.md#trading-with-merchants)                                              |
 | Merchant buy-back         | 25%, 50%, 75% or 100% of the catalogue price                                     | 50%             | [Gear](gear.md#trading-with-merchants)                                              |

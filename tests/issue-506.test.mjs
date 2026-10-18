@@ -43,7 +43,7 @@ test("the defaults are today's game: carrying capacity Strength × 15 lb", () =>
   assert.equal(DEFAULT_SETTINGS.carryingCapacity, 15);
   assert.deepEqual(
     SETTINGS.carryingCapacity.choices.map(({ value }) => value),
-    [10, 15, 20, 30, "unlimited"],
+    [5, 10, 15, 20, "unlimited"],
   );
 });
 
@@ -177,10 +177,10 @@ test("the server lists each setting with its default marked, validates changes, 
           text: SETTINGS.carryingCapacity.text,
           value: 15,
           choices: [
+            { value: 5, label: "Strength × 5 lb" },
             { value: 10, label: "Strength × 10 lb" },
             { value: 15, label: "Strength × 15 lb", default: true },
             { value: 20, label: "Strength × 20 lb" },
-            { value: 30, label: "Strength × 30 lb" },
             { value: "unlimited", label: "Unlimited" },
           ],
         },
@@ -359,6 +359,7 @@ test("taking past the chosen capacity is refused with the chosen numbers; unlimi
     takeMail[2],
   ];
   for (const [perStrength, actions, carried, capacity] of [
+    [5, takeMail, 14, 25],
     [10, takeMail, 14, 50],
     [15, armed, 23, 75],
   ]) {
@@ -372,11 +373,11 @@ test("taking past the chosen capacity is refused with the chosen numbers; unlimi
     play({ carryingCapacity: 20 }, armed).result.rejection,
     undefined,
   );
-  const strong = play({ carryingCapacity: 30 }, takeMail);
+  const strong = play({ carryingCapacity: 20 }, takeMail);
   assert.equal(strong.result.rejection, undefined);
   assert.deepEqual(strong.runtime.projectRoom(strong.result.state).carrying, {
     weight: 69,
-    capacity: 150,
+    capacity: 100,
   });
   const unlimited = play({ carryingCapacity: "unlimited" }, [
     ...takeMail,

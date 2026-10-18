@@ -71,7 +71,7 @@ test("the five loot and economy settings follow carrying capacity, each defaulti
     ]),
   );
   assert.deepEqual(offered, {
-    treasureFound: [[50, 100, 150, 200], 100],
+    treasureFound: [[50, 75, 100, 150], 100],
     itemsFound: [["normal", "scarce"], "normal"],
     merchantPrices: [[0.5, 0.75, 1, 1.5, 2], 1],
     merchantBuyBack: [[25, 50, 75, 100], 50],
@@ -139,29 +139,29 @@ const tradeOffers = (runtime, state) =>
     runtime.getGameToolDefinitions(state).find(({ name }) => name === "trade"),
   );
 
-test("treasure found 200% doubles the coin taken and a found gem's value, which it keeps in a later adventure at 100%", () => {
-  const doubled = createFifthRuntime(
+test("treasure found 150% raises the coin taken and a found gem's value by half, which it keeps in a later adventure at 100%", () => {
+  const raised = createFifthRuntime(
     gemMarket,
     TEST_FIGHTER,
     {},
-    withSettings({ treasureFound: 200 }),
+    withSettings({ treasureFound: 150 }),
   );
-  const { state, coin } = lootHall(doubled);
+  const { state, coin } = lootHall(raised);
   // The goblin's pouch holds 10 gp.
-  assert.equal(coin, 2000);
-  assert.equal(state.possessions.purse, TEST_FIGHTER.purse + 2000);
-  assert.equal(opalOf(doubled, state).value, "100 gp");
+  assert.equal(coin, 1500);
+  assert.equal(state.possessions.purse, TEST_FIGHTER.purse + 1500);
+  assert.equal(opalOf(raised, state).value, "75 gp");
   assert.match(
-    tradeOffers(doubled, state),
-    /sell-treasure:blue-opal \(sell the blue opal for 100 gp\)/,
+    tradeOffers(raised, state),
+    /sell-treasure:blue-opal \(sell the blue opal for 75 gp\)/,
   );
-  const left = accept(doubled, state, {
+  const left = accept(raised, state, {
     type: "leave",
     roomId: "barrow-mouth",
   }).state;
-  const settlement = doubled.projectSettlement(left);
+  const settlement = raised.projectSettlement(left);
   assert.deepEqual(settlement.coin, [
-    { id: "lintel-barrow/coin-pouch", copper: 2000 },
+    { id: "lintel-barrow/coin-pouch", copper: 1500 },
   ]);
   const after = settleCharacter(TEST_FIGHTER, settlement);
   assert.deepEqual(after.treasure, [
@@ -169,7 +169,7 @@ test("treasure found 200% doubles the coin taken and a found gem's value, which 
       id: "lintel-barrow/blue-opal",
       name: "Blue Opal",
       description: "A milky opal flecked with blue fire.",
-      value: 10000,
+      value: 7500,
     },
   ]);
 
@@ -186,7 +186,7 @@ test("treasure found 200% doubles the coin taken and a found gem's value, which 
     type: "sell-treasure",
     itemId: "lintel-barrow/blue-opal",
   });
-  assert.equal(sold.state.possessions.purse, after.purse + 10000);
+  assert.equal(sold.state.possessions.purse, after.purse + 7500);
 
   // At 50%, the pouch gives 5 gp and the opal is worth 25 gp.
   const halved = createFifthRuntime(
@@ -203,6 +203,17 @@ test("treasure found 200% doubles the coin taken and a found gem's value, which 
     itemId: "blue-opal",
   });
   assert.equal(halfSale.events[0].price, 2500);
+
+  // At 75%, the pouch gives 7 gp 5 sp and the opal is worth 37 gp 5 sp.
+  const lessened = createFifthRuntime(
+    gemMarket,
+    TEST_FIGHTER,
+    {},
+    withSettings({ treasureFound: 75 }),
+  );
+  const less = lootHall(lessened);
+  assert.equal(less.coin, 750);
+  assert.equal(opalOf(lessened, less.state).value, "37 gp 5 sp");
 });
 
 test("at the defaults coin and treasure are worth what the module says", () => {
