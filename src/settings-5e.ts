@@ -102,6 +102,80 @@ export const SETTINGS = {
     ],
     default: 0,
   },
+  // Survival (#508).
+  shortRests: {
+    name: "Short rests per adventure",
+    text: "How many short rests a character may take in an adventure, or in each region of a long one.",
+    choices: [
+      { value: 0, label: "0" },
+      { value: 1, label: "1" },
+      { value: 2, label: "2" },
+      { value: 3, label: "3" },
+      { value: 4, label: "4" },
+      { value: "unlimited", label: "Unlimited" },
+    ],
+    default: 2,
+  },
+  longRest: {
+    name: "Long rest at rest sites",
+    text: "Whether a character may take a long rest at the safe places to rest that an adventure marks.",
+    choices: [
+      { value: "on", label: "On" },
+      { value: "off", label: "Off" },
+    ],
+    default: "on",
+  },
+  lastStand: {
+    name: "Last Stand",
+    text: "Whether a character an attack brings to 0 HP may drink a potion with its reaction instead of falling, and the death saving throw it needs first.",
+    choices: [
+      { value: "off", label: "Off" },
+      { value: 11, label: "DC 11" },
+      { value: 10, label: "DC 10 (the SRD's)" },
+      { value: "automatic", label: "Automatic (no death save)" },
+    ],
+    default: 11,
+  },
+  opponentHp: {
+    name: "Opponent hit points",
+    text: "Each opponent's hit points, as a share of its stat block's, rounded up. Its XP is unchanged.",
+    choices: [
+      { value: 75, label: "75%" },
+      { value: 100, label: "100%" },
+      { value: 125, label: "125%" },
+      { value: 150, label: "150%" },
+    ],
+    default: 100,
+  },
+  wandering: {
+    name: "Wandering encounters",
+    text: "Whether wandering encounters and their omens come: Double doubles each table's chance, up to 100.",
+    choices: [
+      { value: "off", label: "Off" },
+      { value: "normal", label: "Normal" },
+      { value: "double", label: "Double chance" },
+    ],
+    default: "normal",
+  },
+  fleeAttacks: {
+    name: "Fleeing draws attacks",
+    text: "Whether each opponent gets an attack on a character fleeing a fight.",
+    choices: [
+      { value: "on", label: "On" },
+      { value: "off", label: "Off" },
+    ],
+    default: "on",
+  },
+  morale: {
+    name: "Morale",
+    text: "How readily opponents lose their nerve and flee or surrender. Undead and mindless creatures never do.",
+    choices: [
+      { value: "never", label: "Never flee" },
+      { value: "normal", label: "Normal" },
+      { value: "easily", label: "Flee easily (morale DC +2)" },
+    ],
+    default: "normal",
+  },
 } as const satisfies Record<string, SettingDefinition>;
 
 export type SettingId = keyof typeof SETTINGS;

@@ -99,7 +99,7 @@ test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
   assert.equal(FIFTH_SESSION_FORMAT, 66);
   assert.equal(FIFTH_TRACE_FORMAT, 59);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool raises or lowers the alarm\. Never raise it, quiet it, or say it is raised or quiet in your words/u,

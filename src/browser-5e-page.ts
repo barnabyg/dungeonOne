@@ -2891,9 +2891,10 @@ function actionRow(key, name, controls) {
 // Rest, disabled with the engine's reason when it would refuse.
 function renderRest(option, fighting) {
   element("rest-group").hidden = fighting || session.status !== "playing";
-  const { left, max, per } = session.shortRests;
+  const { left, max, per, unlimited } = session.shortRests;
   const { available, total, sides } = session.hitDice;
-  element("rest-summary").textContent = "Short rests: " + left + " of " + max + " left in this " + (per || "adventure") + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
+  // Unlimited by the adventure's settings (#508).
+  element("rest-summary").textContent = (unlimited ? "Short rests: unlimited" : "Short rests: " + left + " of " + max + " left in this " + (per || "adventure")) + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
   if (!option) {
     element("rest-controls").replaceChildren();
     return;

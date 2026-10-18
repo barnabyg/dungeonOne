@@ -151,7 +151,7 @@ test("falling instead ends the adventure in its defeat ending", () => {
 });
 
 test("the DM prompt tells the AI DM how Last Stand is answered", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /death saving throw \(Last Stand\); on a success its fall waits for the player's answer: only use_item is offered/u,

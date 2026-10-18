@@ -3,10 +3,10 @@
 ## House rules
 
 - A player character at 0 HP is defeated at once; there are no death saving throws.
-- **Last Stand** (#499): when an opponent's attack brings the character to 0 HP in a fight while it carries a Potion of Healing or Greater Healing and its reaction is free (and it isn't incapacitated), it makes one death saving throw: a d20 with no modifier, 11 or higher (`LAST_STAND_DC`, an even chance; SRD 5.2's is 10). On a failure it falls. On a success the fall waits: the player drinks one potion with the reaction, rising to the potion's roll, or falls; with both kinds the player picks which. At 0 HP its concentration ends and the hit gives no condition. Damage outside a fight (a trap, a check) offers none.
+- **Last Stand** (#499): when an opponent's attack brings the character to 0 HP in a fight while it carries a Potion of Healing or Greater Healing and its reaction is free (and it isn't incapacitated), it makes one death saving throw: a d20 with no modifier, 11 or higher (an even chance; SRD 5.2's is 10). On a failure it falls. The Last Stand [setting](settings.md) makes the DC 11 (the default) or 10, turns Last Stand off (the character falls at once) or makes it automatic (no death saving throw: the fall always waits). On a success the fall waits: the player drinks one potion with the reaction, rising to the potion's roll, or falls; with both kinds the player picks which. At 0 HP its concentration ends and the hit gives no condition. Damage outside a fight (a trap, a check) offers none.
 - Second Wind is refused at full health, so a use is never wasted. The 2024 rules allow it.
-- At most one long rest per adventure, only at a module's rest site; SRD 5.2 allows one a day anywhere safe. An interrupted rest takes no time and may be taken again.
-- At most two short rests per adventure, each in a room with no unresolved hostile encounter; SRD 5.2 limits them only by time. A short rest takes no time, as there is no clock, and a rest that would restore nothing is refused.
+- At most one long rest per adventure, only at a module's rest site; SRD 5.2 allows one a day anywhere safe. An interrupted rest takes no time and may be taken again. With the long rest [setting](settings.md) off (default on) no room is a rest site; a wand still regains its charges between adventures.
+- At most two short rests per adventure (the default short rests [setting](settings.md): 0 to 4, or unlimited), each in a room with no unresolved hostile encounter; SRD 5.2 limits them only by time. A short rest takes no time, as there is no clock, and a rest that would restore nothing is refused.
 - A Potion of Healing is refused at full health for the same reason, and so is a healing spell.
 - Magic Missile's darts all strike the one target the spell names; SRD 5.2 lets them be split among targets. Their damage is added up and lands as one: resistance halves the total, and Undead Fortitude's DC counts it all.
 - Guidance adds its d4 to the next graded check, whatever its skill, and then ends; SRD 5.2 adds it to every check with one chosen skill for the minute.
@@ -15,8 +15,8 @@
 - Spirit Guardians end with the fight, not at the next rest as the duration bands would give a 10-minute spell.
 - Bestow Curse lays one of two curses: disadvantage on the target's attacks against the character, or 1d8 necrotic more from its attacks and spells.
 - Leaving a room is allowed mid-fight only while every foe left is turned, or by fleeing; the fight stays unresolved, its fallen stay fallen, and its standing foes are met again, unturned, on coming back, with the hit points they had when the character left.
-- Fleeing a fight draws one attack from each foe still in it and able to act, before the character goes, in place of opportunity attacks; SRD 5.2 gives an opportunity attack only to a foe the character moves out of reach of, with its reaction. A Rogue's Disengage avoids them. Foes never follow.
-- Prayer of Healing's short rest gives back feature uses only, not hit dice, and doesn't count toward the two short rests.
+- Fleeing a fight draws one attack from each foe still in it and able to act, before the character goes, in place of opportunity attacks; SRD 5.2 gives an opportunity attack only to a foe the character moves out of reach of, with its reaction. A Rogue's Disengage avoids them. Foes never follow. With the fleeing draws attacks [setting](settings.md) off (default on), every flight draws none, as after Disengage, and Disengage is refused as doing nothing.
+- Prayer of Healing's short rest gives back feature uses only, not hit dice, and doesn't count toward the short rests allowed.
 - Arcane Recovery applies by itself on the first short rest that has a slot to regain; SRD 5.2 lets the Wizard choose when, and which slots.
 - The Wizard's spellbook is part of the sheet, not an item: it can't be lost, stolen or sold. Spells are copied into it from scrolls between adventures (see [gear.md](gear.md)). A new level's spellbook spells and Scholar's Expertise are chosen on the sheet before the next adventure; SRD 5.2 adds them as the level is gained.
 - Evocation Savant is flavour only: its free Evocation spells are omitted.
@@ -36,6 +36,7 @@
 - Armour's stealth disadvantage gives disadvantage on the Stealth check to sneak in.
 - Lurking opponents make one Stealth roll for the group, by the least stealthy of them; SRD 5.2 leaves a group's hiding to the DM.
 - Morale, surrender, reaction rolls, parley, tolls and trade are house rules on top of 5e (see [combat.md](combat.md)).
+- An opponent has its stat block's average hit points at the default opponent hit points [setting](settings.md); 75%, 125% or 150% scales them, rounded up and at least 1. Its XP is unchanged.
 
 ## Rules that need positions
 
