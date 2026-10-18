@@ -302,11 +302,8 @@ test(
       await spell.waitFor();
       const offered = await spell.locator("option").allTextContents();
       assert.ok(offered.includes("Guiding Bolt (1st-level slot)"), offered);
-      assert.ok(offered.includes("Sacred Flame (cantrip)"), offered);
-      assert.ok(
-        offered.includes("Resistance against piercing (cantrip)"),
-        offered,
-      );
+      assert.ok(offered.includes("Sacred Flame"), offered);
+      assert.ok(offered.includes("Resistance against piercing"), offered);
       assert.ok(!offered.some((name) => /Thaumaturgy/u.test(name)), offered);
       await spell.selectOption({ label: "Guiding Bolt (1st-level slot)" });
       await settled(page, () =>

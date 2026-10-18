@@ -109,8 +109,8 @@ test(
       await startSage(page, server.url);
       const spell = page.locator("#cast-spell");
       assert.deepEqual(await spell.locator("option").allTextContents(), [
-        "Fire Bolt (cantrip)",
-        "Sacred Flame (cantrip)",
+        "Fire Bolt",
+        "Sacred Flame",
         "Bless (1st-level slot)",
         "Shield of Faith (1st-level slot)",
         "Cure Wounds (1st-level slot) — Full HP",

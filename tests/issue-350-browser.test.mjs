@@ -118,7 +118,9 @@ async function fightTurn(page, who) {
     return settled(page, () => use.first().click());
   }
   if (who !== "fighter" && (await page.locator("#cast-spell").count()) > 0) {
-    const label = `${CANTRIPS[who]} (cantrip)`;
+    // A cantrip's choice is its bare name; a scroll's or disabled one's
+    // has more after it.
+    const label = new RegExp(`^${CANTRIPS[who]}$`, "u");
     // A spell that can't be cast now is disabled, with why (#392).
     const cantrip = page.locator("#cast-spell option:not([disabled])", {
       hasText: label,

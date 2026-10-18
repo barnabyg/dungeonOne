@@ -95,7 +95,7 @@ test(
       ]);
       await clickAction(page, "move", "rat-cellar");
       await page.locator("#cast-spell").waitFor();
-      const bolt = await castNamed(page, "Fire Bolt (cantrip)");
+      const bolt = await castNamed(page, "Fire Bolt");
       assert.equal(bolt[0], "spell-fire-cantrip");
       assert.ok(
         ["hit-fire", "critical", "miss"].includes(bolt[1]),
