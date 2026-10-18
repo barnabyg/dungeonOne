@@ -73,6 +73,10 @@ test(
       assert.equal(await count.textContent(), "2 of 2 chosen");
       assert.equal(await page.locator("#skill-athletics").isChecked(), true);
       assert.equal(await page.locator("#skill-perception").isChecked(), true);
+      assert.equal(
+        await page.locator("label:has(#skill-athletics) small").innerText(),
+        "Strength. Jump farther than normal, stay afloat in rough water, or break something.",
+      );
       const third = page.locator("#skill-survival");
       assert.equal(await third.isDisabled(), true);
       await third.click({ force: true });

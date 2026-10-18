@@ -41,7 +41,11 @@ const initiativeOf = (result, id) =>
     .order.find(({ combatantId }) => combatantId === id);
 
 test("Stealth is a Dexterity skill anyone can roll; the Fighter is not proficient", () => {
-  assert.deepEqual(SKILLS.stealth, { name: "Stealth", ability: "dexterity" });
+  assert.deepEqual(SKILLS.stealth, {
+    name: "Stealth",
+    ability: "dexterity",
+    summary: "Escape notice by moving quietly and hiding behind things",
+  });
   const stealth = characterProfile(TEST_FIGHTER).skills.find(
     ({ id }) => id === "stealth",
   );

@@ -94,6 +94,7 @@ test("the module, save and trace formats bump; parley, toll and trade are valida
   assert.deepEqual(SKILLS.deception, {
     name: "Deception",
     ability: "charisma",
+    summary: "Tell a convincing lie, or wear a disguise convincingly",
   });
   const { reaction } = banditToll.encounters[0];
   assert.deepEqual(reaction.parley.approaches, [

@@ -421,6 +421,7 @@ function libraryView(
                 options: expertiseOptions(sheet).map((id) => ({
                   id,
                   name: SKILLS[id].name,
+                  summary: SKILLS[id].summary,
                 })),
               },
             }),

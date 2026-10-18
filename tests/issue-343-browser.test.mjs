@@ -209,6 +209,14 @@ test(
         "expertise-arcana",
         "expertise-investigation",
       ]);
+      // Each skill says what it is for, as each spell does.
+      assert.deepEqual(
+        await page.locator("#expertise-choices small").allInnerTexts(),
+        [
+          "Recall lore about spells, magic items, eldritch symbols, magical traditions, planes of existence and certain creatures",
+          "Find obscure information in books, deduce how something works, or work out where a trap must be",
+        ],
+      );
       assert.deepEqual(await ids(page.locator("#spellbook-choices input")), [
         "spellbook-ray-of-sickness",
         "spellbook-ice-knife",
