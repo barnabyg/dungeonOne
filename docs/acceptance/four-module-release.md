@@ -76,8 +76,8 @@ New-Item -ItemType Directory -Force .\.scratch\release-448\cider | Out-Null; npm
 4. **Go** Hayloft. Ada kills Snagtooth with one blow. Expect Wick's morale
    save to fail ("6 − 1 = 5 against DC 8") and "Wick throws down its arms
    and surrenders." The fight ends.
-5. **Talk** about the key. Expect "Wick offers you the Strongroom Key."
-   **Take** it.
+5. In the "Ask Wick about" row, press **the key**. Expect "Wick offers you
+   the Strongroom Key." **Take** it.
 6. **Go** Press House, Cellar Stair, Cask Gallery. **Unlock** the
    Strongroom Door: "You unlock the Strongroom Door with the Strongroom
    Key."
@@ -104,8 +104,9 @@ Vex is a level-2 Rogue (15 HP, AC 15) with a shortsword and a dagger.
 4. **Go** Dry Well. In the Well Head's row, press **Use Coil of Rope**.
    Expect the goblin to climb out, "The Coil of Rope is used up." and "The
    way to the Well Bottom is open."
-5. **Talk** about the woman, then the tomb. The goblin names Mags in the
-   bone room, and tells how the old lord's box opens.
+5. In the "Ask Goblin about" row, press **the woman**, then **the tomb**.
+   The goblin names Mags in the bone room, and tells how the old lord's box
+   opens.
 6. **Go** Well Bottom: **Examine** Silted Floor, **Take** the Wishing Coins
    (6 gp). **Go** Flooded Cistern: **Examine** Drowned Delver, **Take** the
    Jasper.
