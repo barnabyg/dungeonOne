@@ -829,7 +829,7 @@ function levelPickNodes(entry) {
       title: "Level " + entry.sheet.level + ": Scholar",
       legend: "Choose a skill for Expertise: your proficiency bonus is doubled for checks with it.",
       owed: entry.expertise.owed,
-      options: entry.expertise.options.map(({ id, name: skill }) => ({ id, name: skill, summary: "" })),
+      options: entry.expertise.options,
       path: "/api/5e/characters/choose-expertise",
       field: "skills",
       label: "Choose Expertise",
@@ -3530,7 +3530,7 @@ function renderChoices() {
       refresh();
     });
     const text = make("span", skill.name);
-    text.append(make("small", titleCase(skill.ability)));
+    text.append(make("small", titleCase(skill.ability) + ". " + skill.summary + "."));
     label.append(box, text);
     return label;
   }));
@@ -3709,7 +3709,9 @@ function renderExpertise() {
       choices.expertise = choices.skills.filter((id) => element("expertise-" + id).checked);
       refresh();
     });
-    label.append(box, make("span", skill.name));
+    const text = make("span", skill.name);
+    text.append(make("small", skill.summary + "."));
+    label.append(box, text);
     return label;
   }));
 }

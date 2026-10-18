@@ -41,28 +41,108 @@ export type Level = 1 | 2 | 3 | 4 | 5;
 export const ABILITY_SCORE_CAP = 20;
 
 /**
- * The skills the game uses, each with its ability. Anyone can roll any of
- * them; a class's skill choices say which it can become proficient in.
+ * The skills the game uses, each with its ability and what it is for (SRD
+ * 5.2's examples, with the trap search Investigation and Perception make,
+ * #309). Anyone can roll any of them; a class's skill choices say which it
+ * can become proficient in.
  */
 export const SKILLS = {
-  acrobatics: { name: "Acrobatics", ability: "dexterity" },
-  "animal-handling": { name: "Animal Handling", ability: "wisdom" },
-  arcana: { name: "Arcana", ability: "intelligence" },
-  athletics: { name: "Athletics", ability: "strength" },
-  deception: { name: "Deception", ability: "charisma" },
-  history: { name: "History", ability: "intelligence" },
-  insight: { name: "Insight", ability: "wisdom" },
-  intimidation: { name: "Intimidation", ability: "charisma" },
-  investigation: { name: "Investigation", ability: "intelligence" },
-  medicine: { name: "Medicine", ability: "wisdom" },
-  nature: { name: "Nature", ability: "intelligence" },
-  perception: { name: "Perception", ability: "wisdom" },
-  persuasion: { name: "Persuasion", ability: "charisma" },
-  religion: { name: "Religion", ability: "intelligence" },
-  "sleight-of-hand": { name: "Sleight of Hand", ability: "dexterity" },
-  stealth: { name: "Stealth", ability: "dexterity" },
-  survival: { name: "Survival", ability: "wisdom" },
-} as const satisfies Record<string, { name: string; ability: Ability }>;
+  acrobatics: {
+    name: "Acrobatics",
+    ability: "dexterity",
+    summary:
+      "Stay on your feet in a tricky situation, or perform an acrobatic stunt",
+  },
+  "animal-handling": {
+    name: "Animal Handling",
+    ability: "wisdom",
+    summary:
+      "Calm or train an animal, or get an animal to behave in a certain way",
+  },
+  arcana: {
+    name: "Arcana",
+    ability: "intelligence",
+    summary:
+      "Recall lore about spells, magic items, eldritch symbols, magical traditions, planes of existence and certain creatures",
+  },
+  athletics: {
+    name: "Athletics",
+    ability: "strength",
+    summary:
+      "Jump farther than normal, stay afloat in rough water, or break something",
+  },
+  deception: {
+    name: "Deception",
+    ability: "charisma",
+    summary: "Tell a convincing lie, or wear a disguise convincingly",
+  },
+  history: {
+    name: "History",
+    ability: "intelligence",
+    summary:
+      "Recall lore about historical events, people, nations and cultures",
+  },
+  insight: {
+    name: "Insight",
+    ability: "wisdom",
+    summary: "Discern a person's mood and intentions",
+  },
+  intimidation: {
+    name: "Intimidation",
+    ability: "charisma",
+    summary: "Awe or threaten someone into doing what you want",
+  },
+  investigation: {
+    name: "Investigation",
+    ability: "intelligence",
+    summary:
+      "Find obscure information in books, deduce how something works, or work out where a trap must be",
+  },
+  medicine: {
+    name: "Medicine",
+    ability: "wisdom",
+    summary: "Diagnose an illness, or determine what killed the recently slain",
+  },
+  nature: {
+    name: "Nature",
+    ability: "intelligence",
+    summary: "Recall lore about terrain, plants, animals and weather",
+  },
+  perception: {
+    name: "Perception",
+    ability: "wisdom",
+    summary:
+      "Using a combination of senses, notice something that's easy to miss, such as a trap",
+  },
+  persuasion: {
+    name: "Persuasion",
+    ability: "charisma",
+    summary: "Honestly and graciously convince someone of something",
+  },
+  religion: {
+    name: "Religion",
+    ability: "intelligence",
+    summary: "Recall lore about gods, religious rituals and holy symbols",
+  },
+  "sleight-of-hand": {
+    name: "Sleight of Hand",
+    ability: "dexterity",
+    summary: "Pick a pocket, conceal a handheld object, or perform legerdemain",
+  },
+  stealth: {
+    name: "Stealth",
+    ability: "dexterity",
+    summary: "Escape notice by moving quietly and hiding behind things",
+  },
+  survival: {
+    name: "Survival",
+    ability: "wisdom",
+    summary: "Follow tracks, forage, find a trail, or avoid natural hazards",
+  },
+} as const satisfies Record<
+  string,
+  { name: string; ability: Ability; summary: string }
+>;
 export type SkillId = keyof typeof SKILLS;
 
 /**
