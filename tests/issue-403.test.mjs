@@ -92,8 +92,8 @@ const at = (roomId, more = {}) => ({
 
 test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
-  assert.equal(FIFTH_SESSION_FORMAT, 62);
-  assert.equal(FIFTH_TRACE_FORMAT, 56);
+  assert.equal(FIFTH_SESSION_FORMAT, 63);
+  assert.equal(FIFTH_TRACE_FORMAT, 57);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,

@@ -227,6 +227,14 @@ _Avoid_: Alert, Alarm level, Awareness
 What raises a module's alarm: an authored set of loud outcomes, such as a badly failed sneak or a long fight.
 _Avoid_: Sound, Disturbance
 
+**Sound tag**:
+The named sound the engine puts on a result line for what its rolls cannot show, such as coin taken or a spell cast. The browser plays it only for a result that arrives now, never for history shown again.
+_Avoid_: Sound effect, Cue
+
+**Spell family**:
+The group of spells that sound alike when cast, such as fire, healing or control. Every spell has one; a cantrip plays its family's sound more quietly.
+_Avoid_: Spell school (the SRD's own grouping), Element
+
 **Use (of an item on a feature)**:
 Using a carried item on a room's feature as the module allows, such as fitting a carving into a door. Each use is made once.
 _Avoid_: Combine, Apply
