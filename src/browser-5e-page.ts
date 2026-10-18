@@ -110,6 +110,21 @@
 // In an adventure the header bar's #open-map (or M) opens the map pop-up,
 // #map-dialog (#457), described at renderMap.
 //
+// Settings (#506): the header bar's #open-settings opens the #settings view
+// (hash #settings): a fieldset per setting (#setting-<id>), each choice a
+// radio (#setting-<id>-<value>) with the default tagged, and
+// #reset-settings. The server sends every setting, its choices and its
+// value, and validates each change; the page computes nothing. While an
+// adventure is in progress #settings-in-progress says changes apply from
+// the next adventure. Above them #settings-sound (#510) has this browser's
+// sound, #settings-sound-on and #settings-sound-volume, in step with the
+// header's; with sound off for the launch it says so and has no controls.
+//
+// Creation's ability scores (#509) follow the pending creation's method:
+// #method-hint and #placing-hint say how; each #place-<ability> places a
+// roll or a standard array score, or buys a score (#points-status, and
+// #scores-error past the points); #reroll-controls offers the one reroll.
+//
 // Sound (#480): the header bar ends with #sound-controls on every screen, a
 // mute toggle (#sound-mute, aria-pressed) and a volume slider
 // (#sound-volume), kept per browser. They come first in the DOM, so the
@@ -155,12 +170,25 @@ export const FIFTH_DM_OFF_NOTICE =
 // The header's sound controls (#480): a speaker that is crossed out while muted.
 const SOUND_CONTROLS = `<div id="sound-controls" role="group" aria-label="Sound"><button id="sound-mute" type="button" class="secondary" aria-pressed="false" title="Mute sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6m0-6-6 6"/></svg><span class="visually-hidden">Mute sound</span></button><input id="sound-volume" type="range" min="0" max="100" step="5" aria-label="Volume"></div>`;
 
+// The Settings page's sound (#510): the header's mute and volume again, as a
+// checkbox and a slider, or, with sound off for the launch, a note and none.
+const SETTINGS_SOUND = (sound: boolean) =>
+  `<fieldset id="settings-sound" class="setting" aria-describedby="settings-sound-text"><legend>Sound</legend>${
+    sound
+      ? `<p id="settings-sound-text" class="hint">This browser's sound, the same as the header's mute button and volume slider. A change applies at once, in an adventure too; Reset to defaults leaves it as it is.</p><div class="setting-choices"><label><input id="settings-sound-on" type="checkbox"> Sound on</label><label>Volume <input id="settings-sound-volume" type="range" min="0" max="100" step="5"> <output id="settings-sound-volume-value" for="settings-sound-volume"></output></label></div>`
+      : `<p id="settings-sound-text" class="hint">Sound is off for this launch. To have sound, restart the game without --no-sound.</p>`
+  }</fieldset>`;
+
+// The header's Settings button (#506): a gear, kept narrow so the adventure's
+// header stays one bar at the 900 px floor; its name is "Settings".
+const SETTINGS_BUTTON = `<button id="open-settings" type="button" class="secondary" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="visually-hidden">Settings</span></button>`;
+
 /** The page, with its sound controls unless the launch turned sound off. */
 export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
 <body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
-<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>${sound ? SOUND_CONTROLS : ""}
+<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>${sound ? SOUND_CONTROLS : ""}${SETTINGS_BUTTON}
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <p id="adventure-meta" hidden></p><button id="open-map" type="button" class="secondary" aria-haspopup="dialog" aria-keyshortcuts="M" title="Map (M)" hidden>Map</button></header>
 <main id="content" tabindex="-1">
@@ -171,16 +199,27 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
 <button id="open-creation" type="button" class="primary">Create a character</button>
 </section>
+<section id="settings" class="panel" aria-labelledby="settings-title" hidden>
+<h2 id="settings-title" tabindex="-1">Settings</h2>
+<p class="hint">The defaults are the game as it is balanced. Each adventure keeps the settings it started with.</p>
+${SETTINGS_SOUND(sound)}
+<p id="settings-in-progress" class="notice" hidden>An adventure is in progress: changes apply from the next adventure.</p>
+<div id="settings-list"></div>
+<p id="settings-error" class="error" role="alert"></p>
+<div class="controls"><button id="reset-settings" type="button" class="secondary">Reset to defaults</button></div>
+</section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
-<p class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
+<p id="method-hint" class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <fieldset id="classes" aria-describedby="class-hint"><legend>Class</legend><div id="class-fields" class="choice-row"></div><p id="class-hint" class="hint"></p></fieldset>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
-<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
+<p id="ability-hint" class="hint"><span id="placing-hint">Place one roll on each ability; choosing a roll that is already placed swaps the two.</span> Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
+<div id="reroll-controls" class="controls" hidden><button id="reroll" type="button" class="secondary">Reroll all six</button><p id="reroll-status" class="hint" role="status" tabindex="-1"></p></div>
+<p id="points-status" class="hint" role="status" hidden></p><p id="scores-error" class="error" role="alert"></p>
 <fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
-<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col" id="base-heading">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
@@ -294,6 +333,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
+.masthead #open-settings{order:2;display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}#open-settings svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-sound-volume{width:10rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-ink);vertical-align:middle}#settings-sound-volume-value{display:inline-block;min-width:3em;font-variant-numeric:tabular-nums}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
 #sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
@@ -437,12 +477,17 @@ function changeSoundSettings(change) {
   renderSoundControls();
 }
 
+// The header's controls and the Settings page's (#510) show the same sound.
 function renderSoundControls() {
   if (!soundControls) return;
+  const volume = String(Math.round(soundSettings.volume * 100));
   element("sound-mute").setAttribute("aria-pressed", String(soundSettings.muted));
   // Its name stays "Mute sound", pressed while muted; the tooltip says what a click does.
   element("sound-mute").title = soundSettings.muted ? "Unmute sound" : "Mute sound";
-  element("sound-volume").value = String(Math.round(soundSettings.volume * 100));
+  element("sound-volume").value = volume;
+  element("settings-sound-on").checked = !soundSettings.muted;
+  element("settings-sound-volume").value = volume;
+  element("settings-sound-volume-value").textContent = volume + "%";
 }
 
 const SOUND_GAP = 120;
@@ -496,7 +541,7 @@ let routeTicket = 0;
 
 /** Shows one view, titles the page and draws its breadcrumb under Characters. */
 function show(id, title, trail) {
-  for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
+  for (const panel of ["library", "settings", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
   // The adventure's levels, difficulty and room share the header bar (#430).
   element("adventure-meta").hidden = id !== "adventure";
   element("open-map").hidden = id !== "adventure";
@@ -546,6 +591,7 @@ function route(focus) {
   const character = /^#character-([a-f0-9]{32})$/.exec(hash);
   const adventure = /^#adventure-([a-f0-9]{32})$/.exec(hash);
   if (hash === "#create") openCreation(ticket);
+  else if (hash === "#settings") openSettings(ticket);
   else if (character) {
     if (findEntry(character[1])) openSheet(character[1]); else lost("That character no longer exists.");
   } else if (adventure) openAdventure(adventure[1], ticket);
@@ -647,7 +693,8 @@ function profileNodes(abilities, profile, hp, carrying) {
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
     ["AC", profile.armorClass + untrainedText(profile)],
     // The engine weighs what is carried against Strength × 15 lb (#224).
-    ["Carrying", carrying.weight + " of " + carrying.capacity + " lb"],
+    // No capacity when the setting is unlimited (#506).
+    ["Carrying", carrying.capacity === undefined ? carrying.weight + " lb" : carrying.weight + " of " + carrying.capacity + " lb"],
     ["Initiative", signed(profile.initiative)],
     ["Proficiency bonus", signed(profile.proficiencyBonus)],
     [profile.attack.weapon, attackText(profile.attack)],
@@ -942,7 +989,8 @@ function openSheet(id) {
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
-  const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
+  // Its dice, or its scores before the background (#509: standard array or point buy).
+  const rolls = make("p", (sheet.abilityRolls ? "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") : "Base scores: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.baseScores[ability]).join("; ")) + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
   element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...gearNodes(gear), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
@@ -2183,7 +2231,9 @@ function renderInventory(room) {
   // The purse shows with what the character carries, once it holds coin.
   element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
-  element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
+  element("carrying").textContent = room.carrying.capacity === undefined
+    ? "Carrying " + room.carrying.weight + " lb."
+    : "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("inventory-group").hidden = entries.length === 0 && !room.purse;
   element("inventory").replaceChildren(...CARRIED_GROUPS.flatMap(([group, title]) => {
     const members = entries.filter((entry) => entry.group === group);
@@ -2312,7 +2362,7 @@ function renderRoom(room) {
           return line;
         }));
         item.append(wares);
-        if (entry.salePrices.length) item.append(make("p", "Pays half price: " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
+        if (entry.salePrices.length) item.append(make("p", "Pays " + entry.buyBack + ": " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
         item.append(make("p", "Pays full value for gems and art objects.", "trade"));
       }
       return item;
@@ -2870,9 +2920,10 @@ function actionRow(key, name, controls) {
 // Rest, disabled with the engine's reason when it would refuse.
 function renderRest(option, fighting) {
   element("rest-group").hidden = fighting || session.status !== "playing";
-  const { left, max, per } = session.shortRests;
+  const { left, max, per, unlimited } = session.shortRests;
   const { available, total, sides } = session.hitDice;
-  element("rest-summary").textContent = "Short rests: " + left + " of " + max + " left in this " + (per || "adventure") + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
+  // Unlimited by the adventure's settings (#508).
+  element("rest-summary").textContent = (unlimited ? "Short rests: unlimited" : "Short rests: " + left + " of " + max + " left in this " + (per || "adventure")) + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
   if (!option) {
     element("rest-controls").replaceChildren();
     return;
@@ -3396,11 +3447,66 @@ const creating = () => classEntry(choices.class);
  */
 function defaultChoices(id = "${DEFAULT_CLASS}") {
   increaseMode = "two";
+  const pending = library.pendingCreation;
+  choicesFor = pending.number;
   return {
     class: id,
-    placement: { ...library.pendingCreation.defaultPlacements[id] },
+    // A point buy's scores, or the rolls or standard array placed (#509).
+    ...(pending.pointBuy ? { scores: { ...pending.defaultScores[id] } } : { placement: { ...pending.defaultPlacements[id] } }),
     ...structuredClone(classEntry(id).defaults),
   };
+}
+
+/** The pending creation the choices are for (#509): a new one starts afresh. */
+let choicesFor;
+
+/**
+ * What the creation screen says of its ability-score method (#509), from the
+ * numbers the server sends.
+ */
+function renderMethod() {
+  const pending = library.pendingCreation;
+  const after = " then make your other choices.";
+  const values = (pending.rolls || []).map((roll) => roll.total);
+  element("method-hint").textContent = pending.method === "point-buy"
+    ? "Point buy: spend up to " + pending.pointBuy.points + " points on scores from " + pending.pointBuy.min + " to " + pending.pointBuy.max + ". Choose a class, buy your ability scores," + after
+    : pending.method === "standard-array"
+      ? "The standard array: " + values.slice(0, -1).join(", ") + " and " + values[values.length - 1] + ". Choose a class, place the six scores on your abilities in any order," + after
+      : (pending.method === "roll-reroll" ? "Rolled once, with one reroll of the whole set. " : "Rolled once. No rerolls. ") + "Choose a class, place the six rolls on your abilities in any order," + after;
+  element("placing-hint").textContent = pending.method === "point-buy"
+    ? "Choose each ability's score; each costs the points shown."
+    : "Place one " + (pending.method === "standard-array" ? "score" : "roll") + " on each ability; choosing " + (pending.method === "standard-array" ? "a score" : "a roll") + " that is already placed swaps the two.";
+  element("base-heading").textContent = pending.method === "point-buy" ? "Bought" : pending.method === "standard-array" ? "Array" : "Roll";
+  element("points-status").hidden = pending.method !== "point-buy";
+  renderReroll();
+}
+
+/** The one reroll (#509): offered until it is used. */
+function renderReroll() {
+  const reroll = library.pendingCreation.reroll;
+  element("reroll-controls").hidden = !reroll;
+  if (!reroll) return;
+  element("reroll").hidden = reroll.used;
+  element("reroll-status").textContent = reroll.used ? "Rerolled: you keep these dice." : "You may roll the whole set again once, and must keep the new set.";
+}
+
+/** Rolls the whole set again, once (#509); the new rolls go down the class's order. */
+async function rerollDice() {
+  const button = element("reroll");
+  if (isBusy(button)) return;
+  setBusy(button, "Rerolling…");
+  try {
+    library = await request("/api/5e/creation/reroll", { revision: library.revision });
+    choices.placement = { ...library.pendingCreation.defaultPlacements[choices.class] };
+    element("creation-error").textContent = "";
+    clearBusy(button);
+    renderReroll();
+    element("reroll-status").focus();
+    changeAbilities();
+  } catch (error) {
+    clearBusy(button);
+    element("creation-error").textContent = error.message;
+  }
 }
 
 /** Choosing a class starts its creation afresh from its defaults (#306). */
@@ -3433,11 +3539,13 @@ function swap(record, ability, chosen, empty) {
 function rollSelect(ability) {
   const select = make("select");
   select.id = "place-" + ability;
-  select.setAttribute("aria-label", titleCase(ability) + " roll");
-  select.setAttribute("aria-describedby", "dice-" + ability);
+  // The standard array's scores have no dice (#509).
+  const rolled = library.pendingCreation.method !== "standard-array";
+  select.setAttribute("aria-label", titleCase(ability) + (rolled ? " roll" : " score"));
+  if (rolled) select.setAttribute("aria-describedby", "dice-" + ability);
   library.pendingCreation.rolls.forEach((roll, index) => {
     const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
-    const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
+    const option = make("option", roll.total + (rolled ? " (roll " + (index + 1) + ")" : "") + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
     option.value = String(index);
     select.append(option);
   });
@@ -3490,6 +3598,24 @@ function bonusCheck(ability) {
   return label;
 }
 
+/** A point buy's score for an ability (#509), each option with its cost. */
+function scoreSelect(ability) {
+  const select = make("select");
+  select.id = "place-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " score");
+  for (const { score, cost } of library.pendingCreation.pointBuy.costs) {
+    const option = make("option", score + " (" + cost + (cost === 1 ? " point" : " points") + ")");
+    option.value = String(score);
+    select.append(option);
+  }
+  select.value = String(choices.scores[ability]);
+  select.addEventListener("change", () => {
+    choices.scores[ability] = Number(select.value);
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
 /** The four dice of the roll placed on an ability, the dropped one marked. */
 function placedDice(ability) {
   const roll = library.pendingCreation.rolls[choices.placement[ability]];
@@ -3513,7 +3639,10 @@ function renderAbilities() {
     const name = make("th", titleCase(ability));
     name.scope = "row";
     const roll = make("td");
-    roll.append(rollSelect(ability), placedDice(ability));
+    // A point buy's score, or the roll or array score placed (#509).
+    const pending = library.pendingCreation;
+    if (pending.pointBuy) roll.append(scoreSelect(ability));
+    else roll.append(rollSelect(ability), ...(pending.method === "standard-array" ? [] : [placedDice(ability)]));
     const bonus = make("td", undefined, "bonus");
     bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
     const score = make("td", undefined, "num score");
@@ -3528,6 +3657,9 @@ function renderAbilities() {
 
 /** Each row's score, cap and modifier as the server projected them; "…" until it has. */
 function renderScores() {
+  // The points a point buy spends (#509).
+  const points = projection && projection.pointBuy;
+  element("points-status").textContent = points ? "Points spent: " + points.spent + " of " + points.points + "." : "Points spent: …";
   for (const ability of library.abilities) {
     const row = projection && projection.rows.find((candidate) => candidate.ability === ability);
     const score = element("score-" + ability);
@@ -3841,6 +3973,7 @@ async function preview() {
     renderMasteryLimit();
     renderKits();
     renderStyleUses();
+    element("scores-error").textContent = result.unfinished.scores || "";
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
     element("expertise-error").textContent = result.unfinished.expertise || "";
@@ -3867,6 +4000,89 @@ function changeIncreaseMode(event) {
   changeAbilities();
 }
 
+// The Settings page (#506): what the server sends, drawn as it says.
+async function openSettings(ticket) {
+  let value;
+  try {
+    value = await request("/api/5e/settings");
+  } catch (error) {
+    if (ticket === routeTicket) lost(error.message);
+    return;
+  }
+  if (ticket !== routeTicket) return;
+  renderSettings(value);
+  show("settings", "Settings", [{ label: "Settings" }]);
+  element("settings-title").focus();
+}
+
+function renderSettings(value) {
+  // The sheets show the settings of the moment.
+  library = value.library;
+  element("settings-error").textContent = "";
+  element("settings-in-progress").hidden = !value.adventureInProgress;
+  element("settings-list").replaceChildren(...value.settings.map((setting) => {
+    const fieldset = make("fieldset", undefined, "setting");
+    fieldset.id = "setting-" + setting.id;
+    const help = make("p", setting.text, "hint");
+    help.id = "setting-" + setting.id + "-text";
+    fieldset.setAttribute("aria-describedby", help.id);
+    const choices = make("div", undefined, "setting-choices");
+    for (const choice of setting.choices) {
+      const label = make("label");
+      const input = make("input");
+      input.type = "radio";
+      input.name = "setting-" + setting.id;
+      input.id = "setting-" + setting.id + "-" + choice.value;
+      input.value = String(choice.value);
+      input.checked = choice.value === setting.value;
+      input.addEventListener("change", () => changeSetting(setting, choice));
+      label.append(input, " " + choice.label);
+      if (choice.default) label.append(" ", make("span", "Default", "tag"));
+      choices.append(label);
+    }
+    fieldset.append(make("legend", setting.name), help, choices);
+    return fieldset;
+  }));
+}
+
+async function changeSetting(setting, choice) {
+  const list = element("settings-list");
+  if (list.getAttribute("aria-busy") === "true") return;
+  list.setAttribute("aria-busy", "true");
+  try {
+    const value = await request("/api/5e/settings", { id: setting.id, value: choice.value });
+    renderSettings(value);
+    feedback(setting.name + ": " + choice.label + ". Saved.");
+  } catch (error) {
+    // Show what the file holds now, with the refusal.
+    element("settings-error").textContent = error.message;
+    try {
+      renderSettings(await request("/api/5e/settings"));
+      element("settings-error").textContent = error.message;
+    } catch {
+      // The refusal already says what is wrong.
+    }
+  } finally {
+    list.removeAttribute("aria-busy");
+  }
+  element("setting-" + setting.id + "-" + choice.value)?.focus();
+}
+
+async function resetSettings() {
+  const reset = element("reset-settings");
+  if (isBusy(reset)) return;
+  setBusy(reset, "Resetting…");
+  try {
+    renderSettings(await request("/api/5e/settings/reset", {}));
+    feedback("Every setting is back to its default.");
+  } catch (error) {
+    element("settings-error").textContent = error.message;
+  } finally {
+    clearBusy(reset);
+    reset.disabled = false;
+  }
+}
+
 async function openCreation(ticket) {
   const opener = element("open-creation");
   setBusy(opener, "Opening…");
@@ -3880,9 +4096,11 @@ async function openCreation(ticket) {
     opener.disabled = false;
   }
   if (ticket !== routeTicket) return;
-  choices = choices || defaultChoices();
+  // Choices made for another creation start afresh (#509).
+  if (!choices || choicesFor !== library.pendingCreation.number) choices = defaultChoices();
   projection = undefined;
   element("score-cap").textContent = library.pendingCreation.rules.scoreCap;
+  renderMethod();
   renderChoices();
   show("creation", "Create a character", [{ label: "Create a character" }]);
   element("creation-title").focus();
@@ -4104,7 +4322,10 @@ async function deleteCharacter(event) {
 }
 
 element("open-creation").addEventListener("click", () => go("#create"));
+element("open-settings").addEventListener("click", () => go("#settings"));
+element("reset-settings").addEventListener("click", resetSettings);
 element("creation-form").addEventListener("submit", saveCharacter);
+element("reroll").addEventListener("click", rerollDice);
 element("close-creation").addEventListener("click", () => go(""));
 for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
 element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });
@@ -4123,7 +4344,8 @@ element("message-form").addEventListener("submit", sendMessage);
 if (soundControls) {
   renderSoundControls();
   element("sound-mute").addEventListener("click", () => changeSoundSettings({ muted: !soundSettings.muted }));
-  element("sound-volume").addEventListener("input", (event) => changeSoundSettings({ volume: Number(event.target.value) / 100 }));
+  element("settings-sound-on").addEventListener("change", (event) => changeSoundSettings({ muted: !event.target.checked }));
+  for (const id of ["sound-volume", "settings-sound-volume"]) element(id).addEventListener("input", (event) => changeSoundSettings({ volume: Number(event.target.value) / 100 }));
 }
 element("open-map").addEventListener("click", openMap);
 element("close-map").addEventListener("click", () => closeMap(true));

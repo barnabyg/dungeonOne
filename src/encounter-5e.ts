@@ -72,7 +72,8 @@
  *   every attack is made and the combatant still stands, `escape` records
  *   that it got away: the caller takes it out of the fight. A combatant
  *   with Cunning Action's Disengage (a bonus action) that has disengaged
- *   this turn draws no attacks.
+ *   this turn draws no attacks, and nor does one that `fleesUnopposed`
+ *   (#508: the fleeing setting off).
  * - Fast Hands (#307): once the turn's object interaction is spent, a
  *   combatant with it can draw, stow or swap a weapon again with its bonus
  *   action.
@@ -211,6 +212,7 @@ import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
 import type { Ability } from "./class-5e.js";
 import { isOneOf } from "./json-shape.js";
 import type { RandomSource } from "./random.js";
+import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 import {
   CURSES,
   effectAtSlot,
@@ -584,6 +586,17 @@ export type Combatant = DamageDefenses &
       }>;
     /** Healing potions the combatant carries, which it can drink. */
     potions?: readonly Potion[];
+    /**
+     * Last Stand as its adventure's settings have it (#508): off, the
+     * death saving throw's DC, or automatic (no save). Without one, the
+     * default, DC 11.
+     */
+    lastStand?: LastStandSetting;
+    /**
+     * Fleeing draws no attacks on it (#508: the setting off), as though it
+     * had always disengaged.
+     */
+    fleesUnopposed?: true;
     /** Its spellcasting (#336), for a combatant that casts spells. */
     spellcasting?: CombatSpellcasting;
     /** The spell scrolls and wands it holds (#346), which cast spells. */
@@ -1272,18 +1285,29 @@ export type ReactionOfferedEvent = Readonly<{
  * one of `potions` (their names, as carried) with its reaction or fall; on
  * a failure it falls.
  */
-export type LastStandEvent = Readonly<{
-  type: "last-stand";
-  combatantId: string;
-  attackerId: string;
-  d20: number;
-  dc: number;
-  success: boolean;
-  potions: readonly string[];
-}>;
+export type LastStandEvent = Readonly<
+  {
+    type: "last-stand";
+    combatantId: string;
+    attackerId: string;
+    potions: readonly string[];
+  } & (
+    | { d20: number; dc: number; success: boolean; automatic?: never }
+    | {
+        /** No death saving throw (#508): the fall always waits. */
+        automatic: true;
+        success: true;
+        d20?: never;
+        dc?: never;
+      }
+  )
+>;
 
-/** Last Stand's death saving throw (#499): a d20, this or higher (an even chance). */
-export const LAST_STAND_DC = 11;
+/**
+ * Last Stand as an adventure's settings have it (#508): off, the death
+ * saving throw's DC (a d20, this or higher), or automatic.
+ */
+export type LastStandSetting = GameSettings["lastStand"];
 
 /**
  * A combatant with Undead Fortitude reduced to 0 HP: its Constitution save
@@ -1772,6 +1796,8 @@ export type EncounterEvent =
       combatantId: string;
       attackerIds: readonly string[];
       disengaged?: true;
+      /** Fleeing draws no attacks in its adventure (#508). */
+      unopposed?: true;
     }>
   | ReactionOfferedEvent
   | LastStandEvent
@@ -1861,6 +1887,7 @@ export type EncounterRefusalCode =
   | "no-steady-aim"
   | "no-disengage"
   | "already-disengaged"
+  | "flees-unopposed"
   | "no-attack-left"
   | "no-cunning-strike"
   | "no-sneak-attack"
@@ -2228,6 +2255,13 @@ function disengageRefusal(
   if (actor.disengage === undefined) {
     return refused("no-disengage", "You can't Disengage as a bonus action.");
   }
+  // With fleeing drawing no attacks (#508), disengaging changes nothing.
+  if (actor.fleesUnopposed === true) {
+    return refused(
+      "flees-unopposed",
+      "Fleeing draws no attacks in this adventure: disengaging would do nothing.",
+    );
+  }
   if (state.economy.disengaged === true) {
     return refused(
       "already-disengaged",
@@ -2394,7 +2428,8 @@ export function fleeAttackers(
   state: EncounterState,
   actorId: string,
 ): readonly Combatant[] {
-  return state.economy.disengaged === true
+  return state.economy.disengaged === true ||
+    combatant(state, actorId).fleesUnopposed === true
     ? []
     : legalTargets(state, actorId).filter((foe) => ableToAct(state, foe));
 }
@@ -4527,22 +4562,40 @@ function landAttack(
   // throw. On a success the fight waits for it to drink a potion with its
   // reaction or fall; at 0 HP its concentration and turning end, and the
   // hit gives no condition. On a failure it falls.
-  const stand =
-    defeated && "progress" in origin && canLastStand(next, target)
-      ? random.roll(20)
-      : undefined;
-  if (stand !== undefined) {
-    events.push({
-      type: "last-stand",
-      combatantId: target.id,
-      attackerId: actor.id,
-      d20: stand,
-      dc: LAST_STAND_DC,
-      success: stand >= LAST_STAND_DC,
-      potions: target.potions!.map(({ name }) => name),
-    });
+  // The death saving throw's DC, or automatic, is the adventure's setting
+  // (#508): automatic rolls no die and always succeeds.
+  const setting = target.lastStand ?? DEFAULT_SETTINGS.lastStand;
+  const standing =
+    defeated && "progress" in origin && canLastStand(next, target);
+  let stood = false;
+  if (standing) {
+    const potions = target.potions!.map(({ name }) => name);
+    if (setting === "automatic") {
+      stood = true;
+      events.push({
+        type: "last-stand",
+        combatantId: target.id,
+        attackerId: actor.id,
+        automatic: true,
+        success: true,
+        potions,
+      });
+    } else {
+      const dc = setting as number;
+      const d20 = random.roll(20);
+      stood = d20 >= dc;
+      events.push({
+        type: "last-stand",
+        combatantId: target.id,
+        attackerId: actor.id,
+        d20,
+        dc,
+        success: stood,
+        potions,
+      });
+    }
   }
-  if (stand !== undefined && stand >= LAST_STAND_DC && "progress" in origin) {
+  if (stood && "progress" in origin) {
     next = droppedEffects(next, target, events);
     return {
       state: {
@@ -4623,6 +4676,7 @@ function landAttack(
 function canLastStand(state: EncounterState, target: Combatant): boolean {
   return (
     target.side === "party" &&
+    target.lastStand !== "off" &&
     (target.potions ?? []).length > 0 &&
     !state.reacted.includes(target.id) &&
     incapacitatedBy(state, target.id) === undefined
@@ -7602,7 +7656,9 @@ export function act(
         attackerIds: attackers.map(({ id }) => id),
         ...(state.economy.disengaged === true
           ? { disengaged: true as const }
-          : {}),
+          : actor.fleesUnopposed === true
+            ? { unopposed: true as const }
+            : {}),
       });
       // The turn goes no further: the caller takes the combatant out once
       // the attacks are made, unless one ends the fight.

@@ -12,8 +12,8 @@ import {
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthResult,
-  SHORT_RESTS_PER_ADVENTURE,
 } from "../dist/runtime-5e.js";
+import { DEFAULT_SETTINGS } from "../dist/settings-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER, testFighterAt } from "../dist/test-fighter-5e.js";
 import { TEST_ROGUE } from "../dist/test-rogue-5e.js";
@@ -252,7 +252,7 @@ test("a rest is refused in a room whose hostile encounter is unresolved", () => 
 
 test("a third short rest is refused", () => {
   const using = createFifthRuntime(ratTunnels, ADA_2);
-  assert.equal(SHORT_RESTS_PER_ADVENTURE, 2);
+  assert.equal(DEFAULT_SETTINGS.shortRests, 2);
   let state = hurt(begun(using), 1, { "action-surge": 0 });
   state = accepted(using, state, rest(1), dice([10, 1])).state;
   state = hurt(state, 1, { "action-surge": 0 });

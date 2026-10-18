@@ -9,7 +9,7 @@ import type {
 } from "./dm-turn.js";
 
 export const OPENAI_DM_DEFAULT_TIMEOUT_MS = 30_000;
-export const OPENAI_DM_DEFAULT_MODEL = "gpt-5.6-luna";
+export { OPENAI_DM_DEFAULT_MODEL } from "./openai-dm-models.js";
 
 export const OPENAI_DM_ERROR_CODES = [
   "authentication",

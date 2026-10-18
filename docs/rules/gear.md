@@ -17,7 +17,7 @@
 
 ## Carrying capacity
 
-SRD 5.2's capacity is Strength × 15 lb, and its only consequence, slower speed, does nothing without positions. So (a house rule) the engine **refuses** whatever would take a character over capacity.
+SRD 5.2's capacity is Strength × 15 lb, and its only consequence, slower speed, does nothing without positions. So (a house rule) the engine **refuses** whatever would take a character over capacity. The carrying capacity [setting](settings.md) makes it Strength × 5, × 10, × 15 (the default) or × 20 lb, or unlimited: then nothing is refused for weight, and the sheet and the adventure show the weight carried with no capacity.
 
 - **Weights.** Catalogue items weigh their SRD 5.2 weight, equipped or stowed. Arrows and bolts count one by one (7 arrows weigh 0.35 lb). Coin weighs 50 to the pound, carried as the fewest coins worth the purse. Modules author no weights: a Potion of Healing weighs ½ lb, a key nothing, and treasure 1 lb each.
 - **Refused:** taking anything (dropped gear and ammunition included) and buying, when the weight afterwards would exceed capacity; the reply names the weight, the load and the capacity. Dropping, equipping and selling are never refused for weight.
@@ -37,7 +37,9 @@ A character carries what it has equipped and its **stowed** gear (catalogue weap
 
 `src/treasure-5e.ts` holds the treasure catalogue (gems and art objects, such as `art-25gp`, and their values) and the parameter tables that hold treasure to a module's level.
 
-- **Gems and art objects** are trade goods that only sell, at full value. A module names a catalogue entry (`"treasure": "art-25gp"`) and gives it its own name and description. All are common. Kept treasure keeps its value for a later adventure.
+- **Gems and art objects** are trade goods that only sell, at full value. A module names a catalogue entry (`"treasure": "art-25gp"`) and gives it its own name and description. All are common.
+- **Treasure found** ([setting](settings.md)): 50%, 75%, 100% (the default) or 150% of a gem or art object's catalogue value is what it is worth when found, rounded down to the copper; coin taken is scaled the same way (see [Characters](characters.md)). A kept gem or art object records the value it was found with and sells for it in any later adventure, whatever the settings are then. Potions, scrolls, gear and magic items are not scaled.
+- **Items found** ([setting](settings.md)): Normal (the default) or Scarce. On Scarce each potion, piece of gear (ammunition included), spell scroll and wand a module places, lying in a room, hidden in a feature or carried by an opponent, is missing with an even chance, drawn from the session's seed and the item's id, so a reload or a rerun misses the same ones. Coin, gems and art, keys, tools, any item a door's key or a feature's use names, and any item that sets a flag when taken are never missing. A missing item isn't there for the player or the AI DM, and the ledger never records it, so a later adventure draws for it again. Merchant stock is unchanged.
 - **Potions.** Potion of Healing: common, 50 gp. Potion of Greater Healing: uncommon, 4d4 + 4 HP, 200 gp (half an uncommon magic item's 400 gp, as for every consumable). No merchant buys a potion.
 - **Never used up.** Treasure is sold or carried out: the validator refuses a feature use that consumes it.
 - **Budget.** Everything a module hides is totalled (coin, gems, art, potions and scrolls at value, gear at catalogue price, an ammunition bundle at 1 gp; not magic items). The validator refuses more than **150 gp × the maximum recommended level** (`TREASURE_BUDGETS`, tunable); a long module gets twice that (`LONG_MODULE_BUDGET_FACTOR`). A module's treasure should be **75–100% of its budget**, as a mixed hoard of gems, art and coin; a test checks the shipped modules.
@@ -79,8 +81,8 @@ Every bestiary monster has a **treasure type** (`treasureType` in `adventures/5e
 
 A module may make a creature a **merchant**, with catalogue stock and the minutes (1–60) each trade takes; a reaction may make its opponents one (see [Parley, tolls and trade](combat.md#parley-tolls-and-trade)). Trading happens only inside adventures, outside a fight, in the merchant's room.
 
-- **Prices.** A merchant sells its stock without limit at catalogue price. It buys carried catalogue gear at **half price, rounded down to the copper**, and gems and art objects at full value. It buys no potions and no magic items. The AI DM can name only offers the engine lists, never a price.
-- **Ammunition** trades by the 20: 1 gp to buy, 5 sp to sell; fewer than 20 can't be sold.
+- **Prices.** A merchant sells its stock without limit at catalogue price times the merchant prices [setting](settings.md): × 0.5, × 0.75, × 1 (the default), × 1.5 or × 2, rounded to the nearest copper and at least 1 cp. It buys carried catalogue gear at the merchant buy-back setting's 25%, 50% (the default), 75% or 100% of catalogue price, **rounded down to the copper**, and gems and art objects at their full held value. It buys no potions and no magic items. The AI DM can name only offers the engine lists, never a price.
+- **Ammunition** trades by the 20, at the same settings: 1 gp to buy and 5 sp to sell at the defaults; fewer than 20 can't be sold.
 - **Stock.** Common gear always; uncommon only when the module's lowest recommended level is 3 or more; never rare or magic. The validator enforces this. No starting kit has a bow, so bows come only from merchants and finds: the Coldwater Weirgate's toll-hall bandits trade a dagger, a shortbow and arrows.
 - **Buying** is refused with too little coin or if it would break carrying capacity.
 - **Selling.** Equipped gear sells only once the player confirms it, so the AI DM has no offer for it. Sold body armour is doffed first; the last weapon held is never sold.

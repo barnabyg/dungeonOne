@@ -136,6 +136,17 @@ export function tradeGoodValue(id: TradeGoodId): number {
   return TRADE_GOODS[id].value;
 }
 
+/**
+ * Coin or a gem or art object's value as found under the treasure found
+ * setting (#507): `percent` of `copper`, rounded down to the copper and at
+ * least 1 cp. A found gem or art object keeps the value it was found with.
+ */
+export function scaledTreasure(copper: number, percent: number): number {
+  return percent === 100
+    ? copper
+    : Math.max(1, Math.floor((copper * percent) / 100));
+}
+
 export type PotionData = Readonly<{
   name: string;
   healing: Readonly<{ dice: number; sides: number; modifier: number }>;

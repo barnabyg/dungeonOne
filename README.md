@@ -37,8 +37,8 @@ Options, which `run.bat` passes through:
   `characters.json` in the current directory).
 - `--seed <0-4294967295>` fixes the startup seed for repeatable dice.
 - `--no-sound` turns sound off completely. Otherwise sound is on at a
-  moderate volume, with a mute button and volume slider in the header that
-  the browser remembers.
+  moderate volume, with a mute button and volume slider in the header, and
+  the same on the Settings page, that the browser remembers.
 
 ```powershell
 $env:OPENAI_API_KEY = "<your key>"
@@ -48,7 +48,9 @@ $env:OPENAI_API_KEY = "<your key>"
 To play, create a character (choose a class, place its rolled abilities and
 make its class's choices), then start one of the modules its sheet offers. In
 an adventure, click the actions the engine offers or type what you want to do
-to the Dungeon Master. Treasure, gear, coin and XP are kept only by getting out alive. A
+to the Dungeon Master. The AI Dungeon Master uses the OpenAI model the Settings
+page chooses (default `gpt-6-luna`, the only one offered); each adventure keeps
+the model it started with. Treasure, gear, coin and XP are kept only by getting out alive. A
 character at 0 HP is defeated for good; there are no death saving throws.
 
 ## Adventure modules
@@ -67,6 +69,8 @@ A sheet offers only the modules that pass the balance gate.
 - The character library is `characters.json` by default.
 - Each adventure is saved after every action in the `characters-adventures`
   directory beside the library.
+- The Settings page's choices are saved in `settings.json` beside the
+  library ([settings](docs/rules/settings.md)).
 
 Formats are throwaway until a stable release: a loader refuses a file in an
 older format with a message naming it and asking you to move it aside.

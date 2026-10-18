@@ -32,13 +32,13 @@ import {
 } from "./adventure-5e.js";
 import {
   FifthCharacterLibrary,
+  pendingBase,
   type FifthLibraryData,
+  type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
-import {
-  createOpenAiDmModel,
-  OPENAI_DM_DEFAULT_MODEL,
-} from "./openai-dm-model.js";
+import { createOpenAiDmModel } from "./openai-dm-model.js";
+import type { OpenAiDmModelId } from "./openai-dm-models.js";
 
 import {
   FifthSession,
@@ -66,6 +66,10 @@ import {
   classOf,
   DEFAULT_CLASS,
   defaultPlacement,
+  defaultArrayPlacement,
+  defaultPointBuy,
+  POINT_BUY,
+  STANDARD_ARRAY,
   isClassId,
   OFFERED_CLASS_IDS,
   droppedDie,
@@ -115,14 +119,25 @@ import {
   fifthBrowserHtml,
 } from "./browser-5e-page.js";
 import { readSound, soundAt, soundType } from "./sounds-5e.js";
+import {
+  FifthSettingsStore,
+  settingsPathFor,
+  settingsView,
+  type GameSettings,
+} from "./settings-5e.js";
 
 export type FifthBrowserOptions = Readonly<{
   libraryPath: string;
   seed: number;
   /** For the AI DM; typed messages are refused without it. */
   apiKey?: string;
-  /** Replaces the OpenAI DM, for tests. */
+  /** Replaces the OpenAI DM for every model, for tests. */
   dmModel?: DmModel;
+  /**
+   * Opens the DM for a model id in place of OpenAI's, for tests (#510): a
+   * typed message uses the model its session's settings name.
+   */
+  openDmModel?: (model: OpenAiDmModelId) => DmModel;
   /**
    * Which modules are offered; the balance gate at each module's declared
    * difficulty (its recorded verdict where one matches the module) unless
@@ -246,6 +261,7 @@ function sessionView(session: FifthSession) {
 function libraryView(
   data: FifthLibraryData,
   adventures: readonly FifthAdventure[],
+  settings: GameSettings,
 ) {
   const pending = data.pendingCreation;
   return {
@@ -318,18 +334,9 @@ function libraryView(
       : {
           pendingCreation: {
             number: pending.number,
-            rolls: pending.dice.map((dice) => ({
-              dice,
-              dropped: droppedDie(dice),
-              total: keptTotal(dice),
-            })),
-            // Each class fills the abilities in its own order.
-            defaultPlacements: Object.fromEntries(
-              CLASS_IDS.map((id) => [
-                id,
-                defaultPlacement(pending.dice, CLASSES[id]),
-              ]),
-            ),
+            // How its scores are made (#509), as when it started.
+            method: pending.method,
+            ...pendingScoresView(pending),
             rules: { scoreCap: ABILITY_SCORE_CAP },
           },
         }),
@@ -342,7 +349,7 @@ function libraryView(
         className: classOf(sheet).name,
         profile: characterProfile(sheet),
         purse: formatCoins(sheet.purse),
-        carrying: characterCarrying(sheet),
+        carrying: characterCarrying(sheet, settings.carryingCapacity),
         stowed: sheet.stowed.map(itemName),
         // Each kind of gear, equipped then carried, with its stats (#504).
         gear: [
@@ -486,6 +493,55 @@ const CLASS_IDS: readonly ClassId[] = [
 ];
 
 /**
+ * What a pending creation places or buys (#509). A rolling method's rolls,
+ * each with its dice, or the standard array's scores, with each class's
+ * default placement; a point buy's points, score range and costs, with each
+ * class's default scores; and whether a reroll is left.
+ */
+function pendingScoresView(pending: PendingCreation) {
+  const base = pendingBase(pending);
+  if (base === "point-buy") {
+    return {
+      pointBuy: {
+        points: POINT_BUY.points,
+        min: POINT_BUY.min,
+        max: POINT_BUY.max,
+        costs: Object.entries(POINT_BUY.costs).map(([score, cost]) => ({
+          score: Number(score),
+          cost,
+        })),
+      },
+      // Each class buys the standard array in its own order.
+      defaultScores: Object.fromEntries(
+        CLASS_IDS.map((id) => [id, defaultPointBuy(CLASSES[id])]),
+      ),
+    };
+  }
+  return {
+    rolls:
+      base === "standard-array"
+        ? STANDARD_ARRAY.map((total) => ({ total }))
+        : base.map((dice) => ({
+            dice,
+            dropped: droppedDie(dice),
+            total: keptTotal(dice),
+          })),
+    // Each class fills the abilities in its own order.
+    defaultPlacements: Object.fromEntries(
+      CLASS_IDS.map((id) => [
+        id,
+        base === "standard-array"
+          ? defaultArrayPlacement(CLASSES[id])
+          : defaultPlacement(base, CLASSES[id]),
+      ]),
+    ),
+    ...(pending.rerolled === undefined
+      ? {}
+      : { reroll: { used: pending.rerolled } }),
+  };
+}
+
+/**
  * A creation request's class (the default unless it names one, #306) and
  * its choices. The character module validates them for that class.
  */
@@ -501,7 +557,17 @@ function choicesFrom(
   return {
     classId: body.class ?? DEFAULT_CLASS,
     choices: {
-      placement: body.placement as CreationChoices["placement"],
+      // A placement, or a point buy's scores (#509).
+      ...(body.placement === undefined
+        ? {}
+        : {
+            placement: body.placement as NonNullable<
+              CreationChoices["placement"]
+            >,
+          }),
+      ...(body.scores === undefined
+        ? {}
+        : { scores: body.scores as NonNullable<CreationChoices["scores"]> }),
       increase: body.increase as CreationChoices["increase"],
       skills: body.skills as CreationChoices["skills"],
       ...(body.fightingStyle === undefined
@@ -557,9 +623,12 @@ function hasExactKeys(
   );
 }
 
-const CHOICE_KEYS = ["placement", "increase", "skills", "kit", "masteries"];
-/** The choices only some classes make, and the class itself (#306). */
-const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS];
+const CHOICE_KEYS = ["increase", "skills", "kit", "masteries"];
+/**
+ * The choices only some classes make, and the class itself (#306); and a
+ * placement or a point buy's scores, as the creation's method needs (#509).
+ */
+const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS, "placement", "scores"];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = [
   "second-wind",
@@ -648,13 +717,35 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const library = new FifthCharacterLibrary(options.libraryPath, options.seed);
   // Refuse an old or invalid library, or a broken module, before listening.
   await library.read();
+  // The settings file beside the library (#506), refused before listening
+  // when it is invalid. Between adventures the sheet shows them; each
+  // adventure keeps the copy it started with.
+  const settingsStore = new FifthSettingsStore(
+    settingsPathFor(options.libraryPath),
+  );
+  let settings = await settingsStore.read();
+  const readSettings = async () => (settings = await settingsStore.read());
   const adventures = options.adventures ?? (await loadBuiltInFifthAdventures());
   const apiKey = options.apiKey?.trim() ?? "";
-  const model: DmModel | undefined =
-    options.dmModel ??
-    (apiKey.length === 0
-      ? undefined
-      : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
+  // The AI DM for each model a session's settings name (#510), opened when
+  // a message first needs it and kept for the next; none without a key.
+  const { dmModel } = options;
+  const open: ((model: OpenAiDmModelId) => DmModel) | undefined =
+    dmModel !== undefined
+      ? () => dmModel
+      : (options.openDmModel ??
+        (apiKey.length === 0
+          ? undefined
+          : (model) => createOpenAiDmModel({ apiKey, model })));
+  const models = new Map<OpenAiDmModelId, DmModel>();
+  const modelFor =
+    open &&
+    ((session: FifthSession): DmModel => {
+      const id = session.settings.dmModel;
+      const model = models.get(id) ?? open(id);
+      models.set(id, model);
+      return model;
+    });
   // Only modules that qualify at their declared difficulty are offered or
   // can be started; a session already under way plays on. The shipped
   // modules' verdicts are recorded, so only a changed one is gated here.
@@ -662,7 +753,21 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     adventures,
     options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
   );
-  const view = (data: FifthLibraryData) => libraryView(data, offered);
+  const view = (data: FifthLibraryData) => libraryView(data, offered, settings);
+  /**
+   * The Settings page: every setting, whether an adventure is under way, and
+   * the library, whose sheets show the settings of the moment.
+   */
+  const settingsResponse = async (current: GameSettings) => {
+    const data = await library.read();
+    return {
+      settings: settingsView(current),
+      adventureInProgress: data.characters.some(
+        ({ session }) => session !== undefined,
+      ),
+      library: view(data),
+    };
+  };
   const sound = options.sound ?? true;
   const html = fifthBrowserHtml(sound);
   // The file lock fails rather than waits, so this server's own changes queue.
@@ -733,7 +838,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       throw error;
     }
   };
-  const dmAvailable = model !== undefined;
+  const dmAvailable = modelFor !== undefined;
   /** The session view, with whether the player can type to the AI DM. */
   const projectSession = (session: FifthSession) => ({
     ...sessionView(session),
@@ -805,6 +910,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             body.characterId as string,
             adventure,
             body.revision as string,
+            // The settings as the file has them now, never as the page says.
+            await readSettings(),
           );
           if (session.state.status === "playing") {
             sessions.set(session.id, session);
@@ -1074,7 +1181,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             `Write a message of 1–${DM_TURN_LIMITS.maxPlayerInputCharacters} characters.`,
           );
         }
-        if (model === undefined) {
+        if (modelFor === undefined) {
           throw new Error(FIFTH_DM_OFF_NOTICE);
         }
         return serialized(async () => {
@@ -1082,7 +1189,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           requireCurrent(session, body.sequence);
           // Save each committed action, and settle the character if it
           // ended the fight, before the reply is written.
-          await session.converse(message, model, async () => {
+          await session.converse(message, modelFor(session), async () => {
             await persist(session);
             await settleFifthSession(library, session);
           });
@@ -1093,7 +1200,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (!hasExactKeys(body, [])) {
           throw new Error("Invalid character creation request.");
         }
-        return view(await serialized(() => library.startCreation()));
+        // A new creation takes the method the settings file has now (#509);
+        // one already pending keeps its own.
+        return view(
+          await serialized(async () =>
+            library.startCreation((await readSettings()).abilityScores),
+          ),
+        );
+      case "/api/5e/creation/reroll":
+        // The one reroll of "4d6 drop lowest, one reroll" (#509).
+        if (
+          !hasExactKeys(body, ["revision"]) ||
+          typeof body.revision !== "string"
+        ) {
+          throw new Error("Invalid reroll request.");
+        }
+        return view(
+          await serialized(() => library.reroll(body.revision as string)),
+        );
       case "/api/5e/creation/preview": {
         if (!hasExactKeys(body, CHOICE_KEYS, CLASS_KEYS)) {
           throw new Error("Invalid character creation request.");
@@ -1103,7 +1227,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("There is no pending creation to preview.");
         }
         const { classId, choices } = choicesFrom(body);
-        return projectCreation(pending.dice, choices, classId);
+        return projectCreation(
+          pendingBase(pending),
+          choices,
+          classId,
+          settings.carryingCapacity,
+        );
       }
       case "/api/5e/characters":
         if (
@@ -1119,12 +1248,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         const { classId, choices } = choicesFrom(body);
         return view(
-          await serialized(() =>
+          await serialized(async () =>
             library.create(
               (body.name as string).trim(),
               choices,
               body.revision as string,
               classId,
+              // Its starting coin (#507) as the file has it now.
+              await readSettings(),
             ),
           ),
         );
@@ -1141,10 +1272,11 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (record === undefined) {
           throw new Error("There is no such character in the library.");
         }
-        return projectLevelChoice(record.sheet, {
-          increase: body.increase,
-          mastery: body.mastery,
-        });
+        return projectLevelChoice(
+          record.sheet,
+          { increase: body.increase, mastery: body.mastery },
+          settings.carryingCapacity,
+        );
       }
       case "/api/5e/characters/level-choice":
         if (
@@ -1283,6 +1415,22 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             ),
           ),
         );
+      case "/api/5e/settings":
+        if (!hasExactKeys(body, ["id", "value"])) {
+          throw new Error("Invalid settings request.");
+        }
+        return serialized(async () =>
+          settingsResponse(
+            (settings = await settingsStore.change(body.id, body.value)),
+          ),
+        );
+      case "/api/5e/settings/reset":
+        if (!hasExactKeys(body, [])) {
+          throw new Error("Invalid settings request.");
+        }
+        return serialized(async () =>
+          settingsResponse((settings = await settingsStore.reset())),
+        );
       default:
         return undefined;
     }
@@ -1345,6 +1493,15 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             "text/javascript; charset=utf-8",
             FIFTH_BROWSER_SCRIPT,
           );
+          break;
+        case "/api/5e/settings":
+          try {
+            json(response, 200, await settingsResponse(await readSettings()));
+          } catch (error) {
+            json(response, 409, {
+              error: playerMessage(error, "Unable to read the settings."),
+            });
+          }
           break;
         case "/api/5e/library":
           try {

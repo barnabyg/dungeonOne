@@ -1,8 +1,9 @@
 /**
- * A 5e adventure session and its save file (format version 63).
+ * A 5e adventure session and its save file (format version 66).
  *
  * The save holds the character as it started, the adventure module's digest,
- * the session's seed, every committed action with the dice it drew, the
+ * the settings it plays by (#506: copied when it started, whatever the
+ * settings file says later), the session's seed, every committed action with the dice it drew, the
  * resulting state and the conversation history. Loading replays every action
  * from the seed and checks each die, the final state and the draw count
  * against the file, so a resumed session continues exactly: same state, same
@@ -33,6 +34,11 @@ import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
 import { REACTION_BANDS } from "./reaction-5e.js";
 import type { GameToolCall } from "./runtime-contract.js";
 import {
+  DEFAULT_SETTINGS,
+  readSettings,
+  type GameSettings,
+} from "./settings-5e.js";
+import {
   createFifthRuntime,
   describeFifthResult,
   type FifthAction,
@@ -49,7 +55,7 @@ import {
   SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 65;
+export const FIFTH_SESSION_FORMAT = 66;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -89,6 +95,7 @@ type SessionFile = Readonly<{
   id: string;
   character: CharacterSheet;
   adventure: Readonly<{ id: string; digest: string }>;
+  settings: GameSettings;
   random: Readonly<{ algorithm: string; seed: number; position: number }>;
   transitions: readonly Transition[];
   state: FifthState;
@@ -245,11 +252,13 @@ export class FifthSession {
     readonly seed: number,
     adventure: FifthAdventure,
     readonly character: CharacterSheet,
+    readonly settings: GameSettings,
     public state: FifthState,
     readonly transitions: Transition[],
     readonly history: HistoryEntry[],
   ) {
-    this.runtime = createFifthRuntime(adventure, character);
+    // Scarce items found (#507) draws from the session's seed.
+    this.runtime = createFifthRuntime(adventure, character, {}, settings, seed);
     this.random = createSeededRandom(seed);
   }
 
@@ -451,6 +460,7 @@ export class FifthSession {
         id: this.adventure.id,
         digest: adventureDigest(this.adventure),
       },
+      settings: this.settings,
       random: {
         algorithm: RANDOM_ALGORITHM,
         seed: this.seed,
@@ -486,20 +496,30 @@ export class FifthSession {
     seed: number,
     adventure: FifthAdventure,
     character: CharacterSheet,
+    settings: GameSettings = DEFAULT_SETTINGS,
   ): Promise<FifthSession> {
-    const session = FifthSession.start(path, id, seed, adventure, character);
+    const session = FifthSession.start(
+      path,
+      id,
+      seed,
+      adventure,
+      character,
+      settings,
+    );
     await session.persist();
     return session;
   }
 
   /**
    * Begins a session kept only in memory, exactly as `create` begins a saved
-   * one: for the command-line adapter and trace replay.
+   * one: for the command-line adapter and trace replay, which play at the
+   * default settings.
    */
   static begin(
     seed: number,
     adventure: FifthAdventure,
     character: CharacterSheet,
+    settings: GameSettings = DEFAULT_SETTINGS,
   ): FifthSession {
     return FifthSession.start(
       undefined,
@@ -507,6 +527,7 @@ export class FifthSession {
       seed,
       adventure,
       character,
+      settings,
     );
   }
 
@@ -516,6 +537,7 @@ export class FifthSession {
     seed: number,
     adventure: FifthAdventure,
     character: CharacterSheet,
+    settings: GameSettings,
   ): FifthSession {
     const session = new FifthSession(
       path,
@@ -523,7 +545,14 @@ export class FifthSession {
       seed,
       adventure,
       validateCharacter(character),
-      createFifthRuntime(adventure, character).createSession(),
+      settings,
+      createFifthRuntime(
+        adventure,
+        character,
+        {},
+        settings,
+        seed,
+      ).createSession(),
       [],
       [],
     );
@@ -574,7 +603,7 @@ export class FifthSession {
     const file = decoded as SessionFile;
     if (
       Object.keys(file).sort().join(",") !==
-        "adventure,character,formatVersion,history,id,kind,random,state,transitions" ||
+        "adventure,character,formatVersion,history,id,kind,random,settings,state,transitions" ||
       typeof file.id !== "string" ||
       !/^[a-f0-9]{32}$/.test(file.id) ||
       !isRecord(file.adventure) ||
@@ -606,13 +635,21 @@ export class FifthSession {
     } catch {
       throw invalid(path);
     }
+    const settings = readSettings(file.settings, () => invalid(path), true);
     const session = new FifthSession(
       path,
       file.id,
       file.random.seed,
       adventure,
       character,
-      createFifthRuntime(adventure, character).createSession(),
+      settings,
+      createFifthRuntime(
+        adventure,
+        character,
+        {},
+        settings,
+        file.random.seed,
+      ).createSession(),
       [],
       [...file.history],
     );
@@ -651,9 +688,10 @@ export class FifthSession {
 }
 
 /**
- * Starts `characterId` on `adventure`: saves a new session with its fight
- * begun, then records it in the library. A stale `revision`, or a character
- * that is defeated or already adventuring, starts nothing.
+ * Starts `characterId` on `adventure` under `settings`, which the session
+ * keeps to its end: saves a new session with its fight begun, then records
+ * it in the library. A stale `revision`, or a character that is defeated or
+ * already adventuring, starts nothing.
  */
 export async function startFifthAdventure(
   library: FifthCharacterLibrary,
@@ -661,6 +699,7 @@ export async function startFifthAdventure(
   characterId: string,
   adventure: FifthAdventure,
   revision: string,
+  settings: GameSettings = DEFAULT_SETTINGS,
 ): Promise<FifthSession> {
   const data = await library.read();
   if (data.revision !== revision) {
@@ -677,6 +716,7 @@ export async function startFifthAdventure(
     sessionSeed(browserSeed, number),
     adventure,
     record.sheet,
+    settings,
   );
   // A crash before this line leaves an unreferenced session file and no
   // change to the library, so the player can simply start again.

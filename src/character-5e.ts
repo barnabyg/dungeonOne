@@ -14,6 +14,7 @@
  * possessions with what the character holds at the end and adds to the
  * ledger, so a find stays earned after the item is gone.
  */
+import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 import {
   ABILITIES,
   ABILITY_SCORE_CAP,
@@ -130,6 +131,34 @@ export type AbilityRoll = readonly [number, number, number, number];
 /** The six rolls of one creation, in the order rolled. */
 export type RolledDice = readonly AbilityRoll[];
 
+/** The SRD 5.2 standard array (#509): six scores placed freely. */
+export const STANDARD_ARRAY: readonly number[] = [15, 14, 13, 12, 10, 8];
+
+/**
+ * SRD 5.2 point buy (#509): the points to spend, the lowest and highest
+ * score before the background increase, and each score's cost.
+ */
+export const POINT_BUY = {
+  points: 27,
+  min: 8,
+  max: 15,
+  costs: { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 },
+} as const satisfies Readonly<{
+  points: number;
+  min: number;
+  max: number;
+  costs: Readonly<Record<number, number>>;
+}>;
+
+/**
+ * What a creation's scores come from (#509): its pending dice (4d6 drop
+ * lowest, with or without the reroll), the standard array, or point buy.
+ */
+export type CreationBase = RolledDice | "standard-array" | "point-buy";
+
+/** The scores before the background increase, by ability (#509). */
+export type BaseScores = Readonly<Record<Ability, number>>;
+
 /** The highest level a character reaches; XP above its threshold is kept. */
 export const MAX_LEVEL: Level = 5;
 
@@ -159,8 +188,13 @@ export type LevelChoice = Readonly<{
 export type Placement = Readonly<Record<Ability, number>>;
 
 export type CreationChoices = Readonly<{
-  /** For each ability, the index of the roll placed on it. */
-  placement: Placement;
+  /**
+   * For each ability, the index of the roll (or standard array score, #509)
+   * placed on it; exactly when the creation does not use point buy.
+   */
+  placement?: Placement;
+  /** Each ability's bought score, exactly for point buy (#509). */
+  scores?: BaseScores;
   increase: BackgroundIncrease;
   skills: readonly SkillId[];
   /** Exactly for a class with a Fighting Style. */
@@ -262,8 +296,14 @@ export type CharacterSheet = Readonly<{
   level: Level;
   xp: number;
   hp: number;
-  /** The four dice placed on each ability. */
-  abilityRolls: Readonly<Record<Ability, AbilityRoll>>;
+  /** The four dice placed on each ability, for a character made by rolling. */
+  abilityRolls?: Readonly<Record<Ability, AbilityRoll>>;
+  /**
+   * Each ability's score before the background increase, instead of
+   * `abilityRolls`, for a character made from the standard array or by point
+   * buy (#509).
+   */
+  baseScores?: BaseScores;
   backgroundIncrease: BackgroundIncrease;
   /**
    * The Ability Score Improvements chosen, in level order (#286). A sheet
@@ -272,8 +312,8 @@ export type CharacterSheet = Readonly<{
    */
   abilityScoreImprovements: readonly AbilityScoreImprovement[];
   /**
-   * Each score is its kept three dice plus its background increase and its
-   * Ability Score Improvements.
+   * Each score is its kept three dice (or base score, #509) plus its
+   * background increase and its Ability Score Improvements.
    */
   abilities: Abilities;
   skills: readonly SkillId[];
@@ -332,7 +372,6 @@ const SHEET_KEYS = [
   "level",
   "xp",
   "hp",
-  "abilityRolls",
   "backgroundIncrease",
   "abilityScoreImprovements",
   "abilities",
@@ -988,6 +1027,116 @@ export function validateDice(value: unknown): RolledDice {
   return value.map((roll) => [...roll] as unknown as AbilityRoll);
 }
 
+/**
+ * The placement a fresh creation from the standard array starts with (#509):
+ * its scores, highest first, down the class's ability priority.
+ */
+export function defaultArrayPlacement(
+  definition: ClassDefinition = CLASSES[DEFAULT_CLASS],
+): Placement {
+  return Object.fromEntries(
+    definition.abilityPriority.map((ability, rank) => [ability, rank]),
+  ) as Placement;
+}
+
+/**
+ * The scores a fresh point buy starts with (#509): the standard array, which
+ * costs all 27 points, down the class's ability priority.
+ */
+export function defaultPointBuy(
+  definition: ClassDefinition = CLASSES[DEFAULT_CLASS],
+): BaseScores {
+  return Object.fromEntries(
+    definition.abilityPriority.map((ability, rank) => [
+      ability,
+      STANDARD_ARRAY[rank]!,
+    ]),
+  ) as BaseScores;
+}
+
+/** What point-bought `scores` cost (#509). */
+export function pointBuyCost(scores: BaseScores): number {
+  return ABILITIES.reduce(
+    (sum, ability) =>
+      sum + POINT_BUY.costs[scores[ability] as keyof typeof POINT_BUY.costs],
+    0,
+  );
+}
+
+/** Each ability's score from 8 to 15, as point buy offers (#509); the cost is not counted. */
+function validatePointScores(value: unknown): BaseScores {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 6 ||
+    !ABILITIES.every(
+      (ability) =>
+        Number.isInteger(value[ability]) &&
+        (value[ability] as number) >= POINT_BUY.min &&
+        (value[ability] as number) <= POINT_BUY.max,
+    )
+  ) {
+    throw new Error(
+      `Invalid point buy: each score is ${POINT_BUY.min}–${POINT_BUY.max} before the background increase.`,
+    );
+  }
+  return Object.fromEntries(
+    ABILITIES.map((ability) => [ability, value[ability]]),
+  ) as BaseScores;
+}
+
+/** Refuses point-bought `scores` costing more than the points (#509). */
+function checkPointBuyCost(scores: BaseScores): void {
+  const cost = pointBuyCost(scores);
+  if (cost > POINT_BUY.points) {
+    throw new Error(
+      `Point buy: these scores cost ${cost} points; you have ${POINT_BUY.points}.`,
+    );
+  }
+}
+
+/**
+ * Each ability's score before the background increase from a creation's
+ * base and choices (#509), and what the sheet records of it: the rolls placed
+ * on each ability, or the base scores (the standard array placed, or point
+ * buy). A point buy's cost is not counted here.
+ */
+function creationBase(
+  base: CreationBase,
+  choices: CreationChoices,
+): Readonly<{
+  scores: BaseScores;
+  record:
+    { abilityRolls: Record<Ability, AbilityRoll> } | { baseScores: BaseScores };
+}> {
+  if (base === "point-buy") {
+    if (choices.placement !== undefined) {
+      throw new Error("Point buy chooses scores, not a placement.");
+    }
+    const scores = validatePointScores(choices.scores);
+    return { scores, record: { baseScores: scores } };
+  }
+  if (choices.scores !== undefined) {
+    throw new Error("Only point buy chooses scores; place the values instead.");
+  }
+  const placement = validatePlacement(choices.placement);
+  if (base === "standard-array") {
+    const scores = Object.fromEntries(
+      ABILITIES.map((ability) => [ability, STANDARD_ARRAY[placement[ability]]]),
+    ) as BaseScores;
+    return { scores, record: { baseScores: scores } };
+  }
+  const rolled = validateDice(base);
+  const abilityRolls = Object.fromEntries(
+    ABILITIES.map((ability) => [ability, rolled[placement[ability]]!]),
+  ) as Record<Ability, AbilityRoll>;
+  return {
+    scores: Object.fromEntries(
+      ABILITIES.map((ability) => [ability, keptTotal(abilityRolls[ability])]),
+    ) as BaseScores,
+    record: { abilityRolls },
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -1590,17 +1739,17 @@ export function creationAbilities(
 export function buildCharacter(
   id: string,
   name: string,
-  dice: RolledDice,
+  dice: CreationBase,
   choices: CreationChoices,
   classId: ClassId = DEFAULT_CLASS,
 ): CharacterSheet {
   const definition = CLASSES[classId];
-  const rolled = validateDice(dice);
-  const placement = validatePlacement(choices.placement);
+  // The rolls placed, the standard array placed, or point buy (#509).
+  const { scores, record } = creationBase(dice, choices);
+  if (dice === "point-buy") {
+    checkPointBuyCost(scores);
+  }
   const increase = validateIncrease(choices.increase);
-  const abilityRolls = Object.fromEntries(
-    ABILITIES.map((ability) => [ability, rolled[placement[ability]]!]),
-  ) as Record<Ability, AbilityRoll>;
   const skills = validateSkills(definition, choices.skills);
   const fightingStyle = validateClassStyle(definition, choices.fightingStyle);
   const expertise = validateExpertise(
@@ -1622,10 +1771,15 @@ export function buildCharacter(
     level: 1 as const,
     xp: 0,
     hp: 0,
-    abilityRolls,
+    ...record,
     backgroundIncrease: increase,
     abilityScoreImprovements: [],
-    abilities: creationAbilities(rolled, placement, increase),
+    abilities: Object.fromEntries(
+      ABILITIES.map((ability) => [
+        ability,
+        scores[ability] + (increase[ability] ?? 0),
+      ]),
+    ) as Abilities,
     skills,
     ...(fightingStyle === undefined ? {} : { fightingStyle }),
     ...(expertise === undefined ? {} : { expertise }),
@@ -1674,6 +1828,8 @@ export type KitPreview = Readonly<{
 export type CreationProjection = Readonly<{
   /** One row per ability, in ABILITIES order. */
   rows: readonly CreationRow[];
+  /** The points a point buy spends, of those it has (#509). */
+  pointBuy?: Readonly<{ spent: number; points: number }>;
   /** Skills ticked, the limit, and whether no more can be ticked. */
   skills: Readonly<{ chosen: number; limit: number; full: boolean }>;
   /** Masteries ticked, the limit, and whether no more can be ticked. */
@@ -1705,6 +1861,8 @@ export type CreationProjection = Readonly<{
   fightingStyles: readonly FightingStyleUse[];
   /** Why a choice is not finished yet, keyed by the choice; empty when saving can go ahead. */
   unfinished: Readonly<{
+    /** A point buy spending more than its points (#509). */
+    scores?: string;
     increase?: string;
     skills?: string;
     expertise?: string;
@@ -1729,15 +1887,17 @@ export type CreationProjection = Readonly<{
  * `buildCharacter`, whose sheet is included once every choice is complete.
  */
 export function projectCreation(
-  dice: RolledDice,
+  dice: CreationBase,
   choices: CreationChoices,
   classId: ClassId = DEFAULT_CLASS,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): CreationProjection {
   const definition = CLASSES[classId];
   const skillCount = definition.skillChoices.count;
   const masteryCount = definition.weaponMasteries[1];
-  const rolled = validateDice(dice);
-  const placement = validatePlacement(choices.placement);
+  // The rolls placed, the standard array placed, or point buy (#509).
+  const { scores: base } = creationBase(dice, choices);
+  const spent = dice === "point-buy" ? pointBuyCost(base) : undefined;
   const { increase, missing } = validatePartialIncrease(choices.increase);
   const skills = validatePartialSkills(definition, choices.skills);
   const fightingStyle = validateClassStyle(definition, choices.fightingStyle);
@@ -1770,8 +1930,7 @@ export function projectCreation(
   const spellLimits = spellCounts(definition, 1, divineOrder);
   const spellbookLimit = definition.spellcasting?.spellbook ?? 0;
   const rows = ABILITIES.map((ability) => {
-    const score =
-      keptTotal(rolled[placement[ability]]!) + (increase[ability] ?? 0);
+    const score = base[ability] + (increase[ability] ?? 0);
     return {
       ability,
       score,
@@ -1780,6 +1939,12 @@ export function projectCreation(
     };
   });
   const unfinished = {
+    // A point buy over its points (#509).
+    ...(spent === undefined || spent <= POINT_BUY.points
+      ? {}
+      : {
+          scores: `These scores cost ${spent} points; you have ${POINT_BUY.points}. Lower a score.`,
+        }),
     ...(missing === 0
       ? {}
       : {
@@ -1847,6 +2012,10 @@ export function projectCreation(
   });
   const projection = {
     rows,
+    // The points a point buy spends (#509).
+    ...(spent === undefined
+      ? {}
+      : { pointBuy: { spent, points: POINT_BUY.points } }),
     skills: {
       chosen: skills.length,
       limit: skillCount,
@@ -1906,7 +2075,7 @@ export function projectCreation(
   const sheet = buildCharacter(
     "0".repeat(32),
     "Preview",
-    rolled,
+    dice,
     choices,
     classId,
   );
@@ -1915,7 +2084,7 @@ export function projectCreation(
     sheet: {
       abilities: sheet.abilities,
       profile: characterProfile(sheet),
-      carrying: characterCarrying(sheet),
+      carrying: characterCarrying(sheet, perStrength),
     },
   };
 }
@@ -1936,7 +2105,10 @@ export function validateCharacter(value: unknown): CharacterSheet {
       (key) =>
         SHEET_KEYS.includes(key) ||
         CLASS_CHOICE_KEYS.includes(key) ||
-        key === "copiedSpells",
+        key === "copiedSpells" ||
+        // Dice or base scores (#509), checked below.
+        key === "abilityRolls" ||
+        key === "baseScores",
     )
   ) {
     throw new Error("Invalid character sheet.");
@@ -1950,13 +2122,26 @@ export function validateCharacter(value: unknown): CharacterSheet {
     throw new Error("Unsupported character class.");
   }
   const definition = CLASSES[sheet.class];
+  // Rolled dice, or base scores from the standard array or point buy
+  // (#509): exactly one.
   const rolls = sheet.abilityRolls as unknown;
-  if (
-    !isRecord(rolls) ||
-    Object.keys(rolls).length !== 6 ||
-    !ABILITIES.every((ability) => isRoll(rolls[ability]))
-  ) {
-    throw new Error("Invalid ability dice.");
+  let baseScore: (ability: Ability) => number;
+  if (sheet.baseScores === undefined) {
+    if (
+      !isRecord(rolls) ||
+      Object.keys(rolls).length !== 6 ||
+      !ABILITIES.every((ability) => isRoll(rolls[ability]))
+    ) {
+      throw new Error("Invalid ability dice.");
+    }
+    baseScore = (ability) => keptTotal(sheet.abilityRolls![ability]);
+  } else {
+    if (rolls !== undefined) {
+      throw new Error("Invalid ability scores: dice or base scores, not both.");
+    }
+    const scores = validatePointScores(sheet.baseScores);
+    checkPointBuyCost(scores);
+    baseScore = (ability) => scores[ability];
   }
   const increase = validateIncrease(sheet.backgroundIncrease);
   const improvements = validateImprovements(sheet.abilityScoreImprovements);
@@ -1966,13 +2151,13 @@ export function validateCharacter(value: unknown): CharacterSheet {
     !ABILITIES.every(
       (ability) =>
         sheet.abilities[ability] ===
-        keptTotal(sheet.abilityRolls[ability]) +
+        baseScore(ability) +
           (increase[ability] ?? 0) +
           improvementTo(improvements, ability),
     )
   ) {
     throw new Error(
-      "Ability scores must equal their kept dice plus the background increase and any Ability Score Improvements.",
+      "Ability scores must equal their kept dice or base scores plus the background increase and any Ability Score Improvements.",
     );
   }
   for (const ability of ABILITIES) {
@@ -2549,19 +2734,28 @@ export function possessionsOf(sheet: CharacterSheet): Possessions {
   };
 }
 
-/** The weight a character carries and the most it can, in pounds. */
-export type Carrying = Readonly<{ weight: number; capacity: number }>;
+/** The carrying capacity setting (#506): pounds per point of Strength. */
+export type CarryingSetting = GameSettings["carryingCapacity"];
+
+/**
+ * The weight a character carries and the most it can, in pounds; no
+ * capacity when the setting is unlimited (#506).
+ */
+export type Carrying = Readonly<{ weight: number; capacity?: number }>;
 
 /**
  * What a sheet carries between adventures: its gear, its ammunition, its
- * treasure and its purse, against its Strength score × 15 lb (#224).
+ * treasure and its purse, against its Strength score × the carrying
+ * capacity setting (#224, #506).
  */
 export function characterCarrying(
   sheet: Pick<
     CharacterSheet,
     "abilities" | "equipment" | "stowed" | "ammunition" | "treasure" | "purse"
   >,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): Carrying {
+  const capacity = carryingCapacity(sheet.abilities.strength, perStrength);
   return {
     weight: loadWeight({
       equipment: sheet.equipment,
@@ -2570,7 +2764,7 @@ export function characterCarrying(
       purse: sheet.purse,
       other: sheet.treasure.length * TREASURE_WEIGHT,
     }),
-    capacity: carryingCapacity(sheet.abilities.strength),
+    ...(Number.isFinite(capacity) ? { capacity } : {}),
   };
 }
 
@@ -3348,6 +3542,7 @@ export type LevelChoiceProjection = Readonly<{
 export function projectLevelChoice(
   sheet: CharacterSheet,
   choice: Readonly<{ increase: unknown; mastery: unknown }>,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): LevelChoiceProjection {
   const level = pendingLevelChoice(sheet);
   if (level === undefined) {
@@ -3405,6 +3600,7 @@ export function projectLevelChoice(
         increase,
         ...(mastering ? { mastery: choice.mastery } : {}),
       }),
+      perStrength,
     ),
   };
 }
@@ -3449,6 +3645,7 @@ function attackChange(
 export function levelChoiceChanges(
   before: CharacterSheet,
   after: CharacterSheet,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): readonly string[] {
   const was = characterProfile(before);
   const now = characterProfile(after);
@@ -3496,8 +3693,8 @@ export function levelChoiceChanges(
       lines.push(`${skill.name} ${signed(from)} → ${signed(skill.bonus)}.`);
     }
   }
-  const carried = characterCarrying(before).capacity;
-  const carries = characterCarrying(after).capacity;
+  const carried = characterCarrying(before, perStrength).capacity;
+  const carries = characterCarrying(after, perStrength).capacity;
   if (carried !== carries) {
     lines.push(`Carrying capacity ${carried} → ${carries} lb.`);
   }
