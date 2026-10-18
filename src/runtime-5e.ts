@@ -316,7 +316,7 @@ import {
   type XpAward,
 } from "./character-5e.js";
 import { createSeededRandom, type RandomSource } from "./random.js";
-import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
+import { DEFAULT_SETTINGS, scaleXp, type GameSettings } from "./settings-5e.js";
 import type {
   AdventureRuntime,
   CharacterStatus,
@@ -6209,9 +6209,13 @@ export function createFifthRuntime(
   /** The id the sheet credits an ending's XP under. */
   const endingAwardId = (ending: FifthEnding) =>
     `${adventure.id}/ending/${ending.id}`;
+  /** XP at the adventure's XP rate (#509): scaled, rounded down. */
+  const scaled = (xp: number) => scaleXp(xp, settings.xpRate);
   /** An ending's XP, unless the sheet was credited it before. */
   const endingAward = (ending: FifthEnding) =>
-    sheet.xpAwards.includes(endingAwardId(ending)) ? undefined : ending.xp;
+    sheet.xpAwards.includes(endingAwardId(ending)) || ending.xp === undefined
+      ? undefined
+      : scaled(ending.xp);
   /**
    * What Leave tells the player before they confirm (#475): the ending
    * leaving now brings and, short of an objective not met before, what they
@@ -6246,7 +6250,7 @@ export function createFifthRuntime(
               xp === undefined
                 ? ""
                 : `earns ${xp} XP for “${ending.title}” but `
-            }gives up the ${objective.xp} XP for “${objective.title}”.`,
+            }gives up the ${scaled(objective.xp)} XP for “${objective.title}”.`,
           ];
     return {
       ending: brings,
@@ -14426,7 +14430,11 @@ export function createFifthRuntime(
         ...state.possessions,
         treasure: [...state.possessions.treasure, ...finds],
       },
-      xp: awards.filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
+      // Each award at the adventure's XP rate (#509), scaled and rounded
+      // down.
+      xp: awards
+        .map((award) => ({ ...award, xp: scaled(award.xp) }))
+        .filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
       finds: finds.filter(({ id }) => !found.has(id)),
       sold: treasureSold(state).map(treasureId),
       coin: coinFound(state).map((item) => ({

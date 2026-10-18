@@ -1,20 +1,22 @@
 /**
- * The 5e character library (format version 19: a Cleric may reach level 3, #341;
- * a sheet may owe the spells a new level adds).
+ * The 5e character library (format version 27: a pending creation records how
+ * its ability scores are made, #509).
  *
- * It holds saved 5e characters and at most one pending creation: the dice of
- * a character being created. Each character record names its adventure session
- * while one is in progress. Settling an ended session frees the character in
+ * It holds saved 5e characters and at most one pending creation: the
+ * ability-score method of a character being created, as the settings had it
+ * when the creation started, and its dice when it rolls (#509). Each
+ * character record names its adventure session while one is in progress.
+ * Settling an ended session frees the character in
  * the same write that settles it (a victory or an escape: its possessions
  * become what it held at the end, and what it earned is credited) or marks it
  * defeated (a defeat), so a session is settled exactly once; a
  * defeated character cannot start another adventure. Abandoning a session
  * frees the character with nothing credited. Sessions are saved in the
- * `<library>-adventures` directory beside the library. The dice are written
- * before anyone sees them and are
- * returned unchanged until a character is saved from them, so reloading,
- * restarting, backing out of creation or deleting a character never rolls
- * again (ADR 0005). A level-4 character's Ability Score Improvement and new
+ * `<library>-adventures` directory beside the library. The method and dice
+ * are written before anyone sees them and are returned unchanged until a
+ * character is saved from them, so reloading, restarting, backing out of
+ * creation, changing the setting or deleting a character never rolls again
+ * (ADR 0005); only the one reroll a method may offer does (#509). A level-4 character's Ability Score Improvement and new
  * weapon mastery are chosen after settling (#286); until they are, its sheet
  * owes the choice and it cannot start another adventure, so the pending
  * choice is saved with it and survives a reload. A caster's prepared spells
@@ -51,6 +53,8 @@ import {
   settleCharacter,
   validateDice,
   validateCharacter,
+  STANDARD_ARRAY,
+  type CreationBase,
   type CreationChoices,
   type CharacterSheet,
   type RolledDice,
@@ -59,7 +63,12 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { COIN_VALUES } from "./equipment-5e.js";
 import { createSeededRandom } from "./random.js";
-import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
+import {
+  ABILITY_METHODS,
+  DEFAULT_SETTINGS,
+  type AbilityMethod,
+  type GameSettings,
+} from "./settings-5e.js";
 
 export const FIFTH_LIBRARY_FORMAT = 27;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
@@ -68,8 +77,31 @@ const MAX_CHARACTERS = 1000;
 export type PendingCreation = Readonly<{
   /** Which creation this is in the library, counting from 1. */
   number: number;
-  dice: RolledDice;
+  /**
+   * How its ability scores are made (#509): the setting when it started,
+   * kept until a character is saved from it.
+   */
+  method: AbilityMethod;
+  /** Its dice, exactly for a method that rolls. */
+  dice?: RolledDice;
+  /** For "roll-reroll", exactly: whether its one reroll is used (#509). */
+  rerolled?: boolean;
 }>;
+
+/** The keys a pending creation of each method has (#509). */
+const PENDING_KEYS: Readonly<Record<AbilityMethod, string>> = {
+  roll: "dice,method,number",
+  "roll-reroll": "dice,method,number,rerolled",
+  "standard-array": "method,number",
+  "point-buy": "method,number",
+};
+
+/** What a pending creation's scores come from (#509). */
+export function pendingBase(pending: PendingCreation): CreationBase {
+  return pending.method === "standard-array" || pending.method === "point-buy"
+    ? pending.method
+    : pending.dice!;
+}
 
 export type ActiveSession = Readonly<{ id: string; adventureId: string }>;
 
@@ -108,6 +140,11 @@ function moveAside(path: string, found: string): Error {
 /** The multiset of rolls, so placement order does not matter. */
 function rollKey(dice: RolledDice): string {
   return JSON.stringify(dice.map((roll) => roll.join(",")).sort());
+}
+
+/** The multiset of scores, so placement order does not matter (#509). */
+function scoreKey(scores: readonly number[]): string {
+  return JSON.stringify([...scores].sort((a, b) => a - b));
 }
 
 export class FifthCharacterLibrary {
@@ -206,12 +243,17 @@ export class FifthCharacterLibrary {
       if (
         pending === null ||
         typeof pending !== "object" ||
-        Object.keys(pending).sort().join(",") !== "dice,number" ||
-        pending.number !== library.creationsStarted
+        !ABILITY_METHODS.includes(pending.method) ||
+        Object.keys(pending).sort().join(",") !==
+          PENDING_KEYS[pending.method] ||
+        pending.number !== library.creationsStarted ||
+        ("rerolled" in pending && typeof pending.rerolled !== "boolean")
       ) {
         throw new Error("Invalid pending character creation.");
       }
-      validateDice(pending.dice);
+      if (pending.dice !== undefined) {
+        validateDice(pending.dice);
+      }
     }
     const ids = new Set<string>();
     const sessions = new Set<string>();
@@ -298,35 +340,74 @@ export class FifthCharacterLibrary {
   }
 
   /**
-   * Returns the pending creation, rolling and saving one first if there is
-   * none. While a creation is pending, every call returns the same dice.
+   * Returns the pending creation, starting and saving one first by `method`
+   * (#509: the settings' ability-score method) if there is none, rolling its
+   * dice when the method rolls. While a creation is pending, every call
+   * returns it unchanged, its method and dice included, whatever `method`.
    */
-  async startCreation(): Promise<
-    FifthLibraryData & { pendingCreation: PendingCreation }
-  > {
+  async startCreation(
+    method: AbilityMethod = DEFAULT_SETTINGS.abilityScores,
+  ): Promise<FifthLibraryData & { pendingCreation: PendingCreation }> {
+    if (!ABILITY_METHODS.includes(method)) {
+      throw new Error("There is no such ability-score method.");
+    }
     const data = await this.update(undefined, (library) => {
       if (library.pendingCreation !== undefined) {
         return false;
       }
       const number = library.creationsStarted + 1;
-      const stream = createHash("sha256")
-        .update(`5e-ability-rolls:${this.seed}:${number}`)
-        .digest()
-        .readUInt32LE(0);
       library.creationsStarted = number;
-      library.pendingCreation = {
-        number,
-        dice: rollAbilitySet(createSeededRandom(stream)),
-      };
+      library.pendingCreation =
+        method === "standard-array" || method === "point-buy"
+          ? { number, method }
+          : {
+              number,
+              method,
+              dice: this.roll(`5e-ability-rolls:${this.seed}:${number}`),
+              ...(method === "roll-reroll" ? { rerolled: false } : {}),
+            };
       return true;
     });
     return data as FifthLibraryData & { pendingCreation: PendingCreation };
   }
 
   /**
-   * Saves a level 1 character of `classId` (#306) from the pending dice and
-   * the player's choices, with the starting coin `settings` give (#507): the
-   * settings of the moment, which change no character saved before.
+   * Rolls the pending creation's whole set again (#509), once, for the
+   * "roll-reroll" method: the new set replaces the old and must be kept. Its
+   * dice come from a stream of their own, so the reroll is the same however
+   * often the server restarts first.
+   */
+  async reroll(revision: string): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const pending = this.pending(data);
+      if (pending.method !== "roll-reroll") {
+        throw new Error("This creation's ability scores have no reroll.");
+      }
+      if (pending.rerolled === true) {
+        throw new Error("The reroll is used; keep these dice.");
+      }
+      data.pendingCreation = {
+        number: pending.number,
+        method: pending.method,
+        dice: this.roll(
+          `5e-ability-rolls:${this.seed}:${pending.number}:reroll`,
+        ),
+        rerolled: true,
+      };
+    });
+  }
+
+  /** Six rolls of 4d6 from the stream `name` names. */
+  private roll(name: string): RolledDice {
+    const stream = createHash("sha256").update(name).digest().readUInt32LE(0);
+    return rollAbilitySet(createSeededRandom(stream));
+  }
+
+  /**
+   * Saves a level 1 character of `classId` (#306) from the pending creation
+   * (its dice, the standard array or point buy, #509) and the player's
+   * choices, with the starting coin `settings` give (#507): the settings of
+   * the moment, which change no character saved before.
    */
   async create(
     name: string,
@@ -342,7 +423,7 @@ export class FifthCharacterLibrary {
         buildCharacter(
           randomBytes(16).toString("hex"),
           name,
-          pending.dice,
+          pendingBase(pending),
           choices,
           classId,
         ),
@@ -353,7 +434,7 @@ export class FifthCharacterLibrary {
 
   /**
    * Saves a complete new sheet. It must be level 1 with 0 XP at full health,
-   * made from exactly the pending creation's dice.
+   * made from exactly the pending creation's dice, or by its method (#509).
    */
   async save(sheet: unknown, revision: string): Promise<FifthLibraryData> {
     return this.update(revision, (data) => {
@@ -723,11 +804,33 @@ export class FifthCharacterLibrary {
     if (sheet.hp !== characterProfile(sheet).maxHp) {
       throw new Error("New characters start at full health.");
     }
-    const dice = ABILITIES.map((ability) => sheet.abilityRolls[ability]);
-    if (rollKey(dice) !== rollKey(this.pending(data).dice)) {
-      throw new Error(
-        "A new character must use exactly the pending creation's dice.",
-      );
+    // Its scores come from the pending creation's method (#509): exactly
+    // its dice, the standard array, or point buy (the sheet checks the cost).
+    const base = pendingBase(this.pending(data));
+    if (Array.isArray(base)) {
+      const rolls = sheet.abilityRolls;
+      if (
+        rolls === undefined ||
+        rollKey(ABILITIES.map((ability) => rolls[ability])) !== rollKey(base)
+      ) {
+        throw new Error(
+          "A new character must use exactly the pending creation's dice.",
+        );
+      }
+    } else {
+      const scores = sheet.baseScores;
+      if (
+        scores === undefined ||
+        (base === "standard-array" &&
+          scoreKey(ABILITIES.map((ability) => scores[ability])) !==
+            scoreKey(STANDARD_ARRAY))
+      ) {
+        throw new Error(
+          base === "standard-array"
+            ? "A new character must use exactly the standard array."
+            : "A new character must use point buy.",
+        );
+      }
     }
     if (data.characters.length >= MAX_CHARACTERS) {
       throw new Error("Character library is full.");

@@ -118,6 +118,11 @@
 // adventure is in progress #settings-in-progress says changes apply from
 // the next adventure.
 //
+// Creation's ability scores (#509) follow the pending creation's method:
+// #method-hint and #placing-hint say how; each #place-<ability> places a
+// roll or a standard array score, or buys a score (#points-status, and
+// #scores-error past the points); #reroll-controls offers the one reroll.
+//
 // Sound (#480): the header bar ends with #sound-controls on every screen, a
 // mute toggle (#sound-mute, aria-pressed) and a volume slider
 // (#sound-volume), kept per browser. They come first in the DOM, so the
@@ -189,14 +194,16 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
-<p class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
+<p id="method-hint" class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <fieldset id="classes" aria-describedby="class-hint"><legend>Class</legend><div id="class-fields" class="choice-row"></div><p id="class-hint" class="hint"></p></fieldset>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
-<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
+<p id="ability-hint" class="hint"><span id="placing-hint">Place one roll on each ability; choosing a roll that is already placed swaps the two.</span> Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
+<div id="reroll-controls" class="controls" hidden><button id="reroll" type="button" class="secondary">Reroll all six</button><p id="reroll-status" class="hint" role="status" tabindex="-1"></p></div>
+<p id="points-status" class="hint" role="status" hidden></p><p id="scores-error" class="error" role="alert"></p>
 <fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
-<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col" id="base-heading">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
@@ -961,7 +968,8 @@ function openSheet(id) {
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
-  const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
+  // Its dice, or its scores before the background (#509: standard array or point buy).
+  const rolls = make("p", (sheet.abilityRolls ? "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") : "Base scores: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.baseScores[ability]).join("; ")) + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
   element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...gearNodes(gear), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
@@ -3418,11 +3426,66 @@ const creating = () => classEntry(choices.class);
  */
 function defaultChoices(id = "${DEFAULT_CLASS}") {
   increaseMode = "two";
+  const pending = library.pendingCreation;
+  choicesFor = pending.number;
   return {
     class: id,
-    placement: { ...library.pendingCreation.defaultPlacements[id] },
+    // A point buy's scores, or the rolls or standard array placed (#509).
+    ...(pending.pointBuy ? { scores: { ...pending.defaultScores[id] } } : { placement: { ...pending.defaultPlacements[id] } }),
     ...structuredClone(classEntry(id).defaults),
   };
+}
+
+/** The pending creation the choices are for (#509): a new one starts afresh. */
+let choicesFor;
+
+/**
+ * What the creation screen says of its ability-score method (#509), from the
+ * numbers the server sends.
+ */
+function renderMethod() {
+  const pending = library.pendingCreation;
+  const after = " then make your other choices.";
+  const values = (pending.rolls || []).map((roll) => roll.total);
+  element("method-hint").textContent = pending.method === "point-buy"
+    ? "Point buy: spend up to " + pending.pointBuy.points + " points on scores from " + pending.pointBuy.min + " to " + pending.pointBuy.max + ". Choose a class, buy your ability scores," + after
+    : pending.method === "standard-array"
+      ? "The standard array: " + values.slice(0, -1).join(", ") + " and " + values[values.length - 1] + ". Choose a class, place the six scores on your abilities in any order," + after
+      : (pending.method === "roll-reroll" ? "Rolled once, with one reroll of the whole set. " : "Rolled once. No rerolls. ") + "Choose a class, place the six rolls on your abilities in any order," + after;
+  element("placing-hint").textContent = pending.method === "point-buy"
+    ? "Choose each ability's score; each costs the points shown."
+    : "Place one " + (pending.method === "standard-array" ? "score" : "roll") + " on each ability; choosing " + (pending.method === "standard-array" ? "a score" : "a roll") + " that is already placed swaps the two.";
+  element("base-heading").textContent = pending.method === "point-buy" ? "Bought" : pending.method === "standard-array" ? "Array" : "Roll";
+  element("points-status").hidden = pending.method !== "point-buy";
+  renderReroll();
+}
+
+/** The one reroll (#509): offered until it is used. */
+function renderReroll() {
+  const reroll = library.pendingCreation.reroll;
+  element("reroll-controls").hidden = !reroll;
+  if (!reroll) return;
+  element("reroll").hidden = reroll.used;
+  element("reroll-status").textContent = reroll.used ? "Rerolled: you keep these dice." : "You may roll the whole set again once, and must keep the new set.";
+}
+
+/** Rolls the whole set again, once (#509); the new rolls go down the class's order. */
+async function rerollDice() {
+  const button = element("reroll");
+  if (isBusy(button)) return;
+  setBusy(button, "Rerolling…");
+  try {
+    library = await request("/api/5e/creation/reroll", { revision: library.revision });
+    choices.placement = { ...library.pendingCreation.defaultPlacements[choices.class] };
+    element("creation-error").textContent = "";
+    clearBusy(button);
+    renderReroll();
+    element("reroll-status").focus();
+    changeAbilities();
+  } catch (error) {
+    clearBusy(button);
+    element("creation-error").textContent = error.message;
+  }
 }
 
 /** Choosing a class starts its creation afresh from its defaults (#306). */
@@ -3455,11 +3518,13 @@ function swap(record, ability, chosen, empty) {
 function rollSelect(ability) {
   const select = make("select");
   select.id = "place-" + ability;
-  select.setAttribute("aria-label", titleCase(ability) + " roll");
-  select.setAttribute("aria-describedby", "dice-" + ability);
+  // The standard array's scores have no dice (#509).
+  const rolled = library.pendingCreation.method !== "standard-array";
+  select.setAttribute("aria-label", titleCase(ability) + (rolled ? " roll" : " score"));
+  if (rolled) select.setAttribute("aria-describedby", "dice-" + ability);
   library.pendingCreation.rolls.forEach((roll, index) => {
     const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
-    const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
+    const option = make("option", roll.total + (rolled ? " (roll " + (index + 1) + ")" : "") + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
     option.value = String(index);
     select.append(option);
   });
@@ -3512,6 +3577,24 @@ function bonusCheck(ability) {
   return label;
 }
 
+/** A point buy's score for an ability (#509), each option with its cost. */
+function scoreSelect(ability) {
+  const select = make("select");
+  select.id = "place-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " score");
+  for (const { score, cost } of library.pendingCreation.pointBuy.costs) {
+    const option = make("option", score + " (" + cost + (cost === 1 ? " point" : " points") + ")");
+    option.value = String(score);
+    select.append(option);
+  }
+  select.value = String(choices.scores[ability]);
+  select.addEventListener("change", () => {
+    choices.scores[ability] = Number(select.value);
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
 /** The four dice of the roll placed on an ability, the dropped one marked. */
 function placedDice(ability) {
   const roll = library.pendingCreation.rolls[choices.placement[ability]];
@@ -3535,7 +3618,10 @@ function renderAbilities() {
     const name = make("th", titleCase(ability));
     name.scope = "row";
     const roll = make("td");
-    roll.append(rollSelect(ability), placedDice(ability));
+    // A point buy's score, or the roll or array score placed (#509).
+    const pending = library.pendingCreation;
+    if (pending.pointBuy) roll.append(scoreSelect(ability));
+    else roll.append(rollSelect(ability), ...(pending.method === "standard-array" ? [] : [placedDice(ability)]));
     const bonus = make("td", undefined, "bonus");
     bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
     const score = make("td", undefined, "num score");
@@ -3550,6 +3636,9 @@ function renderAbilities() {
 
 /** Each row's score, cap and modifier as the server projected them; "…" until it has. */
 function renderScores() {
+  // The points a point buy spends (#509).
+  const points = projection && projection.pointBuy;
+  element("points-status").textContent = points ? "Points spent: " + points.spent + " of " + points.points + "." : "Points spent: …";
   for (const ability of library.abilities) {
     const row = projection && projection.rows.find((candidate) => candidate.ability === ability);
     const score = element("score-" + ability);
@@ -3863,6 +3952,7 @@ async function preview() {
     renderMasteryLimit();
     renderKits();
     renderStyleUses();
+    element("scores-error").textContent = result.unfinished.scores || "";
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
     element("expertise-error").textContent = result.unfinished.expertise || "";
@@ -3985,9 +4075,11 @@ async function openCreation(ticket) {
     opener.disabled = false;
   }
   if (ticket !== routeTicket) return;
-  choices = choices || defaultChoices();
+  // Choices made for another creation start afresh (#509).
+  if (!choices || choicesFor !== library.pendingCreation.number) choices = defaultChoices();
   projection = undefined;
   element("score-cap").textContent = library.pendingCreation.rules.scoreCap;
+  renderMethod();
   renderChoices();
   show("creation", "Create a character", [{ label: "Create a character" }]);
   element("creation-title").focus();
@@ -4212,6 +4304,7 @@ element("open-creation").addEventListener("click", () => go("#create"));
 element("open-settings").addEventListener("click", () => go("#settings"));
 element("reset-settings").addEventListener("click", resetSettings);
 element("creation-form").addEventListener("submit", saveCharacter);
+element("reroll").addEventListener("click", rerollDice);
 element("close-creation").addEventListener("click", () => go(""));
 for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
 element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });

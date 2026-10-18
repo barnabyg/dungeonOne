@@ -248,7 +248,7 @@ test("a malformed stored sheet or pending creation is rejected", async () => {
       path,
       JSON.stringify({
         ...stored,
-        pendingCreation: { number: 1, dice: [[1, 2, 3, 4]] },
+        pendingCreation: { number: 1, method: "roll", dice: [[1, 2, 3, 4]] },
       }),
     );
     await assert.rejects(library.read(), /dice/);

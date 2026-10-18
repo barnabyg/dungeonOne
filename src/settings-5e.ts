@@ -176,7 +176,52 @@ export const SETTINGS = {
     ],
     default: "normal",
   },
+  // How a new character's ability scores are made (#509); a creation already
+  // started keeps the method it started with.
+  abilityScores: {
+    name: "Ability scores",
+    text: "How a new character's ability scores are made. A creation already started keeps its method and dice.",
+    choices: [
+      { value: "roll", label: "4d6 drop lowest" },
+      {
+        value: "standard-array",
+        label: "Standard array (15, 14, 13, 12, 10, 8)",
+      },
+      { value: "point-buy", label: "Point buy (27 points)" },
+      { value: "roll-reroll", label: "4d6 drop lowest, one reroll" },
+    ],
+    default: "roll",
+  },
+  // Every XP award credited when an adventure settles, scaled and rounded
+  // down (#509).
+  xpRate: {
+    name: "XP rate",
+    text: "Every XP award an adventure credits is multiplied by this and rounded down. Levels still follow the XP table.",
+    choices: [
+      { value: 0.5, label: "× 0.5" },
+      { value: 1, label: "× 1" },
+      { value: 1.5, label: "× 1.5" },
+      { value: 2, label: "× 2" },
+    ],
+    default: 1,
+  },
 } as const satisfies Record<string, SettingDefinition>;
+
+/** How a new character's ability scores are made (#509). */
+export type AbilityMethod =
+  (typeof SETTINGS)["abilityScores"]["choices"][number]["value"];
+
+/** The ability-score methods, in the Settings page's order (#509). */
+export const ABILITY_METHODS: readonly AbilityMethod[] =
+  SETTINGS.abilityScores.choices.map(({ value }) => value);
+
+/** An XP award at `rate` (#509): scaled, rounded down. */
+export function scaleXp(
+  xp: number,
+  rate: (typeof SETTINGS)["xpRate"]["choices"][number]["value"],
+): number {
+  return Math.floor(xp * rate);
+}
 
 export type SettingId = keyof typeof SETTINGS;
 

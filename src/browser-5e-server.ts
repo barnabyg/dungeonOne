@@ -32,7 +32,9 @@ import {
 } from "./adventure-5e.js";
 import {
   FifthCharacterLibrary,
+  pendingBase,
   type FifthLibraryData,
+  type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
 import {
@@ -66,6 +68,10 @@ import {
   classOf,
   DEFAULT_CLASS,
   defaultPlacement,
+  defaultArrayPlacement,
+  defaultPointBuy,
+  POINT_BUY,
+  STANDARD_ARRAY,
   isClassId,
   OFFERED_CLASS_IDS,
   droppedDie,
@@ -325,18 +331,9 @@ function libraryView(
       : {
           pendingCreation: {
             number: pending.number,
-            rolls: pending.dice.map((dice) => ({
-              dice,
-              dropped: droppedDie(dice),
-              total: keptTotal(dice),
-            })),
-            // Each class fills the abilities in its own order.
-            defaultPlacements: Object.fromEntries(
-              CLASS_IDS.map((id) => [
-                id,
-                defaultPlacement(pending.dice, CLASSES[id]),
-              ]),
-            ),
+            // How its scores are made (#509), as when it started.
+            method: pending.method,
+            ...pendingScoresView(pending),
             rules: { scoreCap: ABILITY_SCORE_CAP },
           },
         }),
@@ -493,6 +490,55 @@ const CLASS_IDS: readonly ClassId[] = [
 ];
 
 /**
+ * What a pending creation places or buys (#509). A rolling method's rolls,
+ * each with its dice, or the standard array's scores, with each class's
+ * default placement; a point buy's points, score range and costs, with each
+ * class's default scores; and whether a reroll is left.
+ */
+function pendingScoresView(pending: PendingCreation) {
+  const base = pendingBase(pending);
+  if (base === "point-buy") {
+    return {
+      pointBuy: {
+        points: POINT_BUY.points,
+        min: POINT_BUY.min,
+        max: POINT_BUY.max,
+        costs: Object.entries(POINT_BUY.costs).map(([score, cost]) => ({
+          score: Number(score),
+          cost,
+        })),
+      },
+      // Each class buys the standard array in its own order.
+      defaultScores: Object.fromEntries(
+        CLASS_IDS.map((id) => [id, defaultPointBuy(CLASSES[id])]),
+      ),
+    };
+  }
+  return {
+    rolls:
+      base === "standard-array"
+        ? STANDARD_ARRAY.map((total) => ({ total }))
+        : base.map((dice) => ({
+            dice,
+            dropped: droppedDie(dice),
+            total: keptTotal(dice),
+          })),
+    // Each class fills the abilities in its own order.
+    defaultPlacements: Object.fromEntries(
+      CLASS_IDS.map((id) => [
+        id,
+        base === "standard-array"
+          ? defaultArrayPlacement(CLASSES[id])
+          : defaultPlacement(base, CLASSES[id]),
+      ]),
+    ),
+    ...(pending.rerolled === undefined
+      ? {}
+      : { reroll: { used: pending.rerolled } }),
+  };
+}
+
+/**
  * A creation request's class (the default unless it names one, #306) and
  * its choices. The character module validates them for that class.
  */
@@ -508,7 +554,17 @@ function choicesFrom(
   return {
     classId: body.class ?? DEFAULT_CLASS,
     choices: {
-      placement: body.placement as CreationChoices["placement"],
+      // A placement, or a point buy's scores (#509).
+      ...(body.placement === undefined
+        ? {}
+        : {
+            placement: body.placement as NonNullable<
+              CreationChoices["placement"]
+            >,
+          }),
+      ...(body.scores === undefined
+        ? {}
+        : { scores: body.scores as NonNullable<CreationChoices["scores"]> }),
       increase: body.increase as CreationChoices["increase"],
       skills: body.skills as CreationChoices["skills"],
       ...(body.fightingStyle === undefined
@@ -564,9 +620,12 @@ function hasExactKeys(
   );
 }
 
-const CHOICE_KEYS = ["placement", "increase", "skills", "kit", "masteries"];
-/** The choices only some classes make, and the class itself (#306). */
-const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS];
+const CHOICE_KEYS = ["increase", "skills", "kit", "masteries"];
+/**
+ * The choices only some classes make, and the class itself (#306); and a
+ * placement or a point buy's scores, as the creation's method needs (#509).
+ */
+const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS, "placement", "scores"];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = [
   "second-wind",
@@ -1124,7 +1183,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (!hasExactKeys(body, [])) {
           throw new Error("Invalid character creation request.");
         }
-        return view(await serialized(() => library.startCreation()));
+        // A new creation takes the method the settings file has now (#509);
+        // one already pending keeps its own.
+        return view(
+          await serialized(async () =>
+            library.startCreation((await readSettings()).abilityScores),
+          ),
+        );
+      case "/api/5e/creation/reroll":
+        // The one reroll of "4d6 drop lowest, one reroll" (#509).
+        if (
+          !hasExactKeys(body, ["revision"]) ||
+          typeof body.revision !== "string"
+        ) {
+          throw new Error("Invalid reroll request.");
+        }
+        return view(
+          await serialized(() => library.reroll(body.revision as string)),
+        );
       case "/api/5e/creation/preview": {
         if (!hasExactKeys(body, CHOICE_KEYS, CLASS_KEYS)) {
           throw new Error("Invalid character creation request.");
@@ -1135,7 +1211,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         const { classId, choices } = choicesFrom(body);
         return projectCreation(
-          pending.dice,
+          pendingBase(pending),
           choices,
           classId,
           settings.carryingCapacity,
