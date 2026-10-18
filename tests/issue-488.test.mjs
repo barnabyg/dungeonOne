@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DAMAGE_TYPES } from "../dist/encounter-5e.js";
-import { resultSounds, SOUNDS } from "../dist/sounds-5e.js";
+import { HIT_FAMILIES, resultSounds, SOUNDS } from "../dist/sounds-5e.js";
 
 const ADA = "Ada";
 
@@ -66,6 +66,22 @@ test("every damage type the game uses maps to a bundled hit sound", () => {
     assert.equal(sound, EXPECTED[type], type);
     assert.ok(Object.hasOwn(SOUNDS, sound), sound);
   }
+});
+
+test("every hit family's sound is one some damage type plays", () => {
+  const played = new Set(
+    DAMAGE_TYPES.map((type) => sounds(hit(ADA, "Goblin", "hit", type))[0]),
+  );
+  assert.deepEqual(
+    [...played].sort(),
+    HIT_FAMILIES.map((family) => `hit-${family}`).sort(),
+  );
+  assert.deepEqual(
+    Object.keys(SOUNDS)
+      .filter((id) => id.startsWith("hit-"))
+      .sort(),
+    [...played].sort(),
+  );
 });
 
 test("slashing, piercing and bludgeoning each sound different", () => {
