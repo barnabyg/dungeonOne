@@ -203,7 +203,7 @@ test(
       );
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /Prepare 1 more spell above before starting another adventure\./u,
+        /Prepare 1 more spell below before starting another adventure\./u,
       );
       await page.locator("#prepared-shield-of-faith").check();
       await page.locator("#save-prepared").click();

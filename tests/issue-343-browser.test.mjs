@@ -195,7 +195,7 @@ test(
       assert.equal(await page.locator(".start-adventure").count(), 0);
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /Choose Scholar's Expertise, write 2 more spells into the spellbook and prepare 1 more spell above before starting another adventure\./u,
+        /Choose Scholar's Expertise, write 2 more spells into the spellbook and prepare 1 more spell below before starting another adventure\./u,
       );
       const { revision } = JSON.parse(await readFile(libraryPath, "utf8"));
       const refused = await post(page, "/api/5e/adventures/start", {
