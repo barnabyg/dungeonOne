@@ -13,3 +13,4 @@ This work includes material from the System Reference Document 5.2 ("SRD 5.2") b
 - [Adventure modules](modules.md): the module format, the validator's design constraints and the bestiary.
 - [Balance tools](balance.md): the harness, the gate and how to read its output, career simulation, encounter estimate.
 - [House rules and positions](house-rules.md): departures from SRD 5.2, and the rules that need positions.
+- [Settings](settings.md): the Settings page, each adventure's frozen copy, and each setting's choices and default.

@@ -315,6 +315,7 @@ import {
   type XpAward,
 } from "./character-5e.js";
 import type { RandomSource } from "./random.js";
+import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 import type {
   AdventureRuntime,
   CharacterStatus,
@@ -5410,6 +5411,8 @@ export type FifthRuntime = Omit<
     sheet: CharacterSheet;
     /** How its checks are graded (#285): `seeded` but in the harness. */
     checks: CheckPolicy;
+    /** The settings it plays by (#506): the adventure's own copy. */
+    settings: GameSettings;
     createSession(): FifthState;
     handleAction(
       state: FifthState,
@@ -5819,10 +5822,16 @@ export type FifthRuntimeProbe = Readonly<{
   checks?: CheckPolicy;
 }>;
 
+/**
+ * The runtime for `sheet` in `adventure`, playing by `settings` (#506): an
+ * adventure's own copy, frozen when it started. Every tool plays at the
+ * defaults.
+ */
 export function createFifthRuntime(
   adventure: FifthAdventure,
   sheet: CharacterSheet,
   probe: FifthRuntimeProbe = {},
+  settings: GameSettings = DEFAULT_SETTINGS,
 ): FifthRuntime {
   const checkPolicy = probe.checks ?? "seeded";
   const baseMaxHp = characterProfile(sheet).maxHp;
@@ -6635,7 +6644,11 @@ export function createFifthRuntime(
   const potions = (state: FifthState): readonly FifthItem[] =>
     carried(state).filter((item) => potionOf(item) !== undefined);
 
-  const capacity = carryingCapacity(sheet.abilities.strength);
+  /** Infinity when the carrying capacity setting is unlimited (#506). */
+  const capacity = carryingCapacity(
+    sheet.abilities.strength,
+    settings.carryingCapacity,
+  );
   /** What the character carries besides its gear and purse, in pounds. */
   const otherWeight = (state: FifthState): number =>
     carried(state).reduce(
@@ -12541,7 +12554,9 @@ export function createFifthRuntime(
           ? []
           : [`${shownAttackText(shown(profile.lightAttack))} (extra attack)`]),
       ],
-      carrying: `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`,
+      carrying: Number.isFinite(capacity)
+        ? `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`
+        : formatWeight(weightOf(state)),
       outcome: state.status,
       resources: [
         ...featureUses(self(state)),
@@ -13047,7 +13062,10 @@ export function createFifthRuntime(
         maxHp: maxHpOf(state),
         health: healthOf(state.character.hp, maxHpOf(state)),
       },
-      carrying: { weight: weightOf(state), capacity },
+      carrying: {
+        weight: weightOf(state),
+        ...(Number.isFinite(capacity) ? { capacity } : {}),
+      },
       options: {
         move: ids(accepted(state, "move")),
         examine: ids(accepted(state, "examine")),
@@ -14211,6 +14229,7 @@ export function createFifthRuntime(
     adventure,
     sheet,
     checks: checkPolicy,
+    settings,
     createSession: () => ({
       status: "playing",
       adventureId: adventure.id,

@@ -117,9 +117,9 @@ test("the weight carried is the gear, the coin and everything else, exactly", ()
 });
 
 test("a Medium character carries its Strength score × 15 lb", () => {
-  assert.equal(carryingCapacity(3), 45);
-  assert.equal(carryingCapacity(9), 135);
-  assert.equal(carryingCapacity(20), 300);
+  assert.equal(carryingCapacity(3, 15), 45);
+  assert.equal(carryingCapacity(9, 15), 135);
+  assert.equal(carryingCapacity(20, 15), 300);
 });
 
 test("every starting kit fits the weakest character's capacity", () => {
@@ -128,7 +128,7 @@ test("every starting kit fits the weakest character's capacity", () => {
       ...holding(STARTING_KITS[kit].equipment),
       other: 0,
     });
-    assert.ok(weight <= carryingCapacity(3), `${kit}: ${weight} lb`);
+    assert.ok(weight <= carryingCapacity(3, 15), `${kit}: ${weight} lb`);
   }
 });
 

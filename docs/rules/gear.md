@@ -17,7 +17,7 @@
 
 ## Carrying capacity
 
-SRD 5.2's capacity is Strength × 15 lb, and its only consequence, slower speed, does nothing without positions. So (a house rule) the engine **refuses** whatever would take a character over capacity.
+SRD 5.2's capacity is Strength × 15 lb, and its only consequence, slower speed, does nothing without positions. So (a house rule) the engine **refuses** whatever would take a character over capacity. The carrying capacity [setting](settings.md) makes it Strength × 10, × 15 (the default), × 20 or × 30 lb, or unlimited: then nothing is refused for weight, and the sheet and the adventure show the weight carried with no capacity.
 
 - **Weights.** Catalogue items weigh their SRD 5.2 weight, equipped or stowed. Arrows and bolts count one by one (7 arrows weigh 0.35 lb). Coin weighs 50 to the pound, carried as the fewest coins worth the purse. Modules author no weights: a Potion of Healing weighs ½ lb, a key nothing, and treasure 1 lb each.
 - **Refused:** taking anything (dropped gear and ammunition included) and buying, when the weight afterwards would exceed capacity; the reply names the weight, the load and the capacity. Dropping, equipping and selling are never refused for weight.

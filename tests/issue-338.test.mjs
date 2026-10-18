@@ -66,7 +66,7 @@ const scriptedDm = (name, args, text = "Done.") => ({
 const attempt = (turn) => turn.toolAttempts[0];
 
 test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 65);
+  assert.equal(FIFTH_SESSION_FORMAT, 66);
   assert.equal(FIFTH_TRACE_FORMAT, 59);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
 });

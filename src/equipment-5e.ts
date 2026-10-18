@@ -1285,9 +1285,6 @@ export type Holding = Gear &
 /** SRD 5.2: fifty coins weigh a pound. */
 export const COINS_PER_POUND = 50;
 
-/** SRD 5.2: a Small or Medium creature carries its Strength score × 15 lb. */
-export const POUNDS_PER_STRENGTH = 15;
-
 /**
  * SRD 5.2 weighs no treasure, so each carried treasure weighs a pound. A
  * module item's weight comes from its kind (#224); a key weighs nothing, as
@@ -1342,9 +1339,17 @@ export function loadWeight(load: Load): number {
   return units / UNITS_PER_POUND;
 }
 
-/** The most a character with this Strength score carries, in pounds. */
-export function carryingCapacity(strength: number): number {
-  return strength * POUNDS_PER_STRENGTH;
+/**
+ * The most a character with this Strength score carries, in pounds, under
+ * the carrying capacity setting (#506): Strength × `perStrength` lb, by
+ * default × 15 as SRD 5.2 has a Small or Medium creature carry, or
+ * Infinity when it is unlimited.
+ */
+export function carryingCapacity(
+  strength: number,
+  perStrength: number | "unlimited",
+): number {
+  return perStrength === "unlimited" ? Infinity : strength * perStrength;
 }
 
 /** A weight in pounds as players read it: "17.5 lb". */

@@ -14,6 +14,7 @@
  * possessions with what the character holds at the end and adds to the
  * ledger, so a find stays earned after the item is gone.
  */
+import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 import {
   ABILITIES,
   ABILITY_SCORE_CAP,
@@ -1732,6 +1733,7 @@ export function projectCreation(
   dice: RolledDice,
   choices: CreationChoices,
   classId: ClassId = DEFAULT_CLASS,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): CreationProjection {
   const definition = CLASSES[classId];
   const skillCount = definition.skillChoices.count;
@@ -1915,7 +1917,7 @@ export function projectCreation(
     sheet: {
       abilities: sheet.abilities,
       profile: characterProfile(sheet),
-      carrying: characterCarrying(sheet),
+      carrying: characterCarrying(sheet, perStrength),
     },
   };
 }
@@ -2549,19 +2551,28 @@ export function possessionsOf(sheet: CharacterSheet): Possessions {
   };
 }
 
-/** The weight a character carries and the most it can, in pounds. */
-export type Carrying = Readonly<{ weight: number; capacity: number }>;
+/** The carrying capacity setting (#506): pounds per point of Strength. */
+export type CarryingSetting = GameSettings["carryingCapacity"];
+
+/**
+ * The weight a character carries and the most it can, in pounds; no
+ * capacity when the setting is unlimited (#506).
+ */
+export type Carrying = Readonly<{ weight: number; capacity?: number }>;
 
 /**
  * What a sheet carries between adventures: its gear, its ammunition, its
- * treasure and its purse, against its Strength score × 15 lb (#224).
+ * treasure and its purse, against its Strength score × the carrying
+ * capacity setting (#224, #506).
  */
 export function characterCarrying(
   sheet: Pick<
     CharacterSheet,
     "abilities" | "equipment" | "stowed" | "ammunition" | "treasure" | "purse"
   >,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): Carrying {
+  const capacity = carryingCapacity(sheet.abilities.strength, perStrength);
   return {
     weight: loadWeight({
       equipment: sheet.equipment,
@@ -2570,7 +2581,7 @@ export function characterCarrying(
       purse: sheet.purse,
       other: sheet.treasure.length * TREASURE_WEIGHT,
     }),
-    capacity: carryingCapacity(sheet.abilities.strength),
+    ...(Number.isFinite(capacity) ? { capacity } : {}),
   };
 }
 
@@ -3348,6 +3359,7 @@ export type LevelChoiceProjection = Readonly<{
 export function projectLevelChoice(
   sheet: CharacterSheet,
   choice: Readonly<{ increase: unknown; mastery: unknown }>,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): LevelChoiceProjection {
   const level = pendingLevelChoice(sheet);
   if (level === undefined) {
@@ -3405,6 +3417,7 @@ export function projectLevelChoice(
         increase,
         ...(mastering ? { mastery: choice.mastery } : {}),
       }),
+      perStrength,
     ),
   };
 }
@@ -3449,6 +3462,7 @@ function attackChange(
 export function levelChoiceChanges(
   before: CharacterSheet,
   after: CharacterSheet,
+  perStrength: CarryingSetting = DEFAULT_SETTINGS.carryingCapacity,
 ): readonly string[] {
   const was = characterProfile(before);
   const now = characterProfile(after);
@@ -3496,8 +3510,8 @@ export function levelChoiceChanges(
       lines.push(`${skill.name} ${signed(from)} → ${signed(skill.bonus)}.`);
     }
   }
-  const carried = characterCarrying(before).capacity;
-  const carries = characterCarrying(after).capacity;
+  const carried = characterCarrying(before, perStrength).capacity;
+  const carries = characterCarrying(after, perStrength).capacity;
   if (carried !== carries) {
     lines.push(`Carrying capacity ${carried} → ${carries} lb.`);
   }

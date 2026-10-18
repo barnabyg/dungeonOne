@@ -32,7 +32,7 @@
 - A character holds a second weapon only for the light-weapon extra attack, so both weapons must be light. Two weapons and a shield, or a two-handed weapon with a shield or a second weapon, are refused.
 - A character always holds a weapon: its last one can be swapped but not unequipped, as unarmed strikes are not modelled.
 - In a fight, one weapon change per turn, with the object interaction; armour and shields change only outside a fight.
-- A character carries up to its Strength × 15 lb; taking or buying more is refused rather than slowing it, as there are no positions.
+- A character carries up to its Strength × 15 lb (the default [setting](settings.md)); taking or buying more is refused rather than slowing it, as there are no positions.
 - Armour's stealth disadvantage gives disadvantage on the Stealth check to sneak in.
 - Lurking opponents make one Stealth roll for the group, by the least stealthy of them; SRD 5.2 leaves a group's hiding to the DM.
 - Morale, surrender, reaction rolls, parley, tolls and trade are house rules on top of 5e (see [combat.md](combat.md)).

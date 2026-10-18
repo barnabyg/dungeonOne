@@ -67,6 +67,8 @@ A sheet offers only the modules that pass the balance gate.
 - The character library is `characters.json` by default.
 - Each adventure is saved after every action in the `characters-adventures`
   directory beside the library.
+- The Settings page's choices are saved in `settings.json` beside the
+  library ([settings](docs/rules/settings.md)).
 
 Formats are throwaway until a stable release: a loader refuses a file in an
 older format with a message naming it and asking you to move it aside.

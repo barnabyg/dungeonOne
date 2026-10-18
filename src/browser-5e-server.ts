@@ -115,6 +115,12 @@ import {
   fifthBrowserHtml,
 } from "./browser-5e-page.js";
 import { readSound, soundAt, soundType } from "./sounds-5e.js";
+import {
+  FifthSettingsStore,
+  settingsPathFor,
+  settingsView,
+  type GameSettings,
+} from "./settings-5e.js";
 
 export type FifthBrowserOptions = Readonly<{
   libraryPath: string;
@@ -246,6 +252,7 @@ function sessionView(session: FifthSession) {
 function libraryView(
   data: FifthLibraryData,
   adventures: readonly FifthAdventure[],
+  settings: GameSettings,
 ) {
   const pending = data.pendingCreation;
   return {
@@ -342,7 +349,7 @@ function libraryView(
         className: classOf(sheet).name,
         profile: characterProfile(sheet),
         purse: formatCoins(sheet.purse),
-        carrying: characterCarrying(sheet),
+        carrying: characterCarrying(sheet, settings.carryingCapacity),
         stowed: sheet.stowed.map(itemName),
         // Each kind of gear, equipped then carried, with its stats (#504).
         gear: [
@@ -648,6 +655,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const library = new FifthCharacterLibrary(options.libraryPath, options.seed);
   // Refuse an old or invalid library, or a broken module, before listening.
   await library.read();
+  // The settings file beside the library (#506), refused before listening
+  // when it is invalid. Between adventures the sheet shows them; each
+  // adventure keeps the copy it started with.
+  const settingsStore = new FifthSettingsStore(
+    settingsPathFor(options.libraryPath),
+  );
+  let settings = await settingsStore.read();
+  const readSettings = async () => (settings = await settingsStore.read());
   const adventures = options.adventures ?? (await loadBuiltInFifthAdventures());
   const apiKey = options.apiKey?.trim() ?? "";
   const model: DmModel | undefined =
@@ -662,7 +677,21 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     adventures,
     options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
   );
-  const view = (data: FifthLibraryData) => libraryView(data, offered);
+  const view = (data: FifthLibraryData) => libraryView(data, offered, settings);
+  /**
+   * The Settings page: every setting, whether an adventure is under way, and
+   * the library, whose sheets show the settings of the moment.
+   */
+  const settingsResponse = async (current: GameSettings) => {
+    const data = await library.read();
+    return {
+      settings: settingsView(current),
+      adventureInProgress: data.characters.some(
+        ({ session }) => session !== undefined,
+      ),
+      library: view(data),
+    };
+  };
   const sound = options.sound ?? true;
   const html = fifthBrowserHtml(sound);
   // The file lock fails rather than waits, so this server's own changes queue.
@@ -805,6 +834,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             body.characterId as string,
             adventure,
             body.revision as string,
+            // The settings as the file has them now, never as the page says.
+            await readSettings(),
           );
           if (session.state.status === "playing") {
             sessions.set(session.id, session);
@@ -1103,7 +1134,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("There is no pending creation to preview.");
         }
         const { classId, choices } = choicesFrom(body);
-        return projectCreation(pending.dice, choices, classId);
+        return projectCreation(
+          pending.dice,
+          choices,
+          classId,
+          settings.carryingCapacity,
+        );
       }
       case "/api/5e/characters":
         if (
@@ -1141,10 +1177,11 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (record === undefined) {
           throw new Error("There is no such character in the library.");
         }
-        return projectLevelChoice(record.sheet, {
-          increase: body.increase,
-          mastery: body.mastery,
-        });
+        return projectLevelChoice(
+          record.sheet,
+          { increase: body.increase, mastery: body.mastery },
+          settings.carryingCapacity,
+        );
       }
       case "/api/5e/characters/level-choice":
         if (
@@ -1283,6 +1320,22 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             ),
           ),
         );
+      case "/api/5e/settings":
+        if (!hasExactKeys(body, ["id", "value"])) {
+          throw new Error("Invalid settings request.");
+        }
+        return serialized(async () =>
+          settingsResponse(
+            (settings = await settingsStore.change(body.id, body.value)),
+          ),
+        );
+      case "/api/5e/settings/reset":
+        if (!hasExactKeys(body, [])) {
+          throw new Error("Invalid settings request.");
+        }
+        return serialized(async () =>
+          settingsResponse((settings = await settingsStore.reset())),
+        );
       default:
         return undefined;
     }
@@ -1345,6 +1398,15 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             "text/javascript; charset=utf-8",
             FIFTH_BROWSER_SCRIPT,
           );
+          break;
+        case "/api/5e/settings":
+          try {
+            json(response, 200, await settingsResponse(await readSettings()));
+          } catch (error) {
+            json(response, 409, {
+              error: playerMessage(error, "Unable to read the settings."),
+            });
+          }
           break;
         case "/api/5e/library":
           try {

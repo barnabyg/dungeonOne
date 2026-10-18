@@ -110,6 +110,14 @@
 // In an adventure the header bar's #open-map (or M) opens the map pop-up,
 // #map-dialog (#457), described at renderMap.
 //
+// Settings (#506): the header bar's #open-settings opens the #settings view
+// (hash #settings): a fieldset per setting (#setting-<id>), each choice a
+// radio (#setting-<id>-<value>) with the default tagged, and
+// #reset-settings. The server sends every setting, its choices and its
+// value, and validates each change; the page computes nothing. While an
+// adventure is in progress #settings-in-progress says changes apply from
+// the next adventure.
+//
 // Sound (#480): the header bar ends with #sound-controls on every screen, a
 // mute toggle (#sound-mute, aria-pressed) and a volume slider
 // (#sound-volume), kept per browser. They come first in the DOM, so the
@@ -160,7 +168,7 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
 <body>${iconSprite()}<a class="skip" href="#content">Skip to content</a>
-<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>${sound ? SOUND_CONTROLS : ""}
+<header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true">◇</span><h1>Dungeon One</h1></div>${sound ? SOUND_CONTROLS : ""}<button id="open-settings" type="button" class="secondary">Settings</button>
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <p id="adventure-meta" hidden></p><button id="open-map" type="button" class="secondary" aria-haspopup="dialog" aria-keyshortcuts="M" title="Map (M)" hidden>Map</button></header>
 <main id="content" tabindex="-1">
@@ -170,6 +178,14 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
 <button id="open-creation" type="button" class="primary">Create a character</button>
+</section>
+<section id="settings" class="panel" aria-labelledby="settings-title" hidden>
+<h2 id="settings-title" tabindex="-1">Settings</h2>
+<p class="hint">The defaults are the game as it is balanced. Each adventure keeps the settings it started with.</p>
+<p id="settings-in-progress" class="notice" hidden>An adventure is in progress: changes apply from the next adventure.</p>
+<div id="settings-list"></div>
+<p id="settings-error" class="error" role="alert"></p>
+<div class="controls"><button id="reset-settings" type="button" class="secondary">Reset to defaults</button></div>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
@@ -294,6 +310,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
+.masthead #open-settings{order:2;padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
 #sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
@@ -496,7 +513,7 @@ let routeTicket = 0;
 
 /** Shows one view, titles the page and draws its breadcrumb under Characters. */
 function show(id, title, trail) {
-  for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
+  for (const panel of ["library", "settings", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
   // The adventure's levels, difficulty and room share the header bar (#430).
   element("adventure-meta").hidden = id !== "adventure";
   element("open-map").hidden = id !== "adventure";
@@ -546,6 +563,7 @@ function route(focus) {
   const character = /^#character-([a-f0-9]{32})$/.exec(hash);
   const adventure = /^#adventure-([a-f0-9]{32})$/.exec(hash);
   if (hash === "#create") openCreation(ticket);
+  else if (hash === "#settings") openSettings(ticket);
   else if (character) {
     if (findEntry(character[1])) openSheet(character[1]); else lost("That character no longer exists.");
   } else if (adventure) openAdventure(adventure[1], ticket);
@@ -647,7 +665,8 @@ function profileNodes(abilities, profile, hp, carrying) {
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
     ["AC", profile.armorClass + untrainedText(profile)],
     // The engine weighs what is carried against Strength × 15 lb (#224).
-    ["Carrying", carrying.weight + " of " + carrying.capacity + " lb"],
+    // No capacity when the setting is unlimited (#506).
+    ["Carrying", carrying.capacity === undefined ? carrying.weight + " lb" : carrying.weight + " of " + carrying.capacity + " lb"],
     ["Initiative", signed(profile.initiative)],
     ["Proficiency bonus", signed(profile.proficiencyBonus)],
     [profile.attack.weapon, attackText(profile.attack)],
@@ -2183,7 +2202,9 @@ function renderInventory(room) {
   // The purse shows with what the character carries, once it holds coin.
   element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
-  element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
+  element("carrying").textContent = room.carrying.capacity === undefined
+    ? "Carrying " + room.carrying.weight + " lb."
+    : "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("inventory-group").hidden = entries.length === 0 && !room.purse;
   element("inventory").replaceChildren(...CARRIED_GROUPS.flatMap(([group, title]) => {
     const members = entries.filter((entry) => entry.group === group);
@@ -3867,6 +3888,89 @@ function changeIncreaseMode(event) {
   changeAbilities();
 }
 
+// The Settings page (#506): what the server sends, drawn as it says.
+async function openSettings(ticket) {
+  let value;
+  try {
+    value = await request("/api/5e/settings");
+  } catch (error) {
+    if (ticket === routeTicket) lost(error.message);
+    return;
+  }
+  if (ticket !== routeTicket) return;
+  renderSettings(value);
+  show("settings", "Settings", [{ label: "Settings" }]);
+  element("settings-title").focus();
+}
+
+function renderSettings(value) {
+  // The sheets show the settings of the moment.
+  library = value.library;
+  element("settings-error").textContent = "";
+  element("settings-in-progress").hidden = !value.adventureInProgress;
+  element("settings-list").replaceChildren(...value.settings.map((setting) => {
+    const fieldset = make("fieldset", undefined, "setting");
+    fieldset.id = "setting-" + setting.id;
+    const help = make("p", setting.text, "hint");
+    help.id = "setting-" + setting.id + "-text";
+    fieldset.setAttribute("aria-describedby", help.id);
+    const choices = make("div", undefined, "setting-choices");
+    for (const choice of setting.choices) {
+      const label = make("label");
+      const input = make("input");
+      input.type = "radio";
+      input.name = "setting-" + setting.id;
+      input.id = "setting-" + setting.id + "-" + choice.value;
+      input.value = String(choice.value);
+      input.checked = choice.value === setting.value;
+      input.addEventListener("change", () => changeSetting(setting, choice));
+      label.append(input, " " + choice.label);
+      if (choice.default) label.append(" ", make("span", "Default", "tag"));
+      choices.append(label);
+    }
+    fieldset.append(make("legend", setting.name), help, choices);
+    return fieldset;
+  }));
+}
+
+async function changeSetting(setting, choice) {
+  const list = element("settings-list");
+  if (list.getAttribute("aria-busy") === "true") return;
+  list.setAttribute("aria-busy", "true");
+  try {
+    const value = await request("/api/5e/settings", { id: setting.id, value: choice.value });
+    renderSettings(value);
+    feedback(setting.name + ": " + choice.label + ". Saved.");
+  } catch (error) {
+    // Show what the file holds now, with the refusal.
+    element("settings-error").textContent = error.message;
+    try {
+      renderSettings(await request("/api/5e/settings"));
+      element("settings-error").textContent = error.message;
+    } catch {
+      // The refusal already says what is wrong.
+    }
+  } finally {
+    list.removeAttribute("aria-busy");
+  }
+  element("setting-" + setting.id + "-" + choice.value)?.focus();
+}
+
+async function resetSettings() {
+  const reset = element("reset-settings");
+  if (isBusy(reset)) return;
+  setBusy(reset, "Resetting…");
+  try {
+    renderSettings(await request("/api/5e/settings/reset", {}));
+    feedback("Every setting is back to its default.");
+  } catch (error) {
+    element("settings-error").textContent = error.message;
+  } finally {
+    clearBusy(reset);
+    reset.disabled = false;
+  }
+}
+
 async function openCreation(ticket) {
   const opener = element("open-creation");
   setBusy(opener, "Opening…");
@@ -4104,6 +4208,8 @@ async function deleteCharacter(event) {
 }
 
 element("open-creation").addEventListener("click", () => go("#create"));
+element("open-settings").addEventListener("click", () => go("#settings"));
+element("reset-settings").addEventListener("click", resetSettings);
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", () => go(""));
 for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
