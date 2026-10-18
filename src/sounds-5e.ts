@@ -206,13 +206,20 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // Coin found or taken, or paid or received at a merchant (#484).
+  // Coin or a magic item found (#484): a harp's rising notes, apart from
+  // the sound of taking it.
+  find: {
+    file: "find.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // Coin taken, or paid or received at a merchant (#484).
   coins: {
     file: "coins.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
-  // A magic item found or taken.
+  // A magic item taken.
   "magic-item": {
     file: "magic-item.wav",
     source: MADE,

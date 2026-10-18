@@ -722,3 +722,50 @@ write(
   "hit-arcane",
   wav(0.35, 0.5, [blow(105), louder(0.4, horn(700, 1200, 0.12, 0))]),
 );
+
+/** A voice that plays `samples` from `at` seconds. */
+const fromArray = (at, samples) => (time) => {
+  const index = Math.round((time - at) * RATE);
+  return index >= 0 && index < samples.length ? samples[index] : 0;
+};
+
+/**
+ * A plucked string (Karplus-Strong) at `frequency` from `at`, ringing for
+ * `seconds`; `bright` runs from 0, a dull gut string, to 1, a bright one.
+ */
+const pluck = (frequency, at, seconds, seed, bright) => {
+  const random = noise(seed);
+  const period = Math.max(2, Math.round(RATE / frequency));
+  const line = Array.from({ length: period }, () => random());
+  // A duller string starts from a smoother burst.
+  for (let pass = 0; pass < 2 - Math.round(bright * 2); pass++) {
+    for (let i = 1; i < period; i++) {
+      line[i] = 0.5 * (line[i] + line[i - 1]);
+    }
+  }
+  const count = Math.round(seconds * RATE);
+  const samples = new Array(count);
+  const damping = 0.994 + 0.005 * bright;
+  for (let i = 0; i < count; i++) {
+    const j = i % period;
+    samples[i] = line[j];
+    line[j] = damping * 0.5 * (line[j] + line[(j + 1) % period]);
+  }
+  // The last 400 samples fade, so the string never stops on a click.
+  for (let i = 0; i < Math.min(400, count); i++) {
+    samples[count - 1 - i] *= i / 400;
+  }
+  return fromArray(at, samples);
+};
+
+// Finds (#484), apart from taking: three rising harp notes, G5 B5 D6.
+write(
+  "find",
+  wav(
+    0.9,
+    0.45,
+    [783.99, 987.77, 1174.66].map((frequency, index) =>
+      pluck(frequency, index * 0.08, 0.9 - index * 0.08, 205 + index, 0.7),
+    ),
+  ),
+);

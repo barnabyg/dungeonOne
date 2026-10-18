@@ -3908,7 +3908,7 @@ function lineIcons(
     .filter((one, index, sorted) => sorted[index - 1]?.at !== one.at);
 }
 
-/** The sound each sort of item makes when found or taken (#484). */
+/** The sound each sort of item makes when taken (#484). */
 const ITEM_SOUNDS = {
   coin: "coins",
   magic: "magic-item",
@@ -3916,13 +3916,13 @@ const ITEM_SOUNDS = {
 } as const satisfies Readonly<Record<ItemSort, SoundId>>;
 
 /**
- * The named sound a line asks for (#484): coin clinks when it is found or
- * taken, when the character buys or sells, and when it pays a toll; a
- * magic item chimes when it
- * is found or taken; an ordinary item taken is picked up. A line finding
- * several plays the most notable, a magic item before coin; finding an
- * ordinary item is silent until it is taken. A spell cast, by anyone and
- * from a slot, scroll or wand, plays its family's sound (#485).
+ * The named sound a line asks for (#484): coin clinks when it is taken,
+ * when the character buys or sells, and when it pays a toll; a magic item
+ * chimes when it is taken; an ordinary item taken is picked up. Finding
+ * coin or a magic item, by examining, by a check or as a creature's gift,
+ * plays the find's harp, apart from taking it; finding only ordinary items
+ * is silent until one is taken. A spell cast, by anyone and from a slot,
+ * scroll or wand, plays its family's sound (#485).
  *
  * World actions (#486): a lock picked or unlocked clicks, and a door forced
  * or broken bursts open; a trap sprung and a trap disarmed each sound, and so
@@ -3939,13 +3939,9 @@ function lineSound(
   event: FifthEvent | undefined,
   lookup: LineLookup,
 ): SoundId | undefined {
-  /** The most notable sound of the items found. */
+  /** The find's sound, when any item found is coin or magic. */
   const found = (sorts: readonly (ItemSort | undefined)[]) =>
-    sorts.includes("magic")
-      ? ITEM_SOUNDS.magic
-      : sorts.includes("coin")
-        ? ITEM_SOUNDS.coin
-        : undefined;
+    sorts.includes("magic") || sorts.includes("coin") ? "find" : undefined;
   switch (event?.type) {
     case "examined":
       return found(event.found.map((name) => lookup.itemSortNamed(name)));

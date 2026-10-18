@@ -43,9 +43,9 @@ test(
 
       const act = (action, target) =>
         answerSounds(page, () => clickAction(page, action, target));
-      assert.deepEqual(await act("examine", "water-butt"), ["coins"]);
+      assert.deepEqual(await act("examine", "water-butt"), ["find"]);
       assert.deepEqual(await act("take", "lost-purse"), ["coins"]);
-      assert.deepEqual(await act("examine", "woodpile"), ["magic-item"]);
+      assert.deepEqual(await act("examine", "woodpile"), ["find"]);
       assert.deepEqual(await act("take", "yard-dagger"), ["pickup"]);
       assert.deepEqual(await act("take", "yard-potion"), ["magic-item"]);
       assert.deepEqual(await act("examine", "handcart"), []);

@@ -1,8 +1,9 @@
 // #484: the engine tags a result line with a named sound where its rolls
-// cannot show what happened, and items are the first: coin clinks when it is
-// found or taken and when the character buys or sells, a magic item chimes
-// when it is found or taken, and an ordinary item taken is picked up. The
-// tag is saved with its line; older saves and traces are refused.
+// cannot show what happened, and items are the first: finding coin or a
+// magic item plays the find's harp; taking coin clinks, and so does buying
+// or selling; taking a magic item chimes, and an ordinary item taken is
+// picked up. The tag is saved with its line; older saves and traces are
+// refused.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -42,12 +43,12 @@ const sounded = (card) =>
   );
 
 test("each item sound is a named, bundled sound", () => {
-  for (const id of ["coins", "magic-item", "pickup"]) {
+  for (const id of ["find", "coins", "magic-item", "pickup"]) {
     assert.ok(Object.hasOwn(SOUNDS, id), id);
   }
 });
 
-test("finding coin or a magic item sounds; an ordinary find is silent until taken", () => {
+test("finding coin or a magic item plays the find's sound; an ordinary find is silent until taken", () => {
   const session = FifthSession.begin(7, findsYard, BEA);
   const [woodpile, butt, cart] = play(
     session,
@@ -55,14 +56,14 @@ test("finding coin or a magic item sounds; an ordinary find is silent until take
     examine("water-butt"),
     examine("handcart"),
   );
-  // The dagger and the scroll: the scroll's chime, the more notable.
+  // The dagger and the scroll: the scroll makes it a find worth sounding.
   assert.match(
     woodpile.lines.at(-1).text,
     /You find the Dagger and Sealed Parchment\.$/u,
   );
-  assert.equal(woodpile.lines.at(-1).sound, "magic-item");
+  assert.equal(woodpile.lines.at(-1).sound, "find");
   assert.match(butt.lines.at(-1).text, /You find the Lost Purse\.$/u);
-  assert.equal(butt.lines.at(-1).sound, "coins");
+  assert.equal(butt.lines.at(-1).sound, "find");
   assert.match(
     cart.lines.at(-1).text,
     /You find the Azurite and Silver Ring\.$/u,
@@ -158,7 +159,7 @@ test("items a creature gives or a check reveals sound as found ones do", () => {
   );
   assert.deepEqual(
     lines.map(({ sound }) => sound),
-    ["magic-item", "coins", undefined, "magic-item", "coins", undefined],
+    ["find", "find", undefined, "find", "find", undefined],
   );
 });
 

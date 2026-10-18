@@ -56,7 +56,7 @@ test(
       await clickAction(page, "examine", "scratched-lintel");
       await clickAction(page, "take", "dropped-purse");
       await page.waitForFunction(() => window.requestedSounds.length > 1);
-      assert.deepEqual(await requested(page), ["coins", "coins"]);
+      assert.deepEqual(await requested(page), ["find", "coins"]);
 
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
@@ -66,7 +66,7 @@ test(
         "escape-with-loot",
       );
       await page.waitForFunction(() => window.requestedSounds.length > 2);
-      assert.deepEqual(await requested(page), ["coins", "coins", "objective"]);
+      assert.deepEqual(await requested(page), ["find", "coins", "objective"]);
 
       await page.reload();
       await page.locator("#ending").waitFor({ state: "visible" });
