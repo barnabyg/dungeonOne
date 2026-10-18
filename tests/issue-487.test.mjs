@@ -1,5 +1,5 @@
 // #487: warning and outcome sounds. The engine tags the line that raises
-// the alarm, the one that brings a wandering monster (but not a roll that
+// the alarm, the one that brings a wandering encounter (but not a roll that
 // brings nothing or only an omen), and a foe fleeing or surrendering; the
 // adventure's ending sounds the objective's fanfare when it meets the
 // objective.
@@ -81,7 +81,7 @@ test("the alarm raised sounds its warning", () => {
   );
 });
 
-test("a wandering monster that comes sounds its warning; a roll that brings nothing or an omen does not", () => {
+test("a wandering encounter that comes sounds its warning; a roll that brings nothing or an omen does not", () => {
   assert.deepEqual(
     tags(
       wandering({ roll: 7, interrupted: true, opponents: ["Prowling Rat"] }),

@@ -274,7 +274,7 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // A wandering monster comes upon the character.
+  // A wandering encounter comes upon the character.
   wandering: {
     file: "wandering.wav",
     source: MADE,

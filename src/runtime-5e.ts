@@ -3930,7 +3930,7 @@ const ITEM_SOUNDS = {
  * disarm leaves only its check's sounds; a rest a wanderer interrupts never
  * begins, so it is silent.
  *
- * Warnings and outcomes (#487): the alarm raised, and a wandering monster
+ * Warnings and outcomes (#487): the alarm raised, and a wandering encounter
  * coming upon the character, each sound a warning; a roll that brings
  * nothing, or only an omen, is silent. A foe fleeing and a foe surrendering
  * each sound too.
