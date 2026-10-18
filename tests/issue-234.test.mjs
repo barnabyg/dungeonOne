@@ -24,6 +24,7 @@ import {
 } from "./fixtures/modules.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** Draws no dice: an action that rolls fails the test. */
 const NO_DICE = dice();
@@ -440,7 +441,7 @@ function paralysedInCellar() {
       state = runtime.handleAction(
         state,
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(state)
           : { type: "attack", actorId: "pc", targetId: target.id },
         random,
       ).state;

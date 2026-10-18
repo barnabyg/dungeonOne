@@ -18,6 +18,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
@@ -60,7 +61,7 @@ function simulate(seed) {
       state,
       attack
         ? { type: "attack", actorId: "pc", targetId: "goblin" }
-        : { type: "end-turn", actorId: "pc" },
+        : endTurnOrFall(state),
       random,
     ).state;
     attacks += attack ? 1 : 0;

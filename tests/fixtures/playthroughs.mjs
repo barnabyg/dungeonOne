@@ -185,6 +185,7 @@ function madeAction({
     case "end-turn":
     case "uncanny-dodge":
     case "take-hit":
+    case "fall":
       return { type: action, actorId: PLAYER };
     case "use":
       return { type: "use-item", itemId: target.id };

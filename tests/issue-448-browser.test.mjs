@@ -263,7 +263,7 @@ test(
     });
     assert.match(
       choices,
-      /^The Bramblecote Cider House\nStart\nLevel 1\nMedium\n.*\nThe Abandoned Delve\nStart\nLevel 2\nHard\n.*\nThe Coldwater Weirgate\nStart\nLevels 3–4\nMedium\n.*\nThe Thornwood Lodge\nStart\nLevels 4–5\nHard\n/u,
+      /^The Bramblecote Cider House\nStart\nLevel 1\nMedium\n.*\nThe Abandoned Delve\nStart\nLevel 2\nMedium\n.*\nThe Coldwater Weirgate\nStart\nLevels 3–4\nMedium\n.*\nThe Thornwood Lodge\nStart\nLevels 4–5\nHard\n/u,
     );
     // Nib, then Snagtooth and Wick.
     assert.deepEqual(ends, ["13/13", "13/13"]);

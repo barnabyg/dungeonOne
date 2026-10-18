@@ -16,11 +16,12 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const fightStep = (runtime, state) =>
   runtime.attackTargets(state).length > 0
     ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-    : { type: "end-turn", actorId: "pc" };
+    : endTurnOrFall(state);
 
 /**
  * Plays the barrow as the test does: into the hall, attacks until the fight

@@ -33,6 +33,7 @@ import {
 } from "./fixtures/modules.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const saves = {
   strength: 4,
@@ -594,7 +595,7 @@ test("the balance gate plays the riders and Pack Tactics", () => {
 const step = (runtime, state) =>
   runtime.attackTargets(state).length > 0
     ? { type: "attack", actorId: "pc", targetId: "spider" }
-    : { type: "end-turn", actorId: "pc" };
+    : endTurnOrFall(state);
 
 const poisonedNow = (state) =>
   (state.encounter?.conditions ?? []).some(

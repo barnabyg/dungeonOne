@@ -129,7 +129,7 @@ test("the flee and sneak tools give each exit's direction too", () => {
 });
 
 test("the prompt says there is no tactical grid, while the rooms have directions", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
   assert.doesNotMatch(FIFTH_DM_SYSTEM_PROMPT, /There is no map/u);
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /no tactical grid/u);
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /"I go north"/u);

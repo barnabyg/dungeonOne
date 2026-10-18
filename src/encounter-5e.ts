@@ -876,17 +876,37 @@ export type AttackRoll = Readonly<{
 }>;
 
 /**
+ * What waits for a combatant's reaction: a hit it may answer (#308, #337),
+ * or its fall to 0 HP, which Last Stand may stop (#499).
+ */
+export type PendingReaction = PendingHit | PendingLastStand;
+
+/**
  * An opponent's hit on a combatant that may answer it with its reaction
  * (#308, #337): Uncanny Dodge or a reaction spell. The attack as rolled and
  * chosen, and how far the opponent's turn had got.
  */
-export type PendingReaction = Readonly<{
+export type PendingHit = Readonly<{
+  kind?: "hit";
   reactorId: string;
   attackerId: string;
   weapon: Weapon;
   targetRoll?: number;
   weaponRoll?: number;
   roll: AttackRoll;
+  progress: OpponentProgress;
+}>;
+
+/**
+ * Last Stand (#499, a house rule): an opponent's attack has brought a party
+ * combatant to 0 HP while it carries a healing potion and its reaction is
+ * free. It is at 0 HP but not yet defeated: it drinks a potion with its
+ * reaction or falls. The attacker, and how far its turn had got.
+ */
+export type PendingLastStand = Readonly<{
+  kind: "last-stand";
+  reactorId: string;
+  attackerId: string;
   progress: OpponentProgress;
 }>;
 
@@ -992,8 +1012,11 @@ export type DivineSparkMode = (typeof DIVINE_SPARK_MODES)[number];
 export const TURN_UNDEAD = "Turn Undead";
 export const TURN_UNDEAD_ID = "turn-undead";
 
-/** The answers to a hit that Uncanny Dodge could halve (#308). */
-export type ReactionAnswer = "uncanny-dodge" | "take-hit";
+/**
+ * The answers to a hit that Uncanny Dodge could halve (#308), and falling
+ * rather than taking Last Stand (#499).
+ */
+export type ReactionAnswer = "uncanny-dodge" | "take-hit" | "fall";
 
 /**
  * What a fight action (#402) does to its opponent: damage of a type, a
@@ -1241,6 +1264,26 @@ export type ReactionOfferedEvent = Readonly<{
   weaponRoll?: number;
   rampage?: true;
 }>;
+
+/**
+ * Last Stand (#499): `attackerId`'s attack has brought the combatant to 0
+ * HP with a potion and its reaction free, and it makes a death saving
+ * throw, a d20 with no modifier against `dc`. On a success it may drink
+ * one of `potions` (their names, as carried) with its reaction or fall; on
+ * a failure it falls.
+ */
+export type LastStandEvent = Readonly<{
+  type: "last-stand";
+  combatantId: string;
+  attackerId: string;
+  d20: number;
+  dc: number;
+  success: boolean;
+  potions: readonly string[];
+}>;
+
+/** Last Stand's death saving throw (#499): a d20, this or higher (an even chance). */
+export const LAST_STAND_DC = 11;
 
 /**
  * A combatant with Undead Fortitude reduced to 0 HP: its Constitution save
@@ -1731,6 +1774,7 @@ export type EncounterEvent =
       disengaged?: true;
     }>
   | ReactionOfferedEvent
+  | LastStandEvent
   | PotionEvent
   | CastEvent
   | ScrollCheckEvent
@@ -1785,6 +1829,8 @@ export type PotionEvent = Readonly<{
   modifier: number;
   /** Beacon of Hope (#342) made the dice their most. */
   maximised?: string;
+  /** Drunk with the reaction at 0 HP, as Last Stand (#499). */
+  lastStand?: true;
   healing: number;
   hpAfter: number;
   maxHp: number;
@@ -3287,6 +3333,10 @@ export function availableActions(
     ) {
       return [];
     }
+    // Last Stand (#499): drink a potion or fall.
+    if (state.pendingReaction.kind === "last-stand") {
+      return ["drink-potion", "fall"];
+    }
     const reactor = combatant(state, actorId);
     return [
       ...(canDodge(state, reactor) ? (["uncanny-dodge"] as const) : []),
@@ -4472,6 +4522,41 @@ function landAttack(
     next = wake(next, target.id, events);
   }
   const defeated = hpLeft === 0 && target.hp > 0;
+  // Last Stand (#499): an opponent's attack that brings a party combatant
+  // to 0 HP with a potion and its reaction free calls for a death saving
+  // throw. On a success the fight waits for it to drink a potion with its
+  // reaction or fall; at 0 HP its concentration and turning end, and the
+  // hit gives no condition. On a failure it falls.
+  const stand =
+    defeated && "progress" in origin && canLastStand(next, target)
+      ? random.roll(20)
+      : undefined;
+  if (stand !== undefined) {
+    events.push({
+      type: "last-stand",
+      combatantId: target.id,
+      attackerId: actor.id,
+      d20: stand,
+      dc: LAST_STAND_DC,
+      success: stand >= LAST_STAND_DC,
+      potions: target.potions!.map(({ name }) => name),
+    });
+  }
+  if (stand !== undefined && stand >= LAST_STAND_DC && "progress" in origin) {
+    next = droppedEffects(next, target, events);
+    return {
+      state: {
+        ...next,
+        pendingReaction: {
+          kind: "last-stand",
+          reactorId: target.id,
+          attackerId: actor.id,
+          progress: origin.progress,
+        },
+      },
+      events,
+    };
+  }
   if (defeated) {
     next = fall(next, target, random, events);
   } else if (hit && weapon.mastery === "Sap") {
@@ -4531,6 +4616,81 @@ function landAttack(
 }
 
 /**
+ * Whether `target`, just brought to 0 HP by an opponent's attack, may take
+ * Last Stand (#499): a party combatant carrying a healing potion, its
+ * reaction free and not incapacitated.
+ */
+function canLastStand(state: EncounterState, target: Combatant): boolean {
+  return (
+    target.side === "party" &&
+    (target.potions ?? []).length > 0 &&
+    !state.reacted.includes(target.id) &&
+    incapacitatedBy(state, target.id) === undefined
+  );
+}
+
+/**
+ * Answers Last Stand (#499): the combatant drinks `potionId` with its
+ * reaction and rises to the potion's roll, or, with none, falls. Then the
+ * attacker's turn, the attacks on a fleeing combatant, and the fight go on
+ * as after any hit.
+ */
+function answerLastStand(
+  state: EncounterState,
+  pending: PendingLastStand,
+  potionId: string | undefined,
+  random: Roller,
+): EncounterResult {
+  const { pendingReaction: _answered, ...rest } = state;
+  void _answered;
+  const events: EncounterEvent[] = [];
+  const attacker = combatant(rest, pending.attackerId);
+  const target = combatant(rest, pending.reactorId);
+  const potion = target.potions?.find(({ id }) => id === potionId);
+  let next: EncounterState;
+  if (potion === undefined) {
+    next = concludeIfOver(fall(rest, target, random, events), events);
+  } else {
+    const drunk: PotionEvent = {
+      ...drinkPotion(
+        target.id,
+        potion,
+        target.hp,
+        target.maxHp,
+        random,
+        healingMaximisedBy(target),
+      ),
+      lastStand: true,
+    };
+    events.push(drunk);
+    next = {
+      ...rest,
+      reacted: [...rest.reacted, target.id],
+      combatants: rest.combatants.map((candidate) =>
+        candidate.id === target.id
+          ? {
+              ...candidate,
+              hp: drunk.hpAfter,
+              potions: candidate.potions!.filter(({ id }) => id !== potion.id),
+            }
+          : candidate,
+      ),
+    };
+  }
+  if (next.escape !== undefined) {
+    return { state: fleeAttacks(next, random, events), events };
+  }
+  next = opponentTurn(next, attacker, random, events, {
+    progress: pending.progress,
+    dropped: potion === undefined,
+  });
+  if (next.outcome === "ongoing" && next.pendingReaction === undefined) {
+    next = advance(next, random, events, false);
+  }
+  return { state: next, events };
+}
+
+/**
  * Undead Fortitude (SRD 5.2): `target`, with it, reduced from above 0 to 0
  * HP by `taken` damage that isn't radiant or from a critical hit
  * (`bypassed`), makes a Constitution save against DC 5 + the damage taken,
@@ -4572,6 +4732,23 @@ function fortitude(
 }
 
 /**
+ * `target` at 0 HP: its concentration ends (#337), and the turning it gave
+ * (#341), whether it falls or waits for Last Stand (#499).
+ */
+function droppedEffects(
+  state: EncounterState,
+  target: Combatant,
+  events: EncounterEvent[],
+): EncounterState {
+  return endEffects(
+    endConcentration(state, target.id, "fell", events),
+    (effect) => effect.casterId === target.id && controls(effect, "turning"),
+    "fell",
+    events,
+  );
+}
+
+/**
  * `target` has just fallen to 0 HP: it is defeated, its conditions and its
  * flight end, and its side checks morale.
  */
@@ -4586,14 +4763,7 @@ function fall(
   if (!announced) {
     events.push({ type: "defeated", combatantId: target.id });
   }
-  // A fallen caster's concentration ends (#337), and the turning it gave
-  // (#341).
-  const fallen = endEffects(
-    endConcentration(state, target.id, "fell", events),
-    (effect) => effect.casterId === target.id && controls(effect, "turning"),
-    "fell",
-    events,
-  );
+  const fallen = droppedEffects(state, target, events);
   return checkMorale(
     {
       ...fallen,
@@ -4813,7 +4983,7 @@ type ReactionReply =
  */
 function answerReaction(
   state: EncounterState,
-  pending: PendingReaction,
+  pending: PendingHit,
   reply: ReactionReply,
   random: Roller,
 ): EncounterResult {
@@ -6979,6 +7149,9 @@ export function castOutsideFight(
  */
 function pendingText(state: EncounterState, pending: PendingReaction): string {
   const reactor = combatant(state, pending.reactorId);
+  if (pending.kind === "last-stand") {
+    return `${combatant(state, pending.attackerId).name}'s attack has brought ${reactor.name} to 0 HP: first drink a potion as a Last Stand, or fall.`;
+  }
   const answers = [
     ...(canDodge(state, reactor)
       ? ["use Uncanny Dodge to halve its damage"]
@@ -7098,6 +7271,25 @@ export function act(
   // trigger, there is nothing to answer.
   const pending = state.pendingReaction;
   const answer = action.type === "uncanny-dodge" || action.type === "take-hit";
+  // Last Stand (#499) takes a potion drunk with the reaction, or the fall.
+  if (pending?.kind === "last-stand") {
+    const reacting = actor.id === pending.reactorId;
+    if (reacting && action.type === "fall") {
+      return answerLastStand(state, pending, undefined, random);
+    }
+    if (reacting && action.type === "drink-potion") {
+      return (actor.potions ?? []).some(({ id }) => id === action.itemId)
+        ? answerLastStand(state, pending, action.itemId, random)
+        : reject("no-potion", "You don't have that potion.");
+    }
+    return reject("reaction-pending", pendingText(state, pending));
+  }
+  if (action.type === "fall") {
+    return reject(
+      "no-reaction-trigger",
+      "Falling answers Last Stand, and nothing has brought you to 0 HP.",
+    );
+  }
   if (pending !== undefined) {
     const reacting = actor.id === pending.reactorId;
     if (reacting && action.type === "cast") {

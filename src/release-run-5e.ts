@@ -222,9 +222,12 @@ export function generateReleaseRun(
   return { route, maxTurns: releaseTurnCap(adventure) };
 }
 
-/** Whether the action bar is a fight's: it always offers End turn. */
+/**
+ * Whether the action bar is a fight's: it always offers End turn, or Fall
+ * while the character's fall waits for Last Stand (#499).
+ */
 const inFight = (view: ReleaseSessionView): boolean =>
-  view.actions.some(({ action }) => action === "end-turn");
+  view.actions.some(({ action }) => action === "end-turn" || action === "fall");
 
 type FightKind =
   | "attack"

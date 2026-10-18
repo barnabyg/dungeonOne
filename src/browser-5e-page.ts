@@ -38,7 +38,9 @@
 //   name; Cunning Strike's choice first) and #feature-controls the rest, in
 //   FIGHT_ROWS order: Cast a spell, Channel Divinity (its shared uses once,
 //   in .row-uses), Fighter features, Rogue features, Items (Drink, and a
-//   scroll's or wand's Use), Weapons, Answer the hit and End turn (only
+//   scroll's or wand's Use), Weapons, Last Stand (#499: Drink each potion
+//   or Fall, alone while the character's fall waits), Answer the hit and
+//   End turn (only
 //   Wait, with why, while paralysed, #234), and
 //   #explore-controls (Go, Examine, Take, Drink, Force, Pick, Break, Unlock,
 //   Search, Disarm and Talk, grouped by target with the
@@ -1457,8 +1459,10 @@ function renderStatus() {
   element("hp-fill").style.width = (maxHp > 0 ? (100 * hp) / maxHp : 0) + "%";
   const { encounter, turn, features } = session;
   const current = encounter && encounter.combatants.find(({ id }) => id === encounter.currentTurn);
-  // A hit waiting for Uncanny Dodge (#308) says so.
-  element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : encounter.pendingReaction ? encounter.pendingReaction.attacker + " hits you." : current.name + "'s turn.") : "The fight is over.";
+  // A hit waiting for Uncanny Dodge (#308) says so, as does a fall waiting
+  // for Last Stand (#499).
+  const pending = encounter && encounter.pendingReaction;
+  element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : pending ? pending.attacker + (pending.lastStand ? " brings you to 0 HP: Last Stand." : " hits you.") : current.name + "'s turn.") : "The fight is over.";
   // The character's conditions in the fight (#232), each a tag with its
   // source and how it ends for screen readers.
   const self = encounter && encounter.combatants.find(({ id }) => id === encounter.playerId);
@@ -2434,6 +2438,8 @@ const ACTIONS = {
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
+  // Falling rather than drinking a potion as Last Stand (#499).
+  fall: { label: "Fall", busy: "Falling", busyLabel: "Falling…" },
   // A spell (#337), chosen with its slot level and target beside the button.
   cast: { label: "Cast", busy: "Casting", busyLabel: "Casting…" },
   // A scroll's or wand's cast in a fight (#392), in the Items row.
@@ -2495,7 +2501,7 @@ const busyName = ({ action, target, item, feature }) => wordsOf(action).busy + n
 // The attacks on one of several foes, beside its name (#392): their words
 // without it.
 const FOE_WORDS = { attack: "Attack", "light-attack": "Extra attack", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
-const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "disengage", "turn-undead", "preserve-life", "end-turn", "uncanny-dodge", "take-hit"];
+const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "disengage", "turn-undead", "preserve-life", "end-turn", "uncanny-dodge", "take-hit", "fall"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
 const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
@@ -2511,11 +2517,12 @@ const SALES = [...GEAR_SALES, "sell-treasure"];
 const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASONS["hands-full"], SHORT_REASONS["two-handed"]])};
 // The fight's rows (#392), in order, each named by its words; End turn's
 // row has none. "answer" holds the answers to a hit waiting for a reaction,
-// reaction spells such as Shield among them; "other" any fight action
-// FIGHT_ROW doesn't place.
-const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["answer", "Answer the hit"], ["room", "Use the room"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
+// reaction spells such as Shield among them; "last-stand" every option
+// while the character's fall waits for Last Stand (#499); "other" any fight
+// action FIGHT_ROW doesn't place.
+const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["last-stand", "Last Stand"], ["answer", "Answer the hit"], ["room", "Use the room"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
 // The row each of the fight's actions goes in.
-const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", "end-turn": "end" };
+const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", fall: "last-stand", "end-turn": "end" };
 // What End turn would leave unused (#392), by the engine's option kinds.
 const UNUSED_NAMES = { attack: "Attack", "light-attack": "Extra attack", "second-wind": "Second Wind", "action-surge": "Action Surge", hide: "Hide", "steady-aim": "Steady Aim", "drink-potion": "Drink", cast: "Cast a spell", "divine-spark": "Divine Spark", "turn-undead": "Turn Undead", "preserve-life": "Preserve Life", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
 // Whom a Channel Divinity action that takes no choice reaches (#392).
@@ -2574,6 +2581,9 @@ function renderActions() {
   // scroll's or wand's (#346) go in a choice of their own in a fight's Items
   // row (#392), and outside a fight on its "You carry" entry.
   const casts = session.actions.filter(({ action, spell }) => action === "cast" && !spell.item);
+  // While the character's fall waits (#499), its potions and Fall make the
+  // Last Stand row.
+  const lastStand = fighting && Boolean(session.encounter.pendingReaction && session.encounter.pendingReaction.lastStand);
   // While a hit waits, a reaction spell is one of its answers.
   const answering = session.actions.some(({ action }) => action === "take-hit");
   if (casts.length) (fighting ? rows[answering ? "answer" : "cast"] : groups.feature).push(castPanel(casts));
@@ -2729,7 +2739,7 @@ function renderActions() {
       return;
     }
     if (fighting && (group === "attack" || group === "feature")) {
-      rows[FIGHT_ROW[action] || "other"].push(wrap);
+      rows[(lastStand ? "last-stand" : FIGHT_ROW[action]) || "other"].push(wrap);
       return;
     }
     if (!short) {

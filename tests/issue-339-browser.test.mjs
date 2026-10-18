@@ -30,6 +30,7 @@ import {
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const CANTRIPS = ["sacred-flame", "guidance", "resistance", "thaumaturgy"];
 const PREPARED = [
@@ -103,9 +104,7 @@ function wins(seed) {
       );
       state = step(
         state,
-        attack === undefined
-          ? { type: "end-turn", actorId: "pc" }
-          : runtime.actionOf(attack),
+        attack === undefined ? endTurnOrFall(state) : runtime.actionOf(attack),
       );
     }
     if (destinationId === "rat-cellar") {

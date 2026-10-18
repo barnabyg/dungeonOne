@@ -9,6 +9,7 @@ import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed, startFifthAdventure } from "../../dist/session-5e.js";
 import { TEST_FIGHTER_CHOICES } from "../../dist/test-fighter-5e.js";
+import { endTurnOrFall } from "./last-stand.mjs";
 
 /**
  * Runs `run(library, sheet, revision, directory)` on a library, seeded 7, in a
@@ -38,7 +39,7 @@ export async function withLibrary(run) {
 export const barrowFightStep = (runtime, state) =>
   runtime.attackTargets(state).length > 0
     ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-    : { type: "end-turn", actorId: "pc" };
+    : endTurnOrFall(state);
 
 /**
  * A browser seed whose `number`th session of `module` (a lintel barrow) wins

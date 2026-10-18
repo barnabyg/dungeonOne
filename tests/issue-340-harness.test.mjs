@@ -120,7 +120,8 @@ test("the harness casts Shield only when it turns the hit into a miss", () => {
       ...runtime,
       handleAction(state, action, random) {
         const pending = state.encounter?.pendingReaction;
-        if (pending !== undefined) {
+        // Last Stand (#499) waits on no hit.
+        if (pending !== undefined && pending.kind !== "last-stand") {
           const ac = armorClassOf(combatant(state.encounter, "pc"));
           const turned =
             pending.roll.d20 < pending.weapon.criticalRange &&

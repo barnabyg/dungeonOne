@@ -29,6 +29,7 @@ import {
   settled,
 } from "./fixtures/browser-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const WIDE = { width: 2560, height: 1300 };
 
@@ -243,7 +244,7 @@ function hurtAfterPotionSeed() {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "giant-rat" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status !== "playing") {

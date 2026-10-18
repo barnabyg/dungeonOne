@@ -1,3 +1,4 @@
+import { endTurnOrFall } from "./last-stand.mjs";
 // Helpers for the tests that search for a browser seed by simulating Ada's
 // clicks on the runtime: the same dice, and the fight played as the browser
 // tests click it.
@@ -24,7 +25,7 @@ export function attackOrEndTurn(runtime, state, random) {
   const result = runtime.handleAction(
     state,
     target === undefined
-      ? { type: "end-turn", actorId: "pc" }
+      ? endTurnOrFall(state)
       : { type: "attack", actorId: "pc", targetId: target.id },
     random,
   );

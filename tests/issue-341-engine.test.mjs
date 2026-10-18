@@ -700,11 +700,12 @@ test("a turner's fall ends the turning it gave", () => {
   delete bram.channelDivinity;
   delete bram.spellcasting;
   delete bram.potions;
-  // Initiative: Ilse 20 (at 1 HP), Zombie 15 − 2, Skeleton 9 + 3, Bram 1.
+  // Initiative: Ilse 20 (at 1 HP, without a potion for Last Stand, #499),
+  // Zombie 15 − 2, Skeleton 9 + 3, Bram 1.
   const state = opening(
     [monster("zombie"), monster("skeleton"), bram],
     [15, 9, 1],
-    ilse({ hp: 1 }),
+    ilse({ hp: 1, potions: [] }),
   );
   // The Zombie fails, the Skeleton saves.
   const turned = accepted(state, turnUndead, dice([20, 1], [20, 20]));

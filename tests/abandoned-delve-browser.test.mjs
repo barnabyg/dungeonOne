@@ -23,6 +23,7 @@ import {
   say,
 } from "./fixtures/session-layout.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** Waits for the page to lay out and react to resizing. */
 const nextFrame = (page) =>
@@ -92,7 +93,7 @@ function findSeed() {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "zombie" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (

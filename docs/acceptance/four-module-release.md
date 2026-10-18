@@ -6,7 +6,7 @@ modules that form a career from level 1 to level 5 (#437–#447):
 | Module                      | Levels | Difficulty | Rooms |
 | --------------------------- | ------ | ---------- | ----- |
 | The Bramblecote Cider House | 1      | Medium     | 17    |
-| The Abandoned Delve         | 2      | Hard       | 16    |
+| The Abandoned Delve         | 2      | Medium     | 16    |
 | The Coldwater Weirgate      | 3–4    | Medium     | 20    |
 | The Thornwood Lodge         | 4–5    | Hard       | 16    |
 
@@ -70,7 +70,7 @@ New-Item -ItemType Directory -Force .\.scratch\release-448\cider | Out-Null; npm
 1. Open character creation. Keep the default choices, name the Fighter
    **Ada** and save. Expect 13 HP and AC 14 with a mace.
 2. Expect four adventures, in order: the Cider House (Level 1, Medium), the
-   Delve (Level 2, Hard), the Weirgate (Levels 3–4, Medium) and the Lodge
+   Delve (Level 2, Medium), the Weirgate (Levels 3–4, Medium) and the Lodge
    (Levels 4–5, Hard). **Start** the Cider House.
 3. **Go** Kitchen, then Press House. Nib fights; Ada wins at 13/13.
 4. **Go** Hayloft. Ada kills Snagtooth with one blow. Expect Wick's morale

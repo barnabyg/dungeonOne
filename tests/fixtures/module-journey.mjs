@@ -135,6 +135,9 @@ function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
       ? []
       : [{ type: "light-attack", actorId: PLAYER, targetId: light.target.id }]),
     { type: "end-turn", actorId: PLAYER },
+    // Last Stand (#499) refuses everything else: a journey that heals has
+    // drunk its potion above; one that doesn't falls, as before.
+    { type: "fall", actorId: PLAYER },
   ];
   for (const action of choices) {
     const result = runtime.handleAction(state, action, random);

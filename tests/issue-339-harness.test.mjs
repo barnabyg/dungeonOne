@@ -40,8 +40,9 @@ test("a Cleric heals with its spells before it drinks a potion", () => {
   for (let seed = 0; seed < 20; seed++) {
     const run = playAdventure(runtime, "cautious", seed);
     spells += run.healing.spells;
-    // A potion only once both 1st-level slots are spent on healing.
-    if (run.healing.potions > 0) {
+    // A potion only once both 1st-level slots are spent on healing; Last
+    // Stand's (#499) comes whenever the Cleric falls.
+    if (run.healing.potions > run.healing.lastStands) {
       assert.equal(run.healing.spells, 2, `seed ${seed}`);
     }
   }

@@ -130,7 +130,7 @@ A feature may offer a **fight action** (`fightAction`: `{ "once", "check", "band
 
 - **Talking.** A room may hold creatures to talk to, each with authored topics. Talk asks about one topic: the creature answers with its words, or, for a topic with a check, its band's words. Each topic is asked once.
 - **Taking.** A visible item is taken and carried. Taking anything not visible is refused.
-- **Potions of Healing.** A Potion of Healing restores 2d4 + 2 HP, a Potion of Greater Healing 4d4 + 4, never above maximum HP. Outside a fight it is drunk at once; in a fight it takes the bonus action, so it competes with Second Wind. Administering it to another creature is not used.
+- **Potions of Healing.** A Potion of Healing restores 2d4 + 2 HP, a Potion of Greater Healing 4d4 + 4, never above maximum HP. Outside a fight it is drunk at once; in a fight it takes the bonus action, so it competes with Second Wind, or the reaction as Last Stand at 0 HP (see [House rules](house-rules.md)). Administering it to another creature is not used.
 - **Not during a fight.** Moving, examining, taking, opening doors, searching, disarming and talking are refused until the fight is won. In a fight a character can only drink a potion, take the combat actions or flee.
 
 ## The browser

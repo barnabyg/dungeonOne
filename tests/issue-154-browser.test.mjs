@@ -21,6 +21,7 @@ import {
   say,
 } from "./fixtures/session-layout.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -52,7 +53,7 @@ function findSeed() {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "giant-rat" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (

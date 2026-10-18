@@ -1703,6 +1703,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Every hit Uncanny Dodge can halve is halved; a hit Shield can't turn
   // into a miss is taken (#340).
   "take-hit": true,
+  // Last Stand (#499) is always taken, so the harness never falls.
+  fall: false,
   move: true,
   examine: true,
   take: true,
@@ -1999,6 +2001,8 @@ export type RunRecord = Readonly<{
   healing: Readonly<{
     secondWinds: number;
     potions: number;
+    /** The potions among them drunk as Last Stand (#499). */
+    lastStands: number;
     /** Healing spells cast (#339). */
     spells: number;
     shortRests: number;
@@ -2196,6 +2200,7 @@ export function playAdventure(
   const healing = {
     secondWinds: 0,
     potions: 0,
+    lastStands: 0,
     spells: 0,
     shortRests: 0,
     hitDice: 0,
@@ -2292,6 +2297,7 @@ export function playAdventure(
           break;
         case "potion":
           healing.potions += 1;
+          healing.lastStands += event.lastStand === true ? 1 : 0;
           healing.hp += event.healing;
           hp = event.hpAfter;
           break;
@@ -2468,6 +2474,10 @@ export function playAdventure(
       return dodge;
     }
     const pending = encounter.pendingReaction;
+    // Last Stand (#499): the harness always drinks, the first potion offered.
+    if (pending?.kind === "last-stand") {
+      return offered(views, "use")[0]!;
+    }
     if (pending !== undefined) {
       const turnsHit = (bonus: number) =>
         pending.roll.d20 < pending.weapon.criticalRange &&

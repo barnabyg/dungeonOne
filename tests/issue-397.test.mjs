@@ -91,9 +91,9 @@ const nook = (...args) => validateModule(nookFile(...args));
 
 test("the formats bump; the prompt does not change", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
-  assert.equal(FIFTH_SESSION_FORMAT, 64);
-  assert.equal(FIFTH_TRACE_FORMAT, 58);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
+  assert.equal(FIFTH_SESSION_FORMAT, 65);
+  assert.equal(FIFTH_TRACE_FORMAT, 59);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
 });
 
 // The validator.

@@ -43,6 +43,39 @@ export const room = (module, id) =>
 /** A one-room fight: one Goblin Warrior, level 1, hard. */
 export const loneGoblin = validateModule(moduleFile("lone-goblin"));
 
+/**
+ * Last Stand (#499): the lone goblin's cellar below a stair where a Potion
+ * of Healing lies in plain sight: take it, go down, and fight.
+ */
+export const potionCellarFile = (() => {
+  const module = moduleFile("lone-goblin");
+  module.id = "potion-cellar";
+  module.title = "The Potion Cellar";
+  module.startRoomId = "stair";
+  module.rooms.unshift({
+    id: "stair",
+    name: "Cellar Stair",
+    at: [0, -1],
+    description: "Worn steps lead down into the dark.",
+    features: [],
+    items: [
+      {
+        id: "healing-potion",
+        name: "Potion of Healing",
+        description: "A stoppered vial of red liquid.",
+        kind: "potion-of-healing",
+      },
+    ],
+  });
+  module.passages.push({
+    id: "stair-to-cellar",
+    between: ["stair", "cellar"],
+    description: "The steps down.",
+  });
+  return module;
+})();
+export const potionCellar = validateModule(structuredClone(potionCellarFile));
+
 /** A group fight: a Goblin Minion and a Goblin Warrior, level 2, medium. */
 export const goblinBand = validateModule(moduleFile("goblin-band"));
 

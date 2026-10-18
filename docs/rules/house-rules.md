@@ -3,6 +3,7 @@
 ## House rules
 
 - A player character at 0 HP is defeated at once; there are no death saving throws.
+- **Last Stand** (#499): when an opponent's attack brings the character to 0 HP in a fight while it carries a Potion of Healing or Greater Healing and its reaction is free (and it isn't incapacitated), it makes one death saving throw: a d20 with no modifier, 11 or higher (`LAST_STAND_DC`, an even chance; SRD 5.2's is 10). On a failure it falls. On a success the fall waits: the player drinks one potion with the reaction, rising to the potion's roll, or falls; with both kinds the player picks which. At 0 HP its concentration ends and the hit gives no condition. Damage outside a fight (a trap, a check) offers none.
 - Second Wind is refused at full health, so a use is never wasted. The 2024 rules allow it.
 - At most one long rest per adventure, only at a module's rest site; SRD 5.2 allows one a day anywhere safe. An interrupted rest takes no time and may be taken again.
 - At most two short rests per adventure, each in a room with no unresolved hostile encounter; SRD 5.2 limits them only by time. A short rest takes no time, as there is no clock, and a rest that would restore nothing is refused.

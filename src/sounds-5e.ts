@@ -436,7 +436,7 @@ export function soundCredits(
 /** A fight as the session view gives it, for working out a victory. */
 type SoundFight = Pick<
   NonNullable<FightView["encounter"]>,
-  "playerId" | "currentTurn"
+  "playerId" | "currentTurn" | "pendingReaction"
 > &
   Readonly<{
     combatants: readonly Pick<
@@ -488,7 +488,8 @@ export type SoundAnswer = Readonly<{
  * - a natural 20 or 1 on the character's kept d20 replaces the sound of
  *   its attack or check outcome;
  * - damage leaving a creature at 0 HP: fall, or fall-you for the character,
- *   unless Undead Fortitude keeps it standing;
+ *   unless Undead Fortitude keeps it standing, or the character's fall
+ *   waits for Last Stand (#499);
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
  * - the adventure ending (#483), in place of the fight's victory: the
@@ -596,7 +597,10 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
           group.roller === target &&
           (group.hpAfter ?? 0) > 0,
       );
-      if (purpose === "damage" && hpAfter === 0 && !stands) {
+      // Last Stand (#499): the character's fall waits for its answer.
+      const waits =
+        target === character && after?.pendingReaction?.lastStand === true;
+      if (purpose === "damage" && hpAfter === 0 && !stands && !waits) {
         sounds.push(target === character ? "fall-you" : "fall");
       }
     }

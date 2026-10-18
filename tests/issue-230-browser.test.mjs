@@ -16,6 +16,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { archer, archeryBarrow, QUIVER } from "./fixtures/archery-barrow.mjs";
 import { explore, launch } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const sheet = archer(2);
 const GOBLIN = "barrow-goblin";
@@ -64,7 +65,7 @@ function archerySeed() {
           ? { type: "attack", actorId: "pc", targetId: GOBLIN }
           : choice === "swap"
             ? { type: "swap", itemId: "mace" }
-            : { type: "end-turn", actorId: "pc" },
+            : endTurnOrFall(state),
         random,
       ).state;
     }

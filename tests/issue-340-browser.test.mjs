@@ -30,6 +30,7 @@ import {
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 // Magic Missile out of the spellbook, Ray of Sickness in, and prepared.
 const SPELLBOOK = [
@@ -113,9 +114,7 @@ function wins(seed) {
         .find(({ action, available }) => action === "attack" && available);
       state = step(
         state,
-        attack === undefined
-          ? { type: "end-turn", actorId: "pc" }
-          : runtime.actionOf(attack),
+        attack === undefined ? endTurnOrFall(state) : runtime.actionOf(attack),
       );
     }
     if (destinationId === "rat-cellar") {

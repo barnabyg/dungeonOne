@@ -42,6 +42,7 @@ import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const ID = "b".repeat(32);
 // Kept totals 15, 14, 13, 12, 10, 8 in roll order.
@@ -560,7 +561,7 @@ test("the result card names the Sneak Attack dice", () => {
       const [target] = runtime.attackTargets(session.state);
       const { result, rolls } = session.act(
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(session.state)
           : { type: "attack", actorId: "pc", targetId: target.id },
         "click",
       );

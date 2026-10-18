@@ -21,6 +21,7 @@ import {
   firstFighter,
   launch,
 } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** What the module records the goblin carrying. */
 const carried = room(rolledBarrow, "burial-hall").items.filter(
@@ -41,7 +42,7 @@ function winningSeed() {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status === "playing") {

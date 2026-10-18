@@ -26,6 +26,7 @@ import {
   surrenderingGoblins,
   surrenderSeed,
 } from "./fixtures/surrendering-goblins.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const runtime = createFifthRuntime(loneGoblin, BEA);
 // Bea's fight with the goblin, for lines that name its combatants.
@@ -196,7 +197,7 @@ function foughtLines(adventure, find) {
       runtime,
       state,
       target === undefined
-        ? { type: "end-turn", actorId: "pc" }
+        ? endTurnOrFall(state)
         : { type: "attack", actorId: "pc", targetId: target.id },
       random,
     );

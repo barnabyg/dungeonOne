@@ -24,6 +24,7 @@ import {
   narratingDm,
 } from "./fixtures/session-layout.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 // The sealed crypt made into a loot run: its stair is a way out, treasure
 // and coins wait in the bowl, the strongbox and on the warden, and beating
@@ -147,7 +148,7 @@ function findSeed() {
         state = run(
           state,
           target === undefined
-            ? { type: "end-turn", actorId: "pc" }
+            ? endTurnOrFall(state)
             : { type: "attack", actorId: "pc", targetId: target.id },
         );
       }
