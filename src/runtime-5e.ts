@@ -458,6 +458,11 @@ export type FifthState = Readonly<{
   /** Items used up: drunk potions, and coin emptied into the purse. */
   usedItemIds: readonly string[];
   examinedFeatureIds: readonly string[];
+  /**
+   * The module's items examined (#491), lying in a room or carried, in the
+   * order first examined: the browser marks their Examine.
+   */
+  examinedItemIds: readonly string[];
   /** Encounters won, including one whose victory ended the adventure. */
   clearedEncounterIds: readonly string[];
   /**
@@ -5083,6 +5088,11 @@ export type ActionView = Readonly<{
    * "uses up the Iron Wedge") or the circumstance that changed.
    */
   retry?: Readonly<{ reason: string }>;
+  /**
+   * An Examine on a feature, a body or an item already examined (#491); a
+   * check's other try is never marked.
+   */
+  examined?: true;
   /**
    * An attack with Cunning Strike's effect (#308): listed only while the
    * engine would accept it, beside the plain attack on the same target.
@@ -10843,7 +10853,12 @@ export function createFifthRuntime(
           );
         }
         return {
-          state,
+          state: state.examinedItemIds.includes(item.id)
+            ? state
+            : {
+                ...state,
+                examinedItemIds: [...state.examinedItemIds, item.id],
+              },
           events: [
             {
               type: "examined",
@@ -11388,6 +11403,13 @@ export function createFifthRuntime(
       }
       if (retry !== undefined) {
         entry.retry = { reason: retry };
+      } else if (
+        action.type === "examine" &&
+        (state.examinedFeatureIds.includes(action.targetId) ||
+          state.examinedItemIds.includes(action.targetId))
+      ) {
+        // An Examine already made says so (#491); another try does not.
+        entry.examined = true;
       }
       // The spell a cast names (#336), and the slot it would spend.
       if (action.type === "cast" && isSpellId(action.spellId)) {
@@ -14117,6 +14139,7 @@ export function createFifthRuntime(
       inventory: [],
       usedItemIds: [],
       examinedFeatureIds: [],
+      examinedItemIds: [],
       clearedEncounterIds: [],
       fledOpponents: [],
       surrenderedOpponents: [],

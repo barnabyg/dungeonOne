@@ -72,7 +72,7 @@ test(
       // Nothing has changed yet: no other try is offered.
       assert.deepEqual(await cliffButtons(page), [
         {
-          name: "Examine Sheer Cliff",
+          name: "Examine Sheer Cliff (examined)",
           retry: null,
           caption: null,
           disabled: false,
@@ -83,7 +83,7 @@ test(
       await clickAction(page, "take", "knotted-rope");
       const offered = [
         {
-          name: "Examine Sheer Cliff",
+          name: "Examine Sheer Cliff (examined)",
           retry: null,
           caption: null,
           disabled: false,
