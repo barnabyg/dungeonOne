@@ -97,7 +97,10 @@ test(
       await page.locator("#cast-spell").waitFor();
       const bolt = await castNamed(page, "Fire Bolt (cantrip)");
       assert.equal(bolt[0], "spell-fire-cantrip");
-      assert.ok(["hit", "critical", "miss"].includes(bolt[1]), bolt.join());
+      assert.ok(
+        ["hit-fire", "critical", "miss"].includes(bolt[1]),
+        bolt.join(),
+      );
 
       await page.waitForFunction(() =>
         window.playedSounds.some(({ src }) => src === "/sounds/spell-fire.wav"),

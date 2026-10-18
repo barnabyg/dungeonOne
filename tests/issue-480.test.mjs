@@ -42,7 +42,8 @@ test("every sound is a short, small file with its source and licence", async () 
     const { size } = await stat(
       new URL(`../sounds/${sound.file}`, import.meta.url),
     );
-    assert.ok(size > 44 && size <= 100 * 1024, `${id}: ${size} bytes`);
+    // The longest, the long rest's lute phrase (3.2 s), is about 140 KB.
+    assert.ok(size > 44 && size <= 150 * 1024, `${id}: ${size} bytes`);
   }
 });
 
@@ -116,5 +117,8 @@ test("with sound off, the page has no sound controls and no sound is served", as
   withServer({ sound: false }, async (url) => {
     const html = await (await fetch(url)).text();
     assert.doesNotMatch(html, /sound-controls|sound-mute|sound-volume/u);
-    assert.equal((await fetch(`${url}/sounds/hit.wav`)).status, 404);
+    assert.equal(
+      (await fetch(`${url}/sounds/hit-bludgeoning.wav`)).status,
+      404,
+    );
   }));

@@ -1,4 +1,4 @@
-// Writes the sounds Dungeon One makes itself (#481, #482) into sounds/, as 16-bit
+// Writes the sounds Dungeon One makes itself (#481–#488) into sounds/, as 16-bit
 // mono WAV. Each is synthesised here, so it is ours to release under CC0;
 // src/sounds-5e.ts records it with this script as its source. Run it again
 // after changing a sound: `node scripts/make-sounds.mjs`.
@@ -142,24 +142,6 @@ const clack = (at, gain, seed) => {
   };
 };
 
-/**
- * One die thrown at `at`: it bounces, each bounce sooner and softer than
- * the last, then tumbles to rest in a run of quick, quiet ticks.
- */
-const die = (at, first, seed) => {
-  const impacts = [];
-  let time = at;
-  let gap = first;
-  let gain = 1;
-  while (gap > 0.012) {
-    impacts.push(clack(time, gain, seed + impacts.length));
-    time += gap;
-    gap *= 0.72;
-    gain *= 0.78;
-  }
-  return impacts;
-};
-
 /** The table under rolling dice: a soft, low rumble fading over `seconds`. */
 const table = (seconds, seed) => {
   const random = noise(seed);
@@ -202,8 +184,8 @@ const louder = (gain, voice) => (time) => gain * voice(time);
 const write = (name, sound) =>
   writeFileSync(new URL(`../sounds/${name}.wav`, import.meta.url), sound);
 
-// Combat (#481). Your hit: a dull blow.
-write("hit", wav(0.3, 0.6, [thud(180, 70, 0.07, 0, 1)]));
+// Combat (#481). A bludgeoning hit (#488): a dull blow.
+write("hit-bludgeoning", wav(0.3, 0.6, [thud(180, 70, 0.07, 0, 1)]));
 // Your critical: a harder blow with a bright ring over it.
 write(
   "critical",
@@ -253,15 +235,6 @@ write(
     horn(1046.5, 1046.5, 0.5, 0.36),
   ]),
 );
-// A check or save: two dice thrown onto a table.
-write(
-  "dice",
-  wav(0.45, 0.65, [
-    ...die(0, 0.11, 20),
-    ...die(0.03, 0.09, 40),
-    table(0.4, 60),
-  ]),
-);
 // Success: two rising notes, G5 then C6.
 write("success", wav(0.5, 0.45, [bell(783.99, 0), bell(1046.5, 0.1)]));
 // Failure: two dull falling notes, E4 then C4.
@@ -293,10 +266,10 @@ write(
   ]),
 );
 
-// Adventure endings (#483). Victory: a longer fanfare, G4 C5 E5, then a
-// held C major chord.
+// Adventure endings (#483). The objective met (#487): a longer fanfare,
+// G4 C5 E5, then a held C major chord.
 write(
-  "ending-victory",
+  "objective",
   wav(1.5, 0.2, [
     horn(392, 392, 0.14, 0),
     horn(523.25, 523.25, 0.14, 0.14),
@@ -520,3 +493,334 @@ write(
 );
 // Control: a slow, wobbling, sinking tone.
 write("spell-control", wav(0.8, 0.2, [tremolo(6, horn(440, 330, 0.75, 0))]));
+
+// World actions (#486). A lock: a pin's tick, then the bolt's click.
+write(
+  "unlock",
+  wav(0.35, 0.55, [
+    clack(0, 0.6, 70),
+    clack(0.08, 1, 71),
+    louder(0.6, thud(900, 500, 0.012, 0.08, 72)),
+  ]),
+);
+// A door forced or broken: wood splitting, then the door slamming open.
+write(
+  "door-forced",
+  wav(0.7, 0.6, [
+    thud(160, 60, 0.1, 0, 73),
+    louder(1.5, crackle(0.18, 0, 74)),
+    louder(0.8, thud(110, 45, 0.12, 0.22, 75)),
+  ]),
+);
+// A trap set off: a wire snapping, then darts or blades hissing past.
+write(
+  "trap-sprung",
+  wav(0.6, 0.55, [
+    clack(0, 1, 76),
+    louder(0.8, whoosh(0.18, 0.05, 77)),
+    louder(0.6, whoosh(0.18, 0.12, 78)),
+    louder(0.5, whoosh(0.2, 0.2, 79)),
+  ]),
+);
+// A trap disarmed: a careful click, then two soft notes, E5 and A5.
+write(
+  "trap-disarmed",
+  wav(0.7, 0.45, [
+    clack(0, 0.8, 80),
+    louder(0.5, bell(659.25, 0.1)),
+    louder(0.5, bell(880, 0.22)),
+  ]),
+);
+// A potion drunk: three gulps, then a faint restoring shimmer.
+write(
+  "potion",
+  wav(0.8, 0.5, [
+    ...[180, 210, 170].map((frequency, index) =>
+      bubble(frequency, index * 0.13),
+    ),
+    louder(0.25, bell(1318.5, 0.42)),
+    louder(0.2, bell(1661.2, 0.48)),
+  ]),
+);
+
+// Warnings and outcomes (#487). The alarm: a bell struck three times, fast.
+write(
+  "alarm",
+  wav(
+    1.0,
+    0.45,
+    [0, 0.2, 0.4].flatMap((at) => [
+      clink(880, at, 1),
+      louder(0.6, bell(880, at)),
+    ]),
+  ),
+);
+// A wandering monster comes: a low horn rising, with a drum under it.
+write(
+  "wandering",
+  wav(1.0, 0.3, [
+    horn(146.83, 164.81, 0.35, 0),
+    horn(164.81, 220, 0.5, 0.38),
+    louder(2, thud(80, 40, 0.18, 0, 85)),
+  ]),
+);
+// A foe flees: hurried footsteps fading away.
+write(
+  "foe-flees",
+  wav(
+    0.8,
+    0.55,
+    [0, 0.13, 0.26, 0.39, 0.52].map((at, index) =>
+      louder(1 - index * 0.17, thud(300, 140, 0.025, at, 86 + index)),
+    ),
+  ),
+);
+// A foe surrenders: a weapon dropped clattering, then a soft falling note.
+write(
+  "foe-surrenders",
+  wav(0.9, 0.45, [
+    clink(620, 0, 1),
+    clink(540, 0.09, 0.7),
+    clink(660, 0.15, 0.4),
+    louder(0.25, horn(392, 329.63, 0.4, 0.3)),
+  ]),
+);
+
+// Hits by damage type (#488), each a blow with its type's colour.
+// Slashing: a blade's swish, then a sharp cut with a faint ring.
+write(
+  "hit-slashing",
+  wav(0.35, 0.6, [
+    louder(0.7, whoosh(0.1, 0, 90)),
+    thud(260, 120, 0.035, 0.07, 91),
+    louder(0.15, clink(1500, 0.07, 1)),
+  ]),
+);
+// Piercing: a sharp jab, a tick and a short, tight thunk.
+write(
+  "hit-piercing",
+  wav(0.3, 0.6, [clack(0, 0.9, 92), thud(320, 150, 0.03, 0.005, 93)]),
+);
+// The blow under each other type's colour.
+const blow = (seed) => thud(200, 80, 0.05, 0, seed);
+// Fire: a blow, a flare and a crackle.
+write(
+  "hit-fire",
+  wav(0.4, 0.6, [
+    blow(94),
+    louder(0.9, crackle(0.3, 0, 95)),
+    louder(0.4, whoosh(0.2, 0, 96)),
+  ]),
+);
+// Cold: a blow and a crack of ice.
+write(
+  "hit-cold",
+  wav(0.4, 0.55, [
+    blow(97),
+    louder(0.6, clink(3135.9, 0.01, 1)),
+    louder(0.4, clink(3520, 0.04, 1)),
+  ]),
+);
+// Lightning: a blow and a short zap.
+write(
+  "hit-lightning",
+  wav(0.35, 0.55, [blow(98), louder(0.5, zap(1400, 300, 0.15, 0))]),
+);
+// Thunder: a deep, booming blow.
+write(
+  "hit-thunder",
+  wav(0.5, 0.65, [thud(110, 40, 0.15, 0, 99), louder(0.4, table(0.45, 100))]),
+);
+// Acid and poison: a blow and a sizzle with a bubble.
+write(
+  "hit-acid",
+  wav(0.4, 0.55, [
+    blow(101),
+    louder(0.35, whoosh(0.3, 0.02, 102)),
+    louder(0.5, bubble(480, 0.08)),
+    louder(0.4, bubble(620, 0.17)),
+  ]),
+);
+// Necrotic: a blow and a low, hollow moan.
+write(
+  "hit-necrotic",
+  wav(0.45, 0.5, [blow(103), louder(0.5, horn(130.81, 98, 0.3, 0))]),
+);
+// Radiant: a blow and a bright ring.
+write(
+  "hit-radiant",
+  wav(0.45, 0.55, [
+    blow(104),
+    louder(0.4, bell(1568, 0)),
+    louder(0.3, bell(2093, 0.03)),
+  ]),
+);
+// Arcane (force and psychic): a blow and a quick rising pulse.
+write(
+  "hit-arcane",
+  wav(0.35, 0.5, [blow(105), louder(0.4, horn(700, 1200, 0.12, 0))]),
+);
+
+/** A voice that plays `samples` from `at` seconds. */
+const fromArray = (at, samples) => (time) => {
+  const index = Math.round((time - at) * RATE);
+  return index >= 0 && index < samples.length ? samples[index] : 0;
+};
+
+/**
+ * A plucked string (Karplus-Strong) at `frequency` from `at`, ringing for
+ * `seconds`; `bright` runs from 0, a dull gut string, to 1, a bright one.
+ */
+const pluck = (frequency, at, seconds, seed, bright) => {
+  const random = noise(seed);
+  const period = Math.max(2, Math.round(RATE / frequency));
+  const line = Array.from({ length: period }, () => random());
+  // A duller string starts from a smoother burst.
+  for (let pass = 0; pass < 2 - Math.round(bright * 2); pass++) {
+    for (let i = 1; i < period; i++) {
+      line[i] = 0.5 * (line[i] + line[i - 1]);
+    }
+  }
+  const count = Math.round(seconds * RATE);
+  const samples = new Array(count);
+  const damping = 0.994 + 0.005 * bright;
+  for (let i = 0; i < count; i++) {
+    const j = i % period;
+    samples[i] = line[j];
+    line[j] = damping * 0.5 * (line[j] + line[(j + 1) % period]);
+  }
+  // The last 400 samples fade, so the string never stops on a click.
+  for (let i = 0; i < Math.min(400, count); i++) {
+    samples[count - 1 - i] *= i / 400;
+  }
+  return fromArray(at, samples);
+};
+
+// Finds (#484), apart from taking: three rising harp notes, G5 B5 D6.
+write(
+  "find",
+  wav(
+    0.9,
+    0.45,
+    [783.99, 987.77, 1174.66].map((frequency, index) =>
+      pluck(frequency, index * 0.08, 0.9 - index * 0.08, 205 + index, 0.7),
+    ),
+  ),
+);
+
+/**
+ * A struck body at `at`, `gain` loud: decaying sines at its `modes`
+ * ({ f, decay, amp }) under a short click of bright noise, `click` loud.
+ */
+const modal = (at, gain, modes, click, seed) => {
+  const random = noise(seed);
+  let previous = 0;
+  return (time) => {
+    const grit = random();
+    const bright = grit - previous;
+    previous = grit;
+    const t = time - at;
+    if (t < 0 || t > 0.6) {
+      return 0;
+    }
+    const ring = modes.reduce(
+      (sum, { f, decay, amp }) =>
+        sum + amp * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / decay),
+      0,
+    );
+    return gain * (ring + click * bright * Math.exp(-t / 0.0012));
+  };
+};
+
+/**
+ * `count` modes drawn from `seed` around `centre` Hz, each softer than the
+ * last, ringing for about `decay` seconds.
+ */
+const modesFrom = (seed, count, centre, spread, decay) => {
+  const random = noise(seed);
+  return Array.from({ length: count }, (_, index) => ({
+    f: centre * (1 + spread * random()),
+    decay: decay * (0.6 + 0.4 * (random() + 1)),
+    amp: 1 / (index + 1),
+  }));
+};
+
+/**
+ * A thrown thing bouncing from `at`: `strike(time, gain, seed)` at each
+ * bounce, each sooner by `ratio` and softer than the last.
+ */
+const bounces = (at, first, ratio, seed, strike) => {
+  const voices = [];
+  let time = at;
+  let gap = first;
+  let gain = 1;
+  while (gap > 0.015) {
+    voices.push(strike(time, gain, seed + voices.length));
+    time += gap;
+    gap *= ratio;
+    gain *= 0.72;
+  }
+  return voices;
+};
+
+/** A die striking wood: a woody knock under the die's own click. */
+const woodKnock = (time, gain, seed) =>
+  modal(time, gain, modesFrom(seed, 4, 520, 0.5, 0.012), 0.5, seed);
+/** Dice knocking together in a cup: a short, dry click. */
+const cupClick = (time, gain, seed) =>
+  modal(time, gain, modesFrom(seed, 3, 1400, 0.3, 0.004), 0.35, seed);
+
+// A check or save (#482), chosen by the owner: dice rattled in a cup,
+// then thrown onto a wooden table.
+const rattle = (() => {
+  const random = noise(340);
+  const clicks = [];
+  let time = 0;
+  while (time < 0.32) {
+    time += 0.012 + 0.03 * ((random() + 1) / 2);
+    clicks.push(
+      cupClick(time, 0.35 + 0.3 * ((random() + 1) / 2), 341 + clicks.length),
+    );
+  }
+  return clicks;
+})();
+write(
+  "dice",
+  wav(0.95, 0.6, [
+    ...rattle,
+    ...bounces(0.42, 0.09, 0.62, 360, woodKnock),
+    ...bounces(0.45, 0.075, 0.62, 380, woodKnock),
+  ]),
+);
+
+// Rests (#486), chosen by the owner. A short rest: a slow, calm phrase on a
+// lute, D4 F#4 A4 D5.
+write(
+  "rest-short",
+  wav(
+    2.2,
+    0.45,
+    [293.66, 369.99, 440, 587.33].map((frequency, index) =>
+      pluck(frequency, index * 0.32, 2.2 - index * 0.32, 210 + index, 0.3),
+    ),
+  ),
+);
+// A long rest: the lute's phrase falls for the night, D5 A4 F#4 D4, then
+// rises brighter for the morning, D4 A4 D5 F#5.
+write(
+  "rest-long",
+  wav(3.2, 0.45, [
+    ...[587.33, 440, 369.99, 293.66].map((frequency, index) =>
+      pluck(frequency, index * 0.3, 1.4, 220 + index, 0.3),
+    ),
+    ...[293.66, 440, 587.33, 739.99].map((frequency, index) =>
+      pluck(
+        frequency,
+        1.6 + index * 0.18,
+        1.6 - index * 0.18,
+        230 + index,
+        0.6,
+      ),
+    ),
+  ]),
+);

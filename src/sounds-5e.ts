@@ -9,6 +9,7 @@
  */
 import { readFile } from "node:fs/promises";
 import type { EndingKind } from "./adventure-5e.js";
+import type { DamageType } from "./encounter-5e.js";
 import type { FightView, RollGroup } from "./runtime-5e.js";
 import { SPELLS, type SpellId } from "./spells-5e.js";
 
@@ -76,13 +77,37 @@ const SPELL_SOUNDS = Object.fromEntries(
   Record<`spell-${SpellFamily}` | `spell-${SpellFamily}-cantrip`, Sound>
 >;
 
+/**
+ * The families of damage a hit sounds by (#488): each physical type its own,
+ * and the others grouped as the spell families that deal them are.
+ */
+export const HIT_FAMILIES = [
+  "slashing",
+  "piercing",
+  "bludgeoning",
+  "fire",
+  "cold",
+  "lightning",
+  "thunder",
+  "acid",
+  "necrotic",
+  "radiant",
+  "arcane",
+] as const;
+export type HitFamily = (typeof HIT_FAMILIES)[number];
+
+/** Each family's hit sound, synthesised by our script. */
+const HIT_SOUNDS = Object.fromEntries(
+  HIT_FAMILIES.map((family) => [
+    `hit-${family}`,
+    { file: `hit-${family}.wav`, source: MADE, licence: "CC0 1.0" },
+  ]),
+) as Readonly<Record<`hit-${HitFamily}`, Sound>>;
+
 export const SOUNDS = {
-  // The character's attack hits (#481).
-  hit: {
-    file: "hit.wav",
-    source: MADE,
-    licence: "CC0 1.0",
-  },
+  // An attack hits, by its damage's family (#481, #488): the character's,
+  // or a creature's on another.
+  ...HIT_SOUNDS,
   // The character's attack is a critical hit.
   critical: {
     file: "critical.wav",
@@ -125,7 +150,8 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The character rolls a check or saving throw, before its sting.
+  // The character rolls a check or saving throw, before its sting: dice
+  // rattled in a cup and thrown.
   dice: {
     file: "dice.wav",
     source: MADE,
@@ -155,13 +181,15 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The adventure ends in victory (#483), in place of the fight's victory.
-  "ending-victory": {
-    file: "ending-victory.wav",
+  // The adventure ends meeting its objective (#487): its victory, or in a
+  // module without one, an escape with loot. It plays in place of the
+  // fight's victory (#483).
+  objective: {
+    file: "objective.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The character escapes the adventure, with loot or without.
+  // The character escapes the adventure short of its objective.
   "ending-escape": {
     file: "ending-escape.wav",
     source: MADE,
@@ -179,13 +207,20 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // Coin found or taken, or paid or received at a merchant (#484).
+  // Coin or a magic item found (#484): a harp's rising notes, apart from
+  // the sound of taking it.
+  find: {
+    file: "find.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // Coin taken, or paid or received at a merchant (#484).
   coins: {
     file: "coins.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
-  // A magic item found or taken.
+  // A magic item taken.
   "magic-item": {
     file: "magic-item.wav",
     source: MADE,
@@ -199,6 +234,72 @@ export const SOUNDS = {
   },
   // A spell cast, by its family (#485); a cantrip's is quieter.
   ...SPELL_SOUNDS,
+  // A lock picked, or unlocked with its key (#486).
+  unlock: {
+    file: "unlock.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A door forced or broken open.
+  "door-forced": {
+    file: "door-forced.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A trap set off.
+  "trap-sprung": {
+    file: "trap-sprung.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A trap disarmed.
+  "trap-disarmed": {
+    file: "trap-disarmed.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A potion drunk.
+  potion: {
+    file: "potion.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A short rest: a calm phrase on a lute.
+  "rest-short": {
+    file: "rest-short.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A long rest: the lute falling for the night, then rising for the morning.
+  "rest-long": {
+    file: "rest-long.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The alarm is raised (#487).
+  alarm: {
+    file: "alarm.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A wandering encounter comes upon the character.
+  wandering: {
+    file: "wandering.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A foe flees the fight.
+  "foe-flees": {
+    file: "foe-flees.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A foe throws down its arms and surrenders.
+  "foe-surrenders": {
+    file: "foe-surrenders.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;
@@ -360,9 +461,12 @@ export type SoundAnswer = Readonly<{
   after?: SoundFight | undefined;
   /**
    * The adventure's ending, only when this answer brought it (#483): its
-   * kind, and whether its rewards carry a level-up card.
+   * kind, whether it meets the module's objective (#487), and whether its
+   * rewards carry a level-up card.
    */
-  ending?: Readonly<{ kind: EndingKind; levelUp: boolean }> | undefined;
+  ending?:
+    | Readonly<{ kind: EndingKind; objective: boolean; levelUp: boolean }>
+    | undefined;
 }>;
 
 /**
@@ -374,6 +478,9 @@ export type SoundAnswer = Readonly<{
  * - initiative rolled: the fight-start drum;
  * - an attack, one sound however many dice: the character's hit, critical
  *   or miss, or for an attack on the character, hurt or the miss's whoosh;
+ *   a hit sounds by its first damage's type (#488), its weapon's when it
+ *   deals several, each physical type its own and the others their
+ *   family's;
  *   a hit waiting for the character's reaction sounds with its answer, and
  *   damage landing on the character without an attack or save is hurt;
  * - the character's check or saving throw: the dice, then success or
@@ -384,8 +491,10 @@ export type SoundAnswer = Readonly<{
  *   unless Undead Fortitude keeps it standing;
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
- * - the adventure ending (#483): its kind's sound, in place of the fight's
- *   victory, then the fanfare when the ending carries a level-up;
+ * - the adventure ending (#483), in place of the fight's victory: the
+ *   objective's fanfare when it meets the module's objective (#487), or
+ *   else the escape's or the defeat's sound, then the level-up fanfare
+ *   when the ending carries one;
  *
  * Nothing marks the reply itself or the player's turn: the owner found a
  * reply-ready tone irritating in play (#480).
@@ -402,6 +511,29 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
       : d20?.value === 1
         ? "natural-1"
         : undefined;
+  };
+  /** Each damage type's hit sound (#488); every type has one. */
+  const HITS = {
+    slashing: "hit-slashing",
+    piercing: "hit-piercing",
+    bludgeoning: "hit-bludgeoning",
+    fire: "hit-fire",
+    cold: "hit-cold",
+    lightning: "hit-lightning",
+    thunder: "hit-thunder",
+    acid: "hit-acid",
+    poison: "hit-acid",
+    necrotic: "hit-necrotic",
+    radiant: "hit-radiant",
+    force: "hit-arcane",
+    psychic: "hit-arcane",
+  } as const satisfies Readonly<Record<DamageType, SoundId>>;
+  const hit = (rolls: readonly RollGroup[]): SoundId => {
+    const type = rolls.find(({ purpose }) => purpose === "damage")?.damageType;
+    // A type the game does not use, which no hit has, is a plain blow.
+    return type !== undefined && Object.hasOwn(HITS, type)
+      ? HITS[type as DamageType]
+      : "hit-bludgeoning";
   };
   const lines = answer.cards.flatMap((card) => card.lines);
   let started = false;
@@ -429,12 +561,12 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
               ? "miss"
               : attack.outcome === "critical"
                 ? "critical"
-                : "hit"),
+                : hit(rolls)),
         );
       } else if (missed) {
         sounds.push("miss");
       } else if (rolls.some(({ purpose }) => purpose === "damage")) {
-        sounds.push(attack.target === character ? "hurt" : "hit");
+        sounds.push(attack.target === character ? "hurt" : hit(rolls));
       }
       // A hit with no damage yet waits for the character's reaction
       // (#308): its answer sounds, once the damage lands or Shield turns it.
@@ -474,8 +606,8 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
     started || (before !== undefined && before.currentTurn !== null);
   if (ending !== undefined) {
     sounds.push(
-      ending.kind === "victory"
-        ? "ending-victory"
+      ending.objective
+        ? "objective"
         : ending.kind === "defeat"
           ? "ending-defeat"
           : "ending-escape",

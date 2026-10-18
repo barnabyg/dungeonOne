@@ -2363,7 +2363,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
         cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),
         before,
         after: session.encounter,
-        ending: ended || !session.ending ? undefined : { kind: session.ending.kind, levelUp: Boolean(session.ending.rewards?.levelUp) },
+        ending: ended || !session.ending ? undefined : { kind: session.ending.kind, objective: session.ending.objective, levelUp: Boolean(session.ending.rewards?.levelUp) },
       }));
     }
   }

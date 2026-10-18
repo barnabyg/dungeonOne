@@ -40,7 +40,10 @@ test("the launcher's --no-sound turns sound off, and is a flag without a value",
     try {
       const html = await (await fetch(launched.url)).text();
       assert.doesNotMatch(html, /sound-controls/u);
-      assert.equal((await fetch(`${launched.url}/sounds/hit.wav`)).status, 404);
+      assert.equal(
+        (await fetch(`${launched.url}/sounds/hit-bludgeoning.wav`)).status,
+        404,
+      );
     } finally {
       await launched.stop();
     }

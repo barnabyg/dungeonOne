@@ -1,6 +1,7 @@
-// #483: adventure endings sound. Each ending kind plays its own sound when
-// an answer brings the ending, in place of the fight's victory, and an
-// ending with a level-up card plays the fanfare after it.
+// #483: adventure endings sound. An ending plays its sound when an answer
+// brings it, in place of the fight's victory: the objective's fanfare when
+// it meets the module's objective (#487), or else the escape's or the
+// defeat's. An ending with a level-up card plays the fanfare after it.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { SOUNDS, resultSounds } from "../dist/sounds-5e.js";
@@ -59,7 +60,7 @@ const sounds = (answer) =>
 
 test("each ending sound and the fanfare is a named, bundled sound", () => {
   for (const id of [
-    "ending-victory",
+    "objective",
     "ending-escape",
     "ending-defeat",
     "level-up",
@@ -68,16 +69,18 @@ test("each ending sound and the fanfare is a named, bundled sound", () => {
   }
 });
 
-test("each ending kind plays its own sound", () => {
+test("each ending kind plays its sound, and a victory the objective's", () => {
   const cases = [
-    ["victory", "ending-victory"],
+    ["victory", "objective"],
     ["escape-with-loot", "ending-escape"],
     ["escape-without-loot", "ending-escape"],
     ["defeat", "ending-defeat"],
   ];
   for (const [kind, sound] of cases) {
     assert.deepEqual(
-      sounds({ ending: { kind, levelUp: false } }),
+      sounds({
+        ending: { kind, objective: kind === "victory", levelUp: false },
+      }),
       [sound],
       kind,
     );
@@ -86,13 +89,15 @@ test("each ending kind plays its own sound", () => {
 
 test("an ending with a level-up plays the fanfare after the ending's sound", () => {
   assert.deepEqual(
-    sounds({ ending: { kind: "escape-with-loot", levelUp: true } }),
+    sounds({
+      ending: { kind: "escape-with-loot", objective: false, levelUp: true },
+    }),
     ["ending-escape", "level-up"],
   );
-  assert.deepEqual(sounds({ ending: { kind: "victory", levelUp: true } }), [
-    "ending-victory",
-    "level-up",
-  ]);
+  assert.deepEqual(
+    sounds({ ending: { kind: "victory", objective: true, levelUp: true } }),
+    ["objective", "level-up"],
+  );
 });
 
 test("a fight won that ends the adventure plays the ending in place of the fight's victory", () => {
@@ -101,10 +106,13 @@ test("a fight won that ends the adventure plays the ending in place of the fight
     before: fight("pc"),
     after: fight(null, { goblin: 0 }),
   };
-  assert.deepEqual(sounds(won), ["hit", "fall", "victory"]);
+  assert.deepEqual(sounds(won), ["hit-slashing", "fall", "victory"]);
   assert.deepEqual(
-    sounds({ ...won, ending: { kind: "victory", levelUp: true } }),
-    ["hit", "fall", "ending-victory", "level-up"],
+    sounds({
+      ...won,
+      ending: { kind: "victory", objective: true, levelUp: true },
+    }),
+    ["hit-slashing", "fall", "objective", "level-up"],
   );
 });
 
@@ -140,7 +148,7 @@ test("the character's fall that ends the adventure plays its fall, then the defe
       cards: [card(felled)],
       before: fight("goblin"),
       after: fight(null, { ada: 0 }),
-      ending: { kind: "defeat", levelUp: false },
+      ending: { kind: "defeat", objective: false, levelUp: false },
     }),
     ["hurt", "fall-you", "ending-defeat"],
   );

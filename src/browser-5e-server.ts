@@ -26,6 +26,7 @@
 import { createServer } from "node:http";
 import {
   loadBuiltInFifthAdventures,
+  objectiveEnding,
   orderFifthAdventures,
   type FifthAdventure,
 } from "./adventure-5e.js";
@@ -224,6 +225,8 @@ function sessionView(session: FifthSession) {
             kind: ending.kind,
             title: ending.title,
             text: ending.text,
+            // Whether it meets the module's objective, for its sound (#487).
+            objective: ending.id === objectiveEnding(adventure)?.id,
             ...(rewards === undefined ? {} : { rewards }),
           },
         }),

@@ -133,7 +133,7 @@ test(
       // Ada hits, and the rat misses her. Muting while the first of them
       // plays stops the rest.
       assert.deepEqual(await answerSounds(page, () => fightTurn(page)), [
-        "hit",
+        "hit-bludgeoning",
         "miss",
       ]);
       await page.locator("#sound-mute").click();
@@ -142,12 +142,12 @@ test(
         (await page.evaluate(() => window.playedSounds))
           .slice(2)
           .map(({ src }) => src),
-        ["/sounds/hit.wav"],
+        ["/sounds/hit-bludgeoning.wav"],
       );
       assert.deepEqual(await lastTags(page), ["Hit", "Miss"]);
       // Ada's next hit drops the rat, which ends the fight.
       assert.deepEqual(await answerSounds(page, () => fightTurn(page)), [
-        "hit",
+        "hit-bludgeoning",
         "fall",
         "victory",
       ]);

@@ -137,7 +137,7 @@ test("a fight ending with the character standing plays the victory last", () => 
       before: fight("pc"),
       after: fight(null, { goblin: 0 }),
     }),
-    ["hit", "victory"],
+    ["hit-slashing", "victory"],
   );
   // A foe that fled or surrendered is beaten too.
   for (const morale of ["fled", "surrendered"]) {
@@ -233,7 +233,7 @@ test("a natural 20 or 1 replaces the sting rather than stacking on it", () => {
 test("an attack never rattles the dice; your natural 20 or 1 replaces its sound", () => {
   assert.deepEqual(
     sounds({ cards: [card(attack(ADA, "Goblin", "hit", 15))] }),
-    ["hit"],
+    ["hit-slashing"],
   );
   assert.deepEqual(
     sounds({ cards: [card(attack(ADA, "Goblin", "critical", 20))] }),

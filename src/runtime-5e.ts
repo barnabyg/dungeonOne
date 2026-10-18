@@ -112,6 +112,7 @@ import {
   type EndingKind,
   type FeatureUse,
   fightActionBand,
+  objectiveEnding,
   type FifthFeature,
   type FifthItem,
   type FlagOutcome,
@@ -3907,7 +3908,7 @@ function lineIcons(
     .filter((one, index, sorted) => sorted[index - 1]?.at !== one.at);
 }
 
-/** The sound each sort of item makes when found or taken (#484). */
+/** The sound each sort of item makes when taken (#484). */
 const ITEM_SOUNDS = {
   coin: "coins",
   magic: "magic-item",
@@ -3915,25 +3916,32 @@ const ITEM_SOUNDS = {
 } as const satisfies Readonly<Record<ItemSort, SoundId>>;
 
 /**
- * The named sound a line asks for (#484): coin clinks when it is found or
- * taken, when the character buys or sells, and when it pays a toll; a
- * magic item chimes when it
- * is found or taken; an ordinary item taken is picked up. A line finding
- * several plays the most notable, a magic item before coin; finding an
- * ordinary item is silent until it is taken. A spell cast, by anyone and
- * from a slot, scroll or wand, plays its family's sound (#485).
+ * The named sound a line asks for (#484): coin clinks when it is taken,
+ * when the character buys or sells, and when it pays a toll; a magic item
+ * chimes when it is taken; an ordinary item taken is picked up. Finding
+ * coin or a magic item, by examining, by a check or as a creature's gift,
+ * plays the find's harp, apart from taking it; finding only ordinary items
+ * is silent until one is taken. A spell cast, by anyone and from a slot,
+ * scroll or wand, plays its family's sound (#485).
+ *
+ * World actions (#486): a lock picked or unlocked clicks, and a door forced
+ * or broken bursts open; a trap sprung and a trap disarmed each sound, and so
+ * do a potion drunk and a short or long rest begun. A failed pick, force or
+ * disarm leaves only its check's sounds; a rest a wanderer interrupts never
+ * begins, so it is silent.
+ *
+ * Warnings and outcomes (#487): the alarm raised, and a wandering encounter
+ * coming upon the character, each sound a warning; a roll that brings
+ * nothing, or only an omen, is silent. A foe fleeing and a foe surrendering
+ * each sound too.
  */
 function lineSound(
   event: FifthEvent | undefined,
   lookup: LineLookup,
 ): SoundId | undefined {
-  /** The most notable sound of the items found. */
+  /** The find's sound, when any item found is coin or magic. */
   const found = (sorts: readonly (ItemSort | undefined)[]) =>
-    sorts.includes("magic")
-      ? ITEM_SOUNDS.magic
-      : sorts.includes("coin")
-        ? ITEM_SOUNDS.coin
-        : undefined;
+    sorts.includes("magic") || sorts.includes("coin") ? "find" : undefined;
   switch (event?.type) {
     case "examined":
       return found(event.found.map((name) => lookup.itemSortNamed(name)));
@@ -3954,6 +3962,30 @@ function lineSound(
       return event.toll === undefined ? undefined : ITEM_SOUNDS.coin;
     case "cast":
       return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
+    case "door":
+      return !event.opened
+        ? undefined
+        : event.approach === "pick" || event.approach === "unlock"
+          ? "unlock"
+          : "door-forced";
+    case "trap-sprung":
+      return "trap-sprung";
+    case "disarmed":
+      return event.success ? "trap-disarmed" : undefined;
+    case "potion":
+      return "potion";
+    case "short-rest":
+      return "rest-short";
+    case "long-rest":
+      return "rest-long";
+    case "alarm":
+      return "alarm";
+    case "wandering-roll":
+      return event.opponents === undefined ? undefined : "wandering";
+    case "fled":
+      return event.combatantId === PLAYER_ID ? undefined : "foe-flees";
+    case "surrendered":
+      return event.combatantId === PLAYER_ID ? undefined : "foe-surrenders";
     default:
       return undefined;
   }
@@ -5938,13 +5970,8 @@ export function createFifthRuntime(
         : "escape-without-loot";
     return adventure.endings.find((candidate) => candidate.kind === kind)!;
   };
-  /**
-   * The module's objective (#475), as docs/rules/balance.md has it: its
-   * victory, if it has one, or else getting out with loot.
-   */
-  const objectiveEnding =
-    adventure.endings.find(({ kind }) => kind === "victory") ??
-    adventure.endings.find(({ kind }) => kind === "escape-with-loot");
+  /** The module's objective (#475). */
+  const objective = objectiveEnding(adventure);
   /** The id the sheet credits an ending's XP under. */
   const endingAwardId = (ending: FifthEnding) =>
     `${adventure.id}/ending/${ending.id}`;
@@ -5967,25 +5994,25 @@ export function createFifthRuntime(
     };
     // Once its award is credited, the objective has nothing left to give up.
     if (
-      objectiveEnding === undefined ||
-      objectiveEnding === ending ||
-      sheet.xpAwards.includes(endingAwardId(objectiveEnding))
+      objective === undefined ||
+      objective === ending ||
+      sheet.xpAwards.includes(endingAwardId(objective))
     ) {
       return { ending: brings };
     }
     const unmet =
-      objectiveEnding.kind === "victory"
+      objective.kind === "victory"
         ? `Objective not met: ${adventure.objective}`
         : "You have found no treasure or coin here to carry out.";
     const award =
-      objectiveEnding.xp === undefined
+      objective.xp === undefined
         ? []
         : [
             `Leaving now ${
               xp === undefined
                 ? ""
                 : `earns ${xp} XP for “${ending.title}” but `
-            }gives up the ${objectiveEnding.xp} XP for “${objectiveEnding.title}”.`,
+            }gives up the ${objective.xp} XP for “${objective.title}”.`,
           ];
     return {
       ending: brings,
