@@ -20,6 +20,10 @@
  * choice is saved with it and survives a reload. A caster's prepared spells
  * change only between adventures, here (#339, D8).
  *
+ * A held gem or art object keeps the value it was found with, as the
+ * treasure found setting scaled it (format 27, #507). A new character starts
+ * with the starting coin setting's purse when it is saved.
+ *
  * A library in any other format version is refused with a message naming the
  * file, and left untouched.
  */
@@ -53,9 +57,11 @@ import {
   type Settlement,
 } from "./character-5e.js";
 import { ABILITIES, type ClassId } from "./class-5e.js";
+import { COIN_VALUES } from "./equipment-5e.js";
 import { createSeededRandom } from "./random.js";
+import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 
-export const FIFTH_LIBRARY_FORMAT = 26;
+export const FIFTH_LIBRARY_FORMAT = 27;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -319,13 +325,15 @@ export class FifthCharacterLibrary {
 
   /**
    * Saves a level 1 character of `classId` (#306) from the pending dice and
-   * the player's choices.
+   * the player's choices, with the starting coin `settings` give (#507): the
+   * settings of the moment, which change no character saved before.
    */
   async create(
     name: string,
     choices: CreationChoices,
     revision: string,
     classId: ClassId = DEFAULT_CLASS,
+    settings: GameSettings = DEFAULT_SETTINGS,
   ): Promise<FifthLibraryData> {
     return this.update(revision, (data) => {
       const pending = this.pending(data);
@@ -338,6 +346,7 @@ export class FifthCharacterLibrary {
           choices,
           classId,
         ),
+        settings.startingCoin * COIN_VALUES.gp,
       );
     });
   }
@@ -698,7 +707,8 @@ export class FifthCharacterLibrary {
     return data.pendingCreation;
   }
 
-  private add(data: FifthLibraryData, value: unknown): void {
+  /** Adds a new sheet, its purse holding `purse` copper (#507). */
+  private add(data: FifthLibraryData, value: unknown, purse = 0): void {
     const sheet = validateCharacter(value);
     if (sheet.level !== 1 || sheet.xp !== 0 || sheet.xpAwards.length > 0) {
       throw new Error("New characters start at level 1 with 0 XP.");
@@ -725,7 +735,10 @@ export class FifthCharacterLibrary {
     if (data.characters.some((record) => record.sheet.id === sheet.id)) {
       throw new Error("A character with this identity already exists.");
     }
-    data.characters.push({ sheet, revision: 1 });
+    data.characters.push({
+      sheet: purse === 0 ? sheet : { ...sheet, purse },
+      revision: 1,
+    });
     delete data.pendingCreation;
   }
 }

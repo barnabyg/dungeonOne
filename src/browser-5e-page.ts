@@ -2333,7 +2333,7 @@ function renderRoom(room) {
           return line;
         }));
         item.append(wares);
-        if (entry.salePrices.length) item.append(make("p", "Pays half price: " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
+        if (entry.salePrices.length) item.append(make("p", "Pays " + entry.buyBack + ": " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
         item.append(make("p", "Pays full value for gems and art objects.", "trade"));
       }
       return item;

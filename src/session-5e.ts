@@ -257,7 +257,8 @@ export class FifthSession {
     readonly transitions: Transition[],
     readonly history: HistoryEntry[],
   ) {
-    this.runtime = createFifthRuntime(adventure, character, {}, settings);
+    // Scarce items found (#507) draws from the session's seed.
+    this.runtime = createFifthRuntime(adventure, character, {}, settings, seed);
     this.random = createSeededRandom(seed);
   }
 
@@ -545,7 +546,13 @@ export class FifthSession {
       adventure,
       validateCharacter(character),
       settings,
-      createFifthRuntime(adventure, character, {}, settings).createSession(),
+      createFifthRuntime(
+        adventure,
+        character,
+        {},
+        settings,
+        seed,
+      ).createSession(),
       [],
       [],
     );
@@ -636,7 +643,13 @@ export class FifthSession {
       adventure,
       character,
       settings,
-      createFifthRuntime(adventure, character, {}, settings).createSession(),
+      createFifthRuntime(
+        adventure,
+        character,
+        {},
+        settings,
+        file.random.seed,
+      ).createSession(),
       [],
       [...file.history],
     );

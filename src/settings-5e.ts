@@ -47,6 +47,61 @@ export const SETTINGS = {
     ],
     default: 15,
   },
+  // Loot and economy (#507).
+  treasureFound: {
+    name: "Treasure found",
+    text: "What coin, gems and art objects are worth when found: the coin taken and each gem or art object's value. Potions, scrolls, gear and magic items are unchanged.",
+    choices: [
+      { value: 50, label: "50%" },
+      { value: 100, label: "100%" },
+      { value: 150, label: "150%" },
+      { value: 200, label: "200%" },
+    ],
+    default: 100,
+  },
+  itemsFound: {
+    name: "Items found",
+    text: "Whether every potion, scroll, wand and piece of gear an adventure hides is there, or each is missing with an even chance. Coin, gems, art, keys, tools and anything a way on needs are always there.",
+    choices: [
+      { value: "normal", label: "Normal" },
+      { value: "scarce", label: "Scarce" },
+    ],
+    default: "normal",
+  },
+  merchantPrices: {
+    name: "Merchant prices",
+    text: "What merchants charge for what they sell, ammunition included, as a multiple of the catalogue price.",
+    choices: [
+      { value: 0.5, label: "× 0.5" },
+      { value: 0.75, label: "× 0.75" },
+      { value: 1, label: "× 1" },
+      { value: 1.5, label: "× 1.5" },
+      { value: 2, label: "× 2" },
+    ],
+    default: 1,
+  },
+  merchantBuyBack: {
+    name: "Merchant buy-back",
+    text: "What merchants pay for gear and ammunition, as a share of the catalogue price. Gems and art objects always sell for their full value.",
+    choices: [
+      { value: 25, label: "25%" },
+      { value: 50, label: "50%" },
+      { value: 75, label: "75%" },
+      { value: 100, label: "100%" },
+    ],
+    default: 50,
+  },
+  startingCoin: {
+    name: "Starting coin",
+    text: "The coin in a new character's purse when it is saved. Characters saved before keep their purses.",
+    choices: [
+      { value: 0, label: "None" },
+      { value: 10, label: "10 gp" },
+      { value: 25, label: "25 gp" },
+      { value: 50, label: "50 gp" },
+    ],
+    default: 0,
+  },
 } as const satisfies Record<string, SettingDefinition>;
 
 export type SettingId = keyof typeof SETTINGS;

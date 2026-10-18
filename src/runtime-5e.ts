@@ -54,7 +54,8 @@
  * what it holds at the end, and what it earned.
  *
  * Outside a fight, where a merchant is, the character buys what it stocks at
- * catalogue prices, sells catalogue gear for half, and sells gems and art
+ * catalogue prices and sells catalogue gear for half, each as the merchant
+ * settings scale it (#507), and sells gems and art
  * objects (treasure found here or brought in) for their full value (#239);
  * each trade takes the merchant's authored minutes. Equipped gear is sold only when the sale says
  * so (the browser asks the player first).
@@ -241,9 +242,9 @@ import {
   itemName,
   readLoadout,
   itemNoun,
-  itemPrice,
   itemWeight,
   loadWeight,
+  merchantPrice,
   salePrice,
   sellItem,
   swapWeapon,
@@ -262,7 +263,7 @@ import {
   type WeaponData,
 } from "./equipment-5e.js";
 import { itemStats, type ItemStats } from "./item-stats-5e.js";
-import { tradeGoodValue } from "./treasure-5e.js";
+import { scaledTreasure, tradeGoodValue } from "./treasure-5e.js";
 import {
   chargesText,
   heldItemName,
@@ -314,7 +315,7 @@ import {
   type Settlement,
   type XpAward,
 } from "./character-5e.js";
-import type { RandomSource } from "./random.js";
+import { createSeededRandom, type RandomSource } from "./random.js";
 import { DEFAULT_SETTINGS, type GameSettings } from "./settings-5e.js";
 import type {
   AdventureRuntime,
@@ -4935,6 +4936,8 @@ export type RoomView = Readonly<{
         icon: GameIconId;
         price: string;
       }>[];
+      /** What share of the catalogue price it pays (#507): "half price". */
+      buyBack?: string;
       tradeMinutes?: number;
     }>)[];
   /**
@@ -5823,17 +5826,113 @@ export type FifthRuntimeProbe = Readonly<{
 }>;
 
 /**
+ * The items a module's rules name (#507): each door's key and each item a
+ * feature's use takes. A way on may need them.
+ */
+function ruleItemIds(adventure: FifthAdventure): ReadonlySet<string> {
+  return new Set([
+    ...adventure.passages.flatMap(({ door }) =>
+      door?.keyItemId === undefined ? [] : [door.keyItemId],
+    ),
+    ...adventure.rooms.flatMap(({ features }) =>
+      features.flatMap(({ uses }) => (uses ?? []).map(({ item }) => item)),
+    ),
+  ]);
+}
+
+/**
+ * The ids of the items that may be missing when items found is Scarce
+ * (#507): each potion, piece of gear (ammunition included), spell scroll and
+ * wand that no rule of the module names. Coin, gems and art, keys and tools
+ * are always there.
+ */
+export function scarceCandidateIds(
+  adventure: FifthAdventure,
+): readonly string[] {
+  const named = ruleItemIds(adventure);
+  return adventure.rooms.flatMap(({ items }) =>
+    items
+      .filter(
+        (item) =>
+          (potionOf(item) !== undefined ||
+            item.kind === "gear" ||
+            item.kind === "scroll" ||
+            item.kind === "wand") &&
+          !named.has(item.id),
+      )
+      .map(({ id }) => id),
+  );
+}
+
+/** A 32-bit FNV-1a hash of `text`. */
+function textHash(text: string): number {
+  let hash = 0x811c9dc5;
+  for (const unit of text) {
+    hash = Math.imul(hash ^ unit.codePointAt(0)!, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * The ids of the items missing from `adventure` on Scarce (#507) in the
+ * session whose seed is `seed`: each candidate is missing with an even
+ * chance, drawn from the seed and its id alone, so a reload or a rerun of
+ * the session misses the same ones.
+ */
+export function scarceItemIds(
+  adventure: FifthAdventure,
+  seed: number,
+): ReadonlySet<string> {
+  return new Set(
+    scarceCandidateIds(adventure).filter(
+      (id) =>
+        createSeededRandom(
+          (seed ^ textHash(`${adventure.id}/${id}`)) >>> 0,
+        ).roll(2) === 1,
+    ),
+  );
+}
+
+/** How a merchant's buy-back reads (#507): "Pays half price". */
+const BUY_BACK_WORDS: Readonly<
+  Record<GameSettings["merchantBuyBack"], string>
+> = {
+  25: "a quarter of the price",
+  50: "half price",
+  75: "three quarters of the price",
+  100: "full price",
+};
+
+/**
  * The runtime for `sheet` in `adventure`, playing by `settings` (#506): an
- * adventure's own copy, frozen when it started. Every tool plays at the
- * defaults.
+ * adventure's own copy, frozen when it started. `sessionSeed` is the seed
+ * of the session it plays, which Scarce items found draws from (#507).
+ * Every tool plays at the defaults.
  */
 export function createFifthRuntime(
   adventure: FifthAdventure,
   sheet: CharacterSheet,
   probe: FifthRuntimeProbe = {},
   settings: GameSettings = DEFAULT_SETTINGS,
+  sessionSeed?: number,
 ): FifthRuntime {
   const checkPolicy = probe.checks ?? "seeded";
+  if (settings.itemsFound === "scarce" && sessionSeed === undefined) {
+    throw new Error("Scarce items found needs the session's seed.");
+  }
+  /** The items missing on Scarce (#507): none on Normal. */
+  const scarce: ReadonlySet<string> =
+    settings.itemsFound === "scarce"
+      ? scarceItemIds(adventure, sessionSeed!)
+      : new Set();
+  /** Coin or a gem or art object's value as found here (#507). */
+  const asFound = (copper: number) =>
+    scaledTreasure(copper, settings.treasureFound);
+  /** What a merchant here charges for an item, and pays for one (#507). */
+  const askingPrice = (id: CatalogueId) =>
+    merchantPrice(id, settings.merchantPrices);
+  const offeredPrice = (id: CatalogueId) =>
+    salePrice(id, settings.merchantBuyBack);
   const baseMaxHp = characterProfile(sheet).maxHp;
   /** The character's maximum hit points now: Aid raises them (#341). */
   const maxHpOf = (state: FifthState) =>
@@ -6014,9 +6113,13 @@ export function createFifthRuntime(
   /** The id a treasure or coin is found under, so each is found once. */
   const treasureId = (item: FifthItem) => `${adventure.id}/${item.id}`;
   const found = new Set(sheet.finds);
-  /** Treasure and coin the character found before are not there to find again. */
+  /**
+   * Treasure and coin the character found before are not there to find
+   * again, and an item missing on Scarce (#507) is not there at all.
+   */
   const present = (item: FifthItem) =>
-    !FOUND_ONCE_KINDS.includes(item.kind) || !found.has(treasureId(item));
+    !scarce.has(item.id) &&
+    (!FOUND_ONCE_KINDS.includes(item.kind) || !found.has(treasureId(item)));
   /** The coin found in this adventure, emptied into the purse. */
   const coinFound = (state: FifthState): readonly FifthItem[] =>
     state.usedItemIds
@@ -6099,7 +6202,7 @@ export function createFifthRuntime(
     id: treasureId(item),
     name: item.name,
     description: item.description,
-    value: tradeGoodValue(item.treasure!),
+    value: asFound(tradeGoodValue(item.treasure!)),
   });
   /**
    * The state after selling the treasure `itemId` names, with its name and
@@ -6123,7 +6226,7 @@ export function createFifthRuntime(
           usedItemIds: [...state.usedItemIds, itemId],
         },
         name: found.name,
-        price: tradeGoodValue(found.treasure!),
+        price: asFound(tradeGoodValue(found.treasure!)),
       };
     }
     const held = state.possessions.treasure.find(({ id }) => id === itemId);
@@ -6150,7 +6253,7 @@ export function createFifthRuntime(
       icon: itemIcon(item),
       ...(item.treasure === undefined
         ? {}
-        : { value: formatCoins(tradeGoodValue(item.treasure)) }),
+        : { value: formatCoins(asFound(tradeGoodValue(item.treasure))) }),
       group: carriedGroup(item),
     })),
     ...state.possessions.treasure.map(({ id, name, description, value }) => ({
@@ -11063,8 +11166,9 @@ export function createFifthRuntime(
           );
         }
         if (item.coins !== undefined) {
-          // The engine decides how much: the authored amount, into the purse.
-          const coin = coinsInCopper(item.coins);
+          // The engine decides how much: the authored amount, as the
+          // treasure found setting scales it (#507), into the purse.
+          const coin = asFound(coinsInCopper(item.coins));
           return taken(
             {
               ...state,
@@ -11255,8 +11359,13 @@ export function createFifthRuntime(
         };
         const trade =
           action.type === "buy"
-            ? buyItem(holding, id, { capacity, other: otherWeight(state) })
-            : sellItem(holding, id, action.equipped === true);
+            ? buyItem(
+                holding,
+                id,
+                { capacity, other: otherWeight(state) },
+                askingPrice(id),
+              )
+            : sellItem(holding, id, action.equipped === true, offeredPrice(id));
         if (trade.refusal !== undefined) {
           return reject(trade.refusal.code, trade.refusal.reason);
         }
@@ -12315,7 +12424,8 @@ export function createFifthRuntime(
       icon: catalogueIcon(id),
       price: formatCoins(price(id)),
     }));
-  const wares = (merchant: FifthMerchant) => priced(merchant.stock, itemPrice);
+  const wares = (merchant: FifthMerchant) =>
+    priced(merchant.stock, askingPrice);
 
   /**
    * "8, uncertain": the reaction roll under way (#304), for the scene, with
@@ -12994,8 +13104,9 @@ export function createFifthRuntime(
                   ),
                   // No merchant buys a magic item (#345).
                 ].filter((id) => magicOf(id) === undefined),
-                salePrice,
+                offeredPrice,
               ),
+              buyBack: BUY_BACK_WORDS[settings.merchantBuyBack],
               tradeMinutes: creature.merchant.minutes,
             }),
       })),
@@ -13494,11 +13605,11 @@ export function createFifthRuntime(
         [
           ...choices("buy").map(({ id }) => ({
             id: `buy:${id}`,
-            name: `buy the ${itemNoun(id as CatalogueId)} for ${formatCoins(itemPrice(id as CatalogueId))}`,
+            name: `buy the ${itemNoun(id as CatalogueId)} for ${formatCoins(askingPrice(id as CatalogueId))}`,
           })),
           ...choices("sell").map(({ id }) => ({
             id: `sell:${id}`,
-            name: `sell the ${itemNoun(id as CatalogueId)} for ${formatCoins(salePrice(id as CatalogueId))}`,
+            name: `sell the ${itemNoun(id as CatalogueId)} for ${formatCoins(offeredPrice(id as CatalogueId))}`,
           })),
           ...choices("sell-treasure").map(({ id, name }) => ({
             id: `sell-treasure:${id}`,
@@ -14201,7 +14312,7 @@ export function createFifthRuntime(
       sold: treasureSold(state).map(treasureId),
       coin: coinFound(state).map((item) => ({
         id: treasureId(item),
-        copper: coinsInCopper(item.coins!),
+        copper: asFound(coinsInCopper(item.coins!)),
       })),
       // Gear, scrolls and wands (#346) taken here, kept or not.
       gear: state.usedItemIds

@@ -1403,9 +1403,23 @@ export type Trade =
       holding?: never;
     }>;
 
-/** What a merchant pays for an item: half its price, rounded down. */
-export function salePrice(id: CatalogueId): number {
-  return Math.floor(itemPrice(id) / 2);
+/**
+ * What a merchant charges for an item under the merchant prices setting
+ * (#507): its catalogue price times `factor`, rounded to the nearest copper
+ * and at least 1 cp.
+ */
+export function merchantPrice(id: CatalogueId, factor = 1): number {
+  return factor === 1
+    ? itemPrice(id)
+    : Math.max(1, Math.round(itemPrice(id) * factor));
+}
+
+/**
+ * What a merchant pays for an item: `percent` of its price, rounded down,
+ * by default half, as the merchant buy-back setting has it (#507).
+ */
+export function salePrice(id: CatalogueId, percent = 50): number {
+  return Math.floor((itemPrice(id) * percent) / 100);
 }
 
 /** `ammunition` with `change` more of `id`. */
@@ -1423,17 +1437,17 @@ const ammunitionField = (holding: Holding) =>
   holding.ammunition === undefined ? {} : { ammunition: holding.ammunition };
 
 /**
- * Buys an item at its catalogue price: the purse pays, and the item is
- * stowed, or a bundle of ammunition adds 20 to the count. Refused with too
- * little coin, or when the character would carry more than its capacity once
- * the coin is paid.
+ * Buys an item at `price`, by default its catalogue price: the purse pays,
+ * and the item is stowed, or a bundle of ammunition adds 20 to the count.
+ * Refused with too little coin, or when the character would carry more than
+ * its capacity once the coin is paid.
  */
 export function buyItem(
   holding: Holding,
   id: CatalogueId,
   burden: Burden,
+  price = itemPrice(id),
 ): Trade {
-  const price = itemPrice(id);
   if (holding.purse < price) {
     return {
       refusal: {
@@ -1473,7 +1487,7 @@ export function buyItem(
 }
 
 /**
- * Sells an item for half its price. A stowed copy is sold unless `equipped`
+ * Sells an item for `price`, by default half its price. A stowed copy is sold unless `equipped`
  * confirms selling the one equipped, which is taken off first; selling what
  * is only equipped needs that confirmation. The last weapon held is never
  * sold. Ammunition sells by the bundle of 20. No merchant buys a magic
@@ -1483,8 +1497,8 @@ export function sellItem(
   holding: Holding,
   id: CatalogueId,
   equipped = false,
+  price = salePrice(id),
 ): Trade {
-  const price = salePrice(id);
   if (magicOf(id) !== undefined) {
     return {
       refusal: {

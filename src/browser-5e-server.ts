@@ -1155,12 +1155,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         const { classId, choices } = choicesFrom(body);
         return view(
-          await serialized(() =>
+          await serialized(async () =>
             library.create(
               (body.name as string).trim(),
               choices,
               body.revision as string,
               classId,
+              // Its starting coin (#507) as the file has it now.
+              await readSettings(),
             ),
           ),
         );

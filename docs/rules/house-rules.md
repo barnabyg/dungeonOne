@@ -24,7 +24,7 @@
 - Haste is cast on the caster only, its extra action makes one weapon attack only, and its lethargy follows any end before the fight's. Slow catches four, not six, and its riders on speed, reactions and spellcasting are omitted.
 - Spell durations are bands, not minutes: up to 1 minute ends with the fight, 10 minutes to 1 hour at the next rest, 8 hours at a long rest or the adventure's end. Mage Armor gives nothing while armour is worn rather than ending.
 - Ability scores are rolled once with 4d6-drop-lowest and placed freely; there are no rerolls.
-- Starting gear is common tier only: each class's kits hold its weapons and, for a class that wears it, leather armour; one class's kits are of equal value (within `KIT_VALUE_TOLERANCE`), and there is no starting coin.
+- Starting gear is common tier only: each class's kits hold its weapons and, for a class that wears it, leather armour; one class's kits are of equal value (within `KIT_VALUE_TOLERANCE`), and there is no starting coin unless the starting coin [setting](settings.md) gives some.
 - Sneak Attack is dealt whenever its rules are met; SRD 5.2 lets the Rogue choose. Without a choice of when to deal it, it is never saved for a later attack.
 - Hide is a Stealth check against the opponents' best passive Perception, not SRD 5.2's DC 15, and gives only advantage on the next attack, not the Invisible condition (see [the Rogue](classes.md#rogue)).
 - Cunning Strike is chosen with the attack, before the d20 is rolled, and applies only if the attack hits and deals Sneak Attack; a miss spends nothing. Its Poison needs no Poisoner's Kit (see [the Rogue](classes.md#rogue)).

@@ -41,6 +41,10 @@ export const CONTENT_TESTS = new Map([
   ],
   ["tests/issue-140.test.mjs", "the #140 release run of the Abandoned Delve"],
   [
+    "tests/issue-507-content.test.mjs",
+    "plays every shipped module with every item Scarce items found may take missing (#507)",
+  ],
+  [
     "tests/thornwood-lodge.test.mjs",
     "the Thornwood Lodge's content, gate verdict, checks and journeys",
   ],
