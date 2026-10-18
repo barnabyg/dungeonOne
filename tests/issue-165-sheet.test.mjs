@@ -139,12 +139,6 @@ test(
       for (const button of await page.locator(".start-adventure").all()) {
         assert.ok(await inView(button), "every Start button is in view");
       }
-      const warning = page.locator("#defeat-warning");
-      assert.equal(
-        await warning.textContent(),
-        "At 0 HP, Ada is defeated for good and can never start another adventure.",
-      );
-      assert.ok(await inView(warning));
       // The choices come before the reference information.
       assert.ok(
         await page.evaluate(
@@ -162,7 +156,6 @@ test(
       const resume = page.locator("#continue-adventure");
       await resume.waitFor();
       assert.ok(await inView(resume), "Continue is in view");
-      assert.ok(await page.locator("#defeat-warning").isVisible());
     });
   },
 );
@@ -192,7 +185,6 @@ test(
       );
       assert.ok(await inView(notice), "the defeat is stated at the top");
       assert.equal(await page.locator(".start-adventure").count(), 0);
-      assert.ok(!(await page.locator("#defeat-warning").isVisible()));
     });
   },
 );

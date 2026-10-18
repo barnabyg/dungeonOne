@@ -209,7 +209,7 @@ test(
       assert.equal(await page.locator(".start-adventure").count(), 0);
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /Learn 1 more cantrip and prepare 1 more spell above before starting another adventure\./u,
+        /Learn 1 more cantrip and prepare 1 more spell below before starting another adventure\./u,
       );
       assert.deepEqual(
         await page
