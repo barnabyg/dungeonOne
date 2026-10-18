@@ -1168,6 +1168,20 @@ export type FifthEnding = Readonly<{
   xp?: number;
 }>;
 
+/**
+ * The ending that meets a module's objective (#475), as
+ * docs/rules/balance.md has it: its victory, if it has one, or else getting
+ * out with loot.
+ */
+export function objectiveEnding(
+  adventure: Pick<FifthAdventure, "endings">,
+): FifthEnding | undefined {
+  return (
+    adventure.endings.find(({ kind }) => kind === "victory") ??
+    adventure.endings.find(({ kind }) => kind === "escape-with-loot")
+  );
+}
+
 export type FifthAdventure = Readonly<{
   kind: "dungeon-one-5e-adventure";
   formatVersion: typeof FIFTH_ADVENTURE_FORMAT;

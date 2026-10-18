@@ -155,13 +155,15 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The adventure ends in victory (#483), in place of the fight's victory.
-  "ending-victory": {
-    file: "ending-victory.wav",
+  // The adventure ends meeting its objective (#487): its victory, or in a
+  // module without one, an escape with loot. It plays in place of the
+  // fight's victory (#483).
+  objective: {
+    file: "objective.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The character escapes the adventure, with loot or without.
+  // The character escapes the adventure short of its objective.
   "ending-escape": {
     file: "ending-escape.wav",
     source: MADE,
@@ -238,6 +240,30 @@ export const SOUNDS = {
   // A long rest: a campfire, and birdsong at dawn.
   "rest-long": {
     file: "rest-long.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // The alarm is raised (#487).
+  alarm: {
+    file: "alarm.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A wandering monster comes upon the character.
+  wandering: {
+    file: "wandering.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A foe flees the fight.
+  "foe-flees": {
+    file: "foe-flees.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A foe throws down its arms and surrenders.
+  "foe-surrenders": {
+    file: "foe-surrenders.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
@@ -402,9 +428,12 @@ export type SoundAnswer = Readonly<{
   after?: SoundFight | undefined;
   /**
    * The adventure's ending, only when this answer brought it (#483): its
-   * kind, and whether its rewards carry a level-up card.
+   * kind, whether it meets the module's objective (#487), and whether its
+   * rewards carry a level-up card.
    */
-  ending?: Readonly<{ kind: EndingKind; levelUp: boolean }> | undefined;
+  ending?:
+    | Readonly<{ kind: EndingKind; objective: boolean; levelUp: boolean }>
+    | undefined;
 }>;
 
 /**
@@ -426,8 +455,10 @@ export type SoundAnswer = Readonly<{
  *   unless Undead Fortitude keeps it standing;
  * - the fight ending with the character standing and every foe beaten (or
  *   fled, or surrendered): victory;
- * - the adventure ending (#483): its kind's sound, in place of the fight's
- *   victory, then the fanfare when the ending carries a level-up;
+ * - the adventure ending (#483), in place of the fight's victory: the
+ *   objective's fanfare when it meets the module's objective (#487), or
+ *   else the escape's or the defeat's sound, then the level-up fanfare
+ *   when the ending carries one;
  *
  * Nothing marks the reply itself or the player's turn: the owner found a
  * reply-ready tone irritating in play (#480).
@@ -516,8 +547,8 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
     started || (before !== undefined && before.currentTurn !== null);
   if (ending !== undefined) {
     sounds.push(
-      ending.kind === "victory"
-        ? "ending-victory"
+      ending.objective
+        ? "objective"
         : ending.kind === "defeat"
           ? "ending-defeat"
           : "ending-escape",

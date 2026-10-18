@@ -112,6 +112,7 @@ import {
   type EndingKind,
   type FeatureUse,
   fightActionBand,
+  objectiveEnding,
   type FifthFeature,
   type FifthItem,
   type FlagOutcome,
@@ -3928,6 +3929,11 @@ const ITEM_SOUNDS = {
  * do a potion drunk and a short or long rest begun. A failed pick, force or
  * disarm leaves only its check's sounds; a rest a wanderer interrupts never
  * begins, so it is silent.
+ *
+ * Warnings and outcomes (#487): the alarm raised, and a wandering monster
+ * coming upon the character, each sound a warning; a roll that brings
+ * nothing, or only an omen, is silent. A foe fleeing and a foe surrendering
+ * each sound too.
  */
 function lineSound(
   event: FifthEvent | undefined,
@@ -3976,6 +3982,14 @@ function lineSound(
       return "rest-short";
     case "long-rest":
       return "rest-long";
+    case "alarm":
+      return "alarm";
+    case "wandering-roll":
+      return event.opponents === undefined ? undefined : "wandering";
+    case "fled":
+      return event.combatantId === PLAYER_ID ? undefined : "foe-flees";
+    case "surrendered":
+      return event.combatantId === PLAYER_ID ? undefined : "foe-surrenders";
     default:
       return undefined;
   }
@@ -5960,13 +5974,8 @@ export function createFifthRuntime(
         : "escape-without-loot";
     return adventure.endings.find((candidate) => candidate.kind === kind)!;
   };
-  /**
-   * The module's objective (#475), as docs/rules/balance.md has it: its
-   * victory, if it has one, or else getting out with loot.
-   */
-  const objectiveEnding =
-    adventure.endings.find(({ kind }) => kind === "victory") ??
-    adventure.endings.find(({ kind }) => kind === "escape-with-loot");
+  /** The module's objective (#475). */
+  const objective = objectiveEnding(adventure);
   /** The id the sheet credits an ending's XP under. */
   const endingAwardId = (ending: FifthEnding) =>
     `${adventure.id}/ending/${ending.id}`;
@@ -5989,25 +5998,25 @@ export function createFifthRuntime(
     };
     // Once its award is credited, the objective has nothing left to give up.
     if (
-      objectiveEnding === undefined ||
-      objectiveEnding === ending ||
-      sheet.xpAwards.includes(endingAwardId(objectiveEnding))
+      objective === undefined ||
+      objective === ending ||
+      sheet.xpAwards.includes(endingAwardId(objective))
     ) {
       return { ending: brings };
     }
     const unmet =
-      objectiveEnding.kind === "victory"
+      objective.kind === "victory"
         ? `Objective not met: ${adventure.objective}`
         : "You have found no treasure or coin here to carry out.";
     const award =
-      objectiveEnding.xp === undefined
+      objective.xp === undefined
         ? []
         : [
             `Leaving now ${
               xp === undefined
                 ? ""
                 : `earns ${xp} XP for “${ending.title}” but `
-            }gives up the ${objectiveEnding.xp} XP for “${objectiveEnding.title}”.`,
+            }gives up the ${objective.xp} XP for “${objective.title}”.`,
           ];
     return {
       ending: brings,

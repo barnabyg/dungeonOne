@@ -231,6 +231,8 @@ test(
         kind: "victory",
         title: "The cellar is clear",
         text: viewed.body.session.ending.text,
+        // A victory meets the module's objective (#487).
+        objective: true,
         // A victory credits the fight's XP (#133).
         rewards: {
           xp: [{ name: "Defeated Goblin Warrior", xp: 50 }],

@@ -293,10 +293,10 @@ write(
   ]),
 );
 
-// Adventure endings (#483). Victory: a longer fanfare, G4 C5 E5, then a
-// held C major chord.
+// Adventure endings (#483). The objective met (#487): a longer fanfare,
+// G4 C5 E5, then a held C major chord.
 write(
-  "ending-victory",
+  "objective",
   wav(1.5, 0.2, [
     horn(392, 392, 0.14, 0),
     horn(523.25, 523.25, 0.14, 0.14),
@@ -602,5 +602,48 @@ write(
       [3400, 2600, 1.55],
       [2900, 3800, 1.7],
     ].map(([from, to, at]) => louder(0.5, chirp(from, to, 0.09, at))),
+  ]),
+);
+
+// Warnings and outcomes (#487). The alarm: a bell struck three times, fast.
+write(
+  "alarm",
+  wav(
+    1.0,
+    0.45,
+    [0, 0.2, 0.4].flatMap((at) => [
+      clink(880, at, 1),
+      louder(0.6, bell(880, at)),
+    ]),
+  ),
+);
+// A wandering monster comes: a low horn rising, with a drum under it.
+write(
+  "wandering",
+  wav(1.0, 0.3, [
+    horn(146.83, 164.81, 0.35, 0),
+    horn(164.81, 220, 0.5, 0.38),
+    louder(2, thud(80, 40, 0.18, 0, 85)),
+  ]),
+);
+// A foe flees: hurried footsteps fading away.
+write(
+  "foe-flees",
+  wav(
+    0.8,
+    0.55,
+    [0, 0.13, 0.26, 0.39, 0.52].map((at, index) =>
+      louder(1 - index * 0.17, thud(300, 140, 0.025, at, 86 + index)),
+    ),
+  ),
+);
+// A foe surrenders: a weapon dropped clattering, then a soft falling note.
+write(
+  "foe-surrenders",
+  wav(0.9, 0.45, [
+    clink(620, 0, 1),
+    clink(540, 0.09, 0.7),
+    clink(660, 0.15, 0.4),
+    louder(0.25, horn(392, 329.63, 0.4, 0.3)),
   ]),
 );
