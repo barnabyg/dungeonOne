@@ -27,7 +27,6 @@ import {
   type ArmourData,
   type AttackProfile,
   type CatalogueId,
-  type Dice,
   type ItemId,
   type WeaponData,
   type WeaponId,
@@ -62,10 +61,6 @@ const CATEGORY_NAMES: Readonly<Record<ArmourData["category"], string>> = {
   shield: "Shield",
 };
 
-/** "4.5": a roll's average, to one decimal place at most. */
-const average = (dice: Dice, modifier = 0): string =>
-  String(Math.round(((dice.dice * (dice.sides + 1)) / 2 + modifier) * 10) / 10);
-
 const signedText = (value: number) => (value < 0 ? "−" : "+") + Math.abs(value);
 
 const pounds = (id: CatalogueId) => `Weight ${itemWeight(id)} lb`;
@@ -80,7 +75,7 @@ function weaponFacts(
   const versatile =
     weapon.versatile === undefined
       ? ""
-      : `; ${weapon.versatile.dice}d${weapon.versatile.sides} in two hands (avg ${average(weapon.versatile)})`;
+      : `; ${weapon.versatile.dice}d${weapon.versatile.sides} in two hands`;
   const properties = weapon.properties.map((property) =>
     property === "ammunition"
       ? `Ammunition (${weapon.ammunition})`
@@ -94,7 +89,7 @@ function weaponFacts(
   const facts = [
     `${category} ${ranged ? "ranged" : "melee"} weapon`,
     ...(magic === undefined ? [] : [magic]),
-    `Damage ${weapon.damage.dice}d${weapon.damage.sides} ${weapon.damageType} (avg ${average(weapon.damage)})${versatile}`,
+    `Damage ${weapon.damage.dice}d${weapon.damage.sides} ${weapon.damageType}${versatile}`,
     `Attacks with ${ranged ? "Dexterity" : weapon.properties.includes("finesse") ? "Strength or Dexterity, whichever is higher" : "Strength"}`,
     ...(properties.length === 0
       ? []
@@ -170,10 +165,10 @@ function armourFacts(
   return facts;
 }
 
-/** "Mace +5 to hit, 1d6 + 3 bludgeoning (avg 6.5), Sap". */
+/** "Mace +5 to hit, 1d6 + 3 bludgeoning, Sap". */
 function attackLine(attack: AttackProfile): string {
   const { dice, sides, modifier, type } = attack.damage;
-  return `${attack.weapon} ${signedText(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${modifier < 0 ? "−" : "+"} ${Math.abs(modifier)}`} ${type} (avg ${average({ dice, sides }, modifier)})${attack.grip === "two-handed" ? ", two-handed" : ""}${attack.mastery === undefined ? "" : `, ${attack.mastery}`}${attack.disadvantage.map((source) => `, disadvantage (${source})`).join("")}${attack.criticalRange === 19 ? ", critical on 19–20" : ""}`;
+  return `${attack.weapon} ${signedText(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${modifier < 0 ? "−" : "+"} ${Math.abs(modifier)}`} ${type}${attack.grip === "two-handed" ? ", two-handed" : ""}${attack.mastery === undefined ? "" : `, ${attack.mastery}`}${attack.disadvantage.map((source) => `, disadvantage (${source})`).join("")}${attack.criticalRange === 19 ? ", critical on 19–20" : ""}`;
 }
 
 /** The attacks a profile makes, the Light extra attack after the first. */

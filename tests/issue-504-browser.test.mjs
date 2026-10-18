@@ -14,7 +14,7 @@ import { explore, launch } from "./fixtures/session-layout.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const IF_WIELDED =
-  /If wielded: Longsword \+\d+ to hit, 1d10 [+−] \d+ slashing \(avg [\d.]+\), two-handed/;
+  /If wielded: Longsword \+\d+ to hit, 1d10 [+−] \d+ slashing, two-handed/;
 
 test(
   "open the sheet's gear, then a found longsword's stats before and after taking it",
@@ -61,7 +61,7 @@ test(
       await page.getByLabel("Stats: Longsword").click();
       assert.match(
         await toggle.locator(".item-stats").innerText(),
-        /^Martial melee weapon\nDamage 1d8 slashing \(avg 4\.5\); 1d10 in two hands \(avg 5\.5\)\n/,
+        /^Martial melee weapon\nDamage 1d8 slashing; 1d10 in two hands\n/,
       );
       assert.match(
         await toggle.locator(".item-compare").first().innerText(),
@@ -69,7 +69,7 @@ test(
       );
       assert.match(
         await toggle.locator(".item-compare").last().innerText(),
-        /^Now: Mace \+\d+ to hit, 1d6 [+−] \d+ bludgeoning \(avg [\d.]+\), Sap$/,
+        /^Now: Mace \+\d+ to hit, 1d6 [+−] \d+ bludgeoning, Sap$/,
       );
 
       // Taken, its "You carry" entry opens to the same. A Stats toggle

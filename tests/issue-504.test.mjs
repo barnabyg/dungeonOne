@@ -79,7 +79,7 @@ test("an item without a character says what it is: damage, properties, mastery, 
   assert.deepEqual(itemStats("longsword"), {
     facts: [
       "Martial melee weapon",
-      "Damage 1d8 slashing (avg 4.5); 1d10 in two hands (avg 5.5)",
+      "Damage 1d8 slashing; 1d10 in two hands",
       "Attacks with Strength",
       "Properties: Versatile",
       "Mastery: Sap. A creature it hits has disadvantage on its next attack roll before the start of your next turn.",
@@ -107,7 +107,7 @@ test("an item without a character says what it is: damage, properties, mastery, 
   ]);
   assert.match(
     itemStats("shortbow").facts.join("\n"),
-    /^Simple ranged weapon\nDamage 1d6 piercing \(avg 3\.5\)\nAttacks with Dexterity\nProperties: Ammunition \(arrows\), Two-Handed\n/,
+    /^Simple ranged weapon\nDamage 1d6 piercing\nAttacks with Dexterity\nProperties: Ammunition \(arrows\), Two-Handed\n/,
   );
   assert.equal(
     itemStats("dagger").facts[2],
@@ -138,8 +138,8 @@ test("loot behind the lintel says what wielding or wearing it would do, against 
   ]);
   // With nothing in the other hand, the longsword is held in two.
   assert.deepEqual(longsword.compare, [
-    "If wielded: Longsword +5 to hit, 1d10 + 3 slashing (avg 8.5), two-handed",
-    "Now: Mace +5 to hit, 1d6 + 3 bludgeoning (avg 6.5), Sap",
+    "If wielded: Longsword +5 to hit, 1d10 + 3 slashing, two-handed",
+    "Now: Mace +5 to hit, 1d6 + 3 bludgeoning, Sap",
   ]);
   assert.deepEqual(loot(view, "lintel-shield").compare, [
     "If carried: AC 15",
@@ -170,7 +170,7 @@ test("too little Strength shows as the speed chain mail costs and the greatsword
   ]);
   assert.equal(
     loot(view, "lintel-greatsword").compare[0],
-    "If wielded: Greatsword +1 to hit, 2d6 − 1 slashing (avg 6), two-handed, disadvantage (Heavy)",
+    "If wielded: Greatsword +1 to hit, 2d6 − 1 slashing, two-handed, disadvantage (Heavy)",
   );
 });
 
@@ -196,8 +196,8 @@ test("a change the rules refuse gives its reason, and a shield shows the hand it
   assert.deepEqual(
     loot(runtime.projectRoom(twoHanded), "lintel-shield").compare,
     [
-      "If carried: AC 15; Longsword +5 to hit, 1d8 + 3 slashing (avg 7.5)",
-      "Now: AC 13; Longsword +5 to hit, 1d10 + 3 slashing (avg 8.5), two-handed",
+      "If carried: AC 15; Longsword +5 to hit, 1d8 + 3 slashing",
+      "Now: AC 13; Longsword +5 to hit, 1d10 + 3 slashing, two-handed",
     ],
   );
 });
@@ -292,8 +292,8 @@ test("a merchant's wares show the same stats and comparison as loot", () => {
   assert.deepEqual(shortsword.stats, itemStats("shortsword", ada));
   // Ada has mastered the shortsword: Vex.
   assert.deepEqual(shortsword.stats.compare, [
-    "If wielded: Shortsword +5 to hit, 1d6 + 3 piercing (avg 6.5), Vex",
-    "Now: Mace +5 to hit, 1d6 + 3 bludgeoning (avg 6.5), Sap",
+    "If wielded: Shortsword +5 to hit, 1d6 + 3 piercing, Vex",
+    "Now: Mace +5 to hit, 1d6 + 3 bludgeoning, Sap",
   ]);
   assert.deepEqual(
     pedlar.wares.find(({ id }) => id === "shield").stats.compare,
