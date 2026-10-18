@@ -93,6 +93,8 @@ import {
   type TreasureRecord,
 } from "./character-5e.js";
 import { heldItemName, heldItemText } from "./magic-items-5e.js";
+import { catalogueIcon } from "./icons-5e.js";
+import { itemStats } from "./item-stats-5e.js";
 import type { ClassId } from "./class-5e.js";
 import {
   ABILITIES,
@@ -342,6 +344,27 @@ function libraryView(
         purse: formatCoins(sheet.purse),
         carrying: characterCarrying(sheet),
         stowed: sheet.stowed.map(itemName),
+        // Each kind of gear, equipped then carried, with its stats (#504).
+        gear: [
+          ...sheet.equipment.map((id) => ({ id, state: "Equipped" })),
+          ...[...new Set(sheet.stowed)].map((id) => ({ id, state: "Carried" })),
+        ].flatMap(({ id, state }) => {
+          const stats = itemStats(id, sheet, { compare: false });
+          const count = sheet.stowed.filter((item) => item === id).length;
+          return stats === undefined
+            ? []
+            : [
+                {
+                  name:
+                    state === "Carried" && count > 1
+                      ? `${itemName(id)} (${count})`
+                      : itemName(id),
+                  icon: catalogueIcon(id),
+                  state,
+                  stats,
+                },
+              ];
+        }),
         // Each kind of magic item held, its bonus explained (#345), then
         // each spell scroll and wand (#346), a scroll a Wizard may copy
         // with its cost, or why it can't.

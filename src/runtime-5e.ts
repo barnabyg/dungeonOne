@@ -261,6 +261,7 @@ import {
   type TradeRefusalCode,
   type WeaponData,
 } from "./equipment-5e.js";
+import { itemStats, type ItemStats } from "./item-stats-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
 import {
   chargesText,
@@ -2420,15 +2421,19 @@ export type ShownGear = Readonly<{
   icon: GameIconId;
   /** A magic item's bonus, explained (#345). */
   magic?: string;
+  /** Its stats, and for stowed gear what equipping it would do (#504). */
+  stats?: ItemStats;
 }>;
 
-function shownGear(id: ItemId): ShownGear {
+function shownGear(id: ItemId, sheet: CharacterSheet): ShownGear {
   const magic = magicItemText(id);
+  const stats = itemStats(id, sheet);
   return {
     id,
     name: itemName(id),
     icon: catalogueIcon(id),
     ...(magic === undefined ? {} : { magic }),
+    ...(stats === undefined ? {} : { stats }),
   };
 }
 
@@ -4919,6 +4924,8 @@ export type RoomView = Readonly<{
         name: string;
         icon: GameIconId;
         price: string;
+        /** Its stats and what equipping it would do (#504). */
+        stats?: ItemStats;
       }>[];
       /** What it pays for each kind of gear the character carries. */
       salePrices?: readonly Readonly<{
@@ -4929,8 +4936,11 @@ export type RoomView = Readonly<{
       }>[];
       tradeMinutes?: number;
     }>)[];
-  /** The items to take here, each with its icon (#377). */
-  items: readonly (Named & Readonly<{ icon: GameIconId }>)[];
+  /**
+   * The items to take here, each with its icon (#377); gear with its stats
+   * and what equipping it would do (#504).
+   */
+  items: readonly (Named & Readonly<{ icon: GameIconId; stats?: ItemStats }>)[];
   /**
    * What the character carries besides its gear: the items taken here, then
    * the treasure it brought in, then its spell scrolls and wands (#346). A
@@ -4965,6 +4975,8 @@ export type RoomView = Readonly<{
     attack: AttackProfile;
     lightAttack?: AttackProfile;
     strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+    /** Armour worn that gives disadvantage on Stealth checks (#504). */
+    stealthDisadvantage?: true;
     /** Body armour worn without training, by name (SRD 5.2). */
     untrainedArmour?: string;
     /** A shield carried without training: it adds no AC (SRD 5.2). */
@@ -6695,13 +6707,17 @@ export function createFifthRuntime(
         counts.set(item, (counts.get(item) ?? 0) + 1);
       }
     }
-    return [...counts].map(([item, count]) => ({
-      id: `${DROPPED}${item}`,
-      name: count === 1 ? itemName(item) : `${itemName(item)} (${count})`,
-      icon: catalogueIcon(item),
-      description:
-        count === 1 ? "You dropped it here." : "You dropped them here.",
-    }));
+    return [...counts].map(([item, count]) => {
+      const stats = itemStats(item, sheetOf(state));
+      return {
+        id: `${DROPPED}${item}`,
+        name: count === 1 ? itemName(item) : `${itemName(item)} (${count})`,
+        icon: catalogueIcon(item),
+        description:
+          count === 1 ? "You dropped it here." : "You dropped them here.",
+        ...(stats === undefined ? {} : { stats }),
+      };
+    });
   };
 
   /**
@@ -12948,7 +12964,10 @@ export function createFifthRuntime(
         ...(creature.merchant === undefined
           ? {}
           : {
-              wares: wares(creature.merchant),
+              wares: wares(creature.merchant).map((ware) => {
+                const stats = itemStats(ware.id, sheetOf(state));
+                return stats === undefined ? ware : { ...ware, stats };
+              }),
               salePrices: priced(
                 [
                   ...new Set([
@@ -12966,10 +12985,17 @@ export function createFifthRuntime(
             }),
       })),
       items: [
-        ...roomItems(state).map((item) => ({
-          ...named(item),
-          icon: itemIcon(item),
-        })),
+        ...roomItems(state).map((item) => {
+          const stats =
+            item.gear === undefined
+              ? undefined
+              : itemStats(item.gear, sheetOf(state));
+          return {
+            ...named(item),
+            icon: itemIcon(item),
+            ...(stats === undefined ? {} : { stats }),
+          };
+        }),
         ...droppedHere(state),
       ],
       inventory: carriedEntries(state),
@@ -12977,13 +13003,15 @@ export function createFifthRuntime(
         ? {}
         : { purse: formatCoins(state.possessions.purse) }),
       gear: (() => {
-        const profile = characterProfile(sheetOf(state));
+        const sheet = sheetOf(state);
+        const profile = characterProfile(sheet);
+        const shownOf = (id: ItemId) => shownGear(id, sheet);
         return {
           worn: state.possessions.equipment
             .filter((id) => !isWeaponId(id))
-            .map(shownGear),
-          held: state.possessions.equipment.filter(isWeaponId).map(shownGear),
-          stowed: state.possessions.stowed.map(shownGear),
+            .map(shownOf),
+          held: state.possessions.equipment.filter(isWeaponId).map(shownOf),
+          stowed: state.possessions.stowed.map(shownOf),
           ammunition: ammunitionHeld(ammunitionOf(state)).map(
             ({ id, count }) => ({
               id,
@@ -13001,6 +13029,11 @@ export function createFifthRuntime(
           ...(profile.strengthShortfall === undefined
             ? {}
             : { strengthShortfall: profile.strengthShortfall }),
+          ...(state.possessions.equipment.some(
+            (id) => isBodyArmourId(id) && ARMOUR[id].stealthDisadvantage,
+          )
+            ? { stealthDisadvantage: true as const }
+            : {}),
           ...(profile.untrainedArmour === undefined
             ? {}
             : { untrainedArmour: profile.untrainedArmour }),

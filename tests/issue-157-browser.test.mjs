@@ -107,8 +107,10 @@ const furnishedCellar = (() => {
 
 /** The adventure screen's regions, in their order in a fight (#386). */
 const REGIONS = [
-  // The character's column (#432), which the status strip heads, comes first.
+  // The character's column (#432), which the status strip heads, comes first;
+  // its "You carry" entries open to their stats (#504).
   "#session-status",
+  "#inventory-group",
   "#encounter",
   "#room",
   // The known rooms (#405) follow the room.
