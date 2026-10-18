@@ -538,6 +538,24 @@ test("each XP award is scaled by the rate and rounded down: encounters, endings,
       ),
     );
   }
+
+  // An award scaled to 0 is still credited, so it is earned only once.
+  file.endings.find(({ kind }) => kind === "escape-without-loot").xp = 1;
+  const tiny = validateModule(file);
+  const halved = createFifthRuntime(
+    tiny,
+    ada,
+    {},
+    { ...DEFAULT_SETTINGS, xpRate: 0.5 },
+  );
+  const left = play(halved, [
+    { type: "begin" },
+    { type: "leave", roomId: tiny.startRoomId },
+  ]);
+  assert.deepEqual(
+    halved.projectSettlement(left).xp.map(({ name, xp }) => `${name}: ${xp}`),
+    ["Out empty-handed: 0"],
+  );
 });
 
 test("an adventure settles at its own XP rate, even after a restart under other settings", async () =>

@@ -14433,10 +14433,10 @@ export function createFifthRuntime(
         treasure: [...state.possessions.treasure, ...finds],
       },
       // Each award at the adventure's XP rate (#509), scaled and rounded
-      // down.
+      // down; one scaled to 0 is still credited, so it is earned once.
       xp: awards
-        .map((award) => ({ ...award, xp: scaled(award.xp) }))
-        .filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
+        .filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id))
+        .map((award) => ({ ...award, xp: scaled(award.xp) })),
       finds: finds.filter(({ id }) => !found.has(id)),
       sold: treasureSold(state).map(treasureId),
       coin: coinFound(state).map((item) => ({
