@@ -66,9 +66,18 @@ const bar = (page) =>
 /**
  * Clicks the action button `selector` with its request to `path` held, checks
  * the busy state, then releases it and checks where focus went: "stays" on
- * the button (whose label has returned), or "newest" history entry.
+ * the button (whose label has returned, with any `changed` fields, such as
+ * #491's examined mark), or "newest" history entry.
  */
-async function holdAction(page, selector, path, shows, name, focusTo) {
+async function holdAction(
+  page,
+  selector,
+  path,
+  shows,
+  name,
+  focusTo,
+  changed = {},
+) {
   const button = page.locator(selector);
   // Scrolled first, so the click's own scrolling doesn't move the bar.
   await button.scrollIntoViewIfNeeded();
@@ -130,7 +139,7 @@ async function holdAction(page, selector, path, shows, name, focusTo) {
   if (focusTo === "stays") {
     assert.deepEqual(
       { ...after, box: undefined },
-      { ...before, box: undefined },
+      { ...before, ...changed, box: undefined },
     );
     assert.equal(focus, key);
   } else {
@@ -173,6 +182,8 @@ test(
         "Examining…",
         "Examining Rusted Lantern…",
         "stays",
+        // Examined now (#491).
+        { shows: "✓ Examined", name: "Examine Rusted Lantern (examined)" },
       );
       await holdAction(
         page,

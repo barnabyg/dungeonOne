@@ -75,7 +75,7 @@ test(
       const after = await wallButtons(page);
       assert.deepEqual(after, [
         {
-          name: "Examine Crumbling Wall",
+          name: "Examine Crumbling Wall (examined)",
           approach: null,
           caption: null,
           disabled: false,
