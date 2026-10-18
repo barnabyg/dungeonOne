@@ -18,6 +18,10 @@ import { dirname, join } from "node:path";
 import { writeFileAtomically } from "./atomic-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { acquireFileLock } from "./file-lock.js";
+import {
+  OPENAI_DM_DEFAULT_MODEL,
+  OPENAI_DM_MODELS,
+} from "./openai-dm-models.js";
 
 export const SETTINGS_FORMAT = 1;
 const MAX_SETTINGS_BYTES = 64 * 1024;
@@ -204,6 +208,14 @@ export const SETTINGS = {
       { value: 2, label: "× 2" },
     ],
     default: 1,
+  },
+  // The model the AI DM answers a typed message with (#510): the session
+  // records it with the rest, so an adventure keeps its model to the end.
+  dmModel: {
+    name: "Dungeon Master model",
+    text: "The OpenAI model the AI Dungeon Master answers with when you type to it.",
+    choices: OPENAI_DM_MODELS.map((model) => ({ value: model, label: model })),
+    default: OPENAI_DM_DEFAULT_MODEL,
   },
 } as const satisfies Record<string, SettingDefinition>;
 

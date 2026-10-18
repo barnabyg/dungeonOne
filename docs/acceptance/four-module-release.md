@@ -39,7 +39,7 @@ It opens the character library (`characters.json` in the project
 directory). Create a character or choose one, and its sheet lists all four
 modules: **Start** any of them. The dice are random. The AI Dungeon Master
 is on when `OPENAI_API_KEY` is set in the window you launch from (model
-`gpt-5.6-luna`); without it the typing box is off and the buttons play the
+`gpt-6-luna`); without it the typing box is off and the buttons play the
 game. Press Ctrl+C to stop; rerunning `.\run` continues where you left off.
 
 ## Seeded scenarios

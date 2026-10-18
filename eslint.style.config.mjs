@@ -12,6 +12,7 @@ const SHARED_MODULES = [
   "file-lock",
   "json-shape",
   "openai-dm-model",
+  "openai-dm-models",
   "random",
   "runtime-contract",
   "scripted-dm-model",

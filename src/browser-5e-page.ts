@@ -116,7 +116,9 @@
 // #reset-settings. The server sends every setting, its choices and its
 // value, and validates each change; the page computes nothing. While an
 // adventure is in progress #settings-in-progress says changes apply from
-// the next adventure.
+// the next adventure. Above them #settings-sound (#510) has this browser's
+// sound, #settings-sound-on and #settings-sound-volume, in step with the
+// header's; with sound off for the launch it says so and has no controls.
 //
 // Creation's ability scores (#509) follow the pending creation's method:
 // #method-hint and #placing-hint say how; each #place-<ability> places a
@@ -168,6 +170,15 @@ export const FIFTH_DM_OFF_NOTICE =
 // The header's sound controls (#480): a speaker that is crossed out while muted.
 const SOUND_CONTROLS = `<div id="sound-controls" role="group" aria-label="Sound"><button id="sound-mute" type="button" class="secondary" aria-pressed="false" title="Mute sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="cross" d="M16 9l6 6m0-6-6 6"/></svg><span class="visually-hidden">Mute sound</span></button><input id="sound-volume" type="range" min="0" max="100" step="5" aria-label="Volume"></div>`;
 
+// The Settings page's sound (#510): the header's mute and volume again, as a
+// checkbox and a slider, or, with sound off for the launch, a note and none.
+const SETTINGS_SOUND = (sound: boolean) =>
+  `<fieldset id="settings-sound" class="setting" aria-describedby="settings-sound-text"><legend>Sound</legend>${
+    sound
+      ? `<p id="settings-sound-text" class="hint">This browser's sound, the same as the header's mute button and volume slider. A change applies at once, in an adventure too; Reset to defaults leaves it as it is.</p><div class="setting-choices"><label><input id="settings-sound-on" type="checkbox"> Sound on</label><label>Volume <input id="settings-sound-volume" type="range" min="0" max="100" step="5"> <output id="settings-sound-volume-value" for="settings-sound-volume"></output></label></div>`
+      : `<p id="settings-sound-text" class="hint">Sound is off for this launch. To have sound, restart the game without --no-sound.</p>`
+  }</fieldset>`;
+
 /** The page, with its sound controls unless the launch turned sound off. */
 export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -187,6 +198,7 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <section id="settings" class="panel" aria-labelledby="settings-title" hidden>
 <h2 id="settings-title" tabindex="-1">Settings</h2>
 <p class="hint">The defaults are the game as it is balanced. Each adventure keeps the settings it started with.</p>
+${SETTINGS_SOUND(sound)}
 <p id="settings-in-progress" class="notice" hidden>An adventure is in progress: changes apply from the next adventure.</p>
 <div id="settings-list"></div>
 <p id="settings-error" class="error" role="alert"></p>
@@ -317,7 +329,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
-.masthead #open-settings{order:2;padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
+.masthead #open-settings{order:2;padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-sound-volume{width:10rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-ink);vertical-align:middle}#settings-sound-volume-value{display:inline-block;min-width:3em;font-variant-numeric:tabular-nums}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
 #sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
@@ -461,12 +473,17 @@ function changeSoundSettings(change) {
   renderSoundControls();
 }
 
+// The header's controls and the Settings page's (#510) show the same sound.
 function renderSoundControls() {
   if (!soundControls) return;
+  const volume = String(Math.round(soundSettings.volume * 100));
   element("sound-mute").setAttribute("aria-pressed", String(soundSettings.muted));
   // Its name stays "Mute sound", pressed while muted; the tooltip says what a click does.
   element("sound-mute").title = soundSettings.muted ? "Unmute sound" : "Mute sound";
-  element("sound-volume").value = String(Math.round(soundSettings.volume * 100));
+  element("sound-volume").value = volume;
+  element("settings-sound-on").checked = !soundSettings.muted;
+  element("settings-sound-volume").value = volume;
+  element("settings-sound-volume-value").textContent = volume + "%";
 }
 
 const SOUND_GAP = 120;
@@ -4323,7 +4340,8 @@ element("message-form").addEventListener("submit", sendMessage);
 if (soundControls) {
   renderSoundControls();
   element("sound-mute").addEventListener("click", () => changeSoundSettings({ muted: !soundSettings.muted }));
-  element("sound-volume").addEventListener("input", (event) => changeSoundSettings({ volume: Number(event.target.value) / 100 }));
+  element("settings-sound-on").addEventListener("change", (event) => changeSoundSettings({ muted: !event.target.checked }));
+  for (const id of ["sound-volume", "settings-sound-volume"]) element(id).addEventListener("input", (event) => changeSoundSettings({ volume: Number(event.target.value) / 100 }));
 }
 element("open-map").addEventListener("click", openMap);
 element("close-map").addEventListener("click", () => closeMap(true));

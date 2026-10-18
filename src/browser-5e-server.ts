@@ -37,10 +37,8 @@ import {
   type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
-import {
-  createOpenAiDmModel,
-  OPENAI_DM_DEFAULT_MODEL,
-} from "./openai-dm-model.js";
+import { createOpenAiDmModel } from "./openai-dm-model.js";
+import type { OpenAiDmModelId } from "./openai-dm-models.js";
 
 import {
   FifthSession,
@@ -133,8 +131,13 @@ export type FifthBrowserOptions = Readonly<{
   seed: number;
   /** For the AI DM; typed messages are refused without it. */
   apiKey?: string;
-  /** Replaces the OpenAI DM, for tests. */
+  /** Replaces the OpenAI DM for every model, for tests. */
   dmModel?: DmModel;
+  /**
+   * Opens the DM for a model id in place of OpenAI's, for tests (#510): a
+   * typed message uses the model its session's settings name.
+   */
+  openDmModel?: (model: OpenAiDmModelId) => DmModel;
   /**
    * Which modules are offered; the balance gate at each module's declared
    * difficulty (its recorded verdict where one matches the module) unless
@@ -724,11 +727,25 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const readSettings = async () => (settings = await settingsStore.read());
   const adventures = options.adventures ?? (await loadBuiltInFifthAdventures());
   const apiKey = options.apiKey?.trim() ?? "";
-  const model: DmModel | undefined =
-    options.dmModel ??
-    (apiKey.length === 0
-      ? undefined
-      : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
+  // The AI DM for each model a session's settings name (#510), opened when
+  // a message first needs it and kept for the next; none without a key.
+  const { dmModel } = options;
+  const open: ((model: OpenAiDmModelId) => DmModel) | undefined =
+    dmModel !== undefined
+      ? () => dmModel
+      : (options.openDmModel ??
+        (apiKey.length === 0
+          ? undefined
+          : (model) => createOpenAiDmModel({ apiKey, model })));
+  const models = new Map<OpenAiDmModelId, DmModel>();
+  const modelFor =
+    open &&
+    ((session: FifthSession): DmModel => {
+      const id = session.settings.dmModel;
+      const model = models.get(id) ?? open(id);
+      models.set(id, model);
+      return model;
+    });
   // Only modules that qualify at their declared difficulty are offered or
   // can be started; a session already under way plays on. The shipped
   // modules' verdicts are recorded, so only a changed one is gated here.
@@ -821,7 +838,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       throw error;
     }
   };
-  const dmAvailable = model !== undefined;
+  const dmAvailable = modelFor !== undefined;
   /** The session view, with whether the player can type to the AI DM. */
   const projectSession = (session: FifthSession) => ({
     ...sessionView(session),
@@ -1164,7 +1181,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             `Write a message of 1–${DM_TURN_LIMITS.maxPlayerInputCharacters} characters.`,
           );
         }
-        if (model === undefined) {
+        if (modelFor === undefined) {
           throw new Error(FIFTH_DM_OFF_NOTICE);
         }
         return serialized(async () => {
@@ -1172,7 +1189,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           requireCurrent(session, body.sequence);
           // Save each committed action, and settle the character if it
           // ended the fight, before the reply is written.
-          await session.converse(message, model, async () => {
+          await session.converse(message, modelFor(session), async () => {
             await persist(session);
             await settleFifthSession(library, session);
           });
