@@ -423,7 +423,7 @@ test(
         const spell = page.locator("#cast-spell");
         assert.equal(
           await spell.locator("option:checked").textContent(),
-          "Sacred Flame (cantrip)",
+          "Sacred Flame",
         );
         await settled(page, () =>
           page.locator('#action-bar button[data-action="cast"]').click(),
@@ -443,10 +443,7 @@ test(
         );
         const sacred = spell.locator("option", { hasText: "Sacred Flame" });
         assert.equal(await sacred.isDisabled(), true);
-        assert.equal(
-          await sacred.textContent(),
-          "Sacred Flame (cantrip) — Action used",
-        );
+        assert.equal(await sacred.textContent(), "Sacred Flame — Action used");
         assert.equal(
           await page.locator(".end-note").textContent(),
           "Left unused: Cast a spell: Healing Word",

@@ -3113,7 +3113,7 @@ function castPanel(casts, kind = "spell") {
     // One that can't be cast now says why, and can't be chosen unless
     // none can (#392).
     const why = castable(key) ? "" : casts.find((option) => castKey(option) === key).reason;
-    const choice = make("option", spell.name + typed + cursed + (spell.item ? fromItem(spell) : spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)") + (why ? " — " + why : ""));
+    const choice = make("option", spell.name + typed + cursed + (spell.item ? fromItem(spell) : spell.level === 0 ? "" : " (" + ORDINALS[spell.slotLevel] + "-level slot)") + (why ? " — " + why : ""));
     choice.value = key;
     choice.disabled = Boolean(why) && usable.available;
     choice.selected = key === state.choice;
