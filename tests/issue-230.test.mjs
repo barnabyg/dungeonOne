@@ -476,17 +476,25 @@ test("a quiver behind the lintel adds 20 arrows; the bowyer buys them back by th
   const bowyer = runtime
     .projectRoom(state)
     .creatures.find(({ id }) => id === "bowyer");
-  assert.deepEqual(bowyer.wares, [
-    { id: "shortbow", name: "Shortbow", icon: "pocket-bow", price: "25 gp" },
-    {
-      id: "light-crossbow",
-      name: "Light crossbow",
-      icon: "crossbow",
-      price: "25 gp",
-    },
-    { id: "arrows", name: "Arrows (20)", icon: "quiver", price: "1 gp" },
-    { id: "bolts", name: "Bolts (20)", icon: "arrowhead", price: "1 gp" },
-  ]);
+  // Their stats are #504's.
+  assert.deepEqual(
+    bowyer.wares.map((ware) =>
+      Object.fromEntries(
+        Object.entries(ware).filter(([key]) => key !== "stats"),
+      ),
+    ),
+    [
+      { id: "shortbow", name: "Shortbow", icon: "pocket-bow", price: "25 gp" },
+      {
+        id: "light-crossbow",
+        name: "Light crossbow",
+        icon: "crossbow",
+        price: "25 gp",
+      },
+      { id: "arrows", name: "Arrows (20)", icon: "quiver", price: "1 gp" },
+      { id: "bolts", name: "Bolts (20)", icon: "arrowhead", price: "1 gp" },
+    ],
+  );
   assert.ok(
     bowyer.salePrices.some(
       ({ id, price }) => id === "arrows" && price === "5 sp",

@@ -322,16 +322,22 @@ test("10 gp looted from the goblin's body buys a shortsword, in the trade's auth
 test("a merchant offers only its authored stock, at engine prices, and only outside a fight where it is", () => {
   const runtime = createFifthRuntime(marketBarrow, ada);
   const looted = loot(runtime);
-  assert.deepEqual(runtime.projectRoom(looted).creatures[0].wares, [
-    {
-      id: "shortsword",
-      name: "Shortsword",
-      icon: "pointy-sword",
-      price: "10 gp",
-    },
-    { id: "shield", name: "Shield", icon: "bordered-shield", price: "10 gp" },
-    { id: "dagger", name: "Dagger", icon: "plain-dagger", price: "2 gp" },
-  ]);
+  // Their stats are #504's.
+  const withoutStats = (ware) =>
+    Object.fromEntries(Object.entries(ware).filter(([key]) => key !== "stats"));
+  assert.deepEqual(
+    runtime.projectRoom(looted).creatures[0].wares.map(withoutStats),
+    [
+      {
+        id: "shortsword",
+        name: "Shortsword",
+        icon: "pointy-sword",
+        price: "10 gp",
+      },
+      { id: "shield", name: "Shield", icon: "bordered-shield", price: "10 gp" },
+      { id: "dagger", name: "Dagger", icon: "plain-dagger", price: "2 gp" },
+    ],
+  );
   assert.deepEqual(
     runtime
       .projectActions(looted)

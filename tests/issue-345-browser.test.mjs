@@ -15,7 +15,10 @@ import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const newest = (page) => page.locator("#log li").last().innerText();
 
-/** Each "You carry" entry's name, state and description (#432). */
+/**
+ * Each "You carry" entry's name, state and the bonus its stats explain
+ * (#432, #504).
+ */
 const carried = (page) =>
   page
     .locator("#inventory li[data-id]")
@@ -24,7 +27,9 @@ const carried = (page) =>
         [
           entry.querySelector("strong").textContent,
           entry.querySelector(".carry-state").textContent,
-          entry.querySelector(".carry-text")?.textContent,
+          [...entry.querySelectorAll(".item-stats li")]
+            .map((fact) => fact.textContent)
+            .find((fact) => fact.startsWith("Uncommon magic")),
         ]
           .filter(Boolean)
           .join(" — "),

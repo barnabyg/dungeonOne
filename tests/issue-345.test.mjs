@@ -314,14 +314,24 @@ test("a +1 shortsword found behind the lintel is wielded at once and kept on lea
     renderFifthResult(taken),
     "You take the +1 Shortsword and stow it.",
   );
-  assert.deepEqual(runtime.projectRoom(taken.state).gear.stowed, [
-    {
-      id: "shortsword-plus-1",
-      name: "+1 Shortsword",
-      icon: "pointy-sword",
-      magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
-    },
-  ]);
+  // Its stats are #504's.
+  assert.deepEqual(
+    runtime
+      .projectRoom(taken.state)
+      .gear.stowed.map((gear) =>
+        Object.fromEntries(
+          Object.entries(gear).filter(([key]) => key !== "stats"),
+        ),
+      ),
+    [
+      {
+        id: "shortsword-plus-1",
+        name: "+1 Shortsword",
+        icon: "pointy-sword",
+        magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
+      },
+    ],
+  );
 
   const wielded = runtime.handleAction(taken.state, {
     type: "swap",
@@ -332,14 +342,21 @@ test("a +1 shortsword found behind the lintel is wielded at once and kept on lea
     "You stow the mace and wield the +1 shortsword. AC 13; +1 Shortsword +6 to hit, 1d6 + 4 piercing.",
   );
   const gear = runtime.projectRoom(wielded.state).gear;
-  assert.deepEqual(gear.held, [
-    {
-      id: "shortsword-plus-1",
-      name: "+1 Shortsword",
-      icon: "pointy-sword",
-      magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
-    },
-  ]);
+  assert.deepEqual(
+    gear.held.map((held) =>
+      Object.fromEntries(
+        Object.entries(held).filter(([key]) => key !== "stats"),
+      ),
+    ),
+    [
+      {
+        id: "shortsword-plus-1",
+        name: "+1 Shortsword",
+        icon: "pointy-sword",
+        magic: "Uncommon magic weapon: +1 to attack and damage rolls.",
+      },
+    ],
+  );
   assert.equal(gear.attack.bonus, 6);
   // Vex: Ada has mastered the shortsword, so its +1 version too.
   assert.equal(gear.attack.mastery, "Vex");

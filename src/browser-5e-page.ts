@@ -27,8 +27,10 @@
 //   each hit die (#333). It shows only what the session view projects.
 // - #inventory-group: "You carry" (#432), #inventory, in groups (worn and
 //   wielded, consumables, treasure, other), a line per entry with its verbs
-//   on the right and its description behind its name; then the purse and
-//   what the character is carrying.
+//   on the right and its description and stats behind its name (#504:
+//   stowed gear also says what equipping it would do); then the purse and
+//   what the character is carrying. Room loot and a merchant's wares that
+//   are gear have the same stats behind a Stats toggle.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Tactical Mind right after a failed
 //   check, #315; a reaction's options, #304) and, in a fight, the turn's
@@ -316,7 +318,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
-#session-character h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}#inventory{display:grid;gap:var(--space-2)}.carry-title{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin:0 0 2px}summary.carry-title{cursor:pointer;padding:2px 0}.carry-list{list-style:none;padding:0;margin:0;font:var(--text-sm) var(--font-sans)}.carry-list li{display:grid;grid-template-columns:minmax(min(10em,50%),1fr) auto;align-items:center;gap:2px var(--space-2);padding:3px 0;border-top:1px solid var(--color-line)}.carry-list li:first-child{border-top:0}.carry-line,.carry-more>summary{margin:0;line-height:1.4;overflow-wrap:anywhere}.carry-line{padding-left:1.1em}.carry-more>summary{cursor:pointer;list-style:none}.carry-more>summary::-webkit-details-marker{display:none}.carry-more>summary::before{content:"▸"/"";display:inline-block;width:1.1em;color:var(--color-text-muted)}.carry-more[open]>summary::before{content:"▾"/""}.carry-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.carry-text{margin:2px 0 0 1.1em;font-size:var(--text-xs);color:var(--color-text-muted)}.carry-list .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-1);margin:0}.carry-list .controls[hidden]{display:none}.carry-list .controls:has(.confirm){grid-column:1/-1}.carry-list .action{flex-direction:row-reverse;align-items:center;gap:var(--space-1)}#inventory button{padding:3px 8px;font-size:var(--text-xs)}
+#session-character h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}#inventory{display:grid;gap:var(--space-2)}.carry-title{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin:0 0 2px}summary.carry-title{cursor:pointer;padding:2px 0}.carry-list{list-style:none;padding:0;margin:0;font:var(--text-sm) var(--font-sans)}.carry-list li{display:grid;grid-template-columns:minmax(min(10em,50%),1fr) auto;align-items:center;gap:2px var(--space-2);padding:3px 0;border-top:1px solid var(--color-line)}.carry-list li:first-child{border-top:0}.carry-line,.carry-more>summary{margin:0;line-height:1.4;overflow-wrap:anywhere}.carry-line{padding-left:1.1em}.carry-more>summary{cursor:pointer;list-style:none}.carry-more>summary::-webkit-details-marker{display:none}.carry-more>summary::before{content:"▸"/"";display:inline-block;width:1.1em;color:var(--color-text-muted)}.carry-more[open]>summary::before{content:"▾"/""}.carry-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.carry-text{margin:2px 0 0 1.1em;font-size:var(--text-xs);color:var(--color-text-muted)}.item-stats{list-style:none;margin:2px 0 0 1.1em;padding:0;font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.item-stats li{margin:0;padding:0;border:0;display:block}.item-compare{margin:2px 0 0 1.1em;font:600 var(--text-xs) var(--font-sans)}.stats-more{flex-basis:100%;font:var(--text-xs) var(--font-sans)}.stats-more>summary{cursor:pointer;color:var(--color-text-muted);width:max-content}.stats-more .item-stats,.stats-more .item-compare{margin-left:0}.carry-list .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-1);margin:0}.carry-list .controls[hidden]{display:none}.carry-list .controls:has(.confirm){grid-column:1/-1}.carry-list .action{flex-direction:row-reverse;align-items:center;gap:var(--space-1)}#inventory button{padding:3px 8px;font-size:var(--text-xs)}
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
@@ -936,13 +938,13 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse, stowed, ammunition, carrying, treasure, magicItems } = entry;
+  const { sheet, profile, purse, stowed, ammunition, carrying, treasure, magicItems, gear } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...gearNodes(gear), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -952,6 +954,26 @@ function openSheet(id) {
 // spell scrolls and wands (#346); none, no heading. Between adventures a
 // Wizard copies a scroll into its spellbook from its entry, disabled with
 // why when it can't.
+// The sheet's gear (#504): each item opens to show its stats.
+function gearNodes(gear) {
+  if (gear.length === 0) return [];
+  const heading = make("h3", "Gear");
+  heading.id = "sheet-gear-title";
+  const list = make("ul", undefined, "carry-list sheet-gear");
+  list.id = "sheet-gear";
+  list.setAttribute("aria-labelledby", heading.id);
+  list.append(...gear.map(({ name, icon: itemIcon, state, stats }) => {
+    const item = make("li");
+    const more = make("details", undefined, "carry-more");
+    const summary = make("summary");
+    summary.append(...iconned(itemIcon, make("strong", name)), " ", make("span", state, "carry-state"));
+    more.append(summary, ...statsNodes(stats));
+    item.append(more);
+    return item;
+  }));
+  return [heading, list];
+}
+
 function magicItemNodes(items, entry) {
   if (items.length === 0) return [];
   const heading = make("h3", "Magic items");
@@ -1191,6 +1213,7 @@ function showAdventure(value) {
     form.dataset.session = session.id;
     knownRoomId = null;
     openCarried.clear();
+    openStats.clear();
     treasureOpen = null;
     element("message").value = "";
     confirmingLeave = false;
@@ -2131,8 +2154,8 @@ function disclose(name, shown) {
 function gearEntries(gear) {
   const counted = (items, slot, state, group) => {
     const counts = new Map();
-    for (const { id, name, icon, magic } of items) counts.set(id, { name, icon, magic, count: (counts.get(id)?.count ?? 0) + 1 });
-    return [...counts].map(([id, { name, icon, magic, count }]) => ({ id, slot, group, state, name: count === 1 ? name : name + " (" + count + ")", icon, description: magic ?? "" }));
+    for (const { id, name, icon, magic, stats } of items) counts.set(id, { name, icon, magic, stats, count: (counts.get(id)?.count ?? 0) + 1 });
+    return [...counts].map(([id, { name, icon, magic, stats, count }]) => ({ id, slot, group, state, name: count === 1 ? name : name + " (" + count + ")", icon, description: stats ? "" : magic ?? "", ...(stats ? { stats } : {}) }));
   };
   return [
     ...counted(gear.worn, "equipped", "Worn", "gear"),
@@ -2189,8 +2212,33 @@ function renderInventory(room) {
   }));
 }
 
-// One "You carry" entry: its line, which opens its description when it has
-// one, and the controls renderActions fills.
+// An item's stats (#504): a fact a line, then for gear not equipped what
+// equipping it would do, set against what the character uses now.
+function statsNodes(stats) {
+  const facts = make("ul", undefined, "item-stats");
+  facts.append(...stats.facts.map((fact) => make("li", fact)));
+  return [facts, ...(stats.compare || []).map((line) => make("p", line, "item-compare"))];
+}
+
+// Room loot's and a merchant's wares' stats (#504), behind a Stats toggle
+// named for the item. The toggles the player opened, by key, stay open
+// until the next adventure, as "You carry" entries do.
+const openStats = new Set();
+function statsToggle(key, name, stats) {
+  const more = make("details", undefined, "stats-more");
+  more.open = openStats.has(key);
+  const summary = make("summary", "Stats");
+  summary.addEventListener("click", () => {
+    if (more.open) openStats.delete(key);
+    else openStats.add(key);
+  });
+  summary.setAttribute("aria-label", "Stats: " + name);
+  more.append(summary, ...statsNodes(stats));
+  return more;
+}
+
+// One "You carry" entry: its line, which opens its description and its
+// stats (#504) when it has them, and the controls renderActions fills.
 function carriedEntry(entry) {
   const item = make("li");
   item.dataset.id = entry.id;
@@ -2199,7 +2247,7 @@ function carriedEntry(entry) {
   // An item's icon before its name (#377).
   const name = make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "") + (entry.charges ? " (" + entry.charges + ")" : ""));
   const line = [...iconned(entry.icon, name), ...(entry.state ? [" ", make("span", entry.state, "carry-state")] : [])];
-  if (entry.description) {
+  if (entry.description || entry.stats) {
     const key = entry.id + "/" + (entry.slot ?? "");
     const more = make("details", undefined, "carry-more");
     more.open = openCarried.has(key);
@@ -2208,9 +2256,9 @@ function carriedEntry(entry) {
       if (more.open) openCarried.delete(key);
       else openCarried.add(key);
     });
-    summary.title = entry.description;
+    if (entry.description) summary.title = entry.description;
     summary.append(...line);
-    more.append(summary, make("p", entry.description, "carry-text"));
+    more.append(summary, ...(entry.description ? [make("p", entry.description, "carry-text")] : []), ...(entry.stats ? statsNodes(entry.stats) : []));
     item.append(more);
   } else {
     const text = make("p", undefined, "carry-line");
@@ -2239,6 +2287,7 @@ function renderRoom(room) {
       // An item's icon before its name (#377); an exit's way (#458).
       text.append(...iconned(entry.icon, make("strong", wayName(entry.direction, entry.name))), document.createTextNode(" — " + entry.description));
       item.append(text);
+      if (entry.stats) item.append(statsToggle(list.id + "/" + entry.id, entry.name, entry.stats));
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
       // (#282) or a flag opened or closed (#397), and what each topic drew
@@ -2259,7 +2308,7 @@ function renderRoom(room) {
           line.dataset.ware = ware.id;
           const text = make("p");
           text.append(...iconned(ware.icon, make("strong", ware.name)), document.createTextNode(" — " + ware.price));
-          line.append(text, make("div", undefined, "controls"));
+          line.append(text, make("div", undefined, "controls"), ...(ware.stats ? [statsToggle("ware/" + entry.id + "/" + ware.id, ware.name, ware.stats)] : []));
           return line;
         }));
         item.append(wares);
@@ -2281,7 +2330,7 @@ function renderGear(gear) {
   const worn = gear.worn.map(({ name }) => name.toLowerCase()).join(", ");
   const shooting = gear.attack.ammunition;
   const ammunition = [...(shooting && !gear.ammunition.some(({ id }) => id === shooting) ? [{ id: shooting, count: 0 }] : []), ...gear.ammunition];
-  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + untrainedText(gear) + ".";
+  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + (gear.stealthDisadvantage ? "; Stealth disadvantage" : "") + untrainedText(gear) + ".";
 }
 
 // A surprised combatant (#301), or one in armour it isn't trained with,
