@@ -150,7 +150,8 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // The character rolls a check or saving throw, before its sting.
+  // The character rolls a check or saving throw, before its sting: dice
+  // rattled in a cup and thrown.
   dice: {
     file: "dice.wav",
     source: MADE,
@@ -263,13 +264,13 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
-  // A short rest: a campfire.
+  // A short rest: a calm phrase on a lute.
   "rest-short": {
     file: "rest-short.wav",
     source: MADE,
     licence: "CC0 1.0",
   },
-  // A long rest: a campfire, and birdsong at dawn.
+  // A long rest: the lute falling for the night, then rising for the morning.
   "rest-long": {
     file: "rest-long.wav",
     source: MADE,

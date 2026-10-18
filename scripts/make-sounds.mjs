@@ -142,24 +142,6 @@ const clack = (at, gain, seed) => {
   };
 };
 
-/**
- * One die thrown at `at`: it bounces, each bounce sooner and softer than
- * the last, then tumbles to rest in a run of quick, quiet ticks.
- */
-const die = (at, first, seed) => {
-  const impacts = [];
-  let time = at;
-  let gap = first;
-  let gain = 1;
-  while (gap > 0.012) {
-    impacts.push(clack(time, gain, seed + impacts.length));
-    time += gap;
-    gap *= 0.72;
-    gain *= 0.78;
-  }
-  return impacts;
-};
-
 /** The table under rolling dice: a soft, low rumble fading over `seconds`. */
 const table = (seconds, seed) => {
   const random = noise(seed);
@@ -251,15 +233,6 @@ write(
     horn(659.25, 659.25, 0.12, 0.12),
     horn(783.99, 783.99, 0.12, 0.24),
     horn(1046.5, 1046.5, 0.5, 0.36),
-  ]),
-);
-// A check or save: two dice thrown onto a table.
-write(
-  "dice",
-  wav(0.45, 0.65, [
-    ...die(0, 0.11, 20),
-    ...die(0.03, 0.09, 40),
-    table(0.4, 60),
   ]),
 );
 // Success: two rising notes, G5 then C6.
@@ -521,22 +494,6 @@ write(
 // Control: a slow, wobbling, sinking tone.
 write("spell-control", wav(0.8, 0.2, [tremolo(6, horn(440, 330, 0.75, 0))]));
 
-/**
- * A bird's chirp at `at`: a pure note sweeping from `from` to `to` Hz over
- * `seconds`, swelling and fading.
- */
-const chirp = (from, to, seconds, at) => {
-  let phase = 0;
-  return (time) => {
-    const t = time - at;
-    if (t < 0 || t > seconds) {
-      return 0;
-    }
-    phase += (2 * Math.PI * (from + (to - from) * (t / seconds))) / RATE;
-    return Math.sin(phase) * Math.sin((Math.PI * t) / seconds);
-  };
-};
-
 // World actions (#486). A lock: a pin's tick, then the bolt's click.
 write(
   "unlock",
@@ -583,25 +540,6 @@ write(
     ),
     louder(0.25, bell(1318.5, 0.42)),
     louder(0.2, bell(1661.2, 0.48)),
-  ]),
-);
-// A short rest: a campfire crackling.
-write(
-  "rest-short",
-  wav(1.6, 0.4, [crackle(1.55, 0, 81), louder(0.6, table(1.6, 82))]),
-);
-// A long rest: the campfire, then birds greeting the dawn.
-write(
-  "rest-long",
-  wav(2.0, 0.4, [
-    crackle(1.1, 0, 83),
-    louder(0.6, table(1.2, 84)),
-    ...[
-      [2800, 3600, 1.15],
-      [3000, 3900, 1.3],
-      [3400, 2600, 1.55],
-      [2900, 3800, 1.7],
-    ].map(([from, to, at]) => louder(0.5, chirp(from, to, 0.09, at))),
   ]),
 );
 
@@ -768,4 +706,121 @@ write(
       pluck(frequency, index * 0.08, 0.9 - index * 0.08, 205 + index, 0.7),
     ),
   ),
+);
+
+/**
+ * A struck body at `at`, `gain` loud: decaying sines at its `modes`
+ * ({ f, decay, amp }) under a short click of bright noise, `click` loud.
+ */
+const modal = (at, gain, modes, click, seed) => {
+  const random = noise(seed);
+  let previous = 0;
+  return (time) => {
+    const grit = random();
+    const bright = grit - previous;
+    previous = grit;
+    const t = time - at;
+    if (t < 0 || t > 0.6) {
+      return 0;
+    }
+    const ring = modes.reduce(
+      (sum, { f, decay, amp }) =>
+        sum + amp * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / decay),
+      0,
+    );
+    return gain * (ring + click * bright * Math.exp(-t / 0.0012));
+  };
+};
+
+/**
+ * `count` modes drawn from `seed` around `centre` Hz, each softer than the
+ * last, ringing for about `decay` seconds.
+ */
+const modesFrom = (seed, count, centre, spread, decay) => {
+  const random = noise(seed);
+  return Array.from({ length: count }, (_, index) => ({
+    f: centre * (1 + spread * random()),
+    decay: decay * (0.6 + 0.4 * (random() + 1)),
+    amp: 1 / (index + 1),
+  }));
+};
+
+/**
+ * A thrown thing bouncing from `at`: `strike(time, gain, seed)` at each
+ * bounce, each sooner by `ratio` and softer than the last.
+ */
+const bounces = (at, first, ratio, seed, strike) => {
+  const voices = [];
+  let time = at;
+  let gap = first;
+  let gain = 1;
+  while (gap > 0.015) {
+    voices.push(strike(time, gain, seed + voices.length));
+    time += gap;
+    gap *= ratio;
+    gain *= 0.72;
+  }
+  return voices;
+};
+
+/** A die striking wood: a woody knock under the die's own click. */
+const woodKnock = (time, gain, seed) =>
+  modal(time, gain, modesFrom(seed, 4, 520, 0.5, 0.012), 0.5, seed);
+/** Dice knocking together in a cup: a short, dry click. */
+const cupClick = (time, gain, seed) =>
+  modal(time, gain, modesFrom(seed, 3, 1400, 0.3, 0.004), 0.35, seed);
+
+// A check or save (#482), chosen by the owner: dice rattled in a cup,
+// then thrown onto a wooden table.
+const rattle = (() => {
+  const random = noise(340);
+  const clicks = [];
+  let time = 0;
+  while (time < 0.32) {
+    time += 0.012 + 0.03 * ((random() + 1) / 2);
+    clicks.push(
+      cupClick(time, 0.35 + 0.3 * ((random() + 1) / 2), 341 + clicks.length),
+    );
+  }
+  return clicks;
+})();
+write(
+  "dice",
+  wav(0.95, 0.6, [
+    ...rattle,
+    ...bounces(0.42, 0.09, 0.62, 360, woodKnock),
+    ...bounces(0.45, 0.075, 0.62, 380, woodKnock),
+  ]),
+);
+
+// Rests (#486), chosen by the owner. A short rest: a slow, calm phrase on a
+// lute, D4 F#4 A4 D5.
+write(
+  "rest-short",
+  wav(
+    2.2,
+    0.45,
+    [293.66, 369.99, 440, 587.33].map((frequency, index) =>
+      pluck(frequency, index * 0.32, 2.2 - index * 0.32, 210 + index, 0.3),
+    ),
+  ),
+);
+// A long rest: the lute's phrase falls for the night, D5 A4 F#4 D4, then
+// rises brighter for the morning, D4 A4 D5 F#5.
+write(
+  "rest-long",
+  wav(3.2, 0.45, [
+    ...[587.33, 440, 369.99, 293.66].map((frequency, index) =>
+      pluck(frequency, index * 0.3, 1.4, 220 + index, 0.3),
+    ),
+    ...[293.66, 440, 587.33, 739.99].map((frequency, index) =>
+      pluck(
+        frequency,
+        1.6 + index * 0.18,
+        1.6 - index * 0.18,
+        230 + index,
+        0.6,
+      ),
+    ),
+  ]),
 );
