@@ -199,6 +199,48 @@ export const SOUNDS = {
   },
   // A spell cast, by its family (#485); a cantrip's is quieter.
   ...SPELL_SOUNDS,
+  // A lock picked, or unlocked with its key (#486).
+  unlock: {
+    file: "unlock.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A door forced or broken open.
+  "door-forced": {
+    file: "door-forced.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A trap set off.
+  "trap-sprung": {
+    file: "trap-sprung.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A trap disarmed.
+  "trap-disarmed": {
+    file: "trap-disarmed.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A potion drunk.
+  potion: {
+    file: "potion.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A short rest: a campfire.
+  "rest-short": {
+    file: "rest-short.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
+  // A long rest: a campfire, and birdsong at dawn.
+  "rest-long": {
+    file: "rest-long.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
 } as const satisfies Readonly<Record<string, Sound>>;
 
 export type SoundId = keyof typeof SOUNDS;

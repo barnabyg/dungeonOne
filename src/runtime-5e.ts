@@ -3922,6 +3922,12 @@ const ITEM_SOUNDS = {
  * several plays the most notable, a magic item before coin; finding an
  * ordinary item is silent until it is taken. A spell cast, by anyone and
  * from a slot, scroll or wand, plays its family's sound (#485).
+ *
+ * World actions (#486): a lock picked or unlocked clicks, and a door forced
+ * or broken bursts open; a trap sprung and a trap disarmed each sound, and so
+ * do a potion drunk and a short or long rest begun. A failed pick, force or
+ * disarm leaves only its check's sounds; a rest a wanderer interrupts never
+ * begins, so it is silent.
  */
 function lineSound(
   event: FifthEvent | undefined,
@@ -3954,6 +3960,22 @@ function lineSound(
       return event.toll === undefined ? undefined : ITEM_SOUNDS.coin;
     case "cast":
       return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
+    case "door":
+      return !event.opened
+        ? undefined
+        : event.approach === "pick" || event.approach === "unlock"
+          ? "unlock"
+          : "door-forced";
+    case "trap-sprung":
+      return "trap-sprung";
+    case "disarmed":
+      return event.success ? "trap-disarmed" : undefined;
+    case "potion":
+      return "potion";
+    case "short-rest":
+      return "rest-short";
+    case "long-rest":
+      return "rest-long";
     default:
       return undefined;
   }

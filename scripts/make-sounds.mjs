@@ -1,4 +1,4 @@
-// Writes the sounds Dungeon One makes itself (#481, #482) into sounds/, as 16-bit
+// Writes the sounds Dungeon One makes itself (#481–#488) into sounds/, as 16-bit
 // mono WAV. Each is synthesised here, so it is ours to release under CC0;
 // src/sounds-5e.ts records it with this script as its source. Run it again
 // after changing a sound: `node scripts/make-sounds.mjs`.
@@ -520,3 +520,87 @@ write(
 );
 // Control: a slow, wobbling, sinking tone.
 write("spell-control", wav(0.8, 0.2, [tremolo(6, horn(440, 330, 0.75, 0))]));
+
+/**
+ * A bird's chirp at `at`: a pure note sweeping from `from` to `to` Hz over
+ * `seconds`, swelling and fading.
+ */
+const chirp = (from, to, seconds, at) => {
+  let phase = 0;
+  return (time) => {
+    const t = time - at;
+    if (t < 0 || t > seconds) {
+      return 0;
+    }
+    phase += (2 * Math.PI * (from + (to - from) * (t / seconds))) / RATE;
+    return Math.sin(phase) * Math.sin((Math.PI * t) / seconds);
+  };
+};
+
+// World actions (#486). A lock: a pin's tick, then the bolt's click.
+write(
+  "unlock",
+  wav(0.35, 0.55, [
+    clack(0, 0.6, 70),
+    clack(0.08, 1, 71),
+    louder(0.6, thud(900, 500, 0.012, 0.08, 72)),
+  ]),
+);
+// A door forced or broken: wood splitting, then the door slamming open.
+write(
+  "door-forced",
+  wav(0.7, 0.6, [
+    thud(160, 60, 0.1, 0, 73),
+    louder(1.5, crackle(0.18, 0, 74)),
+    louder(0.8, thud(110, 45, 0.12, 0.22, 75)),
+  ]),
+);
+// A trap set off: a wire snapping, then darts or blades hissing past.
+write(
+  "trap-sprung",
+  wav(0.6, 0.55, [
+    clack(0, 1, 76),
+    louder(0.8, whoosh(0.18, 0.05, 77)),
+    louder(0.6, whoosh(0.18, 0.12, 78)),
+    louder(0.5, whoosh(0.2, 0.2, 79)),
+  ]),
+);
+// A trap disarmed: a careful click, then two soft notes, E5 and A5.
+write(
+  "trap-disarmed",
+  wav(0.7, 0.45, [
+    clack(0, 0.8, 80),
+    louder(0.5, bell(659.25, 0.1)),
+    louder(0.5, bell(880, 0.22)),
+  ]),
+);
+// A potion drunk: three gulps, then a faint restoring shimmer.
+write(
+  "potion",
+  wav(0.8, 0.5, [
+    ...[180, 210, 170].map((frequency, index) =>
+      bubble(frequency, index * 0.13),
+    ),
+    louder(0.25, bell(1318.5, 0.42)),
+    louder(0.2, bell(1661.2, 0.48)),
+  ]),
+);
+// A short rest: a campfire crackling.
+write(
+  "rest-short",
+  wav(1.6, 0.4, [crackle(1.55, 0, 81), louder(0.6, table(1.6, 82))]),
+);
+// A long rest: the campfire, then birds greeting the dawn.
+write(
+  "rest-long",
+  wav(2.0, 0.4, [
+    crackle(1.1, 0, 83),
+    louder(0.6, table(1.2, 84)),
+    ...[
+      [2800, 3600, 1.15],
+      [3000, 3900, 1.3],
+      [3400, 2600, 1.55],
+      [2900, 3800, 1.7],
+    ].map(([from, to, at]) => louder(0.5, chirp(from, to, 0.09, at))),
+  ]),
+);
