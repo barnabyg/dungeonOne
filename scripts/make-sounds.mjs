@@ -202,8 +202,8 @@ const louder = (gain, voice) => (time) => gain * voice(time);
 const write = (name, sound) =>
   writeFileSync(new URL(`../sounds/${name}.wav`, import.meta.url), sound);
 
-// Combat (#481). Your hit: a dull blow.
-write("hit", wav(0.3, 0.6, [thud(180, 70, 0.07, 0, 1)]));
+// Combat (#481). A bludgeoning hit (#488): a dull blow.
+write("hit-bludgeoning", wav(0.3, 0.6, [thud(180, 70, 0.07, 0, 1)]));
 // Your critical: a harder blow with a bright ring over it.
 write(
   "critical",
@@ -646,4 +646,79 @@ write(
     clink(660, 0.15, 0.4),
     louder(0.25, horn(392, 329.63, 0.4, 0.3)),
   ]),
+);
+
+// Hits by damage type (#488), each a blow with its type's colour.
+// Slashing: a blade's swish, then a sharp cut with a faint ring.
+write(
+  "hit-slashing",
+  wav(0.35, 0.6, [
+    louder(0.7, whoosh(0.1, 0, 90)),
+    thud(260, 120, 0.035, 0.07, 91),
+    louder(0.15, clink(1500, 0.07, 1)),
+  ]),
+);
+// Piercing: a sharp jab, a tick and a short, tight thunk.
+write(
+  "hit-piercing",
+  wav(0.3, 0.6, [clack(0, 0.9, 92), thud(320, 150, 0.03, 0.005, 93)]),
+);
+// The blow under each other type's colour.
+const blow = (seed) => thud(200, 80, 0.05, 0, seed);
+// Fire: a blow, a flare and a crackle.
+write(
+  "hit-fire",
+  wav(0.4, 0.6, [
+    blow(94),
+    louder(0.9, crackle(0.3, 0, 95)),
+    louder(0.4, whoosh(0.2, 0, 96)),
+  ]),
+);
+// Cold: a blow and a crack of ice.
+write(
+  "hit-cold",
+  wav(0.4, 0.55, [
+    blow(97),
+    louder(0.6, clink(3135.9, 0.01, 1)),
+    louder(0.4, clink(3520, 0.04, 1)),
+  ]),
+);
+// Lightning: a blow and a short zap.
+write(
+  "hit-lightning",
+  wav(0.35, 0.55, [blow(98), louder(0.5, zap(1400, 300, 0.15, 0))]),
+);
+// Thunder: a deep, booming blow.
+write(
+  "hit-thunder",
+  wav(0.5, 0.65, [thud(110, 40, 0.15, 0, 99), louder(0.4, table(0.45, 100))]),
+);
+// Acid and poison: a blow and a sizzle with a bubble.
+write(
+  "hit-acid",
+  wav(0.4, 0.55, [
+    blow(101),
+    louder(0.35, whoosh(0.3, 0.02, 102)),
+    louder(0.5, bubble(480, 0.08)),
+    louder(0.4, bubble(620, 0.17)),
+  ]),
+);
+// Necrotic: a blow and a low, hollow moan.
+write(
+  "hit-necrotic",
+  wav(0.45, 0.5, [blow(103), louder(0.5, horn(130.81, 98, 0.3, 0))]),
+);
+// Radiant: a blow and a bright ring.
+write(
+  "hit-radiant",
+  wav(0.45, 0.55, [
+    blow(104),
+    louder(0.4, bell(1568, 0)),
+    louder(0.3, bell(2093, 0.03)),
+  ]),
+);
+// Arcane (force and psychic): a blow and a quick rising pulse.
+write(
+  "hit-arcane",
+  wav(0.35, 0.5, [blow(105), louder(0.4, horn(700, 1200, 0.12, 0))]),
 );

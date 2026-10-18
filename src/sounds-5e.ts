@@ -9,6 +9,7 @@
  */
 import { readFile } from "node:fs/promises";
 import type { EndingKind } from "./adventure-5e.js";
+import type { DamageType } from "./encounter-5e.js";
 import type { FightView, RollGroup } from "./runtime-5e.js";
 import { SPELLS, type SpellId } from "./spells-5e.js";
 
@@ -76,13 +77,37 @@ const SPELL_SOUNDS = Object.fromEntries(
   Record<`spell-${SpellFamily}` | `spell-${SpellFamily}-cantrip`, Sound>
 >;
 
+/**
+ * The families of damage a hit sounds by (#488): each physical type its own,
+ * and the others grouped as the spell families that deal them are.
+ */
+export const HIT_FAMILIES = [
+  "slashing",
+  "piercing",
+  "bludgeoning",
+  "fire",
+  "cold",
+  "lightning",
+  "thunder",
+  "acid",
+  "necrotic",
+  "radiant",
+  "arcane",
+] as const;
+export type HitFamily = (typeof HIT_FAMILIES)[number];
+
+/** Each family's hit sound, synthesised by our script. */
+const HIT_SOUNDS = Object.fromEntries(
+  HIT_FAMILIES.map((family) => [
+    `hit-${family}`,
+    { file: `hit-${family}.wav`, source: MADE, licence: "CC0 1.0" },
+  ]),
+) as Readonly<Record<`hit-${HitFamily}`, Sound>>;
+
 export const SOUNDS = {
-  // The character's attack hits (#481).
-  hit: {
-    file: "hit.wav",
-    source: MADE,
-    licence: "CC0 1.0",
-  },
+  // An attack hits, by its damage's family (#481, #488): the character's,
+  // or a creature's on another.
+  ...HIT_SOUNDS,
   // The character's attack is a critical hit.
   critical: {
     file: "critical.wav",
@@ -445,6 +470,9 @@ export type SoundAnswer = Readonly<{
  * - initiative rolled: the fight-start drum;
  * - an attack, one sound however many dice: the character's hit, critical
  *   or miss, or for an attack on the character, hurt or the miss's whoosh;
+ *   a hit sounds by its first damage's type (#488), its weapon's when it
+ *   deals several, each physical type its own and the others their
+ *   family's;
  *   a hit waiting for the character's reaction sounds with its answer, and
  *   damage landing on the character without an attack or save is hurt;
  * - the character's check or saving throw: the dice, then success or
@@ -476,6 +504,29 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
         ? "natural-1"
         : undefined;
   };
+  /** Each damage type's hit sound (#488); every type has one. */
+  const HITS = {
+    slashing: "hit-slashing",
+    piercing: "hit-piercing",
+    bludgeoning: "hit-bludgeoning",
+    fire: "hit-fire",
+    cold: "hit-cold",
+    lightning: "hit-lightning",
+    thunder: "hit-thunder",
+    acid: "hit-acid",
+    poison: "hit-acid",
+    necrotic: "hit-necrotic",
+    radiant: "hit-radiant",
+    force: "hit-arcane",
+    psychic: "hit-arcane",
+  } as const satisfies Readonly<Record<DamageType, SoundId>>;
+  const hit = (rolls: readonly RollGroup[]): SoundId => {
+    const type = rolls.find(({ purpose }) => purpose === "damage")?.damageType;
+    // A type the game does not use, which no hit has, is a plain blow.
+    return type !== undefined && Object.hasOwn(HITS, type)
+      ? HITS[type as DamageType]
+      : "hit-bludgeoning";
+  };
   const lines = answer.cards.flatMap((card) => card.lines);
   let started = false;
   lines.forEach(({ rolls, sound }, index) => {
@@ -502,12 +553,12 @@ export function resultSounds(answer: SoundAnswer): SoundId[] {
               ? "miss"
               : attack.outcome === "critical"
                 ? "critical"
-                : "hit"),
+                : hit(rolls)),
         );
       } else if (missed) {
         sounds.push("miss");
       } else if (rolls.some(({ purpose }) => purpose === "damage")) {
-        sounds.push(attack.target === character ? "hurt" : "hit");
+        sounds.push(attack.target === character ? "hurt" : hit(rolls));
       }
       // A hit with no damage yet waits for the character's reaction
       // (#308): its answer sounds, once the damage lands or Shield turns it.

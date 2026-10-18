@@ -106,13 +106,13 @@ test("a fight won that ends the adventure plays the ending in place of the fight
     before: fight("pc"),
     after: fight(null, { goblin: 0 }),
   };
-  assert.deepEqual(sounds(won), ["hit", "fall", "victory"]);
+  assert.deepEqual(sounds(won), ["hit-slashing", "fall", "victory"]);
   assert.deepEqual(
     sounds({
       ...won,
       ending: { kind: "victory", objective: true, levelUp: true },
     }),
-    ["hit", "fall", "objective", "level-up"],
+    ["hit-slashing", "fall", "objective", "level-up"],
   );
 });
 

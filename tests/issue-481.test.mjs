@@ -62,14 +62,21 @@ test("resultSounds runs on its own, as the page embeds its source", () => {
 });
 
 test("each combat sound is a named, bundled sound", () => {
-  for (const id of ["hit", "critical", "miss", "hurt", "fall", "fall-you"]) {
+  for (const id of [
+    "hit-slashing",
+    "critical",
+    "miss",
+    "hurt",
+    "fall",
+    "fall-you",
+  ]) {
     assert.ok(Object.hasOwn(SOUNDS, id), id);
   }
 });
 
 test("your hit, critical and miss each play their own sound", () => {
   assert.deepEqual(sounds(attack(ADA, "Goblin", "hit", { hpAfter: 4 })), [
-    "hit",
+    "hit-slashing",
   ]);
   assert.deepEqual(
     sounds(attack(ADA, "Goblin", "critical", { d20: 19, hpAfter: 2 })),
@@ -90,7 +97,7 @@ test("being hit plays its own sound, and a miss against you a whoosh", () => {
 
 test("a creature or the character dropping to 0 HP falls after the blow", () => {
   assert.deepEqual(sounds(attack(ADA, "Goblin", "hit", { hpAfter: 0 })), [
-    "hit",
+    "hit-slashing",
     "fall",
   ]);
   assert.deepEqual(sounds(attack("Goblin", ADA, "hit", { hpAfter: 0 })), [
@@ -146,14 +153,14 @@ test("a creature Undead Fortitude keeps standing does not fall", () => {
       attack(ADA, "Zombie", "hit", { hpAfter: 0 }),
       fortitude("Zombie", 1),
     ),
-    ["hit"],
+    ["hit-slashing"],
   );
   assert.deepEqual(
     sounds(
       attack(ADA, "Zombie", "hit", { hpAfter: 0 }),
       fortitude("Zombie", 0),
     ),
-    ["hit", "fall"],
+    ["hit-slashing", "fall"],
   );
 });
 
@@ -183,7 +190,7 @@ test("a rider's damage leaves the HP to the last damage, one sound per attack", 
     hpAfter: 0,
     maxHp: 12,
   });
-  assert.deepEqual(sounds(line), ["hit", "fall"]);
+  assert.deepEqual(sounds(line), ["hit-slashing", "fall"]);
 });
 
 test("several attacks on one card play in order", () => {
@@ -195,7 +202,7 @@ test("several attacks on one card play in order", () => {
       attack("Goblin 2", ADA, "hit", { hpAfter: 5 }),
       attack("Goblin 2", ADA, "miss"),
     ),
-    ["hit", "fall", "miss", "hurt", "miss"],
+    ["hit-slashing", "fall", "miss", "hurt", "miss"],
   );
   // Across cards and entries too.
   assert.deepEqual(
@@ -220,7 +227,7 @@ test("a spell attack and Spiritual Weapon's attack use the hit and miss sounds",
   spell.text = "Ada casts Guiding Bolt at Skeleton.";
   const weapon = attack(ADA, "Skeleton", "miss");
   weapon.text = "Ada's spiritual weapon swings at Skeleton.";
-  assert.deepEqual(sounds(spell, weapon), ["hit", "miss"]);
+  assert.deepEqual(sounds(spell, weapon), ["hit-slashing", "miss"]);
 });
 
 test("lines without attacks or falls, and narration, ask for nothing", () => {
