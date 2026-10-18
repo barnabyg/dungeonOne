@@ -296,6 +296,6 @@ test("a saved line keeps its sound; an unknown sound, an older save and an older
 
 test("the save and trace formats bump; the DM prompt does not", () => {
   assert.equal(FIFTH_SESSION_FORMAT, 66);
-  assert.equal(FIFTH_TRACE_FORMAT, 59);
+  assert.equal(FIFTH_TRACE_FORMAT, 60);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
 });
