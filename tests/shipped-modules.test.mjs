@@ -279,50 +279,51 @@ test("every shipped module declares the strictest difficulty every class passes 
  * speed-up of the gate must leave every one as it is (#410).
  */
 const QUOTED_FIGURES = {
-  // Long and level 2 (#442): Hard, as the Rogue's weakest is 84.5% on the
-  // old-well route, under the 85% Medium needs, and 86.5% overall. The
+  // Long and level 2 (#442): Medium since Last Stand (#499), as the Rogue's
+  // weakest is 88.0% overall, exactly the 88% Medium needs with its slack,
+  // and 86.5% on the old-well route (Hard before, at 86.5% and 84.5%). The
   // wandering dead delver on a rest costs the Rogue about 5 points; the
   // Vault became avoidable when its ghoul held the Crypts sweep to 68.5%.
   // The two skeletons of seven ordinary foes are over the cap. Every
   // fight's XP, the wandering zombie's included, and the ending's 600.
   "abandoned-delve": {
     fighter: {
-      survival: [2, "mace", 0.915],
+      survival: [2, "mace", 0.935],
       alwaysFail: [2, 0.93],
       overCap: ["skeleton-sergeant", "skeleton-guard"],
       enemyCount: 7,
       xp: 50 + 100 + 50 + 200 + 200 + 25 + 50 + 600,
     },
     rogue: {
-      survival: [2, "shortsword", 0.865],
-      alwaysFail: [2, 0.865],
+      survival: [2, "shortsword", 0.88],
+      alwaysFail: [2, 0.87],
       overCap: [],
       xp: 1275,
     },
   },
-  // Long and level 1 (#440): Medium, as the Rogue's 96.0% is 8 points over
-  // the 88% Medium needs with its slack and under Easy's. Brack, Nib and Wick
+  // Long and level 1 (#440): Medium, as the Rogue's 97.5% is 9.5 points
+  // over the 88% Medium needs with its slack and under Easy's 98%. Brack, Nib and Wick
   // of seven ordinary foes are over the cap, no more than half. Every fight's
   // XP, Wick's 25 for sparing him counted as the greater (#238), and the
   // ending's 300.
   "bramblecote-cider-house": {
     fighter: {
-      survival: [1, "mace", 0.965],
-      alwaysFail: [1, 0.965],
+      survival: [1, "mace", 0.98],
+      alwaysFail: [1, 0.98],
       overCap: ["brack", "nib", "wick"],
       enemyCount: 7,
       xp: 25 + 25 + 50 + (12 + 25) + 25 + 25 + 50 + 300,
     },
     rogue: {
-      survival: [1, "shortsword", 0.96],
-      alwaysFail: [1, 0.96],
+      survival: [1, "shortsword", 0.975],
+      alwaysFail: [1, 0.975],
       overCap: ["brack", "nib", "wick"],
       xp: 537,
     },
   },
-  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 90.5% at
-  // level 3 when every check fails is 5.5 points over the 85% Medium needs,
-  // and every class is under the 98% Easy needs with its slack. Three
+  // Long (#412), levels 3–4 since #443: Medium, as the Cleric's 91.5% at
+  // level 3 when every check fails is 6.5 points over the 85% Medium needs,
+  // and the Fighter's 94.5% is under the 98% Easy needs with its slack. Three
   // kobolds of 15 ordinary foes are over the cap at level 4, the level too
   // easy judges; the survival figures are level 3's. Every fight's
   // XP, the wandering ones' included, and the ending's 1,800 (500 before).
@@ -338,13 +339,13 @@ const QUOTED_FIGURES = {
         ["drained-culvert", 3, "mace", 0.95],
       ],
       sweeps: [
-        ["keep", 3, "mace", 0.96],
+        ["keep", 3, "mace", 0.97],
         ["culverts", 3, "mace", 0.945],
       ],
     },
     rogue: {
       survival: [3, "shortsword", 0.99],
-      alwaysFail: [3, 0.985],
+      alwaysFail: [3, 0.99],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
@@ -352,42 +353,42 @@ const QUOTED_FIGURES = {
         ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
       ],
       sweeps: [
-        ["keep", 3, "shortsword", 0.96],
+        ["keep", 3, "shortsword-and-dagger", 0.98],
         ["culverts", 3, "shortsword", 0.99],
       ],
     },
     cleric: {
-      survival: [3, "mace-and-daggers", 0.935],
-      alwaysFail: [3, 0.91],
+      survival: [3, "mace-and-daggers", 0.95],
+      alwaysFail: [3, 0.915],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "mace-and-daggers", 0.935],
-        ["drained-culvert", 3, "club-and-shield", 0.965],
+        ["keepers-stair", 3, "mace-and-daggers", 0.95],
+        ["drained-culvert", 3, "club-and-shield", 0.975],
       ],
       sweeps: [
-        ["keep", 3, "mace-and-daggers", 0.88],
-        ["culverts", 3, "mace-and-daggers", 0.935],
+        ["keep", 3, "mace-and-daggers", 0.91],
+        ["culverts", 3, "mace-and-daggers", 0.95],
       ],
     },
     wizard: {
-      survival: [3, "quarterstaff-and-dagger", 0.94],
-      alwaysFail: [3, 0.905],
+      survival: [3, "quarterstaff-and-dagger", 0.965],
+      alwaysFail: [3, 0.94],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.94],
-        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.95],
+        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.965],
+        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.955],
       ],
       sweeps: [
-        ["keep", 3, "quarterstaff-and-dagger", 0.895],
-        ["culverts", 3, "quarterstaff-and-dagger", 0.94],
+        ["keep", 3, "quarterstaff-and-dagger", 0.95],
+        ["culverts", 3, "quarterstaff-and-dagger", 0.965],
       ],
     },
   },
   // Long and levels 4–5 since its expansion (#445): Hard, as the Cleric's
-  // 82.5% on the lodge-hall route is 7.5 points over Hard's 75% and under
-  // the 88% Medium needs with its slack (the Rogue's 85.0% is too). Each
+  // 86.5% on the lodge-hall route is 11.5 points over Hard's 75% and under
+  // the 88% Medium needs with its slack (the Rogue's 87.0% is too). Each
   // route and sweep holds one fight; the hall's bear is fed. At level 5 the
   // two mastiffs and the crag wolf of nine ordinary foes are over the cap
   // (the mastiffs alone for the Cleric), no more than half. Every fight's
@@ -395,59 +396,59 @@ const QUOTED_FIGURES = {
   // before).
   "thornwood-lodge": {
     fighter: {
-      survival: [4, "two-daggers", 0.945],
-      alwaysFail: [4, 0.945],
+      survival: [4, "two-daggers", 0.97],
+      alwaysFail: [4, 0.97],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       enemyCount: 9,
       xp: 200 + 25 + 200 + 700 + 700 + 200 + 200 + 200 + 450 + 25 + 50 + 3800,
       routes: [
-        ["lodge-hall", 4, "two-daggers", 0.945],
-        ["wolfstone-gate", 4, "mace", 0.975],
+        ["lodge-hall", 4, "two-daggers", 0.97],
+        ["wolfstone-gate", 4, "mace", 0.98],
       ],
       sweeps: [
-        ["lodge", 4, "two-daggers", 0.945],
-        ["wolfstone", 4, "mace", 0.975],
+        ["lodge", 4, "two-daggers", 0.97],
+        ["wolfstone", 4, "mace", 0.98],
       ],
     },
     rogue: {
-      survival: [4, "shortsword", 0.85],
-      alwaysFail: [4, 0.85],
+      survival: [4, "shortsword", 0.87],
+      alwaysFail: [4, 0.87],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       xp: 6750,
       routes: [
-        ["lodge-hall", 4, "shortsword", 0.85],
-        ["wolfstone-gate", 4, "shortsword-and-dagger", 0.97],
+        ["lodge-hall", 4, "shortsword", 0.87],
+        ["wolfstone-gate", 4, "shortsword-and-dagger", 0.975],
       ],
       sweeps: [
-        ["lodge", 4, "shortsword", 0.85],
-        ["wolfstone", 4, "shortsword-and-dagger", 0.97],
+        ["lodge", 4, "shortsword", 0.87],
+        ["wolfstone", 4, "shortsword-and-dagger", 0.975],
       ],
     },
     cleric: {
-      survival: [4, "mace-and-daggers", 0.825],
-      alwaysFail: [4, 0.825],
+      survival: [4, "mace-and-daggers", 0.865],
+      alwaysFail: [4, 0.865],
       overCap: ["kennel-mastiff", "loose-mastiff"],
       xp: 6750,
       routes: [
-        ["lodge-hall", 4, "mace-and-daggers", 0.825],
-        ["wolfstone-gate", 4, "club-and-shield", 0.96],
+        ["lodge-hall", 4, "mace-and-daggers", 0.865],
+        ["wolfstone-gate", 4, "club-and-shield", 0.97],
       ],
       sweeps: [
-        ["lodge", 4, "mace-and-daggers", 0.825],
-        ["wolfstone", 4, "club-and-shield", 0.96],
+        ["lodge", 4, "mace-and-daggers", 0.865],
+        ["wolfstone", 4, "club-and-shield", 0.97],
       ],
     },
     wizard: {
-      survival: [4, "quarterstaff-and-dagger", 0.925],
-      alwaysFail: [4, 0.925],
+      survival: [4, "quarterstaff-and-dagger", 0.94],
+      alwaysFail: [4, 0.94],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       xp: 6750,
       routes: [
-        ["lodge-hall", 4, "quarterstaff-and-dagger", 0.925],
+        ["lodge-hall", 4, "quarterstaff-and-dagger", 0.94],
         ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.95],
       ],
       sweeps: [
-        ["lodge", 4, "quarterstaff-and-dagger", 0.925],
+        ["lodge", 4, "quarterstaff-and-dagger", 0.94],
         ["wolfstone", 4, "quarterstaff-and-dagger", 0.95],
       ],
     },
@@ -531,8 +532,9 @@ test("the gate gives each released module the figures its proposal quotes (#291,
  * out of the fight, pinned here so a change that moves them is noticed.
  */
 const TURN_UNDEAD_FIGURES = {
+  // Medium's cap since #499 (Hard's 0.3 before).
   "abandoned-delve": {
-    cap: 0.3,
+    cap: 0.4,
     enemies: [
       ["zombie", 27.5],
       ["skeleton-sergeant", 34.3],
@@ -617,10 +619,6 @@ const HOLD_PERSON_FIGURES = {
 
 /** The ordinary foes one control takes out over the cap, by module and class. */
 const CONTROL_OVER_CAP = {
-  "abandoned-delve cleric": [
-    ["skeleton-sergeant", TURN_UNDEAD_ID],
-    ["skeleton-guard", TURN_UNDEAD_ID],
-  ],
   // At level 4 since #443, Sleep takes the kobolds and Old Sullage out
   // 41.0% of the time: four of fifteen foes, no more than half.
   "coldwater-weirgate wizard": [
@@ -650,9 +648,10 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
       }
       assert.equal(control.ok, true, label);
       // Hold Person's saves each turn keep the one module's bandits under
-      // the cap. The foes over it are pinned: Turn Undead on the Delve's
-      // skeletons since it became Hard (#442), Sleep at level 4 in the
-      // Weirgate (#443), and Sleep on the Lodge's Gaoler (#445).
+      // the cap. The foes over it are pinned: Sleep at level 4 in the
+      // Weirgate (#443), and Sleep on the Lodge's Gaoler (#445). Turn Undead
+      // on the Delve's skeletons, 34.3%, was over Hard's cap (#442) and is
+      // under Medium's since #499.
       assert.deepEqual(
         control.overCap.map(({ opponentId, control: used }) => [
           opponentId,
@@ -822,8 +821,8 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
     ]),
     [
       ["bramblecote-cider-house", "1–1", "medium"],
-      // Hard since #442 (Medium before its expansion).
-      ["abandoned-delve", "2–2", "hard"],
+      // Medium since #499's Last Stand; Hard from #442 (its expansion).
+      ["abandoned-delve", "2–2", "medium"],
       // Levels 3–4 since #443 (level 3 before).
       ["coldwater-weirgate", "3–4", "medium"],
       ["thornwood-lodge", "4–5", "hard"],

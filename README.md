@@ -56,7 +56,7 @@ character at 0 HP is defeated for good; there are no death saving throws.
 | Module                      | File                                         | Levels | Difficulty |
 | --------------------------- | -------------------------------------------- | ------ | ---------- |
 | The Bramblecote Cider House | `adventures/5e/bramblecote-cider-house.json` | 1      | Medium     |
-| The Abandoned Delve         | `adventures/5e/abandoned-delve.json`         | 2      | Hard       |
+| The Abandoned Delve         | `adventures/5e/abandoned-delve.json`         | 2      | Medium     |
 | The Coldwater Weirgate      | `adventures/5e/coldwater-weirgate.json`      | 3–4    | Medium     |
 | The Thornwood Lodge         | `adventures/5e/thornwood-lodge.json`         | 4–5    | Hard       |
 

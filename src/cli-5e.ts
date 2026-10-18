@@ -108,6 +108,7 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   "drain-attack": "Vampiric Touch at ",
   "uncanny-dodge": "Uncanny Dodge",
   "take-hit": "Take the hit",
+  fall: "Fall",
   "end-turn": "End turn",
   leave: "Leave the adventure",
   "tactical-mind": "Tactical Mind",

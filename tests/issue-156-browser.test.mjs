@@ -18,6 +18,7 @@ import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -53,12 +54,13 @@ function findSeed() {
       const attack = runtime
         .projectActions(state)
         .find(({ action }) => action === "attack");
-      spent ||= !attack.available;
+      // No attack is offered while Last Stand waits (#499).
+      spent ||= attack?.available === false;
       state = run(
         state,
-        attack.available
+        attack?.available
           ? { type: "attack", actorId: "pc", targetId: "giant-rat" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status === "playing" && spent) {

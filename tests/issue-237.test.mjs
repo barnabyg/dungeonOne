@@ -29,6 +29,7 @@ import {
   goblin,
   KILL,
 } from "./fixtures/morale-encounter.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const morale = (events) => events.filter(({ type }) => type === "morale");
 
@@ -348,7 +349,7 @@ test("morale saves are narrated, carded, recorded and replay exactly from a save
     const next = (session) => {
       const [target] = session.runtime.attackTargets(session.state);
       return target === undefined
-        ? { type: "end-turn", actorId: "pc" }
+        ? endTurnOrFall(session.state)
         : { type: "attack", actorId: "pc", targetId: target.id };
     };
     const triggers = (result) =>

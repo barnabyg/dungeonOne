@@ -20,6 +20,7 @@ import {
   RENAMED_SKELETONS,
   skeletonBarracks,
 } from "./fixtures/renamed-skeletons.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
@@ -177,7 +178,7 @@ test("a one-off inline stat block still validates and plays", () => {
       result.state,
       runtime.attackTargets(result.state).length > 0
         ? { type: "attack", actorId: "pc", targetId: "giant-rat" }
-        : { type: "end-turn", actorId: "pc" },
+        : endTurnOrFall(result.state),
       random,
     );
     fight += `\n${runtime.renderResult(result)}`;

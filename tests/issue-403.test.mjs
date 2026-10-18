@@ -92,9 +92,9 @@ const at = (roomId, more = {}) => ({
 
 test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
-  assert.equal(FIFTH_SESSION_FORMAT, 64);
-  assert.equal(FIFTH_TRACE_FORMAT, 58);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v45");
+  assert.equal(FIFTH_SESSION_FORMAT, 65);
+  assert.equal(FIFTH_TRACE_FORMAT, 59);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v46");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool summons, rolls for, delays or keeps away a wandering encounter\./u,
@@ -763,8 +763,10 @@ test("the gate counts wandering fights in survival and their XP in the XP limit,
     /\n {2}Wandering encounters, reported \(not judged\): the level 1, 5th percentile Fighter playing cautious met one in \d+ of 12 seeded runs and \d+ of 12 always-fail runs, and fell in one in 0 and 0; they count in survival, and their 25 XP in the XP limit\./u,
   );
   // A deadly wanderer kills the runs that meet it: survival falls, on
-  // seeded and always-fail checks alike.
+  // seeded and always-fail checks alike. It bites twice, so a Last Stand
+  // (#499) only puts off the fall.
   const deadly = wandering((module) => {
+    module.encounters.at(-1).opponents[0].statBlock.multiattack = 2;
     const bite = module.encounters.at(-1).opponents[0].statBlock.attacks[0];
     bite.bonus = 20;
     bite.damage = { dice: 4, sides: 12, modifier: 20, type: "piercing" };

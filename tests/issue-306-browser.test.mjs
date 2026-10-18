@@ -26,6 +26,7 @@ import {
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const ROUTE = ["rat-cellar", "den"];
 
@@ -82,7 +83,7 @@ function play(seed) {
       state = step(
         state,
         attack === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(state)
           : {
               type: attack.action,
               actorId: "pc",

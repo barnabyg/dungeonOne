@@ -26,6 +26,7 @@ import {
   saveFighter,
   startAdventure,
 } from "./fixtures/browser-journey.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
@@ -67,7 +68,7 @@ function findSeed() {
       state = run(
         state,
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(state)
           : { type: "attack", actorId: "pc", targetId: target.id },
       );
       turns++;

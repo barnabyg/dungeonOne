@@ -30,6 +30,7 @@ import {
   withLibrary,
 } from "./fixtures/library.mjs";
 import { marketBarrow } from "./fixtures/market-barrow.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const adventures = [barrow];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
@@ -395,7 +396,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
       state = runtime.handleAction(
         state,
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(state)
           : { type: "attack", actorId: "pc", targetId: target.id },
         random,
       ).state;

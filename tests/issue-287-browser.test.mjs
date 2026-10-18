@@ -18,6 +18,7 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const goblinPair = fightRoom("goblin-pair", "The Goblin Pair", [
   { id: "left", monster: "goblin-warrior", name: "Left Goblin" },
@@ -59,7 +60,7 @@ function winningSeed() {
       state = runtime.handleAction(
         state,
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(state)
           : { type: "attack", actorId: "pc", targetId: target },
         random,
       ).state;

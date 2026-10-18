@@ -18,6 +18,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const saves = {
   strength: 4,
@@ -418,7 +419,7 @@ function playLair(session, room) {
     played.push(
       session.act(
         target === undefined
-          ? { type: "end-turn", actorId: "pc" }
+          ? endTurnOrFall(session.state)
           : { type: "attack", actorId: "pc", targetId: target.id },
         "click",
       ),

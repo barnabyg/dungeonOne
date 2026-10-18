@@ -161,6 +161,10 @@ const hurtWithPotion = [
   { type: "move", destinationId: "barracks" },
   { type: "end-turn", actorId: PLAYER_ID },
 ] as const;
+// Seed 3: as Ada ends her turn with the potion in hand, a skeleton brings
+// her to 0 HP, her death saving throw succeeds, and her fall waits for Last
+// Stand (#499).
+const lastStand = hurtWithPotion;
 // Seed 1: the skeletons kill Ada when she ends her first turn.
 const defeated = hurtInBarracks;
 // #442. Seed 0: Ada takes the rope from the porter's lodge, beats the
@@ -350,6 +354,27 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     name: "use_item",
     arguments: { item: "rack-potion" },
     dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "last-stand-drink",
+    seed: 3,
+    setup: lastStand,
+    playerInput: "I'm going down! I gulp the potion before I fall.",
+    name: "use_item",
+    arguments: { item: "rack-potion" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "last-stand-attack",
+    kind: "interpretation",
+    seed: 3,
+    setup: lastStand,
+    playerInput: "I swing at the skeleton as I go down.",
+    reply:
+      "You're at 0 HP and falling: you can only drink your potion as a Last Stand, or fall.",
+    dimensions: ["refusal"],
     manualJudgments: [],
   }),
   actionCase({
@@ -978,6 +1003,8 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "drain-attack": "vampiric_touch",
   "uncanny-dodge": "uncanny_dodge",
   "take-hit": "take_hit",
+  // Falling rather than taking Last Stand (#499) is the player's alone.
+  fall: undefined,
   "light-attack": "light_attack",
   "end-turn": "end_turn",
   move: "move",

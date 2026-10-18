@@ -16,6 +16,7 @@ import { gemMarket } from "./fixtures/gem-market.mjs";
 import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** A browser seed on which the first Ada wins the burial hall's fight. */
 function winningSeed() {
@@ -31,7 +32,7 @@ function winningSeed() {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status === "playing") {

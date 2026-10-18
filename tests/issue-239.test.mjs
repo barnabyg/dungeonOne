@@ -21,6 +21,7 @@ import {
 import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { gemMarket } from "./fixtures/gem-market.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** The barrow's own treasure: the silver torc (25 gp) and 2 gp 5 sp. */
 const BARROW_VALUE = TRADE_GOODS["art-25gp"].value + 250;
@@ -223,7 +224,7 @@ function findOpal(runtime) {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status !== "playing") {

@@ -72,12 +72,13 @@ const feature = (roomId, id) =>
 const level2 = testFighterAt(2);
 
 // #233: Undead Fortitude made its Zombie too deadly at level 1. #442: the
-// weakest level-2 Rogue survives the old-well route 84.5%, under Medium's
-// 85%, so the expanded delve is declared Hard.
-test("the delve is a long level-2 Hard module of sixteen rooms in two regions, left by the gate or the shaft", () => {
+// weakest level-2 Rogue survived the old-well route 84.5%, under Medium's
+// 85%, so the expanded delve was declared Hard. #499: with Last Stand that
+// Rogue survives 88%, Medium's 85% with 3 points of slack, so it is Medium.
+test("the delve is a long level-2 Medium module of sixteen rooms in two regions, left by the gate or the shaft", () => {
   assert.equal(delve.title, "The Abandoned Delve");
   assert.deepEqual(delve.recommendedLevels, { min: 2, max: 2 });
-  assert.equal(delve.difficulty, "hard");
+  assert.equal(delve.difficulty, "medium");
   assert.equal(delve.long, true);
   assert.deepEqual(
     delve.regions.map(({ id, name }) => [id, name]),
@@ -493,6 +494,15 @@ async function journey(sheet, seed, steps) {
       state.status === "playing" &&
       state.encounter?.outcome === "ongoing"
     ) {
+      // Last Stand (#499): the journey falls, as it did before the rule;
+      // no AI DM tool takes the fall.
+      if (state.encounter.pendingReaction?.kind === "last-stand") {
+        state = runtime.handleAction(state, {
+          type: "fall",
+          actorId: "pc",
+        }).state;
+        continue;
+      }
       const attack = runtime
         .getGameToolDefinitions(state)
         .find(({ name }) => name === "attack");

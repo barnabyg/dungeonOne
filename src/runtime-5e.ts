@@ -328,7 +328,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v45";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v46";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1829,7 +1829,7 @@ Where a merchant is, call trade with the one offer the player's words pick out: 
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. When an opponent's attack brings the character to 0 HP while it carries a potion, the engine rolls a death saving throw (Last Stand); on a success its fall waits for the player's answer: only use_item is offered, with the potions it carries, and on a failure the character falls. Say the character is going down and ask whether they drink a potion, then call use_item with the potion the player's words pick out; it takes the reaction, and the engine rolls how far the character rises. Falling instead is the player's choice alone, in the action bar: no tool takes it, so never declare the character fallen or defeated yourself. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 On its turn, with its action, the character may flee the fight through an exit it could otherwise go through: flee is offered then, listing only those exits, and says which opponents will attack as it goes. Call flee with the exit the player's words pick out when they run, flee, retreat or make a break for it ("I run for the door"); if they name no exit and more than one is listed, ask which, without calling a tool. Before the character goes, each opponent able to act makes one attack against it: the engine rolls them, and the character may fall before it gets away. Nothing spares those attacks but Disengage: a character with Cunning Action may first disengage with its bonus action (call disengage when the player asks to disengage, slip away or get clear), and then fleeing this turn draws none. A player cannot flee unharmed by asking; never promise it. If the player makes getting away untouched part of the request ("so fast they don't get a swing at me"), don't call flee: say which opponents will attack as the character goes, and ask whether it still flees, without calling a tool. If flee is not offered, or doesn't list the way the player names (a shut door, a closed way or a way not yet found), say they can't flee that way now, without calling a tool. The fight stays where it was: its fallen stay fallen, its standing foes keep their wounds and wait there, and they never follow.
 
@@ -2252,6 +2252,7 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "end-turn": "end your turn",
   "uncanny-dodge": "use Uncanny Dodge",
   "take-hit": "take the hit",
+  fall: "fall",
 };
 
 function listed(items: readonly string[], conjunction = "or"): string {
@@ -3256,9 +3257,18 @@ export function renderFifthEvent(
               event.attackerIds.map(name),
               "and",
             )} ${event.attackerIds.length === 1 ? "gets an attack" : "each get an attack"} on you as you go.`;
+    case "last-stand": {
+      // Last Stand (#499): a death saving throw; on a success the fall
+      // waits for the player's answer.
+      const who = name(event.combatantId);
+      return `Last Stand: ${who} drops to 0 HP and makes a death saving throw: ${event.d20} against DC ${event.dc}. ${event.success ? `Success: ${who} clings on, and can drink ${listed([...new Set(event.potions)].map((potion) => `the ${potion}`))} with the reaction to rise again, or fall.` : `Failure: ${who} falls.`}`;
+    }
     case "potion": {
       const rolled =
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
+      if (event.lastStand === true) {
+        return `Last Stand: you drink the ${event.name} with your reaction: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you rise again with ${event.hpAfter}/${event.maxHp} HP.`;
+      }
       return `You drink the ${event.name}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "scroll-check":
@@ -4475,6 +4485,21 @@ export function describeFifthResult(
             outcome: event.success ? "success" : "failure",
           },
         ];
+      // Last Stand's death saving throw (#499): a d20 with no modifier.
+      case "last-stand":
+        return [
+          {
+            purpose: "save",
+            roller: name(event.combatantId),
+            label: "Death saving throw (Last Stand)",
+            dice: take([event.d20]),
+            modifier: 0,
+            proficiency: 0,
+            total: event.d20,
+            dc: event.dc,
+            outcome: event.success ? "success" : "failure",
+          },
+        ];
       case "undead-fortitude":
         return [
           {
@@ -5027,6 +5052,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "end-turn": true,
   "uncanny-dodge": true,
   "take-hit": true,
+  fall: true,
   move: true,
   sneak: true,
   ambush: true,
@@ -5486,9 +5512,14 @@ export type FightView = Readonly<{
     currentTurn: string | null;
     /**
      * A hit waiting for the character's answer (#308): who hit it, with
-     * what. Uncanny Dodge halves its damage, or the character takes it.
+     * what. Uncanny Dodge halves its damage, or the character takes it. Or
+     * the character's fall waiting for Last Stand (#499), with no weapon.
      */
-    pendingReaction?: Readonly<{ attacker: string; weapon: string }>;
+    pendingReaction?: Readonly<{
+      attacker: string;
+      weapon?: string;
+      lastStand?: true;
+    }>;
     combatants: readonly Readonly<{
       id: string;
       name: string;
@@ -5696,7 +5727,9 @@ function projectFight(
                       encounter,
                       encounter.pendingReaction.attackerId,
                     ).name,
-                    weapon: encounter.pendingReaction.weapon.name,
+                    ...(encounter.pendingReaction.kind === "last-stand"
+                      ? { lastStand: true as const }
+                      : { weapon: encounter.pendingReaction.weapon.name }),
                   },
                 }),
             combatants: encounter.order.map(
@@ -5715,7 +5748,14 @@ function projectFight(
                   maxHp: entrant.maxHp,
                   // With its ongoing effects (#337).
                   armorClass: armorClassOf(entrant),
-                  defeated: hp === 0,
+                  // At 0 HP while its fall waits for Last Stand (#499),
+                  // the character is not defeated yet.
+                  defeated:
+                    hp === 0 &&
+                    !(
+                      encounter.pendingReaction?.kind === "last-stand" &&
+                      encounter.pendingReaction.reactorId === entrant.id
+                    ),
                   ...moraleOf(encounter, entrant.id),
                   sapped: encounter.sapped.some(
                     ({ targetId }) => targetId === entrant.id,
@@ -8834,6 +8874,7 @@ export function createFifthRuntime(
       case "end-turn":
       case "uncanny-dodge":
       case "take-hit":
+      case "fall":
         return actorId === undefined
           ? undefined
           : { type: action.type, actorId };
@@ -10090,6 +10131,7 @@ export function createFifthRuntime(
       case "end-turn":
       case "uncanny-dodge":
       case "take-hit":
+      case "fall":
         return fightAction(state, action, random, reject);
       case "disengage": {
         // The engine checks the feature, the turn and the bonus action; the
@@ -11829,6 +11871,10 @@ export function createFifthRuntime(
       const pc = combatant(state.encounter!, PLAYER_ID);
       const feature = (kind: FeatureActionType) =>
         view(kind, { type: kind, actorId: PLAYER_ID });
+      // Last Stand (#499): only a potion to drink, or the fall.
+      if (state.encounter!.pendingReaction?.kind === "last-stand") {
+        return [...potions(state).map(use), feature("fall")];
+      }
       // A hit waiting for a reaction (#308, #337): only its answers,
       // Uncanny Dodge, each reaction spell at each slot level, or the hit.
       if (state.encounter!.pendingReaction !== undefined) {
@@ -12398,7 +12444,9 @@ export function createFifthRuntime(
                 ...(encounter.pendingReaction === undefined
                   ? []
                   : [
-                      `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s ${encounter.pendingReaction.weapon.name.toLowerCase()} has hit the character, and waits for the player's answer before its damage: ${reactionAnswersText(encounter)}.`,
+                      encounter.pendingReaction.kind === "last-stand"
+                        ? `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s attack has brought the character to 0 HP, and the fall waits for the player's answer (Last Stand): use_item with a potion the character carries to drink it with the reaction and rise again, or the player falls by their own choice in the action bar.`
+                        : `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s ${encounter.pendingReaction.weapon.name.toLowerCase()} has hit the character, and waits for the player's answer before its damage: ${reactionAnswersText(encounter)}.`,
                     ]),
                 // The character's ongoing effects (#337).
                 ...effectLines(self(state)).map(
@@ -13294,7 +13342,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "use_item",
-        "Drink a carried potion; the engine rolls its healing, up to the maximum. In a fight it takes the bonus action. Identical items work alike. Items:",
+        "Drink a carried potion; the engine rolls its healing, up to the maximum. In a fight it takes the bonus action, or at 0 HP the reaction, as Last Stand. Identical items work alike. Items:",
         choices("use"),
         "The id of the carried item to use.",
       ),

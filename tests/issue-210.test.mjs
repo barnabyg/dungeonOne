@@ -17,6 +17,7 @@ import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { room } from "./fixtures/armoury-barrow.mjs";
 import { marketBarrow, marketFile, PEDLAR } from "./fixtures/market-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const holding = (equipment, stowed = [], purse = 0) => ({
   equipment,
@@ -275,7 +276,7 @@ function loot(runtime) {
         state,
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-          : { type: "end-turn", actorId: "pc" },
+          : endTurnOrFall(state),
       );
     }
     if (state.status !== "playing") {

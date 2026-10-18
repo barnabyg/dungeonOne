@@ -551,6 +551,8 @@ const CLICK_ACTIONS = [
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge",
   "take-hit",
+  // Falling rather than taking Last Stand (#499).
+  "fall",
   // On the check just failed (#315).
   "tactical-mind",
 ] as const;

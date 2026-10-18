@@ -16,6 +16,7 @@ import { loneGoblin } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 /** A lone goblin seed where attacking every turn ends in `wanted`. */
 function seedFor(wanted) {
@@ -31,7 +32,7 @@ function seedFor(wanted) {
       const action =
         runtime.attackTargets(state).length > 0
           ? { type: "attack", actorId: "pc", targetId: "goblin" }
-          : { type: "end-turn", actorId: "pc" };
+          : endTurnOrFall(state);
       state = runtime.handleAction(state, action, random).state;
     }
     if (state.status === wanted) {
