@@ -250,7 +250,7 @@ test("on Scarce each potion, gear, scroll or wand is missing with an even chance
   });
 });
 
-test("on Scarce an item a door or a feature's use names is never missing", () => {
+test("on Scarce an item a door or a feature's use names, or one that sets a flag, is never missing", () => {
   const module = structuredClone(snakeDoorFile);
   // The snake that opens the door is a potion here, and another potion lies
   // in the alcove beside it.
@@ -267,6 +267,20 @@ test("on Scarce an item a door or a feature's use names is never missing", () =>
   const candidates = scarceCandidateIds(snakeDoor);
   assert.ok(candidates.includes("alcove-potion"));
   assert.equal(candidates.includes("stone-snake"), false);
+  // An item that sets a flag when taken may open a way on.
+  const flagged = structuredClone(snakeDoor);
+  flagged.rooms
+    .find(({ id }) => id === "alcove")
+    .items.push({
+      id: "flagged-dagger",
+      name: "Dagger",
+      description: "A dagger on a pressure plate.",
+      kind: "gear",
+      gear: "dagger",
+      hiddenIn: "iron-chest",
+      sets: "dagger-taken",
+    });
+  assert.equal(scarceCandidateIds(flagged).includes("flagged-dagger"), false);
   let missed = 0;
   for (let seed = 0; seed < 200; seed++) {
     const absent = scarceItemIds(snakeDoor, seed);

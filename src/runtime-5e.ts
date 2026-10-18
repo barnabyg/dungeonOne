@@ -5897,8 +5897,8 @@ function ruleItemIds(adventure: FifthAdventure): ReadonlySet<string> {
 /**
  * The ids of the items that may be missing when items found is Scarce
  * (#507): each potion, piece of gear (ammunition included), spell scroll and
- * wand that no rule of the module names. Coin, gems and art, keys and tools
- * are always there.
+ * wand that no rule of the module names and that sets no flag when taken.
+ * Coin, gems and art, keys and tools are always there.
  */
 export function scarceCandidateIds(
   adventure: FifthAdventure,
@@ -5912,7 +5912,9 @@ export function scarceCandidateIds(
             item.kind === "gear" ||
             item.kind === "scroll" ||
             item.kind === "wand") &&
-          !named.has(item.id),
+          !named.has(item.id) &&
+          // Taking it may open a way on.
+          item.sets === undefined,
       )
       .map(({ id }) => id),
   );
