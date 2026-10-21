@@ -4,9 +4,10 @@
 // above and the Vaults below. Two ways lead down, the press-house trapdoor
 // past Nib and the old well past Brack, whose climb opens the way in every
 // band; Wick surrenders in the avoidable Hayloft and gives the strongroom
-// key; leaving with loot pays 300 XP. Journeys reach its endings by both
-// ways; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty, with its quoted figures.
+// key; the goblin tally in the cider press gives advantage on finding the
+// goblins' cut in the cask gallery; leaving with loot pays 300 XP. Journeys
+// reach its endings by both ways; shipped-modules.test.mjs checks it
+// qualifies at its declared difficulty, with its quoted figures.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -149,6 +150,8 @@ test("its fights: six single foes or pairs, none a boss, and Wick can surrender 
 });
 
 test("two ways lead down, the trapdoor past Nib and the well past Brack, each one fight to the cask gallery", () => {
+  // The trapdoor's way ends at the goblins' cut in the cask gallery, the
+  // nearest loot once down; a run whose search fails goes on for other loot.
   assert.deepEqual(
     cider.routes.map((route) => [route.id, requiredPath(cider, route).roomIds]),
     [
@@ -160,7 +163,6 @@ test("two ways lead down, the trapdoor past Nib and the well past Brack, each on
           "press-house",
           "cellar-stair",
           "cask-gallery",
-          "well-bottom",
           "river-door",
         ],
       ],
@@ -245,7 +247,7 @@ test("two ways lead down, the trapdoor past Nib and the well past Brack, each on
   assert.equal(door.break.bands["failure-by-5"].effects, undefined);
 });
 
-test("its treasure is 98% of the long level-1 budget, and nothing to carry out is reachable without a fight", () => {
+test("its treasure is 99.6% of the long level-1 budget, and nothing to carry out is reachable without a fight", () => {
   const items = cider.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
     items
@@ -264,7 +266,7 @@ test("its treasure is 98% of the long level-1 budget, and nothing to carry out i
       ["smugglers-carnelian", "gem-50gp"],
     ],
   );
-  assert.equal(findableValue(cider), 29444);
+  assert.equal(findableValue(cider), 29884);
   assert.equal(treasureBudget(1, true), 30000);
   // The rooms reachable from the gate without entering a fight hold no
   // treasure or coin, so a cautious run can't take loot and leave unfought.
@@ -319,6 +321,83 @@ test("a level-1 Fighter beats Nib, takes his hoard down the trapdoor and leaves 
     ["Defeated Nib", 25],
     ["Out with the Pells' goods", 300],
   ]);
+});
+
+const pressed =
+  (band) =>
+  ({ checks }) =>
+    checks.some(
+      ({ id, band: made }) => id === "examine:cider-press" && made === band,
+    );
+
+test("the goblin tally from the cider press gives advantage on finding the goblins' cut in the great casks", () => {
+  const { check } = feature("cask-gallery", "great-casks");
+  assert.deepEqual(
+    check.approaches.map(({ skill, dc, advantage }) => [
+      skill,
+      dc,
+      advantage.map(({ type, feature: found, name }) => [type, found, name]),
+    ]),
+    [
+      ["investigation", 15, [["discovered", "cider-press", "Goblin tally"]]],
+      ["perception", 16, [["discovered", "cider-press", "Goblin tally"]]],
+    ],
+  );
+  assert.deepEqual(
+    room("cask-gallery").items.map(({ id, kind, coins, hiddenIn }) => [
+      id,
+      kind,
+      coins,
+      hiddenIn,
+    ]),
+    [["goblins-cut", "coin", { sp: 44 }, "great-casks"]],
+  );
+  const toGallery = (band) =>
+    firstJourney(
+      cider,
+      level1,
+      [
+        ["move", "kitchen"],
+        ["move", "press-house"],
+        ["examine", "cider-press", "investigation"],
+        ["move", "cellar-stair"],
+        ["move", "cask-gallery"],
+      ],
+      (state) => state.roomId === "cask-gallery" && pressed(band)(state),
+    );
+  const search = ({ state, runtime }) =>
+    runtime
+      .handleAction(
+        state,
+        routeAction(["examine", "great-casks", "investigation"]),
+        createSeededRandom(0),
+      )
+      .events.find(({ type }) => type === "check").roll.mode;
+  assert.deepEqual(search(toGallery("success")).advantage, ["Goblin tally"]);
+  // Without the tally the search is a plain roll.
+  assert.equal(search(toGallery("failure")), undefined);
+});
+
+test("found by its tally, the goblins' cut comes out by the river door", () => {
+  const { state } = firstJourney(
+    cider,
+    level1,
+    [
+      ["move", "kitchen"],
+      ["move", "press-house"],
+      ["examine", "pomace-heap"],
+      ["take", "nibs-hoard"],
+      ["examine", "cider-press", "investigation"],
+      ["move", "cellar-stair"],
+      ["move", "cask-gallery"],
+      ["examine", "great-casks", "investigation"],
+      ["take", "goblins-cut"],
+      ["move", "river-door"],
+      ["leave", "river-door"],
+    ],
+    ({ status }) => status === "escaped",
+  );
+  assert.equal(state.endingId, "out-with-the-pells-goods");
 });
 
 test("down the old well with the cooper's rope: past Brack, the climb opens the shaft, and the wishing coins come out", () => {
