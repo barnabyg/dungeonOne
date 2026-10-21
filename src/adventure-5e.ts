@@ -145,7 +145,7 @@
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
-import { BACKDROPS, type Backdrop, isBackdrop } from "./backdrops-5e.js";
+import { type Backdrop, readBackdrop } from "./backdrops-5e.js";
 import {
   type GameIconId,
   isGameIconId,
@@ -4469,22 +4469,6 @@ function readRoutes(
   });
   unique(routes, "route");
   return routes;
-}
-
-/** `{ backdrop }` (#517) from `value`, or nothing when it is left out. */
-function readBackdrop(
-  value: unknown,
-  where: string,
-): Readonly<{ backdrop?: Backdrop }> {
-  if (value === undefined) {
-    return {};
-  }
-  if (!isBackdrop(value)) {
-    fail(
-      `${where} names unknown backdrop ${String(value)}: use one of ${BACKDROPS.join(", ")}.`,
-    );
-  }
-  return { backdrop: value };
 }
 
 /**

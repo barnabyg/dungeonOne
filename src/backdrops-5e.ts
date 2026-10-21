@@ -3,7 +3,10 @@
 // room may override its region's (src/adventure-5e.ts); the page draws the
 // current room's behind the scene column, as the shop draws its shelves
 // (#515). Each is 800 x 600, standing on its bottom edge, and drawn in
-// currentColor so the page picks its colour and strength.
+// currentColor so the page picks its colour and strength. Each starts
+// hidden; the page shows the current room's.
+
+import { fail } from "./json-shape.js";
 
 /** Every backdrop a module may name. */
 export const BACKDROPS = ["cellar", "crypt", "forest"] as const;
@@ -13,6 +16,25 @@ export type Backdrop = (typeof BACKDROPS)[number];
 /** Whether `value` names a backdrop. */
 export const isBackdrop = (value: unknown): value is Backdrop =>
   (BACKDROPS as readonly unknown[]).includes(value);
+
+/**
+ * `{ backdrop }` from a module's `value`, or nothing when it is left out;
+ * fails naming `where` when it names no backdrop.
+ */
+export function readBackdrop(
+  value: unknown,
+  where: string,
+): Readonly<{ backdrop?: Backdrop }> {
+  if (value === undefined) {
+    return {};
+  }
+  if (!isBackdrop(value)) {
+    fail(
+      `${where} names unknown backdrop ${String(value)}: use one of ${BACKDROPS.join(", ")}.`,
+    );
+  }
+  return { backdrop: value };
+}
 
 // Path pieces. Shapes in one path cut each other out (evenodd).
 
@@ -112,29 +134,33 @@ const CELLAR = [
   path(`M0 140Q400-60 800 140v12Q400-46 0 152z`),
   path(box(0, 500, 800, 7)),
   path(box(40, 486, 300, 14) + box(56, 500, 12, 20) + box(312, 500, 12, 20)),
-  ...[
-    [90, 432],
-    [190, 432],
-    [290, 432],
-    [140, 342],
-    [240, 342],
-    [190, 252],
-  ].map(([x, y]) => barrelEnd(x!, y!, 50)),
+  ...(
+    [
+      [90, 432],
+      [190, 432],
+      [290, 432],
+      [140, 342],
+      [240, 342],
+      [190, 252],
+    ] as const
+  ).map(([x, y]) => barrelEnd(x, y, 50)),
   path(box(184, 468, 12, 18) + box(180, 484, 20, 4)),
   ...[300, 400].map((y) =>
     path(box(480, y, 280, 8) + box(488, y + 8, 8, 20) + box(744, y + 8, 8, 20)),
   ),
-  ...[
-    [500, 30, 44],
-    [540, 24, 34],
-    [576, 34, 50],
-    [624, 22, 30],
-    [664, 30, 40],
-    [708, 26, 46],
-  ].map(([x, w, h]) =>
+  ...(
+    [
+      [500, 30, 44],
+      [540, 24, 34],
+      [576, 34, 50],
+      [624, 22, 30],
+      [664, 30, 40],
+      [708, 26, 46],
+    ] as const
+  ).map(([x, w, h]) =>
     path(
-      `M${x!} 300v${-h! + 8}q0-8 8-8h${w! - 16}q8 0 8 8v${h! - 8}z` +
-        box(x! + 4, 300 - h! - 8, w! - 8, 6),
+      `M${x} 300v${-h + 8}q0-8 8-8h${w - 16}q8 0 8 8v${h - 8}z` +
+        box(x + 4, 300 - h - 8, w - 8, 6),
     ),
   ),
   ...[502, 530, 558, 600, 628, 690, 718].map((x) =>
@@ -165,14 +191,16 @@ const star = (x: number, y: number, r: number) =>
 const FOREST = [
   path(
     `M560 56a34 34 0 1 0 0 68a26 34 0 1 1 0-68z` +
-      [
-        [300, 70, 9],
-        [420, 120, 6],
-        [660, 170, 7],
-        [250, 180, 5],
-        [480, 40, 5],
-      ]
-        .map(([x, y, r]) => star(x!, y!, r!))
+      (
+        [
+          [300, 70, 9],
+          [420, 120, 6],
+          [660, 170, 7],
+          [250, 180, 5],
+          [480, 40, 5],
+        ] as const
+      )
+        .map(([x, y, r]) => star(x, y, r))
         .join(""),
   ),
   pine(50, 504, 430, 150),
@@ -195,7 +223,7 @@ const FOREST = [
 ].join("");
 
 const art = (name: Backdrop, drawing: string) =>
-  `<svg class="backdrop" data-backdrop="${name}" viewBox="0 0 800 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false"><g fill="currentColor">${drawing}</g></svg>`;
+  `<svg class="backdrop" data-backdrop="${name}" hidden viewBox="0 0 800 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false"><g fill="currentColor">${drawing}</g></svg>`;
 
 /** Each backdrop's drawing, an inline SVG, in the order of BACKDROPS. */
 export const BACKDROP_ART: Readonly<Record<Backdrop, string>> = {

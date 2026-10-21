@@ -96,23 +96,29 @@ test("the scene column shows the current room's backdrop, faint, behind its cont
     const { strength, contrast } = await worstContrast(page);
     assert.ok(strength > 0 && strength <= 0.3, `strength ${strength}`);
     assert.ok(contrast >= 4.5, `contrast ${contrast.toFixed(2)}`);
-    // It stands on the bottom of the column's visible part, inside it.
+    // It fills the scene's column as seen, scrolled to the top or the foot:
+    // the scene from 1500 px wide, the character and scene column narrower.
     const fits = () =>
       page.evaluate(() => {
-        const scene = document
-          .getElementById("session-scene")
-          .getBoundingClientRect();
-        const drawing = document
-          .querySelector("#scene-backdrop svg:not([hidden])")
-          .getBoundingClientRect();
-        return (
-          Math.abs(drawing.bottom - scene.bottom) <= 1 &&
-          drawing.top >= scene.top - 1 &&
-          drawing.left >= scene.left - 1 &&
-          drawing.right <= scene.right + 1
+        const column = document.getElementById(
+          window.innerWidth >= 1500 ? "session-scene" : "session-main",
         );
+        const filled = () => {
+          const seen = column.getBoundingClientRect();
+          const drawing = document
+            .querySelector("#scene-backdrop svg:not([hidden])")
+            .getBoundingClientRect();
+          return ["top", "bottom", "left"].every(
+            (side) => Math.abs(drawing[side] - seen[side]) <= 1,
+          );
+        };
+        const top = filled();
+        column.scrollTop = column.scrollHeight;
+        const foot = filled();
+        column.scrollTop = 0;
+        return top && foot;
       });
-    assert.equal(await fits(), true, "the drawing fills the column's foot");
+    assert.equal(await fits(), true, "the drawing fills the column");
 
     // The alcove names its own; back in the upper tunnels, the cellar again.
     await clickAction(page, "move", "alcove");
@@ -137,6 +143,11 @@ test("the scene column shows the current room's backdrop, faint, behind its cont
     ]) {
       await page.setViewportSize(viewport);
       assert.deepEqual(await shown(page), ["crypt"]);
+      assert.equal(
+        await fits(),
+        true,
+        `it fills the column at ${viewport.width}`,
+      );
       await assertNoSideScroll(
         page,
         `no horizontal scroll at ${viewport.width}`,

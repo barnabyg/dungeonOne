@@ -6013,16 +6013,17 @@ export function createFifthRuntime(
   const roomById = (roomId: string) =>
     adventure.rooms.find(({ id }) => id === roomId)!;
   const room = (state: FifthState) => roomById(state.roomId);
+  /** The region `of` belongs to (#395), if it has one. */
+  const regionFor = (of: FifthRoom) =>
+    adventure.regions?.find(({ id }) => id === of.region);
   /** `{ region }`, the name of `of`'s region (#395), or nothing. */
   const regionOf = (of: FifthRoom): Readonly<{ region?: string }> => {
-    const region = adventure.regions?.find(({ id }) => id === of.region);
+    const region = regionFor(of);
     return region === undefined ? {} : { region: region.name };
   };
   /** `{ backdrop }`, `of`'s own or its region's (#517), or nothing. */
   const backdropOf = (of: FifthRoom): Readonly<{ backdrop?: Backdrop }> => {
-    const backdrop =
-      of.backdrop ??
-      adventure.regions?.find(({ id }) => id === of.region)?.backdrop;
+    const backdrop = of.backdrop ?? regionFor(of)?.backdrop;
     return backdrop === undefined ? {} : { backdrop };
   };
   /** The module's words for its alarm (#401), once it is raised. */

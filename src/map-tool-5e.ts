@@ -15,7 +15,7 @@
  * and each region's in the SVG's legend. A sketch has none.
  */
 
-import { type Backdrop, BACKDROPS, isBackdrop } from "./backdrops-5e.js";
+import { type Backdrop, readBackdrop } from "./backdrops-5e.js";
 import {
   FIFTH_ADVENTURE_FORMAT,
   FIFTH_ADVENTURE_KIND,
@@ -105,22 +105,6 @@ function readRoom(raw: Record<string, unknown>, where: string): LayoutRoom {
     ...(raw.exit === true ? { exit: true as const } : {}),
     ...readBackdrop(raw.backdrop, `${where} (${roomId})`),
   };
-}
-
-/** `{ backdrop }` (#517), named as the module validator names it. */
-function readBackdrop(
-  value: unknown,
-  where: string,
-): Readonly<{ backdrop?: Backdrop }> {
-  if (value === undefined) {
-    return {};
-  }
-  if (!isBackdrop(value)) {
-    fail(
-      `${where} names unknown backdrop ${String(value)}: use one of ${BACKDROPS.join(", ")}.`,
-    );
-  }
-  return { backdrop: value };
 }
 
 function readPassage(

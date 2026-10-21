@@ -115,9 +115,10 @@ Floor 0
 ### Reading the SVG
 
 The SVG shows each floor from the top down, shading rooms by region (its legend
-names each region's backdrop) and tagging the start and exits. Its legend explains the marks: hidden and flag-controlled
-passages are dashed or dotted, doors are squares (filled when locked), traps are
-red triangles, and ▲ / ▼ mark a room's stairs, ladders and shafts.
+names each region's backdrop) and tagging the start and exits. Its legend
+explains the marks: hidden and flag-controlled passages are dashed or dotted,
+doors are squares (filled when locked), traps are red triangles, and ▲ / ▼ mark
+a room's stairs, ladders and shafts.
 
 ## Layout sketches
 
