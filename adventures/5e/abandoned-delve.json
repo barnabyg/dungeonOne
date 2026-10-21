@@ -243,7 +243,7 @@
       "id": "porters-lodge",
       "name": "Porter's Lodge",
       "at": [1, 0],
-      "description": "A narrow lodge beside the gate hall, dry and still. Its door has a stout bar on the inside, and a cot stands under a row of pegs.",
+      "description": "A narrow lodge beside the gate hall, dry and lit by a stub of candle. Its door has a stout bar on the inside, and a cot stands under a row of pegs.",
       "region": "cellars",
       "restSite": true,
       "features": [
@@ -271,6 +271,29 @@
           "description": "Fifty feet of hemp rope, dry and strong.",
           "kind": "tool",
           "hiddenIn": "peg-rail"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "hedda",
+          "name": "Hedda the Pedlar",
+          "description": "A wiry pedlar camped by the cot, with a pack of goods to sell and a purse for whatever comes up out of the dark.",
+          "topics": [
+            {
+              "id": "the-keep",
+              "name": "the keep",
+              "reply": "\"Nobody's held this keep since the old lord was laid under it, and the dead down there never heard he'd gone. Bring me what you find. I pay fair for stones and trinkets.\""
+            },
+            {
+              "id": "the-way-down",
+              "name": "the way down",
+              "reply": "\"Most go down the shrine stair, past the dry well. There's a goblin stuck in that well, whining. A rope would fetch him up, and maybe show you where he got in.\""
+            }
+          ],
+          "merchant": {
+            "stock": ["shortbow", "arrows", "shield", "chain-shirt"],
+            "minutes": 10
+          }
         }
       ]
     },

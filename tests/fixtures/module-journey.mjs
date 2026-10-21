@@ -26,7 +26,8 @@ const PLAYER = "pc";
  * `["read", itemId, spellId]` (#350) reading a held scroll on oneself, and
  * `["use", featureId, itemId]` (#412) using a carried item on a feature,
  * and `["search", roomId]` and `["disarm", trapId]` (#445) finding and
- * disarming a trap.
+ * disarming a trap, and `["buy", itemId]` and `["sell-treasure", itemId]`
+ * (#512) trading with the merchant here.
  */
 export function routeAction([type, target, approach, retry]) {
   switch (type) {
@@ -56,6 +57,8 @@ export function routeAction([type, target, approach, retry]) {
         itemId: target,
       };
     case "take":
+    case "buy":
+    case "sell-treasure":
       return { type, itemId: target };
     case "search":
       return { type, roomId: target };

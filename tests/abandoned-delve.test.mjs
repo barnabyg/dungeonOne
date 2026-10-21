@@ -3,7 +3,8 @@
 // sixteen rooms in two regions, the Keep Cellars and the Crypts, with the
 // rope that frees the goblin and opens the well, Mags Corrow the rival, the
 // crypts' alarm, the vault's coffer stack, the lord's sarcophagus and a
-// wandering dead delver on rests. Scripted-DM journeys reach each of its
+// wandering dead delver on rests, and, since #512, Hedda the Pedlar trading
+// in the porter's lodge. Scripted-DM journeys reach each of its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
 // difficulty, with its quoted figures. The DM evaluation's cases and the
 // live qualification, both written for it (#138), are checked here too.
@@ -364,6 +365,43 @@ test("its treasure is 98% of the long level-2 budget, with two potions and a scr
       id,
     );
   }
+});
+
+// #512: before the Delve, no merchant was sure to be met until Thornwood
+// Lodge, so a career had nowhere to sell its finds.
+test("Hedda the Pedlar trades in the porter's lodge: she buys the kitchen's moss agate at full value, enough for a shield", () => {
+  assert.deepEqual(
+    room("porters-lodge").creatures.map(({ id, name, merchant }) => [
+      id,
+      name,
+      merchant,
+    ]),
+    [
+      [
+        "hedda",
+        "Hedda the Pedlar",
+        { stock: ["shortbow", "arrows", "shield", "chain-shirt"], minutes: 10 },
+      ],
+    ],
+  );
+  const { state } = firstJourney(
+    delve,
+    level2,
+    [
+      ["move", "gate-hall"],
+      ["move", "fallen-kitchen"],
+      ["examine", "bone-heap"],
+      ["take", "moss-agate"],
+      ["move", "gate-hall"],
+      ["move", "porters-lodge"],
+      ["sell-treasure", "moss-agate"],
+      ["buy", "shield"],
+    ],
+    ({ status }) => status === "playing",
+  );
+  assert.equal(state.inventory.includes("moss-agate"), false);
+  assert.deepEqual(state.possessions.stowed, ["shield"]);
+  assert.equal(state.possessions.purse, 0);
 });
 
 // #388: #239 turned the barrel's longsword into a shortsword, but the
