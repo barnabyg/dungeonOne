@@ -4992,6 +4992,11 @@ export type RoomView = Readonly<{
       /** What share of the catalogue price it pays (#507): "half price". */
       buyBack?: string;
       tradeMinutes?: number;
+      /**
+       * Selling every gem and art object carried (#515), one trade each:
+       * how many, the coin they bring and the minutes they take in all.
+       */
+      treasureSale?: Readonly<{ count: number; coin: string; minutes: number }>;
     }>)[];
   /**
    * The items to take here, each with its icon (#377); gear with its stats
@@ -6310,6 +6315,28 @@ export function createFifthRuntime(
           },
           name: held.name,
           price: held.value,
+        };
+  };
+  /**
+   * What selling all the treasure carried to `merchant` would bring (#515),
+   * one sale at a time as the shop's Sell all treasure makes them; nothing
+   * when no treasure is carried.
+   */
+  const treasureSaleView = (state: FifthState, merchant: FifthMerchant) => {
+    const prices = carriedEntries(state)
+      .filter(({ value }) => value !== undefined)
+      .flatMap(({ id }) => {
+        const sale = treasureSale(state, id);
+        return sale === undefined ? [] : [sale.price];
+      });
+    return prices.length === 0
+      ? {}
+      : {
+          treasureSale: {
+            count: prices.length,
+            coin: formatCoins(prices.reduce((total, price) => total + price)),
+            minutes: prices.length * merchant.minutes,
+          },
         };
   };
   /** What the character carries besides its gear, as "You carry" lists it. */
@@ -13234,6 +13261,7 @@ export function createFifthRuntime(
               ),
               buyBack: BUY_BACK_WORDS[settings.merchantBuyBack],
               tradeMinutes: creature.merchant.minutes,
+              ...treasureSaleView(state, creature.merchant),
             }),
       })),
       items: [

@@ -3,8 +3,8 @@
 // character column holds the status strip, "You carry" and the rests.
 // "You carry" is a compact, grouped list, a line per entry with its verbs on
 // the right. Narrower, the screen keeps two columns without scrolling
-// sideways. Buying, selling, drinking a potion and resting work from the
-// wide layout, through the server.
+// sideways. Drinking a potion and resting work from the wide layout, through
+// the server, and buying and selling from the shop (#515).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -26,7 +26,10 @@ import {
   clickAction,
   createAndStart,
   fight,
+  leaveShop,
   settled,
+  shopItem,
+  trade,
 } from "./fixtures/browser-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
@@ -79,7 +82,7 @@ async function tabRegions(page) {
 const entry = (page, id) => page.locator(`#inventory li[data-id="${id}"]`);
 
 test(
-  'three columns at 2560 px, a compact grouped "You carry", and trades from it',
+  'three columns at 2560 px, a compact grouped "You carry", and trades from the shop',
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-432-browser-"));
@@ -121,8 +124,9 @@ test(
         await clickAction(page, "take", id);
       }
       // Buy from the pedlar with the coin found: 15 entries in all.
-      await clickAction(page, "buy", "dagger");
-      await clickAction(page, "buy", "shield");
+      await trade(page, "buy", "dagger");
+      await trade(page, "buy", "shield");
+      await leaveShop(page);
       assert.deepEqual(
         await page
           .locator("#inventory .carry-group")
@@ -177,24 +181,28 @@ test(
       const reason = await drink.getAttribute("aria-describedby");
       assert.equal(await page.locator(`#${reason}`).textContent(), "Full HP");
 
-      // Sell a gem, then the leather armour after confirming in its entry,
-      // then the stowed dagger: each verb works from its compact line.
+      // In the shop (#515), sell a gem, then the leather armour after
+      // confirming, then the stowed dagger.
+      await page.locator("#open-shop").click();
+      await shopItem(page, "sell-treasure", "dull-garnet-1").click();
       const sell = actionButton(page, "sell-treasure", "dull-garnet-1");
       assert.equal(await sell.getAttribute("data-busy-label"), "Selling…");
-      await clickAction(page, "sell-treasure", "dull-garnet-1");
+      await trade(page, "sell-treasure", "dull-garnet-1");
       assert.equal(await entry(page, "dull-garnet-1").count(), 0);
-      // The opened treasure and description stay open after the action.
-      assert.equal(await treasure.evaluate((node) => node.open), true);
-      assert.equal(await text.isVisible(), true);
+      await shopItem(page, "sell-equipped", "leather").click();
       await actionButton(page, "sell-equipped", "leather").click();
+      await page.locator("#shop-detail #sale-confirm").waitFor();
+      await settled(page, () => page.locator("#confirm-sale").click());
       const leather = page.locator(
         '#inventory li[data-id="leather"][data-slot="equipped"]',
       );
-      await leather.locator("#sale-confirm").waitFor();
-      await settled(page, () => page.locator("#confirm-sale").click());
       assert.equal(await leather.count(), 0);
-      await clickAction(page, "sell", "dagger");
+      await trade(page, "sell", "dagger");
       assert.equal(await entry(page, "dagger").count(), 0);
+      // Back in the room, the opened treasure and description stay open.
+      await leaveShop(page);
+      assert.equal(await treasure.evaluate((node) => node.open), true);
+      assert.equal(await text.isVisible(), true);
 
       // Saved through the server: the library holds what is left after the
       // escape.

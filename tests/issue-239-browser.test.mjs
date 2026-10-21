@@ -1,5 +1,6 @@
 // #239, browser → API → storage: find a gem under the barrow's bier, sell it
-// to the pedlar at its full value, buy a shortsword with the coin, escape,
+// to the pedlar at its full value, buy a shortsword with the coin, both in
+// the shop (#515), escape,
 // and see the gear and the change on the sheet and in the saved library.
 // That a defeat leaves the character's possessions and ledger as they started
 // is the library's (rewards-5e.test.mjs).
@@ -14,7 +15,13 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { gemMarket } from "./fixtures/gem-market.mjs";
 import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
-import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
+import {
+  createFighter,
+  leaveShop,
+  openShop,
+  startAdventure,
+  trade,
+} from "./fixtures/browser-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
@@ -69,7 +76,7 @@ async function fight(page) {
   }
 }
 
-const newest = (page) => page.locator("#log li").last().innerText();
+const newest = (page) => page.locator("#log li").last().textContent();
 /**
  * Creates Ada, finds the opal, sells it to the pedlar and buys a shortsword
  * with the coin, then hands the page to `finish`.
@@ -93,10 +100,12 @@ async function journey(seed, finish) {
     await createFighter(page);
     const start = (await readAda(libraryPath)).sheet;
     await startAdventure(page, "lintel-barrow");
+    await openShop(page);
     assert.match(
-      await page.locator('#creatures li[data-id="pedlar"]').innerText(),
-      /Pays full value for gems and art objects\./,
+      await page.locator("#shop-terms").textContent(),
+      /full value for gems and art objects\.$/,
     );
+    await leaveShop(page);
 
     await explore(page, "move", "burial-hall");
     await fight(page);
@@ -106,21 +115,30 @@ async function journey(seed, finish) {
     assert.match(await opal.innerText(), /Blue Opal \(50 gp\)/);
     await explore(page, "move", "barrow-mouth");
 
-    // Sell sits on the opal's "You carry" entry, never in the action bar.
+    // Sell is in the shop, never in the action bar or on "You carry".
     assert.equal(
-      await page
-        .locator('#action-bar button[data-action="sell-treasure"]')
-        .count(),
+      await page.locator('button[data-action="sell-treasure"]').count(),
       0,
     );
-    await explore(page, "sell-treasure", "blue-opal");
+    await openShop(page);
+    assert.equal(
+      await page
+        .locator('#shop-pack-groups li[data-id="blue-opal"]')
+        .textContent(),
+      "Blue Opal, 50 gp",
+    );
+    await trade(page, "sell-treasure", "blue-opal");
     assert.equal(
       await newest(page),
       "You sell the blue opal to Pedlar for 50 gp. The trade takes 10 minutes. Purse: 50 gp.",
     );
     assert.equal(await opal.count(), 0);
-    await explore(page, "buy", "shortsword");
-    assert.equal(await page.locator("#purse").textContent(), "Purse: 40 gp");
+    await trade(page, "buy", "shortsword");
+    assert.equal(
+      await page.locator("#shop-purse").textContent(),
+      "Purse: 40 gp",
+    );
+    await leaveShop(page);
     await finish(page, libraryPath, start);
   } finally {
     await browser.close();
