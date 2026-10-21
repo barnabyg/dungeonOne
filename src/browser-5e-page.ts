@@ -3165,6 +3165,8 @@ function renderShop() {
   element("shop-terms").textContent = "Each trade takes " + minutesText(merchant.tradeMinutes) + ". " + merchant.name + " pays " + merchant.buyBack + " for gear and full value for gems and art objects.";
   element("shop-purse").replaceChildren(icon(${JSON.stringify(COIN_ICON)}), "Purse: " + (room.purse ?? "empty"));
   element("shop-load").textContent = carryingText(room.carrying);
+  // A trade in flight, Sell all's included, finishes before the shop closes.
+  element("leave-shop").disabled = acting;
   element("shop-ware-list").replaceChildren(...merchant.wares.map((ware) => shopRow("ware", ware, ware.price)));
   const pack = packEntries(room, merchant);
   if (confirmingSellAll && !(merchant.treasureSale && pack.some(({ shelf }) => shelf === "treasure"))) confirmingSellAll = false;
@@ -3263,10 +3265,8 @@ function openShop(merchantId) {
 }
 
 function closeShop() {
-  if (!shop) return;
-  shop = null;
-  confirmingSale = null;
-  confirmingSellAll = false;
+  if (!shop || acting) return;
+  resetShop();
   renderShop();
   const trade = element("open-shop");
   if (trade) trade.focus();
@@ -3416,6 +3416,7 @@ async function sellAllTreasure() {
   const sales = session.actions.filter(({ action, available }) => action === "sell-treasure" && available);
   let sold = 0;
   for (const option of sales) {
+    if (!shop || !confirmingSellAll) break;
     const done = await act("/api/5e/session/explore", { action: "sell-treasure", target: option.target.id }, "#confirm-sell-all", "Selling…");
     if (!done || element("adventure-error").textContent) break;
     sold += 1;
@@ -4696,7 +4697,7 @@ element("leave-shop").addEventListener("click", closeShop);
 // Esc (#515) answers the shop's open question with No, or leaves the shop;
 // never while a dialog, such as the map, takes it.
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || !shop || document.querySelector("dialog[open]")) return;
+  if (event.key !== "Escape" || !shop || acting || element("adventure").hidden || document.querySelector("dialog[open]")) return;
   event.preventDefault();
   if (confirmingSale) cancelSale();
   else if (confirmingSellAll) cancelSellAll();
