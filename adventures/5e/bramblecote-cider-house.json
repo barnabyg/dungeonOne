@@ -239,7 +239,7 @@
           "id": "cider-press",
           "name": "Cider Press",
           "description": "An oak press with a screw as thick as your leg. Something is wedged in its threads.",
-          "discovery": "Jammed in the screw is a strip of bark scratched with a goblin tally: rows of barrels, each crossed out beside a little drawing of a boat. \"To the river man,\" someone has scrawled.",
+          "discovery": "Jammed in the screw is a strip of bark scratched with a goblin tally: rows of barrels, each crossed out beside a little drawing of a boat. \"To the river man,\" someone has scrawled. One barrel isn't crossed out: it has a grinning goblin face, and its V has no ring round it.",
           "check": {
             "approaches": [
               {
@@ -552,7 +552,52 @@
         {
           "id": "great-casks",
           "name": "Great Casks",
-          "description": "Casks taller than a man, most of them tapped and dry. Chalked on each is a V inside a ring."
+          "description": "Casks taller than a man, most of them tapped and dry. Chalked on each is a V inside a ring.",
+          "discovery": "On one cask the V has no ring. Its bung pulls out, and inside, hung on a string, is the goblins' cut of the river man's money: a bag of silver.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 15,
+                "advantage": [
+                  {
+                    "type": "discovered",
+                    "feature": "cider-press",
+                    "name": "Goblin tally"
+                  }
+                ]
+              },
+              {
+                "skill": "perception",
+                "dc": 16,
+                "advantage": [
+                  {
+                    "type": "discovered",
+                    "feature": "cider-press",
+                    "name": "Goblin tally"
+                  }
+                ]
+              }
+            ],
+            "bands": {
+              "failure": {
+                "text": "Cask after cask, the same chalk mark. Nothing stands out."
+              },
+              "success": {
+                "text": "You find the cask with the wrong mark.",
+                "effects": [
+                  {
+                    "type": "discovery",
+                    "feature": "great-casks"
+                  },
+                  {
+                    "type": "item",
+                    "item": "goblins-cut"
+                  }
+                ]
+              }
+            }
+          }
         },
         {
           "id": "spigot-rack",
@@ -560,7 +605,18 @@
           "description": "A rack of brass spigots, every one of them missing but two."
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "goblins-cut",
+          "name": "Goblins' Cut",
+          "description": "A bag of silver pieces: two for every barrel sold.",
+          "kind": "coin",
+          "coins": {
+            "sp": 44
+          },
+          "hiddenIn": "great-casks"
+        }
+      ],
       "creatures": []
     },
     {
