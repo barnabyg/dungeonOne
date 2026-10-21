@@ -178,7 +178,7 @@ The four modules are the agreed set for exercising the engine's mechanics. A
 module change that drops a mechanic only one or two modules carry should move
 it to another module, or keep a fixture for it in `tests/fixtures/`.
 
-- **One module:** merchant trade (Lodge); reaction rolls, parley, tolls and
+- **One module:** reaction rolls, parley, tolls and
   reaction trade (Weirgate); lurking (Weirgate); sneaking past with bypass XP
   and sneaking again (Weirgate); surrender and `gives` (Cider House); a
   wandering encounter only on rests (Delve); +1 gear (Lodge); spell scrolls
@@ -187,7 +187,7 @@ it to another module, or keep a fixture for it in `tests/fixtures/`.
 - **Two modules:** a key carried by an opponent (Cider House, Weirgate; no
   fixture); region wandering tables (Weirgate, Lodge); talk-only passages
   (Weirgate, Lodge); alarms (Delve, Weirgate); undead to turn (Delve,
-  Weirgate).
+  Weirgate); merchant trade (Delve, Lodge).
 - **Three or four:** morale and fled carriers, monster loot, rest sites,
   thieves' tools, stuck and locked doors, graded checks, several approaches,
   circumstances, hidden passages with open and close effects, flags, items used
