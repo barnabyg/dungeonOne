@@ -9,7 +9,16 @@
 import { fail } from "./json-shape.js";
 
 /** Every backdrop a module may name. */
-export const BACKDROPS = ["cellar", "crypt", "forest"] as const;
+export const BACKDROPS = [
+  "cellar",
+  "crypt",
+  "culvert",
+  "farmyard",
+  "forest",
+  "hall",
+  "ruin",
+  "weir",
+] as const;
 
 export type Backdrop = (typeof BACKDROPS)[number];
 
@@ -222,6 +231,231 @@ const FOREST = [
   path([20, 120, 310, 520, 640, 780].map((x) => tuft(x, 502)).join("")),
 ].join("");
 
+/** Strokes `d` in lines `width` wide, with round ends. */
+const lines = (d: string, width: number) =>
+  `<g fill="none" stroke="currentColor" stroke-width="${width}" stroke-linecap="round"><path d="${d}"/></g>`;
+
+/** A spoked wheel of radius `r` about (`x`, `y`). */
+const wheel = (x: number, y: number, r: number, spokes: number) =>
+  path(circle(x, y, r) + circle(x, y, r - 7) + circle(x, y, 9)) +
+  lines(
+    Array.from({ length: spokes }, (_, index) => {
+      const angle = (index * Math.PI * 2) / spokes;
+      const [dx, dy] = [Math.cos(angle), Math.sin(angle)];
+      return `M${round(x + dx * 9)} ${round(y + dy * 9)}L${round(x + dx * (r - 6))} ${round(y + dy * (r - 6))}`;
+    }).join(""),
+    4,
+  );
+
+const round = (value: number) => Math.round(value * 10) / 10;
+
+/** A peaked roof from `left` to `right` with its eaves at `y`. */
+const roof = (left: number, right: number, y: number, pitch: number) =>
+  `M${left} ${y}L${(left + right) / 2} ${y - pitch}L${right} ${y}z`;
+
+/** Ripples on water, a row of short waves from `left` to `right` at `y`. */
+const ripples = (left: number, right: number, y: number) =>
+  Array.from(
+    { length: Math.floor((right - left) / 40) },
+    (_, index) => `M${left + index * 40} ${y}q10-6 20 0q10 6 20 0`,
+  ).join("");
+
+// A culvert: a brick tunnel running into the dark, a channel of water
+// between two walkways, a sluice gate on its screw, and a pipe pouring in.
+const CULVERT = [
+  ...(
+    [
+      [380, 18, 500],
+      [290, 14, 480],
+      [210, 11, 462],
+      [140, 8, 446],
+    ] as const
+  ).map(([r, thickness, floor]) =>
+    path(
+      arch(400 - r, 400 + r, 380 - (380 - r) / 4, thickness) +
+        box(
+          400 - r,
+          380 - (380 - r) / 4,
+          thickness,
+          floor - 380 + (380 - r) / 4,
+        ) +
+        box(
+          400 + r - thickness,
+          380 - (380 - r) / 4,
+          thickness,
+          floor - 380 + (380 - r) / 4,
+        ),
+    ),
+  ),
+  path(box(0, 470, 250, 10) + box(550, 470, 250, 10) + box(0, 520, 800, 6)),
+  lines(ripples(250, 550, 494) + ripples(270, 530, 508), 3),
+  wheel(130, 300, 42, 6),
+  path(box(126, 342, 8, 104) + box(90, 430, 80, 40) + box(84, 424, 92, 8)),
+  path(box(650, 320, 110, 30) + box(640, 314, 12, 42)),
+  lines(`M650 340q-26 40-14 128M664 344q-22 40-10 124`, 5),
+  path([330, 470].map((x) => circle(x, 300, 10) + circle(x, 300, 6)).join("")),
+].join("");
+
+// A farmyard: a barn with a loft door, an apple tree, a fence, a roofed
+// well with its bucket, and a cart, with windfalls in the grass.
+const FARMYARD = [
+  path(box(0, 500, 800, 7)),
+  path(
+    box(40, 330, 240, 170) +
+      `M125 500v-80a35 35 0 0 1 70 0v80z` +
+      box(66, 360, 30, 30) +
+      box(224, 360, 30, 30),
+  ),
+  path(roof(20, 300, 340, 120) + box(145, 270, 30, 36)),
+  ...(
+    [
+      [330, 330, 46],
+      [380, 300, 52],
+      [430, 335, 44],
+      [375, 350, 40],
+    ] as const
+  ).map(([x, y, r]) => path(circle(x, y, r))),
+  path(
+    box(372, 360, 16, 140) + `M372 420l-24-30h6l18 22zM388 410l22-26h6l-28 34z`,
+  ),
+  path(
+    box(290, 452, 190, 6) +
+      box(290, 474, 190, 6) +
+      [296, 336, 376, 416, 456].map((x) => box(x, 438, 8, 62)).join(""),
+  ),
+  path(
+    box(500, 440, 90, 60) +
+      box(500, 432, 90, 8) +
+      box(506, 350, 8, 82) +
+      box(576, 350, 8, 82) +
+      roof(486, 604, 358, 46),
+  ),
+  path(box(543, 358, 4, 50) + `M533 408h24l-4 22h-16z`),
+  wheel(700, 452, 46, 8),
+  path(
+    box(630, 396, 160, 14) +
+      `M790 402l10 6v10l-10-6z` +
+      box(640, 380, 8, 16) +
+      box(772, 380, 8, 16),
+  ),
+  path([150, 230, 445, 610, 745].map((x) => circle(x, 494, 6)).join("")),
+  path([20, 300, 470, 620].map((x) => tuft(x, 502)).join("")),
+].join("");
+
+/** A stag's antlers on a plaque, its top at (`x`, `y`). */
+const antlers = (x: number, y: number) =>
+  path(`M${x - 18} ${y}q18-14 36 0l-5 30q-13 9-26 0z`) +
+  lines(
+    `M${x - 10} ${y + 2}q-30-20-34-62M${x - 26} ${y - 30}l-26-6M${x - 34} ${y - 48}l-18-20` +
+      `M${x + 10} ${y + 2}q30-20 34-62M${x + 26} ${y - 30}l26-6M${x + 34} ${y - 48}l18-20`,
+    7,
+  );
+
+// A hall: a great hearth with a fire and a pot under the mantel, antlers
+// on the wall either side of its flue, banners, and a long table set with
+// candles.
+const HALL = [
+  path(box(0, 500, 800, 7)),
+  path(
+    box(360, 110, 80, 160) +
+      box(290, 260, 220, 170) +
+      `M330 430v-90a70 34 0 0 1 140 0v90z`,
+  ),
+  path(box(270, 296, 260, 16) + box(260, 424, 280, 10)),
+  path(`M370 430l60-22l6 8l-54 20zM430 430l-60-22l-6 8l54 20z`),
+  path(
+    `M400 412q-26-24-6-60q4 18 14 22q0-24 16-40q-4 34 10 50q4-14 12-18q2 26-18 46z`,
+  ),
+  path(box(398, 340, 4, 22) + `M378 362h44q2 26-22 30q-24-4-22-30z`),
+  antlers(250, 210),
+  antlers(550, 210),
+  ...[110, 690].map((x) =>
+    path(
+      box(x - 30, 120, 60, 6) +
+        `M${x - 22} 126h44v150l-22-20l-22 20z` +
+        circle(x, 180, 12),
+    ),
+  ),
+  path(box(130, 440, 540, 14) + box(160, 454, 14, 46) + box(626, 454, 14, 46)),
+  path(box(110, 478, 580, 9) + box(124, 487, 8, 13) + box(668, 487, 8, 13)),
+  ...[230, 570].map((x) =>
+    path(
+      box(x - 5, 410, 10, 30) +
+        box(x - 11, 436, 22, 4) +
+        `M${x} 388q-7 12 0 18q7-6 0-18z`,
+    ),
+  ),
+  path(box(300, 418, 22, 22) + `M322 422h6q6 0 6 6v4q0 6-6 6h-6v-4h5v-8h-5z`),
+  path(`M450 440q4-14 40-14q36 0 40 14z`),
+].join("");
+
+// A ruin on a hill: a broken wall with an archway, a ruined round tower,
+// a standing stone with a hole through it, rubble, and birds over the hills.
+const RUIN = [
+  lines(`M0 380Q150 330 300 370T600 350T800 372`, 3),
+  path(`M0 500Q200 488 400 500T800 496v10Q600 500 400 510T0 510z`),
+  path(
+    `M40 500V340h30v20h30v-20h30v20h30v-20h30v30l20 8l14-24l24 40l18-10l20 32l14-6V500z` +
+      `M150 500v-60a35 35 0 0 1 70 0v60z`,
+  ),
+  path(
+    `M580 500V196l18-18l14 24l22-40l24 30l20-16l18 22l24-10V500z` +
+      box(640, 250, 10, 40) +
+      box(640, 340, 10, 40) +
+      `M624 500v-56a22 22 0 0 1 44 0v56z`,
+  ),
+  path(`M436 500l8-150q16-22 32 0l8 150z` + circle(460, 392, 10)),
+  path(
+    `M300 500l6-18h26l4 18zM340 500l4-12h18l2 12zM520 500l4-16h24l6 16zM740 500l6-14h20l4 14z`,
+  ),
+  lines(
+    `M300 120q8-8 16 0q8-8 16 0M360 90q6-6 12 0q6-6 12 0M420 140q7-7 14 0q7-7 14 0`,
+    3,
+  ),
+  path([20, 250, 400, 560, 780].map((x) => tuft(x, 502)).join("")),
+].join("");
+
+// A weir: a toll house with a bell turret beside a lock, its two gates
+// and their balance beams, water running through, a footbridge over the
+// river, and reeds along the banks.
+const WEIR = [
+  path(
+    box(40, 300, 170, 140) +
+      `M100 440v-60h36v60z` +
+      box(60, 330, 26, 26) +
+      box(160, 330, 26, 26),
+  ),
+  path(roof(24, 226, 306, 76) + box(170, 236, 16, 40)),
+  path(
+    box(110, 196, 30, 44) +
+      roof(102, 148, 200, 26) +
+      `M118 236q0-26 7-26q7 0 7 26z`,
+  ),
+  path(box(0, 440, 260, 10) + box(240, 400, 70, 8) + box(490, 400, 70, 8)),
+  path(box(250, 440, 20, 70) + box(530, 440, 20, 70)),
+  path(`M270 450l120 18v38l-120-6z` + `M530 450l-120 18v38l120-6z`),
+  path(box(296, 408, 10, 46) + box(494, 408, 10, 46)),
+  lines(
+    ripples(270, 530, 524) + ripples(560, 800, 500) + ripples(580, 780, 516),
+    3,
+  ),
+  path(`M560 440Q670 380 790 440v10Q670 390 560 450z`),
+  lines(
+    `M560 418Q670 358 790 418` +
+      [590, 630, 670, 710, 750]
+        .map(
+          (x) =>
+            `M${x} ${x === 670 ? 388 : x === 630 || x === 710 ? 392 : 402}v22`,
+        )
+        .join(""),
+    4,
+  ),
+  lines(`M226 440q-4-40 2-70M238 440q2-34-6-58M552 446q4-36-4-60`, 3),
+  path(
+    `M224 370a4 10 0 1 0 8 0a4 10 0 1 0-8 0zM228 382a4 10 0 1 0 8 0a4 10 0 1 0-8 0zM544 386a4 10 0 1 0 8 0a4 10 0 1 0-8 0z`,
+  ),
+].join("");
+
 const art = (name: Backdrop, drawing: string) =>
   `<svg class="backdrop" data-backdrop="${name}" hidden viewBox="0 0 800 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false"><g fill="currentColor">${drawing}</g></svg>`;
 
@@ -229,5 +463,10 @@ const art = (name: Backdrop, drawing: string) =>
 export const BACKDROP_ART: Readonly<Record<Backdrop, string>> = {
   cellar: art("cellar", CELLAR),
   crypt: art("crypt", CRYPT),
+  culvert: art("culvert", CULVERT),
+  farmyard: art("farmyard", FARMYARD),
   forest: art("forest", FOREST),
+  hall: art("hall", HALL),
+  ruin: art("ruin", RUIN),
+  weir: art("weir", WEIR),
 };

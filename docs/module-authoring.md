@@ -173,8 +173,11 @@ the design ticket.
 - **Backdrops.** Give each region a `backdrop`: the faint drawing behind the
   room panel of the kind of place it is. A room that is a different kind of
   place, such as a forest camp outside a lodge, names its own. The backdrops
-  are `cellar` (vaulted, with barrels and shelves), `crypt` (arches, skulls and
-  a tomb) and `forest` (pines and a camp fire at night), drawn in
+  are `cellar` (a vault of barrels and shelves), `crypt` (arches, skulls and a
+  tomb), `culvert` (a brick tunnel over water), `farmyard` (a barn, a well and a
+  cart), `forest` (pines and a camp fire at night), `hall` (a hearth, antlers
+  and a long table), `ruin` (broken walls, a tower and a standing stone) and
+  `weir` (a toll house, a lock and a footbridge), drawn in
   `src/backdrops-5e.ts`. They are only for the page: the AI DM never sees them.
 - **After a content change,** run `npm.cmd test -- --modules <id>`, and
   `npm.cmd run gate:verdicts` if the recorded verdicts test fails.
