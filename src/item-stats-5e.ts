@@ -208,18 +208,21 @@ function armourCosts(
 
 /**
  * What to do to hold a shield the character's hands can't (#515): it can
- * always be carried in the pack, so the line says how to free a hand.
+ * always be carried in the pack, so the line says how to free a hand. The
+ * weapons are in the order equipping a shield names them.
  */
 function shieldRefusal(
   code: GearRefusalCode,
   character: CharacterSheet,
-): string {
+): string | undefined {
   const [main, second] = character.equipment
     .filter(isWeaponId)
     .map((weapon) => itemName(weapon).toLowerCase());
-  return code === "hands-full"
+  return code === "hands-full" && second !== undefined
     ? `To hold it, unequip the ${second} first.`
-    : `To hold it, swap the ${main} for a one-handed weapon first.`;
+    : code === "two-handed" && main !== undefined
+      ? `To hold it, swap the ${main} for a one-handed weapon first.`
+      : undefined;
 }
 
 function compareWith(
@@ -241,9 +244,8 @@ function compareWith(
   const change = weapon ? swapWeapon(gear, id) : equipItem(gear, id);
   if (change.refusal !== undefined) {
     return [
-      isShieldId(id)
-        ? shieldRefusal(change.refusal.code, character)
-        : `Can't be ${verb} with what you have now: ${change.refusal.reason}`,
+      (isShieldId(id) && shieldRefusal(change.refusal.code, character)) ||
+        `Can't be ${verb} with what you have now: ${change.refusal.reason}`,
     ];
   }
   const now = characterProfile(character);
