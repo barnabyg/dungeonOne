@@ -29,8 +29,9 @@
 //   wielded, consumables, treasure, other), a line per entry with its verbs
 //   on the right and its description and stats behind its name (#504:
 //   stowed gear also says what equipping it would do); then the purse and
-//   what the character is carrying. Room loot and a merchant's wares that
-//   are gear have the same stats behind a Stats toggle.
+//   what the character is carrying. Room loot that is gear has the same
+//   stats behind a Stats toggle. Nothing sells from here: trading is in the
+//   shop (#515).
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Tactical Mind right after a failed
 //   check, #315; a reaction's options, #304) and, in a fight, the turn's
@@ -70,16 +71,14 @@
 //   At a rest site (#335) the
 //   group's #long-rest part shows the long rests left and, while one would
 //   restore something, its Long rest button, disabled with its reason when
-//   the engine would refuse it. Where a merchant is (#210), Buy sits on each of
-//   its wares in #creatures and Sell on each "You carry" entry; selling
-//   equipped gear asks first in #sale-confirm, inside that entry. Gems and
-//   art objects (#239) show their value on their entry and sell for it in
-//   full, found here or brought in. Arrows and bolts (#230) have an entry
-//   each with their count, and sell there by the bundle of 20. Facing a
+//   the engine would refuse it. A merchant's card in #creatures (#210) has
+//   Trade (#open-shop), which opens the shop, described below. Gems and art
+//   objects (#239) show their value on their "You carry" entry. Arrows and
+//   bolts (#230) have an entry each with their count. Facing a
 //   reaction (#304), the bar holds only its options: a parley (#305) has a
 //   button per skill with the skill and DC under it, and a toll names its
 //   price; while the band offers trade, the reacting opponents are a
-//   merchant in #creatures, traded with as above.
+//   merchant in #creatures, with Trade as above.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -109,6 +108,36 @@
 // keeps that size and the window scrolls. The footer's icon credits (#377) show on every screen.
 // In an adventure the header bar's #open-map (or M) opens the map pop-up,
 // #map-dialog (#457), described at renderMap.
+//
+// The shop (#515): a merchant's Trade opens #shop in place of
+// #session-layout, so the character column, scene, history and composer
+// are hidden and only buttons trade there; the header bar stays. It is page
+// state only: a reload, or opening the adventure again, shows the room, and
+// it closes itself when trade ends (the adventure over, the merchant gone,
+// a fight begun). #leave-shop (or Esc) returns to the room with focus on
+// Trade; Esc first closes a question the shop asks. Opening it rings the
+// shop's bell (shop-bell). Along the top, the shop's sign: a bell, the
+// merchant's name "open for trade" (#shop-title) and description
+// (#shop-greeting), #shop-purse and #shop-load; under it #shop-terms (the
+// trade's minutes and what the merchant pays). Then .shop-floor, a faint
+// drawing of a shop's shelves and counter (.shop-scene) behind
+// #shop-columns: #shop-wares (a row per ware, its name and a gold price
+// tag), #shop-details (the chosen item's price, description and stats with
+// its comparison, #504, shown directly, and its one Buy or Sell, disabled
+// with its reason in #shop-reason, or with what it leaves in
+// #shop-purse-after) and
+// #shop-pack, grouped: treasure at its full value with #sell-all-treasure,
+// gear at the buy-back price marked worn or in hand, ammunition by the 20,
+// and what the merchant doesn't buy, greyed out. Each row is a button,
+// aria-pressed while chosen. Selling equipped gear asks first in
+// #sale-confirm in the details; Sell all treasure asks in #sell-all-confirm,
+// naming the coin and minutes, then makes one trade per gem or art object.
+// #shop-receipt shows the last trade's result (or refusal), and each trade
+// still writes its usual history entry; after a trade focus stays on its
+// button while enabled, otherwise on the receipt. From 1100 px wide the
+// three parts are columns, each scrolling on its own; narrower, the details
+// sit under the two lists (still between them in tab order) and the parts
+// scroll together.
 //
 // Settings (#506): the header bar's #open-settings opens the #settings view
 // (hash #settings): a fieldset per setting (#setting-<id>), each choice a
@@ -154,6 +183,7 @@
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
+import { formatCoins, parseCoins } from "./equipment-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
 import {
@@ -182,6 +212,15 @@ const SETTINGS_SOUND = (sound: boolean) =>
 // The header's Settings button (#506): a gear, kept narrow so the adventure's
 // header stays one bar at the 900 px floor; its name is "Settings".
 const SETTINGS_BUTTON = `<button id="open-settings" type="button" class="secondary" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="visually-hidden">Settings</span></button>`;
+
+// The shop's sign (#515): a bell, drawn for Dungeon One.
+const SHOP_BELL = `<svg class="shop-bell" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5a1.5 1.5 0 0 1 1.5 1.5v.7A6.2 6.2 0 0 1 18.2 11v4.2l2.1 3.1H3.7l2.1-3.1V11a6.2 6.2 0 0 1 4.7-6.3V4A1.5 1.5 0 0 1 12 2.5zM9.8 19.4h4.4a2.2 2.2 0 0 1-4.4 0z"/></svg>`;
+
+// The shop's back wall (#515), drawn for Dungeon One in one colour: an
+// awning, lanterns and herbs, two shelves of jars, bottles, books, sacks and
+// pots, and a counter with a ledger, scales and coin. It sits faintly behind
+// the wares and the pack; the details card stands on it.
+const SHOP_SCENE = `<svg class="shop-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false"><g fill="currentColor"><rect x="0" y="0" width="1200" height="22"/><path d="M0 22a30 26 0 0 0 60 0zM60 22a30 26 0 0 0 60 0zM120 22a30 26 0 0 0 60 0zM180 22a30 26 0 0 0 60 0zM240 22a30 26 0 0 0 60 0zM300 22a30 26 0 0 0 60 0zM360 22a30 26 0 0 0 60 0zM420 22a30 26 0 0 0 60 0zM480 22a30 26 0 0 0 60 0zM540 22a30 26 0 0 0 60 0zM600 22a30 26 0 0 0 60 0zM660 22a30 26 0 0 0 60 0zM720 22a30 26 0 0 0 60 0zM780 22a30 26 0 0 0 60 0zM840 22a30 26 0 0 0 60 0zM900 22a30 26 0 0 0 60 0zM960 22a30 26 0 0 0 60 0zM1020 22a30 26 0 0 0 60 0zM1080 22a30 26 0 0 0 60 0zM1140 22a30 26 0 0 0 60 0z"/><rect x="299" y="48" width="2" height="30"/><rect x="286" y="78" width="28" height="7" rx="2"/><path d="M289 85h22l4 34h-30z"/><rect x="285" y="119" width="30" height="6" rx="2"/><circle cx="300" cy="131" r="4"/><rect x="899" y="48" width="2" height="30"/><rect x="886" y="78" width="28" height="7" rx="2"/><path d="M889 85h22l4 34h-30z"/><rect x="885" y="119" width="30" height="6" rx="2"/><circle cx="900" cy="131" r="4"/><rect x="136" y="46" width="48" height="3"/><path d="M143 49h2l9 46-10 8-10-8z"/><path d="M159 49h2l9 46-10 8-10-8z"/><path d="M175 49h2l9 46-10 8-10-8z"/><rect x="1016" y="46" width="48" height="3"/><path d="M1023 49h2l9 46-10 8-10-8z"/><path d="M1039 49h2l9 46-10 8-10-8z"/><path d="M1055 49h2l9 46-10 8-10-8z"/><rect x="70" y="205" width="1060" height="11" rx="2"/><path d="M96 216h28l-14 22z"/><path d="M586 216h28l-14 22z"/><path d="M1076 216h28l-14 22z"/><rect x="70" y="335" width="1060" height="11" rx="2"/><path d="M96 346h28l-14 22z"/><path d="M586 346h28l-14 22z"/><path d="M1076 346h28l-14 22z"/><rect x="110" y="153" width="46" height="52" rx="8"/><rect x="107" y="145" width="52" height="9" rx="3"/><rect x="162" y="165" width="36" height="40" rx="8"/><rect x="159" y="157" width="42" height="9" rx="3"/><rect x="212" y="159" width="26" height="46" rx="6"/><rect x="221.0" y="141" width="8" height="19"/><rect x="220.0" y="135" width="10" height="7" rx="2"/><rect x="244" y="169" width="22" height="36" rx="6"/><rect x="251.0" y="151" width="8" height="19"/><rect x="250.0" y="145" width="10" height="7" rx="2"/><rect x="300" y="147" width="14" height="58" rx="2"/><rect x="317" y="153" width="14" height="52" rx="2"/><rect x="334" y="145" width="14" height="60" rx="2"/><rect x="351" y="157" width="14" height="48" rx="2"/><rect x="368" y="150" width="14" height="55" rx="2"/><path fill-rule="evenodd" d="M386 171a34 34 0 1 0 68 0a34 34 0 1 0-68 0zM406 171a14 14 0 1 0 28 0a14 14 0 1 0-28 0z"/><rect x="480" y="145" width="52" height="60" rx="8"/><rect x="477" y="137" width="58" height="9" rx="3"/><rect x="546" y="153" width="30" height="52" rx="6"/><rect x="557.0" y="135" width="8" height="19"/><rect x="556.0" y="129" width="10" height="7" rx="2"/><rect x="590" y="161" width="40" height="44" rx="8"/><rect x="587" y="153" width="46" height="9" rx="3"/><rect x="650" y="165" width="70" height="40" rx="3"/><rect x="660" y="133" width="50" height="32" rx="3"/><rect x="740" y="165" width="24" height="40" rx="6"/><rect x="748.0" y="147" width="8" height="19"/><rect x="747.0" y="141" width="10" height="7" rx="2"/><rect x="770" y="155" width="28" height="50" rx="6"/><rect x="780.0" y="137" width="8" height="19"/><rect x="779.0" y="131" width="10" height="7" rx="2"/><rect x="810" y="157" width="44" height="48" rx="8"/><rect x="807" y="149" width="50" height="9" rx="3"/><rect x="870" y="155" width="13" height="50" rx="2"/><rect x="886" y="161" width="13" height="44" rx="2"/><rect x="902" y="149" width="13" height="56" rx="2"/><rect x="918" y="165" width="13" height="40" rx="2"/><rect x="950" y="141" width="60" height="64" rx="8"/><rect x="947" y="133" width="66" height="9" rx="3"/><rect x="1022" y="161" width="26" height="44" rx="6"/><rect x="1031.0" y="143" width="8" height="19"/><rect x="1030.0" y="137" width="10" height="7" rx="2"/><rect x="1058" y="167" width="40" height="38" rx="8"/><rect x="1055" y="159" width="46" height="9" rx="3"/><path d="M110 335q-6-52.5 21.0-70l8.4-12 8.4 10q42.0 24.5 32.2 70z"/><path d="M190 335q-6-43.5 18.0-58l7.199999999999999-12 7.199999999999999 10q36.0 20.299999999999997 27.6 58z"/><path d="M270 335q-8-40 10-52h56q18 12 10 52z"/><rect x="275" y="276" width="62" height="8" rx="3"/><rect x="370" y="323" width="90" height="11" rx="3"/><rect x="368" y="311" width="94" height="11" rx="3"/><rect x="366" y="299" width="98" height="11" rx="3"/><rect x="364" y="287" width="102" height="11" rx="3"/><path d="M490 335q-6-48.0 19.8-64l7.92-12 7.92 10q39.6 22.4 30.360000000000003 64z"/><path d="M580 335q-14-46 26-50q40 4 26 50z"/><path d="M628 300l26-12 4 6-24 14z"/><rect x="600" y="276" width="12" height="10" rx="4"/><path d="M700 335l-26-22v-44h52v44z"/><rect x="760" y="295" width="10" height="40" rx="2"/><path d="M765 286q-5 5 0 9q5-4 0-9z"/><rect x="778" y="295" width="10" height="40" rx="2"/><path d="M783 286q-5 5 0 9q5-4 0-9z"/><rect x="796" y="295" width="10" height="40" rx="2"/><path d="M801 286q-5 5 0 9q5-4 0-9z"/><path d="M840 335q-6-49.5 21.0-66l8.4-12 8.4 10q42.0 23.099999999999998 32.2 66z"/><path d="M915 335q-6-39.0 16.8-52l6.72-12 6.72 10q33.6 18.2 25.76 52z"/><path d="M990 335q-8-40 10-52h56q18 12 10 52z"/><rect x="995" y="276" width="62" height="8" rx="3"/><rect x="1085" y="155" width="36" height="50" rx="8"/><rect x="1082" y="147" width="42" height="9" rx="3"/><rect x="0" y="470" width="1200" height="14" rx="3"/><path fill-rule="evenodd" d="M20 484h1160v116H20zM50 506h340v74H50zM430 506h340v74H430zM810 506h340v74H810z"/><path d="M250 470l10-22q60-10 90 4q30-14 90-4l10 22z"/><rect x="820" y="462" width="80" height="8" rx="3"/><rect x="857" y="384" width="6" height="80"/><rect x="800" y="384" width="120" height="5" rx="2"/><circle cx="860" cy="380" r="6"/><path d="M804 389l-26 44h4l24-40 24 40h4l-26-44z"/><path d="M772 433h68q-6 14-34 14q-28 0-34-14z"/><path d="M912 389l-26 44h4l24-40 24 40h4l-26-44z"/><path d="M880 433h68q-6 14-34 14q-28 0-34-14z"/><rect x="960" y="462" width="24" height="6" rx="3"/><rect x="960" y="455" width="24" height="6" rx="3"/><rect x="960" y="448" width="24" height="6" rx="3"/><rect x="960" y="441" width="24" height="6" rx="3"/><rect x="960" y="434" width="24" height="6" rx="3"/><rect x="960" y="427" width="24" height="6" rx="3"/><rect x="990" y="462" width="24" height="6" rx="3"/><rect x="990" y="455" width="24" height="6" rx="3"/><rect x="990" y="448" width="24" height="6" rx="3"/><rect x="990" y="441" width="24" height="6" rx="3"/><rect x="1018" y="462" width="24" height="6" rx="3"/><rect x="1018" y="455" width="24" height="6" rx="3"/><rect x="1018" y="448" width="24" height="6" rx="3"/><rect x="1018" y="441" width="24" height="6" rx="3"/><rect x="1018" y="434" width="24" height="6" rx="3"/><rect x="1018" y="427" width="24" height="6" rx="3"/><rect x="1018" y="420" width="24" height="6" rx="3"/></g></svg>`;
 
 /** The page, with its sound controls unless the launch turned sound off. */
 export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
@@ -280,6 +319,16 @@ ${SETTINGS_SOUND(sound)}
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
 </div>
 </div>
+<section id="shop" aria-labelledby="shop-title" hidden>
+<div class="shop-sign">${SHOP_BELL}<div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-greeting"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
+<p id="shop-terms" class="hint"></p>
+<div class="shop-floor">${SHOP_SCENE}<div id="shop-columns">
+<section id="shop-wares" aria-labelledby="shop-wares-title"><h4 id="shop-wares-title">Wares</h4><ul id="shop-ware-list" class="shop-list" aria-labelledby="shop-wares-title"></ul></section>
+<section id="shop-details" aria-label="Details"><div id="shop-detail"></div></section>
+<section id="shop-pack" aria-labelledby="shop-pack-title"><h4 id="shop-pack-title">Your pack</h4><div id="shop-pack-groups"></div></section>
+</div></div>
+<p id="shop-receipt" role="status" tabindex="-1"></p>
+</section>
 </section>
 </main>
 <footer class="credits">${[iconCredits(), soundCredits()].filter(Boolean).join(" ")}</footer>
@@ -354,7 +403,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}#known-rooms h3{margin-bottom:6px}.known-region{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:4px}.known-region h4{margin:0}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px}.known-list button{padding:2px 8px;font-size:var(--text-sm)}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record h4{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}#known-rooms h3{margin-bottom:6px}.known-region{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:4px}.known-region h4{margin:0}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px}.known-list button{padding:2px 8px;font-size:var(--text-sm)}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record h4{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -362,12 +411,19 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}.thing-actions[data-creature] .action{width:auto;min-width:8.5em}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 .icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
+#shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-sign{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);background:var(--color-ink);color:var(--color-on-dark);border-bottom:3px solid var(--color-gold);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-4)}.shop-sign p{margin:0}.shop-bell{flex:none;width:30px;height:30px;fill:var(--color-gold)}.shop-heading{flex:1 1 0;min-width:12rem}#shop-title{margin:0;font-family:var(--font-serif);color:var(--color-on-ink)}.shop-open{margin-left:var(--space-2);font:600 var(--text-xs) var(--font-sans);color:var(--color-gold);white-space:nowrap}#shop-greeting{font:italic var(--text-sm) var(--font-serif)}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);font-size:var(--text-sm)}.shop-sign #leave-shop{color:var(--color-on-dark);border-color:var(--color-gold)}.shop-sign #leave-shop:hover:not(:disabled){background:var(--color-night-light)}.shop-sign .icon{color:var(--color-gold)}#shop-terms{margin:0}
+.shop-floor{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}.shop-scene{position:absolute;inset:0;width:100%;height:100%;color:var(--color-line);opacity:.5;pointer-events:none}#shop-columns{position:relative}
+#shop-columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"wares pack" "details details";align-content:start;gap:var(--space-3) var(--space-5);overflow-y:auto;padding-right:var(--space-2)}#shop-wares{grid-area:wares;min-width:0}#shop-details{grid-area:details;min-width:0}#shop-pack{grid-area:pack;min-width:0}#shop-columns h4{margin-top:0}
+@media(min-width:1100px){#shop-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:"wares details pack";grid-template-rows:minmax(0,1fr);overflow:visible;padding-right:0}#shop-columns>section{min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
+#shop-details{align-self:start;border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3)}#shop-detail p{margin:0 0 var(--space-2);font-size:var(--text-sm)}#shop-item-name{margin:0 0 var(--space-2);font:600 var(--text-md) var(--font-serif);color:var(--color-text)}#shop-detail .item-stats{margin:0 0 var(--space-2);font-size:var(--text-sm);color:var(--color-text)}#shop-detail .item-compare{margin:0 0 var(--space-1);font-size:var(--text-sm)}#shop-detail .action{margin-top:var(--space-2)}#shop-detail .shop-note{color:var(--color-text-muted)}
+.shop-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1)}.shop-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-color:transparent;color:var(--color-text);text-align:left}.shop-item[aria-pressed=true]{background:var(--color-highlight);border-color:var(--color-ink)}.shop-name{min-width:0;overflow-wrap:anywhere}.shop-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.shop-price{flex:none;padding:0 var(--space-2) 0 var(--space-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-gold);color:var(--color-text);font:600 var(--text-xs)/1.6 var(--font-sans);font-variant-numeric:tabular-nums;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%)}.purse-after{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}.shop-group[data-shelf=unsold] .shop-item{color:var(--color-text-muted)}.shop-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);margin:var(--space-2) 0 var(--space-1)}.shop-group h5{margin:0;font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.shop-group-head button{padding:var(--space-1) var(--space-2);font-size:var(--text-xs)}:is(.shop-list,.shop-heading) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}
+#shop-receipt{margin:0;min-height:2em;border-left:4px solid var(--color-gold);border-radius:var(--radius-sm);background:var(--color-surface);padding:var(--space-1) var(--space-3);font-size:var(--text-sm)}#shop-receipt:empty{visibility:hidden}#shop-receipt.error{color:var(--color-danger);border-left-color:var(--color-danger);font-weight:600}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -533,6 +589,10 @@ function playSounds(names) {
 }
 
 ${resultSounds}
+
+// Coin words both ways (#515), so the shop can say what a trade leaves.
+${formatCoins}
+${parseCoins}
 
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
@@ -1201,6 +1261,12 @@ let acting = false;
 let confirmingLeave = false;
 // The equipped item whose sale is asking for confirmation, if any (#210).
 let confirmingSale = null;
+// The shop (#515) while it is open: the merchant's id, the item chosen in
+// it ({ list: "ware" or "pack", id, slot }, or null) and the last trade's
+// receipt ({ text, error }, or null). Page state only.
+let shop = null;
+// Whether Sell all treasure is asking for confirmation (#515).
+let confirmingSellAll = false;
 // The Cunning Strike effect chosen for the next attack (#308), or "".
 let cunningStrike = "";
 // How many hit dice the next short rest spends (#334), or null for the most.
@@ -1265,8 +1331,9 @@ function showAdventure(value) {
     treasureOpen = null;
     element("message").value = "";
     confirmingLeave = false;
-    confirmingSale = null;
   }
+  // The shop is page state only (#515): opening the adventure shows the room.
+  resetShop();
   element("adventure-error").textContent = "";
   renderAdventure();
   const entry = findEntry(session.characterId);
@@ -1299,6 +1366,7 @@ function renderAdventure() {
   if (encounter) renderInitiative(encounter, fighting);
   renderGear(session.room.gear);
   renderActions();
+  renderShop();
   renderStatus();
   renderEnding();
   renderComposer();
@@ -2196,8 +2264,8 @@ function disclose(name, shown) {
 // weapons in hand head the list, its arrows and bolts (#230) go with the
 // consumables and its stowed gear with the other things (#432), each kind
 // once with a count. Each entry's slot says which verbs go on it: Unequip on
-// what is equipped, Wield, Equip and Drop on what is stowed, and Sell on
-// ammunition. Its state says where it is; a magic item explains its bonus
+// what is equipped, Wield, Equip and Drop on what is stowed; in the shop
+// (#515), Sell. Its state says where it is; a magic item explains its bonus
 // (#345).
 function gearEntries(gear) {
   const counted = (items, slot, state, group) => {
@@ -2226,14 +2294,14 @@ const TREASURE_COLLAPSE_ABOVE = 4;
 const openCarried = new Set();
 let treasureOpen = null;
 
+const carryingText = ({ weight, capacity }) => capacity === undefined ? "Carrying " + weight + " lb." : "Carrying " + weight + " lb of the " + capacity + " lb your Strength allows.";
+
 function renderInventory(room) {
   const entries = [...gearEntries(room.gear), ...room.inventory];
   // The purse shows with what the character carries, once it holds coin.
   element("purse").replaceChildren(...(room.purse ? [icon(${JSON.stringify(COIN_ICON)}), "Purse: " + room.purse] : []));
   element("purse").hidden = !room.purse;
-  element("carrying").textContent = room.carrying.capacity === undefined
-    ? "Carrying " + room.carrying.weight + " lb."
-    : "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
+  element("carrying").textContent = carryingText(room.carrying);
   element("inventory-group").hidden = entries.length === 0 && !room.purse;
   element("inventory").replaceChildren(...CARRIED_GROUPS.flatMap(([group, title]) => {
     const members = entries.filter((entry) => entry.group === group);
@@ -2270,7 +2338,7 @@ function statsNodes(stats) {
   return [facts, ...(stats.compare || []).map((line) => make("p", line, "item-compare"))];
 }
 
-// Room loot's and a merchant's wares' stats (#504), behind a Stats toggle
+// Room loot's stats (#504), behind a Stats toggle
 // named for the item. The toggles the player opened, by key, stay open
 // until the next adventure, as "You carry" entries do.
 const openStats = new Set();
@@ -2348,23 +2416,8 @@ function renderRoom(room) {
       for (const topic of entry.topics || []) {
         if (topic.said) item.append(make("p", "About " + topic.name + ": " + topic.said, "discovery"));
       }
-      // A merchant's wares, each with its price and its Buy (#210).
-      if (entry.wares) {
-        item.append(make("p", "Each trade takes " + entry.tradeMinutes + (entry.tradeMinutes === 1 ? " minute." : " minutes."), "trade"));
-        const wares = make("ul", undefined, "wares");
-        wares.setAttribute("aria-label", entry.name + "'s wares");
-        wares.append(...entry.wares.map((ware) => {
-          const line = make("li");
-          line.dataset.ware = ware.id;
-          const text = make("p");
-          text.append(...iconned(ware.icon, make("strong", ware.name)), document.createTextNode(" — " + ware.price));
-          line.append(text, make("div", undefined, "controls"), ...(ware.stats ? [statsToggle("ware/" + entry.id + "/" + ware.id, ware.name, ware.stats)] : []));
-          return line;
-        }));
-        item.append(wares);
-        if (entry.salePrices.length) item.append(make("p", "Pays " + entry.buyBack + ": " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
-        item.append(make("p", "Pays full value for gems and art objects.", "trade"));
-      }
+      // A merchant (#210) is traded with in the shop (#515), opened by Trade.
+      if (entry.wares) item.append(tradeControl(entry));
       return item;
     }));
   }
@@ -2599,12 +2652,8 @@ const busyName = ({ action, target, item, feature }) => wordsOf(action).busy + n
 const FOE_WORDS = { attack: "Attack", "light-attack": "Extra attack", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
 const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "disengage", "turn-undead", "preserve-life", "end-turn", "uncanny-dodge", "take-hit", "fall"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
-// The "You carry" slot each verb on the character's gear goes on.
-const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
-const GEAR_SALES = ["sell", "sell-equipped"];
-// Selling a gem or art object (#239): its entry has no slot, as only gear is
-// equipped or stowed.
-const SALES = [...GEAR_SALES, "sell-treasure"];
+// Buying and selling (#210, #239), made only in the shop (#515).
+const TRADES = ["buy", "sell", "sell-equipped", "sell-treasure"];
 // A weapon verb the engine refuses for what is held (#392): a second
 // weapon beside one that isn't light, or with a shield or two weapons in
 // hand, or a two-handed weapon with a shield. In a fight only Wield and
@@ -2656,7 +2705,7 @@ function renderActions() {
   const attacks = session.actions.filter(({ action, cunningStrike: effect }) => action === "attack" && !effect).length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [], leave: [], carried: [], wares: [] };
+  const groups = { attack: [], feature: [], explore: [], leave: [], carried: [] };
   // In a fight each control goes in its row (#392) instead of a group.
   const rows = Object.fromEntries(FIGHT_ROWS.map(([key]) => [key, []]));
   const carried = new Set(session.room.inventory.map(({ id }) => id));
@@ -2693,7 +2742,8 @@ function renderActions() {
   if (sparks.length) (fighting ? rows["channel-divinity"] : groups.feature).push(sparkPanel(sparks));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast" || action === "divine-spark") return;
+    // Trades are made in the shop (#515).
+    if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast" || action === "divine-spark" || TRADES.includes(action)) return;
     // A weapon verb that can't work with what is held is left out (#392).
     // So is swapping a weapon for another of the same kind.
     if (fighting && GEAR.includes(action) && !option.available && HELD_REFUSALS.includes(option.reason)) return;
@@ -2703,8 +2753,7 @@ function renderActions() {
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
-    // Trades go on the merchant's wares and on "You carry" (#210).
-    const group = ATTACKS.includes(action) || action === "spectral-attack" || action === "drain-attack" ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
+    const group = ATTACKS.includes(action) || action === "spectral-attack" || action === "drain-attack" ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
     const direction = directionOf(action, target);
     // A check with several approaches (#283) offers one button per skill;
@@ -2717,7 +2766,7 @@ function renderActions() {
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
     // Channel Divinity's uses show once, on its row (#392).
     const label = fighting && action === "swap" ? "Swap " + heldNames(gear.held) + " for " + target.name : fighting && action === "equip" ? "Hold " + target.name + " in your other hand" : again + (second ? "Second attack on " : wayLabel(action, words.label, direction)) + named(action, target, option.item, option.feature) + withWeapon(action) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
-    const short = group === "explore" || group === "carried" || group === "wares";
+    const short = group === "explore" || group === "carried";
     // An Examine already made (#491) says so, muted but still there to use;
     // the engine never marks a check's Try again, which keeps its own words.
     const examined = option.examined === true;
@@ -2749,7 +2798,7 @@ function renderActions() {
     // An attack the chosen Cunning Strike can't go with (#308).
     const unstruck = cunningStrike && ATTACKS.includes(action) && option.available && !struck(action, target);
     button.disabled = acting || !option.available || unstruck;
-    button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(ATTACKS.includes(action) && cunningStrike ? { ...option, cunningStrike } : option));
+    button.addEventListener("click", () => action === "leave" ? openLeave() : perform(ATTACKS.includes(action) && cunningStrike ? { ...option, cunningStrike } : option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
@@ -2775,10 +2824,10 @@ function renderActions() {
       }
       wrap.append(reason);
     }
-    if (group === "carried" || group === "wares") {
+    if (group === "carried") {
       wrap.dataset.target = target.id;
-      if (GEAR.includes(action) || GEAR_SALES.includes(action)) wrap.dataset.slot = EQUIPPED_VERBS.includes(action) ? "equipped" : "stowed";
-      groups[group].push(wrap);
+      if (GEAR.includes(action)) wrap.dataset.slot = action === "unequip" ? "equipped" : "stowed";
+      groups.carried.push(wrap);
       return;
     }
     if (byFoe) {
@@ -2865,19 +2914,11 @@ function renderActions() {
   element("explore-controls").replaceChildren(...groups.explore);
   element("leave-controls").replaceChildren(...groups.leave);
   // A carried item's verbs go on its entry in "You carry" (#198).
-  // An equipped item's sale asks there first, in place of its verbs (#210).
-  const selling = confirmingSale && session.actions.find(({ action, target }) => action === "sell-equipped" && target.id === confirmingSale);
-  if (!selling) confirmingSale = null;
   for (const entry of document.querySelectorAll("#inventory li[data-id]")) {
     const verbs = groups.carried.filter((wrap) => wrap.dataset.target === entry.dataset.id && wrap.dataset.slot === entry.dataset.slot);
     const controls = entry.querySelector(".controls");
-    const asking = selling && entry.dataset.id === confirmingSale && entry.dataset.slot === "equipped";
-    controls.replaceChildren(...(asking ? [saleQuestion(selling.target)] : verbs));
-    controls.hidden = !asking && verbs.length === 0;
-  }
-  // Buy goes on each of the merchant's wares.
-  for (const line of document.querySelectorAll("#creatures [data-ware]")) {
-    line.querySelector(".controls").replaceChildren(...groups.wares.filter((wrap) => wrap.dataset.target === line.dataset.ware));
+    controls.replaceChildren(...verbs);
+    controls.hidden = verbs.length === 0;
   }
   // While Leave asks for confirmation, the question stands in its place.
   const asking = confirmingLeave && groups.leave.length > 0;
@@ -3044,10 +3085,267 @@ async function takeRest(hitDice) {
   keepFocus("rest", "");
 }
 
-// The question an equipped item's Sell asks first, inside its entry (#210).
-function saleQuestion(target) {
-  const merchant = session.room.creatures.find(({ salePrices }) => salePrices);
-  const price = merchant.salePrices.find(({ id }) => id === target.id).price;
+// The shop (#515): a merchant's Trade opens it over the session area, and
+// Leave the shop (or Esc) returns to the room, with focus on Trade. Its
+// wares, the details of the item chosen from them or the pack, with its one
+// Buy or Sell, and the pack, grouped by what the merchant pays: treasure at
+// its full value (with Sell all treasure), gear at the buy-back price,
+// ammunition by the 20, and what the merchant doesn't buy. Each trade's
+// result shows in the receipt line, and its history entry is the usual one.
+const merchantHere = () => session.room.creatures.find(({ wares }) => wares);
+const minutesText = (minutes) => minutes + (minutes === 1 ? " minute" : " minutes");
+
+/** Closes the shop and any question it asks, without rendering. */
+function resetShop() {
+  shop = null;
+  confirmingSale = null;
+  confirmingSellAll = false;
+}
+const tradeOption = (action, id) => session.actions.find((option) => option.action === action && option.target.id === id);
+// The sale each "You carry" slot offers: a gem or art object has none.
+const SALE_OF = { equipped: "sell-equipped", stowed: "sell" };
+// The pack's groups, in order; the last is named for the merchant.
+const SHELVES = [["treasure", "Treasure"], ["gear", "Gear"], ["ammunition", "Ammunition"], ["unsold", ""]];
+
+/** The merchant's Trade, on its card in the room: disabled in a fight. */
+function tradeControl(merchant) {
+  const controls = make("div", undefined, "controls");
+  const button = make("button", "Trade", "secondary");
+  button.id = "open-shop";
+  button.type = "button";
+  button.setAttribute("aria-label", "Trade with " + merchant.name);
+  button.disabled = acting || fightingNow();
+  button.addEventListener("click", () => openShop(merchant.id));
+  const wrap = make("span", undefined, "action");
+  wrap.append(button);
+  if (fightingNow()) {
+    const reason = make("span", "Not while you are fighting", "reason");
+    reason.id = "open-shop-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  controls.append(wrap);
+  return controls;
+}
+
+/**
+ * What the character carries, as the shop's pack shows it: each entry with
+ * its sale, if the merchant makes one, its shelf and what it sells for.
+ */
+function packEntries(room, merchant) {
+  const ammunition = new Set(room.gear.ammunition.map(({ id }) => id));
+  return [...gearEntries(room.gear), ...room.inventory].map((entry) => {
+    const option = tradeOption(entry.slot ? SALE_OF[entry.slot] : "sell-treasure", entry.id);
+    const shelf = !option ? "unsold" : entry.value ? "treasure" : ammunition.has(entry.id) ? "ammunition" : "gear";
+    const price = entry.value ?? merchant.salePrices.find(({ id }) => id === entry.id)?.price;
+    return { ...entry, option, shelf, price };
+  });
+}
+
+const chosenIs = (list, id, slot = "") => Boolean(shop.chosen) && shop.chosen.list === list && shop.chosen.id === id && shop.chosen.slot === slot;
+
+/** A row of the wares or the pack: the item's icon, name and price, which chooses it. */
+function shopRow(list, entry, price) {
+  const slot = entry.slot ?? "";
+  const row = make("li");
+  if (list === "ware") row.dataset.ware = entry.id;
+  else {
+    row.dataset.id = entry.id;
+    row.dataset.slot = slot;
+  }
+  const button = make("button", undefined, "shop-item secondary");
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(chosenIs(list, entry.id, slot)));
+  const name = make("span", undefined, "shop-name");
+  name.append(...iconned(entry.icon, entry.name));
+  // Gear is marked worn or in hand.
+  if (entry.slot === "equipped") name.append(" ", make("span", entry.state, "shop-state"));
+  button.append(name);
+  if (price) button.append(spoken(", "), make("span", price, "shop-price"));
+  button.addEventListener("click", () => chooseInShop(list, entry.id, slot));
+  row.append(button);
+  return row;
+}
+
+function renderShop() {
+  const merchant = merchantHere();
+  // The shop closes when trade does: the adventure over, the merchant gone
+  // (moved away, or the reaction's band ended) or a fight begun.
+  if (shop && (session.status !== "playing" || !merchant || merchant.id !== shop.merchant || fightingNow())) {
+    const inside = element("shop").contains(document.activeElement);
+    resetShop();
+    element("shop").hidden = true;
+    element("session-layout").hidden = false;
+    if (inside) element(session.ending ? "ending-title" : "adventure-title").focus();
+  }
+  element("session-layout").hidden = Boolean(shop);
+  element("shop").hidden = !shop;
+  if (!shop) return;
+  const { room } = session;
+  element("shop-title").replaceChildren(merchant.name, " ", make("span", "open for trade", "shop-open"));
+  element("shop-greeting").textContent = merchant.description;
+  element("shop-terms").textContent = "Each trade takes " + minutesText(merchant.tradeMinutes) + ". " + merchant.name + " pays " + merchant.buyBack + " for gear and full value for gems and art objects.";
+  element("shop-purse").replaceChildren(icon(${JSON.stringify(COIN_ICON)}), "Purse: " + (room.purse ?? "empty"));
+  element("shop-load").textContent = carryingText(room.carrying);
+  // A trade in flight, Sell all's included, finishes before the shop closes.
+  element("leave-shop").disabled = acting;
+  element("shop-ware-list").replaceChildren(...merchant.wares.map((ware) => shopRow("ware", ware, ware.price)));
+  const pack = packEntries(room, merchant);
+  if (confirmingSellAll && !(merchant.treasureSale && pack.some(({ shelf }) => shelf === "treasure"))) confirmingSellAll = false;
+  element("shop-pack-groups").replaceChildren(...SHELVES.flatMap(([shelf, title]) => {
+    const members = pack.filter((entry) => entry.shelf === shelf);
+    if (!members.length) return [];
+    const group = make("div", undefined, "shop-group");
+    group.dataset.shelf = shelf;
+    const head = make("div", undefined, "shop-group-head");
+    const heading = make("h5", shelf === "unsold" ? merchant.name + " doesn't buy these" : title);
+    heading.id = "shop-shelf-" + shelf;
+    head.append(heading);
+    if (shelf === "treasure" && merchant.treasureSale && !confirmingSellAll) head.append(sellAllControl());
+    const list = make("ul", undefined, "shop-list");
+    list.setAttribute("aria-labelledby", heading.id);
+    list.append(...members.map((entry) => shopRow("pack", entry, entry.shelf === "unsold" ? "" : entry.price)));
+    group.append(head, ...(shelf === "treasure" && confirmingSellAll ? [sellAllQuestion(merchant)] : []), list);
+    return [group];
+  }));
+  renderShopDetail(merchant, pack);
+  const receipt = element("shop-receipt");
+  receipt.textContent = shop.receipt ? shop.receipt.text : "";
+  receipt.classList.toggle("error", Boolean(shop.receipt && shop.receipt.error));
+}
+
+/** The chosen item's details: what it is and costs or fetches, its stats (#504) and its one Buy or Sell. */
+function renderShopDetail(merchant, pack) {
+  const box = element("shop-detail");
+  const chosen = shop.chosen;
+  const ware = chosen && chosen.list === "ware" ? merchant.wares.find(({ id }) => id === chosen.id) : undefined;
+  const entry = chosen && chosen.list === "pack" ? pack.find(({ id, slot }) => id === chosen.id && (slot ?? "") === chosen.slot) : undefined;
+  if (!ware && !entry) {
+    if (confirmingSale) confirmingSale = null;
+    box.replaceChildren(make("p", "Choose an item to see its details.", "shop-note"));
+    return;
+  }
+  const item = ware ?? entry;
+  const title = make("h4");
+  title.id = "shop-item-name";
+  title.append(...iconned(item.icon, item.name));
+  if (entry && entry.slot === "equipped") title.append(" ", make("span", entry.state, "shop-state"));
+  const price = ware
+    ? "Price: " + ware.price
+    : entry.shelf === "treasure"
+      ? "Worth " + entry.price + ": " + merchant.name + " pays its full value."
+      : entry.shelf === "ammunition"
+        ? merchant.name + " pays " + entry.price + " for a bundle of 20."
+        : entry.shelf === "gear"
+          ? merchant.name + " pays " + entry.price + " (" + merchant.buyBack + ")."
+          : merchant.name + " doesn't buy this.";
+  const option = ware ? tradeOption("buy", ware.id) : entry.option;
+  const asking = option && option.action === "sell-equipped" && confirmingSale === option.target.id;
+  if (!asking && confirmingSale) confirmingSale = null;
+  box.replaceChildren(
+    title,
+    make("p", price, entry && entry.shelf === "unsold" ? "shop-note" : "shop-price-line"),
+    ...(entry && entry.description ? [make("p", entry.description, "shop-text")] : []),
+    ...(item.stats ? statsNodes(item.stats) : []),
+    ...(!option ? [] : asking ? [saleQuestion(option.target, entry.price)] : [shopTradeButton(option, ware ? ware.price : entry.price)]),
+  );
+}
+
+/** The details' Buy or Sell, by its price; disabled with the engine's reason. */
+function shopTradeButton(option, price) {
+  const { action, target } = option;
+  const verb = action === "buy" ? "Buy" : "Sell";
+  const button = make("button", undefined, "act primary");
+  button.append(make("span", verb + " for " + price));
+  button.type = "button";
+  button.dataset.action = action;
+  button.dataset.target = target.id;
+  button.dataset.busyLabel = ACTIONS[action].busyLabel;
+  button.setAttribute("aria-label", verb + " " + target.name + " for " + price);
+  button.disabled = acting || !option.available;
+  button.addEventListener("click", () => (action === "sell-equipped" ? openSale(option) : shopTrade(option)));
+  const wrap = make("span", undefined, "action");
+  wrap.append(button);
+  if (!option.available) {
+    const reason = make("span", option.reason, "reason");
+    reason.id = "shop-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  } else {
+    // What the trade leaves in the purse.
+    const purse = parseCoins(session.room.purse ?? "");
+    const after = action === "buy" ? purse - parseCoins(price) : purse + parseCoins(price);
+    const left = make("span", "Purse after: " + (after === 0 ? "empty" : formatCoins(after)), "purse-after");
+    left.id = "shop-purse-after";
+    button.setAttribute("aria-describedby", left.id);
+    wrap.append(left);
+  }
+  return wrap;
+}
+
+function openShop(merchantId) {
+  const merchant = merchantHere();
+  if (!merchant || acting) return;
+  const [first] = merchant.wares;
+  shop = { merchant: merchantId, chosen: first ? { list: "ware", id: first.id, slot: "" } : null, receipt: null };
+  confirmingSale = null;
+  confirmingSellAll = false;
+  renderShop();
+  element("shop-title").focus();
+  // The bell over the shop's door.
+  playSounds(["shop-bell"]);
+}
+
+function closeShop() {
+  if (!shop || acting) return;
+  resetShop();
+  renderShop();
+  const trade = element("open-shop");
+  if (trade) trade.focus();
+}
+
+function chooseInShop(list, id, slot) {
+  shop.chosen = { list, id, slot };
+  confirmingSale = null;
+  renderShop();
+  const row = list === "ware" ? "#shop-ware-list li[data-ware=" + JSON.stringify(id) + "]" : "#shop-pack-groups li[data-id=" + JSON.stringify(id) + "][data-slot=" + JSON.stringify(slot) + "]";
+  document.querySelector(row + " button").focus();
+}
+
+/**
+ * Sets the receipt to the history entries since before, or the refusal or
+ * error; a request that never reached the server leaves it as it was.
+ */
+function receiptSince(before, done) {
+  const error = element("adventure-error").textContent;
+  if (error) shop.receipt = { text: error, error: true };
+  else if (done) shop.receipt = { text: session.history.slice(before).flatMap(({ cards }) => cards.map(({ text }) => text)).join(" "), error: false };
+}
+
+/**
+ * After a trade, focus stays on its button while it is still enabled, and
+ * otherwise moves to the receipt, the trade's result.
+ */
+function shopFocus(action, targetId) {
+  if (!shop) return;
+  const same = [...document.querySelectorAll("#shop-detail button.act")].find((button) => button.dataset.action === action && button.dataset.target === targetId);
+  if (same && !same.disabled) same.focus();
+  else element("shop-receipt").focus();
+}
+
+async function shopTrade(option) {
+  const { action, target } = option;
+  const before = session.history.length;
+  const done = await act("/api/5e/session/explore", { action, target: target.id }, "#shop-detail button.act[data-action=" + JSON.stringify(action) + "]", busyName(option));
+  if (!shop) return;
+  receiptSince(before, done);
+  renderShop();
+  shopFocus(action, target.id);
+}
+
+// The question an equipped item's Sell asks first, in the shop's details (#210).
+function saleQuestion(target, price) {
+  const merchant = merchantHere();
   const held = session.room.gear.worn.some(({ id }) => id === target.id) ? "you are wearing" : "you are holding";
   const box = make("div", undefined, "confirm");
   box.id = "sale-confirm";
@@ -3071,14 +3369,14 @@ function saleQuestion(target) {
 
 function openSale(option) {
   confirmingSale = option.target.id;
-  renderActions();
+  renderShop();
   element("confirm-sale").focus();
 }
 
 function cancelSale() {
   const itemId = confirmingSale;
   confirmingSale = null;
-  renderActions();
+  renderShop();
   const sell = document.querySelector("button.act[data-action=sell-equipped][data-target=" + JSON.stringify(itemId) + "]");
   if (sell) sell.focus();
 }
@@ -3086,11 +3384,82 @@ function cancelSale() {
 async function sellEquipped() {
   const option = session.actions.find(({ action, target }) => action === "sell-equipped" && target.id === confirmingSale);
   if (!option) return;
+  const before = session.history.length;
   const done = await act("/api/5e/session/explore", { action: "sell-equipped", target: option.target.id }, "#confirm-sale", "Selling…");
+  if (!shop) return;
   // A failed request leaves the question open to try again.
   if (done) confirmingSale = null;
-  renderActions();
-  keepFocus("sell-equipped", option.target.id);
+  receiptSince(before, done);
+  renderShop();
+  if (confirmingSale) element("confirm-sale").focus();
+  else shopFocus("sell-equipped", option.target.id);
+}
+
+// Sell all treasure (#515): every gem and art object, one trade each, after
+// a question naming the coin and the minutes they take.
+function sellAllControl() {
+  const button = make("button", "Sell all treasure", "secondary");
+  button.id = "sell-all-treasure";
+  button.type = "button";
+  button.disabled = acting || !session.actions.some(({ action, available }) => action === "sell-treasure" && available);
+  button.addEventListener("click", openSellAll);
+  return button;
+}
+
+function sellAllQuestion(merchant) {
+  const { count, coin, minutes } = merchant.treasureSale;
+  const box = make("div", undefined, "confirm");
+  box.id = "sell-all-confirm";
+  const question = make("p", "Sell " + (count === 1 ? "your gem or art object" : "all " + count + " gems and art objects") + " to " + merchant.name + " for " + coin + "? " + (count === 1 ? "It takes " + minutesText(minutes) + "." : "Each trade takes " + minutesText(merchant.tradeMinutes) + ": " + minutes + " minutes in all."));
+  question.id = "sell-all-question";
+  const confirm = make("button", "Sell all", "primary danger");
+  confirm.id = "confirm-sell-all";
+  confirm.type = "button";
+  confirm.disabled = acting;
+  confirm.setAttribute("aria-describedby", question.id);
+  confirm.addEventListener("click", sellAllTreasure);
+  const cancel = make("button", "Keep them", "secondary");
+  cancel.id = "cancel-sell-all";
+  cancel.type = "button";
+  cancel.disabled = acting;
+  cancel.addEventListener("click", cancelSellAll);
+  const controls = make("div", undefined, "controls");
+  controls.append(confirm, cancel);
+  box.append(question, controls);
+  return box;
+}
+
+function openSellAll() {
+  confirmingSellAll = true;
+  renderShop();
+  element("confirm-sell-all").focus();
+}
+
+function cancelSellAll() {
+  confirmingSellAll = false;
+  renderShop();
+  element("sell-all-treasure").focus();
+}
+
+async function sellAllTreasure() {
+  const merchant = merchantHere();
+  const sale = merchant.treasureSale;
+  const before = session.history.length;
+  const sales = session.actions.filter(({ action, available }) => action === "sell-treasure" && available);
+  let sold = 0;
+  for (const option of sales) {
+    if (!shop || !confirmingSellAll) break;
+    const done = await act("/api/5e/session/explore", { action: "sell-treasure", target: option.target.id }, "#confirm-sell-all", "Selling…");
+    if (!done || element("adventure-error").textContent) break;
+    sold += 1;
+  }
+  if (!shop) return;
+  confirmingSellAll = false;
+  // All sold, the receipt says so in one line; otherwise what went wrong.
+  if (sold === sales.length && sold === sale.count) shop.receipt = { text: "You sell " + (sold === 1 ? "your gem or art object" : sold + " gems and art objects") + " to " + merchant.name + " for " + sale.coin + ". " + (sold === 1 ? "The trade takes " : "The trades take ") + minutesText(sale.minutes) + ". Purse: " + (session.room.purse ?? "empty") + ".", error: false };
+  else receiptSince(before, sold > 0);
+  renderShop();
+  element("shop-receipt").focus();
 }
 
 function openLeave() {
@@ -4355,6 +4724,16 @@ document.addEventListener("keydown", (event) => {
   if ((event.key !== "m" && event.key !== "M") || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
   if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]")) return;
   if (openMap()) event.preventDefault();
+});
+element("leave-shop").addEventListener("click", closeShop);
+// Esc (#515) answers the shop's open question with No, or leaves the shop;
+// never while a dialog, such as the map, takes it.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !shop || acting || element("adventure").hidden || document.querySelector("dialog[open]")) return;
+  event.preventDefault();
+  if (confirmingSale) cancelSale();
+  else if (confirmingSellAll) cancelSellAll();
+  else closeShop();
 });
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 element("confirm-leave").addEventListener("click", leaveAdventure);

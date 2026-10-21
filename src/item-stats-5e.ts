@@ -19,6 +19,7 @@ import {
   isShieldId,
   isToolId,
   isWeaponId,
+  itemName,
   itemWeight,
   magicItemText,
   proficientWith,
@@ -27,6 +28,7 @@ import {
   type ArmourData,
   type AttackProfile,
   type CatalogueId,
+  type GearRefusalCode,
   type ItemId,
   type WeaponData,
   type WeaponId,
@@ -204,6 +206,25 @@ function armourCosts(
     .join("");
 }
 
+/**
+ * What to do to hold a shield the character's hands can't (#515): it can
+ * always be carried in the pack, so the line says how to free a hand. The
+ * weapons are in the order equipping a shield names them.
+ */
+function shieldRefusal(
+  code: GearRefusalCode,
+  character: CharacterSheet,
+): string | undefined {
+  const [main, second] = character.equipment
+    .filter(isWeaponId)
+    .map((weapon) => itemName(weapon).toLowerCase());
+  return code === "hands-full" && second !== undefined
+    ? `To hold it, unequip the ${second} first.`
+    : code === "two-handed" && main !== undefined
+      ? `To hold it, swap the ${main} for a one-handed weapon first.`
+      : undefined;
+}
+
 function compareWith(
   id: ItemId,
   character: CharacterSheet,
@@ -223,7 +244,8 @@ function compareWith(
   const change = weapon ? swapWeapon(gear, id) : equipItem(gear, id);
   if (change.refusal !== undefined) {
     return [
-      `Can't be ${verb} with what you have now: ${change.refusal.reason}`,
+      (isShieldId(id) && shieldRefusal(change.refusal.code, character)) ||
+        `Can't be ${verb} with what you have now: ${change.refusal.reason}`,
     ];
   }
   const now = characterProfile(character);

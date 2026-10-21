@@ -91,3 +91,49 @@ export async function fight(page) {
     await fightTurn(page);
   }
 }
+
+/**
+ * The shop's row (#515) for what `action` trades: the ware to buy, or the
+ * pack's entry to sell, equipped or stowed as the sale says.
+ */
+export const shopItem = (page, action, target) => {
+  const slot =
+    { sell: '[data-slot="stowed"]', "sell-equipped": '[data-slot="equipped"]' }[
+      action
+    ] ?? "";
+  return page.locator(
+    action === "buy"
+      ? `#shop-ware-list li[data-ware="${target}"] button`
+      : `#shop-pack-groups li[data-id="${target}"]${slot} button`,
+  );
+};
+
+/** Opens the shop from the merchant's Trade (#515), unless it is open. */
+export async function openShop(page) {
+  if (await page.locator("#shop").isHidden()) {
+    await page.locator("#open-shop").click();
+    await page.locator("#shop").waitFor();
+  }
+}
+
+/** Leaves the shop for the room (#515). */
+export async function leaveShop(page) {
+  await page.locator("#leave-shop").click();
+  await page.locator("#session-layout").waitFor();
+}
+
+/**
+ * Trades in the shop (#515): opens it, chooses the item and clicks its Buy
+ * or Sell, confirming the sale of equipped gear, and waits for the trade's
+ * settled history entry. The shop stays open.
+ */
+export async function trade(page, action, target) {
+  await openShop(page);
+  await shopItem(page, action, target).click();
+  await settled(page, async () => {
+    await actionButton(page, action, target).click();
+    if (action === "sell-equipped") {
+      await page.locator("#confirm-sale").click();
+    }
+  });
+}

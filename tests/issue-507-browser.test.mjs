@@ -16,7 +16,10 @@ import { SETTINGS } from "../dist/settings-5e.js";
 import {
   actionButton,
   createFighter,
+  openShop,
+  shopItem,
   startAdventure,
+  trade,
 } from "./fixtures/browser-journey.mjs";
 import { findsYard } from "./fixtures/finds-yard.mjs";
 import { explore, launch } from "./fixtures/session-layout.mjs";
@@ -109,16 +112,9 @@ test(
 
       await startAdventure(page, "finds-yard");
       assert.equal(await page.locator("#purse").textContent(), "Purse: 25 gp");
-      // The potion in plain sight is missing; the pedlar asks double and
-      // pays full price.
+      // The potion in plain sight is missing.
       const potion = actionButton(page, "take", "yard-potion");
       assert.equal(await potion.count(), 0);
-      const pedlar = page.locator('#creatures li[data-id="pedlar"]');
-      assert.match(await pedlar.innerText(), /Dagger — 4 gp/);
-      assert.match(
-        await pedlar.innerText(),
-        /Pays full price: [^.]*Leather armour 10 gp/,
-      );
 
       // The handcart's 10 gp gem is worth half again.
       await explore(page, "examine", "handcart");
@@ -127,8 +123,25 @@ test(
         await page.locator('#inventory li[data-id="cart-gem"]').innerText(),
         /15 gp/,
       );
-      await explore(page, "buy", "dagger");
-      assert.equal(await page.locator("#purse").textContent(), "Purse: 21 gp");
+      // In the shop (#515) the pedlar asks double and pays full price.
+      await openShop(page);
+      assert.match(
+        await page.locator("#shop-terms").textContent(),
+        /Pedlar pays full price for gear/,
+      );
+      assert.equal(
+        await shopItem(page, "buy", "dagger").textContent(),
+        "Dagger, 4 gp",
+      );
+      assert.equal(
+        await shopItem(page, "sell-equipped", "leather").textContent(),
+        "Leather armour Worn, 10 gp",
+      );
+      await trade(page, "buy", "dagger");
+      assert.equal(
+        await page.locator("#shop-purse").textContent(),
+        "Purse: 21 gp",
+      );
 
       // A reload misses the same potion.
       await page.reload();

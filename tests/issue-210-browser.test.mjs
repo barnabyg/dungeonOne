@@ -1,8 +1,9 @@
 // #210, browser → API → storage: loot 10 gp from the barrow goblin's body,
 // buy a shortsword from the pedlar at the mouth, wield it, sell the mace and
-// (after confirming in the panel) the leather armour, and escape: the sheet
-// and the saved library hold the shortsword and the change. Then buying a
-// dagger and abandoning leaves the sheet as it was (#206).
+// (after confirming in the shop's details) the leather armour, all in the
+// shop (#515), and escape: the sheet and the saved library hold the
+// shortsword and the change. Then buying a dagger and abandoning leaves the
+// sheet as it was (#206).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -15,9 +16,14 @@ import { sessionSeed } from "../dist/session-5e.js";
 import { marketBarrow } from "./fixtures/market-barrow.mjs";
 import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
 import {
+  actionButton,
   createAndStart,
   fight,
+  leaveShop,
+  openShop,
+  shopItem,
   startAdventure,
+  trade,
 } from "./fixtures/browser-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
@@ -46,9 +52,7 @@ function winningSeed() {
   throw new Error("no seed wins the burial hall");
 }
 
-const newest = (page) => page.locator("#log li").last().innerText();
-const ware = (page, id) =>
-  page.locator(`#creatures li[data-id="pedlar"] [data-ware="${id}"]`);
+const newest = (page) => page.locator("#log li").last().textContent();
 
 test(
   "buy a shortsword with looted coin, sell gear, escape and keep the change, then buy and abandon without loss",
@@ -76,23 +80,29 @@ test(
     try {
       await createAndStart(page, server.url, "lintel-barrow");
 
-      // The pedlar's wares, priced by the engine; Ada has no coin yet.
-      const pedlar = page.locator('#creatures li[data-id="pedlar"]');
-      assert.match(
-        await pedlar.innerText(),
-        /Each trade takes 10 minutes\.[\s\S]*Shortsword — 10 gp[\s\S]*Shield — 10 gp[\s\S]*Dagger — 2 gp/,
+      // The pedlar's wares, priced by the engine, in the shop its Trade
+      // opens; Ada has no coin yet.
+      await openShop(page);
+      assert.equal(
+        await page.locator("#shop-terms").textContent(),
+        "Each trade takes 10 minutes. Pedlar pays half price for gear and full value for gems and art objects.",
       );
-      const buyShortsword = ware(page, "shortsword").locator("button");
+      assert.deepEqual(
+        await page.locator("#shop-ware-list li").allTextContents(),
+        ["Shortsword, 10 gp", "Shield, 10 gp", "Dagger, 2 gp"],
+      );
+      const buyShortsword = actionButton(page, "buy", "shortsword");
       assert.equal(
         await buyShortsword.getAttribute("aria-label"),
-        "Buy Shortsword",
+        "Buy Shortsword for 10 gp",
       );
       assert.equal(await buyShortsword.isDisabled(), true);
-      assert.match(
-        await ware(page, "shortsword").innerText(),
-        /Too little coin/,
+      assert.equal(
+        await page.locator("#shop-reason").textContent(),
+        "Too little coin",
       );
       // Buying is not in the action bar.
+      await leaveShop(page);
       assert.equal(
         await page.locator('#action-bar button[data-action="buy"]').count(),
         0,
@@ -105,27 +115,34 @@ test(
       assert.equal(await page.locator("#purse").textContent(), "Purse: 10 gp");
       await explore(page, "move", "barrow-mouth");
 
-      await explore(page, "buy", "shortsword");
+      await trade(page, "buy", "shortsword");
       assert.equal(
         await newest(page),
         "You buy the shortsword from Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
       );
+      await leaveShop(page);
       await explore(page, "swap", "shortsword");
       // The mace, now stowed, sells at once for half its price.
-      assert.match(
-        await pedlar.innerText(),
-        /Pays half price: Leather armour 5 gp, Shortsword 5 gp, Mace 2 gp 5 sp\./,
+      await openShop(page);
+      assert.deepEqual(
+        await page
+          .locator('#shop-pack-groups [data-shelf="gear"] li')
+          .allTextContents(),
+        [
+          "Leather armour Worn, 5 gp",
+          "Shortsword In hand, 5 gp",
+          "Mace, 2 gp 5 sp",
+        ],
       );
-      await explore(page, "sell", "mace");
+      await trade(page, "sell", "mace");
       assert.equal(
         await newest(page),
         "You sell the mace to Pedlar for 2 gp 5 sp. The trade takes 10 minutes. Purse: 2 gp 5 sp.",
       );
 
-      // Selling worn armour asks first, inside its "You carry" entry.
-      const leather = page.locator(
-        '#inventory li[data-id="leather"][data-slot="equipped"]',
-      );
+      // Selling worn armour asks first, in the shop's details.
+      await shopItem(page, "sell-equipped", "leather").click();
+      const leather = page.locator("#shop-detail");
       await leather.locator('button[data-action="sell-equipped"]').click();
       assert.equal(await page.locator("#sale-confirm").isVisible(), true);
       assert.equal(
@@ -155,6 +172,11 @@ test(
       );
       assert.equal(await page.locator("#sale-confirm").count(), 0);
       assert.equal(
+        await page.locator("#shop-purse").textContent(),
+        "Purse: 7 gp 5 sp",
+      );
+      await leaveShop(page);
+      assert.equal(
         await page.locator("#purse").textContent(),
         "Purse: 7 gp 5 sp",
       );
@@ -183,9 +205,9 @@ test(
       // handoff checked it until #446). Keep going closes the question; the
       // second Abandon confirms it.
       await startAdventure(page, "lintel-barrow");
-      await explore(page, "buy", "dagger");
+      await trade(page, "buy", "dagger");
       assert.equal(
-        await page.locator("#purse").textContent(),
+        await page.locator("#shop-purse").textContent(),
         "Purse: 5 gp 5 sp",
       );
       await page.locator('#breadcrumb a[data-view="sheet"]').click();

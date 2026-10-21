@@ -7,7 +7,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  createAndStart,
+  trade,
+} from "./fixtures/browser-journey.mjs";
 import { findsYard } from "./fixtures/finds-yard.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
@@ -50,8 +54,15 @@ test(
       assert.deepEqual(await act("take", "yard-potion"), ["magic-item"]);
       assert.deepEqual(await act("examine", "handcart"), []);
       assert.deepEqual(await act("take", "yard-ring"), ["pickup"]);
-      assert.deepEqual(await act("sell-treasure", "yard-ring"), ["coins"]);
-      assert.deepEqual(await act("buy", "dagger"), ["coins"]);
+      // Trades are made in the shop (#515).
+      const shop = (action, target) =>
+        answerSounds(page, () => trade(page, action, target));
+      // The first opens the shop, whose door's bell rings first (#515).
+      assert.deepEqual(await shop("sell-treasure", "yard-ring"), [
+        "shop-bell",
+        "coins",
+      ]);
+      assert.deepEqual(await shop("buy", "dagger"), ["coins"]);
 
       await page.reload();
       await page.locator("#log li").nth(8).waitFor();

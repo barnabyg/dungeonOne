@@ -1276,6 +1276,19 @@ export function formatCoins(copper: number): string {
 }
 
 /**
+ * The copper that `formatCoins` words name: the shop (#515) works out what
+ * a trade leaves in the purse from the prices it shows. Self-contained, as
+ * the page embeds it.
+ */
+export function parseCoins(text: string): number {
+  const worth: Readonly<Record<string, number>> = { gp: 100, sp: 10, cp: 1 };
+  return [...text.matchAll(/(\d+) (gp|sp|cp)/gu)].reduce(
+    (copper, [, count, coin]) => copper + Number(count) * worth[coin!]!,
+    0,
+  );
+}
+
+/**
  * What a character holds that it can trade: its gear, its purse in copper,
  * and its arrows and bolts (none when absent).
  */

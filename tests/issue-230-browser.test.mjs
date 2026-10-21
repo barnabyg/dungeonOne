@@ -2,7 +2,7 @@
 // both at the barrow's goblin; Attack then shows "No arrows" until she
 // wields her mace. Winning recovers one of the two arrows spent. Back at the
 // mouth she takes the quiver behind the lintel and sells a bundle of 20 to
-// the bowyer, who will not buy the last arrow, and escapes: the sheet and
+// the bowyer in the shop (#515), who will not buy the last arrow, and escapes: the sheet and
 // the saved library keep the one arrow.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -16,6 +16,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { archer, archeryBarrow, QUIVER } from "./fixtures/archery-barrow.mjs";
 import { explore, launch } from "./fixtures/session-layout.mjs";
+import { leaveShop, trade } from "./fixtures/browser-journey.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
 const sheet = archer(2);
@@ -173,13 +174,14 @@ test(
       await explore(page, "examine", "scratched-lintel");
       await explore(page, "take", QUIVER.id);
       assert.equal(await carried(page, "arrows"), "Arrows (21)");
-      await explore(page, "sell", "arrows");
+      await trade(page, "sell", "arrows");
       assert.equal(await carried(page, "arrows"), "Arrows (1)");
       const sell = page.locator(
-        'button.act[data-action="sell"][data-target="arrows"]',
+        '#shop-detail button.act[data-action="sell"][data-target="arrows"]',
       );
       assert.equal(await sell.isDisabled(), true);
       assert.equal(await reason(page, sell), "Fewer than 20");
+      await leaveShop(page);
 
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
