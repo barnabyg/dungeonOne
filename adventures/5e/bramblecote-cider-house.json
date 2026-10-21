@@ -13,11 +13,13 @@
   "regions": [
     {
       "id": "yard",
-      "name": "The Yard"
+      "name": "The Yard",
+      "backdrop": "farmyard"
     },
     {
       "id": "vaults",
-      "name": "The Vaults"
+      "name": "The Vaults",
+      "backdrop": "cellar"
     }
   ],
   "routes": [
@@ -129,6 +131,7 @@
       "at": [1, 2],
       "description": "The farmhouse kitchen is cold, and it smells of burned stew and spilled cider. Chairs lie overturned around a scrubbed table.",
       "region": "yard",
+      "backdrop": "hall",
       "features": [
         {
           "id": "pantry",
@@ -164,6 +167,7 @@
       "at": [0, 2],
       "description": "A small, quiet room with the shutters barred from inside. Dust lies thick on the good chairs; the goblins never came in here.",
       "region": "yard",
+      "backdrop": "hall",
       "restSite": true,
       "features": [
         {
@@ -808,6 +812,7 @@
       "floor": -1,
       "description": "The low cellar is knee-deep in black water that smells of river mud and rot. A rusted grating lets in the sound of the river.",
       "region": "vaults",
+      "backdrop": "culvert",
       "avoidable": true,
       "encounterId": "sump-fight",
       "features": [
@@ -847,6 +852,7 @@
       "floor": -1,
       "description": "The passage ends at a low door onto the riverbank. You hear the river running fast beyond it, and smell weed and wet rope.",
       "region": "vaults",
+      "backdrop": "culvert",
       "exit": true,
       "features": [
         {

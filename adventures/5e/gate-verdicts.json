@@ -2,19 +2,19 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "67f2ae01af9952d2aef3761ab81c8d93b72cb117f9e7f3d8097e57bfae09c4fe",
+      "hash": "c0c4edb1fac4e19e1b7d03dbe536c15e4147e930818c924d12f16c43ebaaac2c",
       "qualified": true
     },
     "bramblecote-cider-house": {
-      "hash": "3e4b78ddbbae1113ec161dd59d05d69b149ec467f90bc75536946996c2f2f1bf",
+      "hash": "4f4d7598ec2372fd6531434b6a077913d7b4519468db47916773f0bb6be9745d",
       "qualified": true
     },
     "coldwater-weirgate": {
-      "hash": "eab975913cd264cdc907a7c6319c512f25e600e64e188762582fb77c719323bc",
+      "hash": "dd6e1bc04484d24b432f38f84a33ebd2428929306febbcc4e32fddb15c7a9b56",
       "qualified": true
     },
     "thornwood-lodge": {
-      "hash": "fcf0aa92bb9e05aa5b145626bbfb894971fb61434e3b9a296d94d9e152dcf01e",
+      "hash": "47ef8280525fe687d6081eb8cf7f2638fdd778c7ee9a4962c20f8117773a0d04",
       "qualified": true
     }
   }

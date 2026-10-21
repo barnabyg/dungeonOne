@@ -8,8 +8,8 @@
   "difficulty": "medium",
   "long": true,
   "regions": [
-    { "id": "cellars", "name": "The Keep Cellars" },
-    { "id": "crypts", "name": "The Crypts" }
+    { "id": "cellars", "name": "The Keep Cellars", "backdrop": "cellar" },
+    { "id": "crypts", "name": "The Crypts", "backdrop": "crypt" }
   ],
   "flags": ["goblin-freed", "delve-roused"],
   "alarm": {
@@ -45,6 +45,7 @@
       "at": [2, 0],
       "description": "A cracked stair runs down from the ruined keep to a gate hanging off its hinges. Daylight is at your back. Someone has chalked marks on the gatepost.",
       "region": "cellars",
+      "backdrop": "ruin",
       "exit": true,
       "features": [
         {
@@ -62,6 +63,7 @@
       "at": [2, 1],
       "description": "A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
       "region": "cellars",
+      "backdrop": "hall",
       "features": [],
       "items": []
     },
@@ -303,6 +305,7 @@
       "at": [2, 2],
       "description": "Half the kitchen roof has fallen in, and grey daylight shows through the hole. Something has made a den in the rubble by the hearth, and the floor is littered with bones.",
       "region": "cellars",
+      "backdrop": "ruin",
       "encounterId": "kitchen-wolf",
       "features": [
         {
@@ -569,6 +572,7 @@
       "floor": -1,
       "description": "Steps run down into a vaulted cistern, flooded to the third step with black, still water. A walkway runs round its edge to an arch at the far side.",
       "region": "crypts",
+      "backdrop": "culvert",
       "features": [
         {
           "id": "black-water",

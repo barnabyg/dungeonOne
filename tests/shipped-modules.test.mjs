@@ -135,6 +135,15 @@ test("leaving any shipped module at its start warns of the objective's award los
   }
 });
 
+test("every shipped region names a backdrop (#517)", () => {
+  for (const module of shipped) {
+    assert.ok(module.regions.length > 0, module.id);
+    for (const region of module.regions) {
+      assert.ok(region.backdrop, `${module.id} region ${region.id}`);
+    }
+  }
+});
+
 test("the mapping tool draws every shipped module by id with no layout error (#456)", async (t) => {
   const outDir = await mkdtemp(join(tmpdir(), "dungeon-456-shipped-"));
   t.after(() => rm(outDir, { recursive: true, force: true }));
