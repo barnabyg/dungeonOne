@@ -78,6 +78,7 @@ import {
   TREASURE_ICON,
   WAND_ICON,
 } from "./icons-5e.js";
+import type { Backdrop } from "./backdrops-5e.js";
 import { exitDirection } from "./map-5e.js";
 import type { Cell, Direction, VerticalKind } from "./map-5e.js";
 import { castSound, type SoundId } from "./sounds-5e.js";
@@ -4949,6 +4950,11 @@ export type RoomView = Readonly<{
   restSite?: true;
   /** The name of the region the room belongs to (#395), if it has one. */
   region?: string;
+  /**
+   * The drawing behind the room panel (#517): the room's own, else its
+   * region's, if either names one. The AI DM's scene leaves it out.
+   */
+  backdrop?: Backdrop;
   /** The module's words for its alarm (#401), once it has been raised. */
   alarm?: string;
   /**
@@ -6011,6 +6017,13 @@ export function createFifthRuntime(
   const regionOf = (of: FifthRoom): Readonly<{ region?: string }> => {
     const region = adventure.regions?.find(({ id }) => id === of.region);
     return region === undefined ? {} : { region: region.name };
+  };
+  /** `{ backdrop }`, `of`'s own or its region's (#517), or nothing. */
+  const backdropOf = (of: FifthRoom): Readonly<{ backdrop?: Backdrop }> => {
+    const backdrop =
+      of.backdrop ??
+      adventure.regions?.find(({ id }) => id === of.region)?.backdrop;
+    return backdrop === undefined ? {} : { backdrop };
   };
   /** The module's words for its alarm (#401), once it is raised. */
   const alarmOf = (state: FifthState): Readonly<{ alarm?: string }> =>
@@ -13194,6 +13207,7 @@ export function createFifthRuntime(
       description: current.description,
       ...(isRestSite(current) ? { restSite: true as const } : {}),
       ...regionOf(current),
+      ...backdropOf(current),
       ...alarmOf(state),
       exits: ways(state).map(
         ({

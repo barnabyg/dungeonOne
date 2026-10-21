@@ -65,7 +65,7 @@ function changed(change) {
 // The validator.
 
 test("a module with two regions and a rest site in each may declare itself long", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
   assert.equal(FIFTH_SESSION_FORMAT, 66);
   assert.equal(FIFTH_TRACE_FORMAT, 60);
   assert.equal(longTunnels.long, true);

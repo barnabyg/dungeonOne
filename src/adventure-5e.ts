@@ -78,6 +78,10 @@
  * lower level: then every room names its region, and every region has a
  * room, and the room map shades it.
  *
+ * A region may name a backdrop (#517), a faint drawing of the kind of place
+ * it is behind the room panel, and a room may name its own instead. They
+ * are only for the page: the AI DM never sees them.
+ *
  * Every room sits on a cell of the room map (#455), `at: [x, y]`, on a
  * floor (0 unless authored). The rules that keep the map readable live in
  * `map-5e.ts`: one room to a cell, straight passages that don't cross or
@@ -141,6 +145,7 @@
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
+import { BACKDROPS, type Backdrop, isBackdrop } from "./backdrops-5e.js";
 import {
   type GameIconId,
   isGameIconId,
@@ -260,7 +265,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 43;
+export const FIFTH_ADVENTURE_FORMAT = 44;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -1045,6 +1050,8 @@ export type FifthRoom = Readonly<{
   restSite?: true;
   /** The id of the region it belongs to (#395), in a module with regions. */
   region?: string;
+  /** The drawing behind the room panel here (#517), in place of its region's. */
+  backdrop?: Backdrop;
   /** The flag first entering it sets (#397); the start room's, at the start. */
   sets?: string;
   /**
@@ -1067,6 +1074,8 @@ export type FifthRegion = Readonly<{
   name: string;
   /** Its wandering encounter table (#403), if it has one. */
   wandering?: WanderingTable;
+  /** The drawing behind the room panel in its rooms (#517). */
+  backdrop?: Backdrop;
 }>;
 
 /**
@@ -2615,7 +2624,12 @@ function validateModule(
       ? undefined
       : list(module.regions, "regions", MAX_REGIONS).map((entry, index) => {
           const where = `region ${index + 1}`;
-          const region = knownKeys(entry, ["id", "name"], ["wandering"], where);
+          const region = knownKeys(
+            entry,
+            ["id", "name"],
+            ["wandering", "backdrop"],
+            where,
+          );
           const regionId = id(region.id, `${where} id`);
           return {
             id: regionId,
@@ -2623,6 +2637,7 @@ function validateModule(
             ...(region.wandering === undefined
               ? {}
               : { wandering: wanderingTable(region.wandering, regionId) }),
+            ...readBackdrop(region.backdrop, `region ${regionId}`),
           };
         });
   const regionIds = unique(regions ?? [], "region");
@@ -2655,6 +2670,7 @@ function validateModule(
         "exit",
         "restSite",
         "region",
+        "backdrop",
         "sets",
         "avoidable",
       ],
@@ -2953,6 +2969,7 @@ function validateModule(
       ...(room.exit === true ? { exit: true as const } : {}),
       ...(room.restSite === true ? { restSite: true as const } : {}),
       ...(room.region === undefined ? {} : { region: room.region as string }),
+      ...readBackdrop(room.backdrop, `${where} (${String(room.id)})`),
       ...(room.avoidable === true ? { avoidable: true as const } : {}),
       ...(room.sets === undefined
         ? {}
@@ -4452,6 +4469,22 @@ function readRoutes(
   });
   unique(routes, "route");
   return routes;
+}
+
+/** `{ backdrop }` (#517) from `value`, or nothing when it is left out. */
+function readBackdrop(
+  value: unknown,
+  where: string,
+): Readonly<{ backdrop?: Backdrop }> {
+  if (value === undefined) {
+    return {};
+  }
+  if (!isBackdrop(value)) {
+    fail(
+      `${where} names unknown backdrop ${String(value)}: use one of ${BACKDROPS.join(", ")}.`,
+    );
+  }
+  return { backdrop: value };
 }
 
 /**

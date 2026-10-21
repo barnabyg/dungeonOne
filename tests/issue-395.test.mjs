@@ -30,7 +30,7 @@ import {
 // The validator.
 
 test("a module may declare regions and give each room one", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
   assert.equal(FIFTH_SESSION_FORMAT, 66);
   assert.equal(FIFTH_TRACE_FORMAT, 60);
   assert.deepEqual(regionTunnels.regions, [
@@ -99,7 +99,7 @@ test("the validator refuses unknown, unused and partial regions", () => {
       changed((module) => {
         module.regions[0].colour = "blue";
       }),
-      /region 1 must have id, name and may have wandering, and nothing else\./u,
+      /region 1 must have id, name and may have wandering, backdrop, and nothing else\./u,
     ],
   ]) {
     assert.throws(() => validateModule(module), message);
