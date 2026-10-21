@@ -239,7 +239,7 @@
           "id": "cider-press",
           "name": "Cider Press",
           "description": "An oak press with a screw as thick as your leg. Something is wedged in its threads.",
-          "discovery": "Jammed in the screw is a strip of bark scratched with a goblin tally: rows of barrels, each crossed out beside a little drawing of a boat. \"To the river man,\" someone has scrawled. One barrel isn't crossed out: it has a grinning goblin face, and its V has no ring round it.",
+          "discovery": "Jammed in the screw is a strip of bark scratched with a goblin tally: rows of barrels, each crossed out beside a little drawing of a boat. \"To the river man,\" someone has scrawled. At the bottom, one last barrel isn't crossed out. Beside it are a grinning goblin face and a bag of coins, drawn next to one of the great casks in the vaults. Every other barrel is marked with a V inside a ring, but that cask's V has no ring. The goblins have hidden their share of the money in the cask with the bare V.",
           "check": {
             "approaches": [
               {
@@ -552,8 +552,8 @@
         {
           "id": "great-casks",
           "name": "Great Casks",
-          "description": "Casks taller than a man, most of them tapped and dry. Chalked on each is a V inside a ring.",
-          "discovery": "On one cask the V has no ring. Its bung pulls out, and inside, hung on a string, is the goblins' cut of the river man's money: a bag of silver.",
+          "description": "Casks taller than a man, most of them tapped and dry. Chalked on nearly every one is a V inside a ring.",
+          "discovery": "Low on one cask, half rubbed out, is a bare V with no ring: the goblins' mark. Its bung pulls out, and inside, hung on a string, is the goblins' cut of the river man's money: a bag of silver.",
           "check": {
             "approaches": [
               {
@@ -584,7 +584,7 @@
                 "text": "Cask after cask, the same chalk mark. Nothing stands out."
               },
               "success": {
-                "text": "You find the cask with the wrong mark.",
+                "text": "You find the cask with the bare V.",
                 "effects": [
                   {
                     "type": "discovery",
