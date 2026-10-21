@@ -859,7 +859,7 @@
     {
       "id": "well-bottom-to-cistern",
       "between": ["well-bottom", "flooded-cistern"],
-      "description": "The low arch, down a few wet steps."
+      "description": "A wet, stepped passage slopes down to the cistern under a low arch."
     },
     {
       "id": "cistern-to-ossuary",
