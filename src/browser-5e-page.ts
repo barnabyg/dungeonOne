@@ -1312,9 +1312,7 @@ function showAdventure(value) {
     confirmingLeave = false;
   }
   // The shop is page state only (#515): opening the adventure shows the room.
-  shop = null;
-  confirmingSale = null;
-  confirmingSellAll = false;
+  resetShop();
   element("adventure-error").textContent = "";
   renderAdventure();
   const entry = findEntry(session.characterId);
@@ -3074,6 +3072,14 @@ async function takeRest(hitDice) {
 // ammunition by the 20, and what the merchant doesn't buy. Each trade's
 // result shows in the receipt line, and its history entry is the usual one.
 const merchantHere = () => session.room.creatures.find(({ wares }) => wares);
+const minutesText = (minutes) => minutes + (minutes === 1 ? " minute" : " minutes");
+
+/** Closes the shop and any question it asks, without rendering. */
+function resetShop() {
+  shop = null;
+  confirmingSale = null;
+  confirmingSellAll = false;
+}
 const tradeOption = (action, id) => session.actions.find((option) => option.action === action && option.target.id === id);
 // The sale each "You carry" slot offers: a gem or art object has none.
 const SALE_OF = { equipped: "sell-equipped", stowed: "sell" };
@@ -3146,9 +3152,7 @@ function renderShop() {
   // (moved away, or the reaction's band ended) or a fight begun.
   if (shop && (session.status !== "playing" || !merchant || merchant.id !== shop.merchant || fightingNow())) {
     const inside = element("shop").contains(document.activeElement);
-    shop = null;
-    confirmingSale = null;
-    confirmingSellAll = false;
+    resetShop();
     element("shop").hidden = true;
     element("session-layout").hidden = false;
     if (inside) element(session.ending ? "ending-title" : "adventure-title").focus();
@@ -3158,7 +3162,7 @@ function renderShop() {
   if (!shop) return;
   const { room } = session;
   element("shop-title").textContent = "Trading with " + merchant.name;
-  element("shop-terms").textContent = "Each trade takes " + merchant.tradeMinutes + (merchant.tradeMinutes === 1 ? " minute" : " minutes") + ". " + merchant.name + " pays " + merchant.buyBack + " for gear and full value for gems and art objects.";
+  element("shop-terms").textContent = "Each trade takes " + minutesText(merchant.tradeMinutes) + ". " + merchant.name + " pays " + merchant.buyBack + " for gear and full value for gems and art objects.";
   element("shop-purse").replaceChildren(icon(${JSON.stringify(COIN_ICON)}), "Purse: " + (room.purse ?? "empty"));
   element("shop-load").textContent = carryingText(room.carrying);
   element("shop-ware-list").replaceChildren(...merchant.wares.map((ware) => shopRow("ware", ware, ware.price)));
@@ -3276,10 +3280,14 @@ function chooseInShop(list, id, slot) {
   document.querySelector(row + " button").focus();
 }
 
-/** The receipt for the history entries since before, or the refusal or error. */
-function receiptSince(before) {
+/**
+ * Sets the receipt to the history entries since before, or the refusal or
+ * error; a request that never reached the server leaves it as it was.
+ */
+function receiptSince(before, done) {
   const error = element("adventure-error").textContent;
-  return error ? { text: error, error: true } : { text: session.history.slice(before).flatMap(({ cards }) => cards.map(({ text }) => text)).join(" "), error: false };
+  if (error) shop.receipt = { text: error, error: true };
+  else if (done) shop.receipt = { text: session.history.slice(before).flatMap(({ cards }) => cards.map(({ text }) => text)).join(" "), error: false };
 }
 
 /**
@@ -3298,7 +3306,7 @@ async function shopTrade(option) {
   const before = session.history.length;
   const done = await act("/api/5e/session/explore", { action, target: target.id }, "#shop-detail button.act[data-action=" + JSON.stringify(action) + "]", busyName(option));
   if (!shop) return;
-  if (done || element("adventure-error").textContent) shop.receipt = receiptSince(before);
+  receiptSince(before, done);
   renderShop();
   shopFocus(action, target.id);
 }
@@ -3349,7 +3357,7 @@ async function sellEquipped() {
   if (!shop) return;
   // A failed request leaves the question open to try again.
   if (done) confirmingSale = null;
-  if (done || element("adventure-error").textContent) shop.receipt = receiptSince(before);
+  receiptSince(before, done);
   renderShop();
   if (confirmingSale) element("confirm-sale").focus();
   else shopFocus("sell-equipped", option.target.id);
@@ -3370,7 +3378,7 @@ function sellAllQuestion(merchant) {
   const { count, coin, minutes } = merchant.treasureSale;
   const box = make("div", undefined, "confirm");
   box.id = "sell-all-confirm";
-  const question = make("p", "Sell " + (count === 1 ? "your gem or art object" : "all " + count + " gems and art objects") + " to " + merchant.name + " for " + coin + "? " + (count === 1 ? "It takes " + minutes + " minutes." : "Each trade takes " + merchant.tradeMinutes + " minutes: " + minutes + " minutes in all."));
+  const question = make("p", "Sell " + (count === 1 ? "your gem or art object" : "all " + count + " gems and art objects") + " to " + merchant.name + " for " + coin + "? " + (count === 1 ? "It takes " + minutesText(minutes) + "." : "Each trade takes " + minutesText(merchant.tradeMinutes) + ": " + minutes + " minutes in all."));
   question.id = "sell-all-question";
   const confirm = make("button", "Sell all", "primary danger");
   confirm.id = "confirm-sell-all";
@@ -3415,9 +3423,8 @@ async function sellAllTreasure() {
   if (!shop) return;
   confirmingSellAll = false;
   // All sold, the receipt says so in one line; otherwise what went wrong.
-  shop.receipt = sold === sales.length && sold === sale.count
-    ? { text: "You sell " + (sold === 1 ? "your gem or art object" : sold + " gems and art objects") + " to " + merchant.name + " for " + sale.coin + ". The trades take " + sale.minutes + " minutes. Purse: " + (session.room.purse ?? "empty") + ".", error: false }
-    : receiptSince(before);
+  if (sold === sales.length && sold === sale.count) shop.receipt = { text: "You sell " + (sold === 1 ? "your gem or art object" : sold + " gems and art objects") + " to " + merchant.name + " for " + sale.coin + ". " + (sold === 1 ? "The trade takes " : "The trades take ") + minutesText(sale.minutes) + ". Purse: " + (session.room.purse ?? "empty") + ".", error: false };
+  else receiptSince(before, sold > 0);
   renderShop();
   element("shop-receipt").focus();
 }
