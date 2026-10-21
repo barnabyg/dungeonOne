@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 43,
+  "formatVersion": 44,
   "id": "thornwood-lodge",
   "title": "The Thornwood Lodge",
   "objective": "Get into Captain Hesk's lodge or the Wolfstone above it, take what you can of the deserters' plunder, and leave the Thornwood alive.",
@@ -11,6 +11,7 @@
     {
       "id": "lodge",
       "name": "The Lodge",
+      "backdrop": "hall",
       "wandering": {
         "chance": 15,
         "every": 4,
@@ -27,6 +28,7 @@
     {
       "id": "wolfstone",
       "name": "The Wolfstone",
+      "backdrop": "ruin",
       "wandering": {
         "chance": 15,
         "every": 4,
@@ -118,7 +120,8 @@
           "merchant": { "stock": ["longsword", "greatsword"], "minutes": 10 }
         }
       ],
-      "region": "lodge"
+      "region": "lodge",
+      "backdrop": "forest"
     },
     {
       "id": "poachers-hide",
@@ -150,6 +153,7 @@
         }
       ],
       "region": "lodge",
+      "backdrop": "forest",
       "avoidable": true,
       "creatures": []
     },
@@ -186,6 +190,7 @@
         }
       ],
       "region": "lodge",
+      "backdrop": "farmyard",
       "creatures": []
     },
     {
@@ -446,6 +451,7 @@
         }
       ],
       "region": "lodge",
+      "backdrop": "cellar",
       "avoidable": true,
       "creatures": []
     },
@@ -561,13 +567,15 @@
           }
         }
       ],
-      "region": "wolfstone"
+      "region": "wolfstone",
+      "backdrop": "forest"
     },
     {
       "id": "sheepfold",
       "name": "Sheepfold",
       "at": [3, 3],
       "region": "wolfstone",
+      "backdrop": "farmyard",
       "restSite": true,
       "description": "A drystone fold where the drovers pen their sheep at night, its gate hung with hurdles.",
       "features": [
@@ -764,6 +772,7 @@
       "name": "Guardroom",
       "at": [5, 1],
       "region": "wolfstone",
+      "backdrop": "hall",
       "description": "A low guardroom in the rampart, where the Reaver's gaoler dozes over a dice table.",
       "encounterId": "guardroom-gaoler",
       "avoidable": true,
@@ -844,6 +853,7 @@
         }
       ],
       "region": "wolfstone",
+      "backdrop": "cellar",
       "avoidable": true,
       "creatures": []
     },
@@ -888,6 +898,7 @@
         }
       ],
       "region": "wolfstone",
+      "backdrop": "hall",
       "avoidable": true,
       "creatures": []
     }

@@ -610,6 +610,24 @@ export const regionTunnelsFile = (() => {
 export const regionTunnels = validateModule(structuredClone(regionTunnelsFile));
 
 /**
+ * Backdrops (#517): the two-level tunnels as _The Drawn Tunnels_, whose
+ * upper tunnels are drawn as a cellar and lower ones as a crypt, except the
+ * alcove, which is drawn as a forest.
+ */
+export const backdropTunnelsFile = (() => {
+  const module = structuredClone(regionTunnelsFile);
+  module.id = "backdrop-tunnels";
+  module.title = "The Drawn Tunnels";
+  module.regions[0].backdrop = "cellar";
+  module.regions[1].backdrop = "crypt";
+  room(module, "alcove").backdrop = "forest";
+  return module;
+})();
+export const backdropTunnels = validateModule(
+  structuredClone(backdropTunnelsFile),
+);
+
+/**
  * The map (#457): the two-level tunnels as _The Mapped Tunnels_, with a
  * Long Gallery two cells east of the stair foot (the cell between empty),
  * a Belfry up a stair from the stair foot on another cell, and a Sump down

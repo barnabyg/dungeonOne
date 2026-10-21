@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 43,
+  "formatVersion": 44,
   "id": "coldwater-weirgate",
   "title": "The Coldwater Weirgate",
   "objective": "Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
@@ -14,6 +14,7 @@
     {
       "id": "keep",
       "name": "The Keep",
+      "backdrop": "weir",
       "wandering": {
         "chance": 15,
         "every": 4,
@@ -34,6 +35,7 @@
     {
       "id": "culverts",
       "name": "The Culverts",
+      "backdrop": "culvert",
       "wandering": {
         "chance": 15,
         "every": 4,
@@ -130,6 +132,7 @@
       "at": [1, 0],
       "description": "Smoke from a brazier hangs under the beams, and the room stinks of cheap ale. A tally-board fills one wall; a chest squats by the stair door.",
       "region": "keep",
+      "backdrop": "hall",
       "encounterId": "toll-hall-fight",
       "features": [
         {
@@ -229,6 +232,7 @@
       "at": [2, 0],
       "description": "Damp has curled every paper in the room, and it smells of mildew and old ink. A water gauge ticks on the wall.",
       "region": "keep",
+      "backdrop": "hall",
       "features": [
         {
           "id": "chart-cupboard",
@@ -265,6 +269,7 @@
       "at": [3, 1],
       "description": "Joints of salt meat hang from the beams, and the air reeks of brine and dog. A chain runs from a ring in the wall to a heap of straw.",
       "region": "keep",
+      "backdrop": "cellar",
       "encounterId": "kennel-fight",
       "features": [
         {
@@ -346,6 +351,7 @@
       "at": [4, 0],
       "description": "Snoring fills a low room of hammocks, and it smells of wet wool and spilt beer.",
       "region": "keep",
+      "backdrop": "hall",
       "encounterId": "bunk-room-fight",
       "features": [
         {
@@ -413,6 +419,7 @@
       "at": [3, 2],
       "description": "Water thunders through a channel under the floor, and the whole room shakes with it. A great wheel and a smaller gear stand over a grating.",
       "region": "keep",
+      "backdrop": "culvert",
       "features": [
         {
           "id": "drain-gear",
@@ -544,6 +551,7 @@
       "floor": 1,
       "description": "A quiet room under the roof, smelling of lavender and dust. A stout door bars from inside.",
       "region": "keep",
+      "backdrop": "hall",
       "restSite": true,
       "features": [
         {
@@ -572,6 +580,7 @@
       "at": [0, 1],
       "description": "Cold air rises from below, smelling of silt and machine oil. An iron grate closes a stair going down.",
       "region": "keep",
+      "backdrop": "cellar",
       "features": [
         {
           "id": "iron-grate-bars",

@@ -43,7 +43,7 @@ const UPPER_SWEEP = {
 };
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 43);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
 });
 
 test("a long module's region sweeps visit every room but the avoidable ones", () => {

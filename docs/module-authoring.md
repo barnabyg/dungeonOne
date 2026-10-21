@@ -105,8 +105,8 @@ Floor 0
   only its own rows.
 - `-`, `|`, `\` and `/` are passages on the floor. A run across an empty cell
   draws through it.
-- **Rooms** lists each letter with its id, name, cell, floor, region, and
-  whether it is the start or an exit.
+- **Rooms** lists each letter with its id, name, cell, floor, region, backdrop
+  (in a module that names any), and whether it is the start or an exit.
 - **Marked passages** lists the passages with something to note: a door, a
   hidden passage, a trap, a flag that opens or closes it, and the floors a
   vertical passage joins.
@@ -114,10 +114,11 @@ Floor 0
 
 ### Reading the SVG
 
-The SVG shows each floor from the top down, shading rooms by region and tagging
-the start and exits. Its legend explains the marks: hidden and flag-controlled
-passages are dashed or dotted, doors are squares (filled when locked), traps are
-red triangles, and ▲ / ▼ mark a room's stairs, ladders and shafts.
+The SVG shows each floor from the top down, shading rooms by region (its legend
+names each region's backdrop) and tagging the start and exits. Its legend
+explains the marks: hidden and flag-controlled passages are dashed or dotted,
+doors are squares (filled when locked), traps are red triangles, and ▲ / ▼ mark
+a room's stairs, ladders and shafts.
 
 ## Layout sketches
 
@@ -169,6 +170,15 @@ the design ticket.
   it), the gate counts the character as stranded and fails the module. Give such
   a key a second way on.
 - **Long modules** have at least two regions, each with a rest site.
+- **Backdrops.** Give each region a `backdrop`: the faint drawing behind the
+  room panel of the kind of place it is. A room that is a different kind of
+  place, such as a forest camp outside a lodge, names its own. The backdrops
+  are `cellar` (a vault of barrels and shelves), `crypt` (arches, skulls and a
+  tomb), `culvert` (a brick tunnel over water), `farmyard` (a barn, a well and a
+  cart), `forest` (pines and a camp fire at night), `hall` (a hearth, antlers
+  and a long table), `ruin` (broken walls, a tower and a standing stone) and
+  `weir` (a toll house, a lock and a footbridge), drawn in
+  `src/backdrops-5e.ts`. They are only for the page: the AI DM never sees them.
 - **After a content change,** run `npm.cmd test -- --modules <id>`, and
   `npm.cmd run gate:verdicts` if the recorded verdicts test fails.
 

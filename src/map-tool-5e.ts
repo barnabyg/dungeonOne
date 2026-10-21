@@ -10,8 +10,12 @@
  * `door` with only its `state`, and an empty `trap`. Each means what it
  * means in a module, so building the module from a sketch is filling in the
  * rest.
+ *
+ * A module's backdrops (#517) are drawn too: each room's in the room list,
+ * and each region's in the SVG's legend. A sketch has none.
  */
 
+import { type Backdrop, readBackdrop } from "./backdrops-5e.js";
 import {
   FIFTH_ADVENTURE_FORMAT,
   FIFTH_ADVENTURE_KIND,
@@ -46,6 +50,8 @@ export type LayoutRoom = MapRoom &
   Readonly<{
     name: string;
     exit?: true;
+    /** The room's backdrop (#517), its own or its region's. */
+    backdrop?: Backdrop;
   }>;
 
 export type LayoutPassage = MapPassage &
@@ -63,7 +69,11 @@ export type MapLayout = Readonly<{
   id: string;
   title: string;
   startRoomId: string;
-  regions: readonly Readonly<{ id: string; name: string }>[];
+  regions: readonly Readonly<{
+    id: string;
+    name: string;
+    backdrop?: Backdrop;
+  }>[];
   rooms: readonly LayoutRoom[];
   passages: readonly LayoutPassage[];
 }>;
@@ -93,6 +103,7 @@ function readRoom(raw: Record<string, unknown>, where: string): LayoutRoom {
       ? {}
       : { region: id(raw.region, `${where} region`) }),
     ...(raw.exit === true ? { exit: true as const } : {}),
+    ...readBackdrop(raw.backdrop, `${where} (${roomId})`),
   };
 }
 
@@ -218,9 +229,11 @@ export function readMapLayout(value: unknown): MapLayout {
     const region = sketch
       ? knownKeys(entry, ["id", "name"], [], where)
       : record(entry, where);
+    const regionId = id(region.id, `${where} id`);
     return {
-      id: id(region.id, `${where} id`),
+      id: regionId,
       name: text(region.name, `${where} name`, 60),
+      ...readBackdrop(region.backdrop, `region ${regionId}`),
     };
   });
   const rooms = list(value.rooms, "rooms", 50).map((entry, index) => {
@@ -278,13 +291,22 @@ export function readMapLayout(value: unknown): MapLayout {
   if (!roomIds.has(startRoomId)) {
     fail(`startRoomId names unknown room ${startRoomId}.`);
   }
+  // A room without a backdrop of its own has its region's.
+  const backdrops = new Map(
+    regions.map(({ id: key, backdrop }) => [key, backdrop]),
+  );
   return {
     source: sketch ? "sketch" : "module",
     id: id(value.id, "id"),
     title: text(value.title, "title", 80),
     startRoomId,
     regions,
-    rooms,
+    rooms: rooms.map((room) => {
+      const backdrop =
+        room.backdrop ??
+        (room.region === undefined ? undefined : backdrops.get(room.region));
+      return backdrop === undefined ? room : { ...room, backdrop };
+    }),
     passages,
   };
 }
@@ -447,6 +469,9 @@ export function drawMapText(layout: MapLayout): string {
         ...(layout.regions.length === 0
           ? []
           : [room.region === undefined ? "" : regionName.get(room.region)!]),
+        ...(layout.rooms.every(({ backdrop }) => backdrop === undefined)
+          ? []
+          : [room.backdrop === undefined ? "" : `${room.backdrop} backdrop`]),
         [
           ...(room.id === layout.startRoomId ? ["start"] : []),
           ...(room.exit ? ["exit"] : []),
@@ -704,10 +729,10 @@ export function drawMapSvg(layout: MapLayout): string {
   };
   if (layout.regions.length > 0) {
     heading("Regions");
-    for (const { id: key, name } of layout.regions) {
+    for (const { id: key, name, backdrop } of layout.regions) {
       entry(
         `<rect class="swatch" x="${LEFT}" y="${y - 8}" width="22" height="14" fill="${shades.get(key)!}" stroke="#4a4a4a"/>`,
-        name,
+        backdrop === undefined ? name : `${name} (${backdrop} backdrop)`,
       );
     }
   }
