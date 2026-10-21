@@ -115,12 +115,17 @@
 // state only: a reload, or opening the adventure again, shows the room, and
 // it closes itself when trade ends (the adventure over, the merchant gone,
 // a fight begun). #leave-shop (or Esc) returns to the room with focus on
-// Trade; Esc first closes a question the shop asks. Along the top,
-// #shop-title, #shop-terms (the trade's minutes and what the merchant
-// pays), #shop-purse and #shop-load; then #shop-columns: #shop-wares
-// (a row per ware, its name and price), #shop-details (the chosen item's
-// price, description and stats with its comparison, #504, shown directly,
-// and its one Buy or Sell, disabled with its reason in #shop-reason) and
+// Trade; Esc first closes a question the shop asks. Opening it rings the
+// shop's bell (shop-bell). Along the top, the shop's sign: a bell, the
+// merchant's name "open for trade" (#shop-title) and description
+// (#shop-greeting), #shop-purse and #shop-load; under it #shop-terms (the
+// trade's minutes and what the merchant pays). Then .shop-floor, a faint
+// drawing of a shop's shelves and counter (.shop-scene) behind
+// #shop-columns: #shop-wares (a row per ware, its name and a gold price
+// tag), #shop-details (the chosen item's price, description and stats with
+// its comparison, #504, shown directly, and its one Buy or Sell, disabled
+// with its reason in #shop-reason, or with what it leaves in
+// #shop-purse-after) and
 // #shop-pack, grouped: treasure at its full value with #sell-all-treasure,
 // gear at the buy-back price marked worn or in hand, ammunition by the 20,
 // and what the merchant doesn't buy, greyed out. Each row is a button,
@@ -178,6 +183,7 @@
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
+import { formatCoins, parseCoins } from "./equipment-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
 import {
@@ -206,6 +212,15 @@ const SETTINGS_SOUND = (sound: boolean) =>
 // The header's Settings button (#506): a gear, kept narrow so the adventure's
 // header stays one bar at the 900 px floor; its name is "Settings".
 const SETTINGS_BUTTON = `<button id="open-settings" type="button" class="secondary" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span class="visually-hidden">Settings</span></button>`;
+
+// The shop's sign (#515): a bell, drawn for Dungeon One.
+const SHOP_BELL = `<svg class="shop-bell" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5a1.5 1.5 0 0 1 1.5 1.5v.7A6.2 6.2 0 0 1 18.2 11v4.2l2.1 3.1H3.7l2.1-3.1V11a6.2 6.2 0 0 1 4.7-6.3V4A1.5 1.5 0 0 1 12 2.5zM9.8 19.4h4.4a2.2 2.2 0 0 1-4.4 0z"/></svg>`;
+
+// The shop's back wall (#515), drawn for Dungeon One in one colour: an
+// awning, lanterns and herbs, two shelves of jars, bottles, books, sacks and
+// pots, and a counter with a ledger, scales and coin. It sits faintly behind
+// the wares and the pack; the details card stands on it.
+const SHOP_SCENE = `<svg class="shop-scene" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false"><g fill="currentColor"><rect x="0" y="0" width="1200" height="22"/><path d="M0 22a30 26 0 0 0 60 0zM60 22a30 26 0 0 0 60 0zM120 22a30 26 0 0 0 60 0zM180 22a30 26 0 0 0 60 0zM240 22a30 26 0 0 0 60 0zM300 22a30 26 0 0 0 60 0zM360 22a30 26 0 0 0 60 0zM420 22a30 26 0 0 0 60 0zM480 22a30 26 0 0 0 60 0zM540 22a30 26 0 0 0 60 0zM600 22a30 26 0 0 0 60 0zM660 22a30 26 0 0 0 60 0zM720 22a30 26 0 0 0 60 0zM780 22a30 26 0 0 0 60 0zM840 22a30 26 0 0 0 60 0zM900 22a30 26 0 0 0 60 0zM960 22a30 26 0 0 0 60 0zM1020 22a30 26 0 0 0 60 0zM1080 22a30 26 0 0 0 60 0zM1140 22a30 26 0 0 0 60 0z"/><rect x="299" y="48" width="2" height="30"/><rect x="286" y="78" width="28" height="7" rx="2"/><path d="M289 85h22l4 34h-30z"/><rect x="285" y="119" width="30" height="6" rx="2"/><circle cx="300" cy="131" r="4"/><rect x="899" y="48" width="2" height="30"/><rect x="886" y="78" width="28" height="7" rx="2"/><path d="M889 85h22l4 34h-30z"/><rect x="885" y="119" width="30" height="6" rx="2"/><circle cx="900" cy="131" r="4"/><rect x="136" y="46" width="48" height="3"/><path d="M143 49h2l9 46-10 8-10-8z"/><path d="M159 49h2l9 46-10 8-10-8z"/><path d="M175 49h2l9 46-10 8-10-8z"/><rect x="1016" y="46" width="48" height="3"/><path d="M1023 49h2l9 46-10 8-10-8z"/><path d="M1039 49h2l9 46-10 8-10-8z"/><path d="M1055 49h2l9 46-10 8-10-8z"/><rect x="70" y="205" width="1060" height="11" rx="2"/><path d="M96 216h28l-14 22z"/><path d="M586 216h28l-14 22z"/><path d="M1076 216h28l-14 22z"/><rect x="70" y="335" width="1060" height="11" rx="2"/><path d="M96 346h28l-14 22z"/><path d="M586 346h28l-14 22z"/><path d="M1076 346h28l-14 22z"/><rect x="110" y="153" width="46" height="52" rx="8"/><rect x="107" y="145" width="52" height="9" rx="3"/><rect x="162" y="165" width="36" height="40" rx="8"/><rect x="159" y="157" width="42" height="9" rx="3"/><rect x="212" y="159" width="26" height="46" rx="6"/><rect x="221.0" y="141" width="8" height="19"/><rect x="220.0" y="135" width="10" height="7" rx="2"/><rect x="244" y="169" width="22" height="36" rx="6"/><rect x="251.0" y="151" width="8" height="19"/><rect x="250.0" y="145" width="10" height="7" rx="2"/><rect x="300" y="147" width="14" height="58" rx="2"/><rect x="317" y="153" width="14" height="52" rx="2"/><rect x="334" y="145" width="14" height="60" rx="2"/><rect x="351" y="157" width="14" height="48" rx="2"/><rect x="368" y="150" width="14" height="55" rx="2"/><path fill-rule="evenodd" d="M386 171a34 34 0 1 0 68 0a34 34 0 1 0-68 0zM406 171a14 14 0 1 0 28 0a14 14 0 1 0-28 0z"/><rect x="480" y="145" width="52" height="60" rx="8"/><rect x="477" y="137" width="58" height="9" rx="3"/><rect x="546" y="153" width="30" height="52" rx="6"/><rect x="557.0" y="135" width="8" height="19"/><rect x="556.0" y="129" width="10" height="7" rx="2"/><rect x="590" y="161" width="40" height="44" rx="8"/><rect x="587" y="153" width="46" height="9" rx="3"/><rect x="650" y="165" width="70" height="40" rx="3"/><rect x="660" y="133" width="50" height="32" rx="3"/><rect x="740" y="165" width="24" height="40" rx="6"/><rect x="748.0" y="147" width="8" height="19"/><rect x="747.0" y="141" width="10" height="7" rx="2"/><rect x="770" y="155" width="28" height="50" rx="6"/><rect x="780.0" y="137" width="8" height="19"/><rect x="779.0" y="131" width="10" height="7" rx="2"/><rect x="810" y="157" width="44" height="48" rx="8"/><rect x="807" y="149" width="50" height="9" rx="3"/><rect x="870" y="155" width="13" height="50" rx="2"/><rect x="886" y="161" width="13" height="44" rx="2"/><rect x="902" y="149" width="13" height="56" rx="2"/><rect x="918" y="165" width="13" height="40" rx="2"/><rect x="950" y="141" width="60" height="64" rx="8"/><rect x="947" y="133" width="66" height="9" rx="3"/><rect x="1022" y="161" width="26" height="44" rx="6"/><rect x="1031.0" y="143" width="8" height="19"/><rect x="1030.0" y="137" width="10" height="7" rx="2"/><rect x="1058" y="167" width="40" height="38" rx="8"/><rect x="1055" y="159" width="46" height="9" rx="3"/><path d="M110 335q-6-52.5 21.0-70l8.4-12 8.4 10q42.0 24.5 32.2 70z"/><path d="M190 335q-6-43.5 18.0-58l7.199999999999999-12 7.199999999999999 10q36.0 20.299999999999997 27.6 58z"/><path d="M270 335q-8-40 10-52h56q18 12 10 52z"/><rect x="275" y="276" width="62" height="8" rx="3"/><rect x="370" y="323" width="90" height="11" rx="3"/><rect x="368" y="311" width="94" height="11" rx="3"/><rect x="366" y="299" width="98" height="11" rx="3"/><rect x="364" y="287" width="102" height="11" rx="3"/><path d="M490 335q-6-48.0 19.8-64l7.92-12 7.92 10q39.6 22.4 30.360000000000003 64z"/><path d="M580 335q-14-46 26-50q40 4 26 50z"/><path d="M628 300l26-12 4 6-24 14z"/><rect x="600" y="276" width="12" height="10" rx="4"/><path d="M700 335l-26-22v-44h52v44z"/><rect x="760" y="295" width="10" height="40" rx="2"/><path d="M765 286q-5 5 0 9q5-4 0-9z"/><rect x="778" y="295" width="10" height="40" rx="2"/><path d="M783 286q-5 5 0 9q5-4 0-9z"/><rect x="796" y="295" width="10" height="40" rx="2"/><path d="M801 286q-5 5 0 9q5-4 0-9z"/><path d="M840 335q-6-49.5 21.0-66l8.4-12 8.4 10q42.0 23.099999999999998 32.2 66z"/><path d="M915 335q-6-39.0 16.8-52l6.72-12 6.72 10q33.6 18.2 25.76 52z"/><path d="M990 335q-8-40 10-52h56q18 12 10 52z"/><rect x="995" y="276" width="62" height="8" rx="3"/><rect x="1085" y="155" width="36" height="50" rx="8"/><rect x="1082" y="147" width="42" height="9" rx="3"/><rect x="0" y="470" width="1200" height="14" rx="3"/><path fill-rule="evenodd" d="M20 484h1160v116H20zM50 506h340v74H50zM430 506h340v74H430zM810 506h340v74H810z"/><path d="M250 470l10-22q60-10 90 4q30-14 90-4l10 22z"/><rect x="820" y="462" width="80" height="8" rx="3"/><rect x="857" y="384" width="6" height="80"/><rect x="800" y="384" width="120" height="5" rx="2"/><circle cx="860" cy="380" r="6"/><path d="M804 389l-26 44h4l24-40 24 40h4l-26-44z"/><path d="M772 433h68q-6 14-34 14q-28 0-34-14z"/><path d="M912 389l-26 44h4l24-40 24 40h4l-26-44z"/><path d="M880 433h68q-6 14-34 14q-28 0-34-14z"/><rect x="960" y="462" width="24" height="6" rx="3"/><rect x="960" y="455" width="24" height="6" rx="3"/><rect x="960" y="448" width="24" height="6" rx="3"/><rect x="960" y="441" width="24" height="6" rx="3"/><rect x="960" y="434" width="24" height="6" rx="3"/><rect x="960" y="427" width="24" height="6" rx="3"/><rect x="990" y="462" width="24" height="6" rx="3"/><rect x="990" y="455" width="24" height="6" rx="3"/><rect x="990" y="448" width="24" height="6" rx="3"/><rect x="990" y="441" width="24" height="6" rx="3"/><rect x="1018" y="462" width="24" height="6" rx="3"/><rect x="1018" y="455" width="24" height="6" rx="3"/><rect x="1018" y="448" width="24" height="6" rx="3"/><rect x="1018" y="441" width="24" height="6" rx="3"/><rect x="1018" y="434" width="24" height="6" rx="3"/><rect x="1018" y="427" width="24" height="6" rx="3"/><rect x="1018" y="420" width="24" height="6" rx="3"/></g></svg>`;
 
 /** The page, with its sound controls unless the launch turned sound off. */
 export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
@@ -305,12 +320,13 @@ ${SETTINGS_SOUND(sound)}
 </div>
 </div>
 <section id="shop" aria-labelledby="shop-title" hidden>
-<div class="shop-head"><div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-terms" class="hint"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
-<div id="shop-columns">
+<div class="shop-sign">${SHOP_BELL}<div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-greeting"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
+<p id="shop-terms" class="hint"></p>
+<div class="shop-floor">${SHOP_SCENE}<div id="shop-columns">
 <section id="shop-wares" aria-labelledby="shop-wares-title"><h4 id="shop-wares-title">Wares</h4><ul id="shop-ware-list" class="shop-list" aria-labelledby="shop-wares-title"></ul></section>
 <section id="shop-details" aria-label="Details"><div id="shop-detail"></div></section>
 <section id="shop-pack" aria-labelledby="shop-pack-title"><h4 id="shop-pack-title">Your pack</h4><div id="shop-pack-groups"></div></section>
-</div>
+</div></div>
 <p id="shop-receipt" role="status" tabindex="-1"></p>
 </section>
 </section>
@@ -401,11 +417,12 @@ body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;f
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 .icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
-#shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-5)}.shop-heading{flex:1 1 0;min-width:12rem}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1)}.shop-head p{margin:0}#shop-title{margin:0;font-family:var(--font-serif)}#shop-purse,#shop-load{font-size:var(--text-sm)}
+#shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-sign{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);background:var(--color-ink);color:var(--color-on-dark);border-bottom:3px solid var(--color-gold);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-4)}.shop-sign p{margin:0}.shop-bell{flex:none;width:30px;height:30px;fill:var(--color-gold)}.shop-heading{flex:1 1 0;min-width:12rem}#shop-title{margin:0;font-family:var(--font-serif);color:var(--color-on-ink)}.shop-open{margin-left:var(--space-2);font:600 var(--text-xs) var(--font-sans);color:var(--color-gold);white-space:nowrap}#shop-greeting{font:italic var(--text-sm) var(--font-serif)}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);font-size:var(--text-sm)}.shop-sign #leave-shop{color:var(--color-on-dark);border-color:var(--color-gold)}.shop-sign #leave-shop:hover:not(:disabled){background:var(--color-night-light)}.shop-sign .icon{color:var(--color-gold)}#shop-terms{margin:0}
+.shop-floor{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}.shop-scene{position:absolute;inset:0;width:100%;height:100%;color:var(--color-line);opacity:.5;pointer-events:none}#shop-columns{position:relative}
 #shop-columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"wares pack" "details details";align-content:start;gap:var(--space-3) var(--space-5);overflow-y:auto;padding-right:var(--space-2)}#shop-wares{grid-area:wares;min-width:0}#shop-details{grid-area:details;min-width:0}#shop-pack{grid-area:pack;min-width:0}#shop-columns h4{margin-top:0}
 @media(min-width:1100px){#shop-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:"wares details pack";grid-template-rows:minmax(0,1fr);overflow:visible;padding-right:0}#shop-columns>section{min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
 #shop-details{align-self:start;border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3)}#shop-detail p{margin:0 0 var(--space-2);font-size:var(--text-sm)}#shop-item-name{margin:0 0 var(--space-2);font:600 var(--text-md) var(--font-serif);color:var(--color-text)}#shop-detail .item-stats{margin:0 0 var(--space-2);font-size:var(--text-sm);color:var(--color-text)}#shop-detail .item-compare{margin:0 0 var(--space-1);font-size:var(--text-sm)}#shop-detail .action{margin-top:var(--space-2)}#shop-detail .shop-note{color:var(--color-text-muted)}
-.shop-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1)}.shop-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-color:transparent;color:var(--color-text);text-align:left}.shop-item[aria-pressed=true]{background:var(--color-highlight);border-color:var(--color-ink)}.shop-name{min-width:0;overflow-wrap:anywhere}.shop-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.shop-price{flex:none;font-variant-numeric:tabular-nums;color:var(--color-text-label)}.shop-group[data-shelf=unsold] .shop-item{color:var(--color-text-muted)}.shop-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);margin:var(--space-2) 0 var(--space-1)}.shop-group h5{margin:0;font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.shop-group-head button{padding:var(--space-1) var(--space-2);font-size:var(--text-xs)}:is(.shop-list,.shop-heading) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}
+.shop-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1)}.shop-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-color:transparent;color:var(--color-text);text-align:left}.shop-item[aria-pressed=true]{background:var(--color-highlight);border-color:var(--color-ink)}.shop-name{min-width:0;overflow-wrap:anywhere}.shop-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.shop-price{flex:none;padding:0 var(--space-2) 0 var(--space-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-gold);color:var(--color-text);font:600 var(--text-xs)/1.6 var(--font-sans);font-variant-numeric:tabular-nums;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%)}.purse-after{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}.shop-group[data-shelf=unsold] .shop-item{color:var(--color-text-muted)}.shop-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);margin:var(--space-2) 0 var(--space-1)}.shop-group h5{margin:0;font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.shop-group-head button{padding:var(--space-1) var(--space-2);font-size:var(--text-xs)}:is(.shop-list,.shop-heading) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}
 #shop-receipt{margin:0;min-height:2em;border-left:4px solid var(--color-gold);border-radius:var(--radius-sm);background:var(--color-surface);padding:var(--space-1) var(--space-3);font-size:var(--text-sm)}#shop-receipt:empty{visibility:hidden}#shop-receipt.error{color:var(--color-danger);border-left-color:var(--color-danger);font-weight:600}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
@@ -572,6 +589,10 @@ function playSounds(names) {
 }
 
 ${resultSounds}
+
+// Coin words both ways (#515), so the shop can say what a trade leaves.
+${formatCoins}
+${parseCoins}
 
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
@@ -3161,7 +3182,8 @@ function renderShop() {
   element("shop").hidden = !shop;
   if (!shop) return;
   const { room } = session;
-  element("shop-title").textContent = "Trading with " + merchant.name;
+  element("shop-title").replaceChildren(merchant.name, " ", make("span", "open for trade", "shop-open"));
+  element("shop-greeting").textContent = merchant.description;
   element("shop-terms").textContent = "Each trade takes " + minutesText(merchant.tradeMinutes) + ". " + merchant.name + " pays " + merchant.buyBack + " for gear and full value for gems and art objects.";
   element("shop-purse").replaceChildren(icon(${JSON.stringify(COIN_ICON)}), "Purse: " + (room.purse ?? "empty"));
   element("shop-load").textContent = carryingText(room.carrying);
@@ -3249,6 +3271,14 @@ function shopTradeButton(option, price) {
     reason.id = "shop-reason";
     button.setAttribute("aria-describedby", reason.id);
     wrap.append(reason);
+  } else {
+    // What the trade leaves in the purse.
+    const purse = parseCoins(session.room.purse ?? "");
+    const after = action === "buy" ? purse - parseCoins(price) : purse + parseCoins(price);
+    const left = make("span", "Purse after: " + (after === 0 ? "empty" : formatCoins(after)), "purse-after");
+    left.id = "shop-purse-after";
+    button.setAttribute("aria-describedby", left.id);
+    wrap.append(left);
   }
   return wrap;
 }
@@ -3262,6 +3292,8 @@ function openShop(merchantId) {
   confirmingSellAll = false;
   renderShop();
   element("shop-title").focus();
+  // The bell over the shop's door.
+  playSounds(["shop-bell"]);
 }
 
 function closeShop() {

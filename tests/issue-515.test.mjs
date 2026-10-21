@@ -5,6 +5,7 @@
 // issue-515-browser.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { formatCoins, parseCoins } from "../dist/equipment-5e.js";
 import { itemStats } from "../dist/item-stats-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -56,4 +57,11 @@ test("a shield the character's hands can't hold says what to do to hold it", () 
     itemStats("shield", holding(["leather", "greatsword"])).compare,
     ["To hold it, swap the greatsword for a one-handed weapon first."],
   );
+});
+
+test("a purse's words read back as the copper they name, so the shop can say what a trade leaves", () => {
+  for (const copper of [0, 7, 30, 250, 1000, 12345]) {
+    assert.equal(parseCoins(formatCoins(copper)), copper);
+  }
+  assert.equal(parseCoins("2 gp 5 sp"), 250);
 });

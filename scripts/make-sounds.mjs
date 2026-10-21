@@ -824,3 +824,37 @@ write(
     ),
   ]),
 );
+
+/**
+ * A small brass bell on a spring, struck at `at`: a sharp attack and
+ * partials off the harmonic series, the higher dying first, so it rings
+ * like metal rather than a chime.
+ */
+const springBell = (frequency, at) => (time) => {
+  const t = time - at;
+  if (t < 0) {
+    return 0;
+  }
+  const ring = (ratio, decay, level) =>
+    level *
+    Math.exp(-t / decay) *
+    Math.sin(2 * Math.PI * frequency * ratio * t);
+  return (
+    Math.min(1, t / 0.003) *
+    (ring(1, 0.45, 1) +
+      ring(2.32, 0.25, 0.45) +
+      ring(4.25, 0.12, 0.25) +
+      ring(5.4, 0.08, 0.15))
+  );
+};
+
+// The shop (#515): the bell over a shop's door as it opens, rung twice on
+// its spring.
+write(
+  "shop-bell",
+  wav(1.3, 0.4, [
+    springBell(1568, 0),
+    louder(0.7, springBell(1568, 0.11)),
+    louder(0.45, springBell(1661.2, 0.2)),
+  ]),
+);

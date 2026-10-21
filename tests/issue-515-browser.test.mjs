@@ -104,10 +104,20 @@ test(
       assert.equal(await page.locator("#open-map").isVisible(), true);
       assert.equal(await page.locator("#open-settings").isVisible(), true);
       assert.equal(await focusedId(page), "shop-title");
+      // A shop's sign: the merchant's name and words, and its door's bell.
       assert.equal(
         await page.locator("#shop-title").textContent(),
-        "Trading with Pedlar",
+        "Pedlar open for trade",
       );
+      assert.equal(
+        await page.locator("#shop-greeting").textContent(),
+        "A weathered pedlar sits on a pack by the doorway, waiting out the rain.",
+      );
+      assert.deepEqual(
+        (await page.evaluate(() => window.requestedSounds)).slice(-1),
+        ["shop-bell"],
+      );
+      assert.equal(await page.locator(".shop-scene").isVisible(), true);
       assert.equal(
         await page.locator("#shop-terms").textContent(),
         "Each trade takes 10 minutes. Pedlar pays half price for gear and full value for gems and art objects.",
@@ -155,6 +165,7 @@ test(
         await page.locator("#shop-reason").textContent(),
         "Too little coin",
       );
+      assert.equal(await page.locator("#shop-purse-after").count(), 0);
 
       // The layout: three columns at 1280 and 1880 px, and at the 900 × 560
       // floor the details under the two lists; never a sideways scroll.
@@ -197,6 +208,18 @@ test(
       // usual history entry; Buy keeps focus while it can buy again.
       await openShop(page);
       const load = await page.locator("#shop-load").textContent();
+      // Buy says what it leaves in the purse.
+      await shopItem(page, "buy", "dagger").click();
+      assert.equal(
+        await page.locator("#shop-purse-after").textContent(),
+        "Purse after: 18 gp",
+      );
+      assert.equal(
+        await actionButton(page, "buy", "dagger").getAttribute(
+          "aria-describedby",
+        ),
+        "shop-purse-after",
+      );
       await trade(page, "buy", "dagger");
       const receipt = page.locator("#shop-receipt");
       const bought =
@@ -396,7 +419,7 @@ test(
       await page.locator("#shop").waitFor();
       assert.equal(
         await page.locator("#shop-title").textContent(),
-        "Trading with Bandit",
+        "Bandit open for trade",
       );
       await trade(page, "buy", "dagger");
       assert.match(

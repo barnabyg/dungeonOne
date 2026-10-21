@@ -220,6 +220,12 @@ export const SOUNDS = {
     source: MADE,
     licence: "CC0 1.0",
   },
+  // The shop opens (#515): the bell over its door.
+  "shop-bell": {
+    file: "shop-bell.wav",
+    source: MADE,
+    licence: "CC0 1.0",
+  },
   // A magic item taken.
   "magic-item": {
     file: "magic-item.wav",

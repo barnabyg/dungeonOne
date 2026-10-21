@@ -57,7 +57,11 @@ test(
       // Trades are made in the shop (#515).
       const shop = (action, target) =>
         answerSounds(page, () => trade(page, action, target));
-      assert.deepEqual(await shop("sell-treasure", "yard-ring"), ["coins"]);
+      // The first opens the shop, whose door's bell rings first (#515).
+      assert.deepEqual(await shop("sell-treasure", "yard-ring"), [
+        "shop-bell",
+        "coins",
+      ]);
       assert.deepEqual(await shop("buy", "dagger"), ["coins"]);
 
       await page.reload();
