@@ -35,7 +35,7 @@
 //   found or said there, an exit's route, door and trap. Each button's
 //   accessible name is the full action ("Examine Rusted Lantern"). The
 //   cards are in #room-things; in a fight it folds behind #room-fold, a
-//   disclosure naming the room's creatures, items and features on one line
+//   disclosure naming the room's items and features on one line
 //   (#525), and the cards have no buttons the engine doesn't offer. A new
 //   room, or a fight beginning or ending, scrolls the centre column back to
 //   its top and folds the room again. The known rooms (#405) and their
@@ -2529,15 +2529,17 @@ function renderRoom(room) {
 }
 
 // In a fight (#525) the room folds to its heading and one line naming its
-// things, #room-fold, which opens them; out of a fight they are shown, as
-// they are while a card offers an action the character can take (a way out
-// once every foe is turned, #341). A control shown only with the reason it
-// cannot be used, such as a merchant's Trade in a fight, offers nothing.
+// items and features, #room-fold, which opens them; out of a fight they are
+// shown, as they are while a card offers an action the character can take
+// (a way out once every foe is turned, #341). A control shown only with the
+// reason it cannot be used, such as a merchant's Trade in a fight, offers
+// nothing. A room with creatures but nothing to name stays open, so they
+// are not hidden with no line to open them.
 function renderRoomFold(fighting) {
   const { room } = session;
-  const names = [...room.creatures, ...room.items, ...room.features].map(({ name }) => name);
+  const names = [...room.items, ...room.features].map(({ name }) => name);
   const offers = element("room-things").querySelector(".thing-controls > :not([data-unavailable])") !== null;
-  const folding = fighting && !offers;
+  const folding = fighting && !offers && (names.length > 0 || room.creatures.length === 0);
   const fold = element("room-fold");
   fold.hidden = !folding || names.length === 0;
   fold.textContent = names.join(", ");

@@ -49,14 +49,22 @@ const cellar = (() => {
   return validateModule(module);
 })();
 
-/** The same cellar with a pedlar in it, whose Trade waits out the fight. */
+/**
+ * The same cellar with a pedlar in it, whose Trade waits out the fight, and
+ * a potion among the casks.
+ */
 const marketCellar = (() => {
   const module = structuredClone(cellar);
   module.id = "market-cellar";
   module.title = "The Market Cellar";
-  module.rooms.find(({ id }) => id === "cellar").creatures = [
-    structuredClone(PEDLAR),
-  ];
+  const room = module.rooms.find(({ id }) => id === "cellar");
+  room.creatures = [structuredClone(PEDLAR)];
+  room.items.push({
+    id: "cellar-potion",
+    name: "Dusty Potion",
+    description: "A dusty potion lies among the casks.",
+    kind: "potion-of-healing",
+  });
   return validateModule(module);
 })();
 
@@ -402,7 +410,11 @@ test(
       async (page) => {
         assert.equal(await page.locator("#encounter").isVisible(), true);
         assert.equal(await page.locator("#room-things").isHidden(), true);
-        assert.equal(await page.locator("#room-fold").isVisible(), true);
+        // The fold names the room's items and features, not its creatures.
+        assert.equal(
+          await page.locator("#room-fold").textContent(),
+          "Dusty Potion, Broken Casks",
+        );
         // Unfolded, the pedlar's card shows Trade, disabled with its reason.
         await page.locator("#room-fold").click();
         const trade = page.locator("#open-shop");
