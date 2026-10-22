@@ -22,6 +22,7 @@ import {
   settled,
 } from "./fixtures/browser-journey.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { PEDLAR } from "./fixtures/market-barrow.mjs";
 import { potionCellarFile } from "./fixtures/modules.mjs";
 import {
   assertNoSideScroll,
@@ -44,6 +45,17 @@ const cellar = (() => {
       name: "Broken Casks",
       description: "Staved-in casks along the walls.",
     },
+  ];
+  return validateModule(module);
+})();
+
+/** The same cellar with a pedlar in it, whose Trade waits out the fight. */
+const marketCellar = (() => {
+  const module = structuredClone(cellar);
+  module.id = "market-cellar";
+  module.title = "The Market Cellar";
+  module.rooms.find(({ id }) => id === "cellar").creatures = [
+    structuredClone(PEDLAR),
   ];
   return validateModule(module);
 })();
@@ -117,10 +129,10 @@ const fleeSeed = (() => {
   throw new Error("no seed below 300 lets Ada flee");
 })();
 
-async function withPage(viewport, run, browserSeed = seed) {
+async function withPage(viewport, run, browserSeed = seed, adventure = cellar) {
   const directory = await mkdtemp(join(tmpdir(), "issue-525-"));
   const server = await startFifthBrowserServer({
-    adventures: [cellar],
+    adventures: [adventure],
     // Fixtures are engine material, not gated content.
     qualifies: () => true,
     libraryPath: join(directory, "characters.json"),
@@ -130,7 +142,7 @@ async function withPage(viewport, run, browserSeed = seed) {
   try {
     const page = await browser.newPage({ viewport });
     page.setDefaultTimeout(8000);
-    await createAndStart(page, server.url, cellar.id);
+    await createAndStart(page, server.url, adventure.id);
     await clickAction(page, "take", "healing-potion");
     await clickAction(page, "move", "cellar");
     await page.locator("#encounter").waitFor();
@@ -379,6 +391,30 @@ test(
         assert.equal(await page.locator("#room-fold").isHidden(), true);
       }
     }),
+);
+
+test(
+  "a merchant's Trade, disabled in the fight, leaves the room folded",
+  { timeout: 120000 },
+  () =>
+    withPage(
+      { width: 1280, height: 850 },
+      async (page) => {
+        assert.equal(await page.locator("#encounter").isVisible(), true);
+        assert.equal(await page.locator("#room-things").isHidden(), true);
+        assert.equal(await page.locator("#room-fold").isVisible(), true);
+        // Unfolded, the pedlar's card shows Trade, disabled with its reason.
+        await page.locator("#room-fold").click();
+        const trade = page.locator("#open-shop");
+        assert.equal(await trade.isDisabled(), true);
+        assert.equal(
+          await page.locator("#open-shop-reason").textContent(),
+          "Not while you are fighting",
+        );
+      },
+      seed,
+      marketCellar,
+    ),
 );
 
 test(

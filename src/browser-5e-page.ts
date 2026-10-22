@@ -2530,12 +2530,13 @@ function renderRoom(room) {
 
 // In a fight (#525) the room folds to its heading and one line naming its
 // things, #room-fold, which opens them; out of a fight they are shown, as
-// they are while a card offers an action (a way out once every foe is
-// turned, #341).
+// they are while a card offers an action the character can take (a way out
+// once every foe is turned, #341). A control shown only with the reason it
+// cannot be used, such as a merchant's Trade in a fight, offers nothing.
 function renderRoomFold(fighting) {
   const { room } = session;
   const names = [...room.creatures, ...room.items, ...room.features].map(({ name }) => name);
-  const offers = [...element("room-things").querySelectorAll(".thing-controls")].some((controls) => controls.childElementCount > 0);
+  const offers = element("room-things").querySelector(".thing-controls > :not([data-unavailable])") !== null;
   const folding = fighting && !offers;
   const fold = element("room-fold");
   fold.hidden = !folding || names.length === 0;
@@ -3062,6 +3063,7 @@ function renderActions() {
     button.addEventListener("click", () => action === "leave" ? openLeave() : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
+    if (!option.available) wrap.dataset.unavailable = "true";
     // The approach's skill, under its button (the button keeps the verb).
     if (option.approach) wrap.append(unspoken(make("span", option.approach.name + dc, "approach")));
     // Why another try is offered: its cost, or what changed (#284).
@@ -3409,6 +3411,7 @@ function tradeControl(merchant) {
   const wrap = make("span", undefined, "action");
   wrap.append(button);
   if (fightingNow()) {
+    wrap.dataset.unavailable = "true";
     const reason = make("span", "Not while you are fighting", "reason");
     reason.id = "open-shop-reason";
     button.setAttribute("aria-describedby", reason.id);
