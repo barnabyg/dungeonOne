@@ -1,7 +1,7 @@
 // #430, browser → API: during an adventure the masthead, breadcrumb and the
-// adventure's levels, difficulty and room share one compact bar, with the
-// objective on a line under it, so little more than about 75 px comes before
-// the session layout. The adventure title stays the page's h2 and is focused
+// adventure's levels and difficulty (not the room, #522) share one compact
+// bar, with the objective on a line under it, so little more than about
+// 75 px comes before the session layout. The adventure title stays the page's h2 and is focused
 // on entry; the other screens get the same bar without the adventure's line.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -105,9 +105,9 @@ for (const viewport of [
         await page.locator("#adventure-objective").getAttribute("title"),
         yard.objective,
       );
-      assert.match(
+      assert.equal(
         await text(page.locator("#adventure-meta")),
-        new RegExp(` · ${goblinYard.rooms[0].name}$`, "u"),
+        "Level 1 · Hard",
       );
       // Cut short in a narrow bar, it shows in full on hover (#480).
       assert.equal(

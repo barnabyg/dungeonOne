@@ -113,8 +113,6 @@ const REGIONS = [
   "#inventory-group",
   "#encounter",
   "#room",
-  // The known rooms (#405) follow the room.
-  "#known-rooms",
   "#session-actions",
   "#session-history",
   "#session-composer",

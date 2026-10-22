@@ -19,13 +19,8 @@
 //   fleeing and fled opponents (#237) and surrendering and surrendered ones
 //   (#238), and
 //   keeps each roll in #initiative-breakdown; it collapses behind
-//   #initiative-toggle once the fight is over. After both, #known-rooms
-//   (#405) lists every room the character has visited or seen through an
-//   exit, a row per region, each marked (you are here), (visited) or
-//   (seen); choosing one shows
-//   its record in #known-room-record (choosing it again hides it) and
-//   never moves the character. Nothing is shown until a room is chosen:
-//   the room panel already shows the current room.
+//   #initiative-toggle once the fight is over. The known rooms (#405) and
+//   their records are on the map (#457), not here (#522).
 // - #session-status: the status strip (#155): HP with its bar and health,
 //   the round and whose turn it is (#turn), the character's conditions in a
 //   fight (#conditions, #232), and #resources, a pip for each
@@ -111,9 +106,12 @@
 // and the rests under it and the status strip held at its top, and the dock
 // on the right; there "You carry" comes after the scene on screen but before
 // it in tab order. The page is for desktop windows (#381): below 900 x 560 px it
-// keeps that size and the window scrolls. The footer's icon credits (#377) show on every screen.
-// In an adventure the header bar's #open-map (or M) opens the map pop-up,
-// #map-dialog (#457), described at renderMap.
+// keeps that size and the window scrolls. There is no footer: the icon and
+// sound credits (#377, #480) are in Settings (#credits, #522), which the
+// header bar opens from every screen.
+// In an adventure the header bar's #adventure-meta names the adventure's
+// levels and difficulty, not the room (#522), and its #open-map (or M)
+// opens the map pop-up, #map-dialog (#457), described at renderMap.
 //
 // The shop (#515): a merchant's Trade opens #shop in place of
 // #session-layout, so the character column, scene, history and composer
@@ -253,6 +251,13 @@ ${SETTINGS_SOUND(sound)}
 <div id="settings-list"></div>
 <p id="settings-error" class="error" role="alert"></p>
 <div class="controls"><button id="reset-settings" type="button" class="secondary">Reset to defaults</button></div>
+<section id="credits" aria-labelledby="credits-title"><h3 id="credits-title">Credits</h3>${[
+  iconCredits(),
+  soundCredits(),
+]
+  .filter(Boolean)
+  .map((credit) => `<p class="hint">${credit}</p>`)
+  .join("")}</section>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
@@ -316,7 +321,6 @@ ${SETTINGS_SOUND(sound)}
 <div id="initiative-panel"><div class="table-wrap"><table id="initiative" aria-label="Initiative order"><thead><tr><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
 <details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
 </section>
-<section id="known-rooms" aria-labelledby="known-rooms-title"><h3 id="known-rooms-title">Known rooms</h3><div id="known-room-list"></div><div id="known-room-record" aria-live="polite" hidden></div></section>
 </div>
 </div>
 <div id="session-dock">
@@ -338,7 +342,6 @@ ${SETTINGS_SOUND(sound)}
 </section>
 </section>
 </main>
-<footer class="credits">${[iconCredits(), soundCredits()].filter(Boolean).join(" ")}</footer>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
@@ -410,7 +413,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}#known-rooms h3{margin-bottom:6px}.known-region{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:4px}.known-region h4{margin:0}.known-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:4px}.known-list button{padding:2px 8px;font-size:var(--text-sm)}.known-list button[aria-pressed=true]{outline:2px solid var(--color-ink);outline-offset:1px}#known-room-record h4{margin-top:var(--space-2)}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -420,10 +423,10 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 .controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}.thing-actions[data-creature] .action{width:auto;min-width:8.5em}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
-body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
+body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
-.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}.credits{max-width:860px;margin:0 auto;padding:0 var(--space-4) var(--space-4);text-align:center;font:var(--text-xs) var(--font-sans);color:var(--color-on-dark)}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
 #shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-sign{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);background:var(--color-ink);color:var(--color-on-dark);border-bottom:3px solid var(--color-gold);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-4)}.shop-sign p{margin:0}.shop-bell{flex:none;width:30px;height:30px;fill:var(--color-gold)}.shop-heading{flex:1 1 0;min-width:12rem}#shop-title{margin:0;font-family:var(--font-serif);color:var(--color-on-ink)}.shop-open{margin-left:var(--space-2);font:600 var(--text-xs) var(--font-sans);color:var(--color-gold);white-space:nowrap}#shop-greeting{font:italic var(--text-sm) var(--font-serif)}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);font-size:var(--text-sm)}.shop-sign #leave-shop{color:var(--color-on-dark);border-color:var(--color-gold)}.shop-sign #leave-shop:hover:not(:disabled){background:var(--color-night-light)}.shop-sign .icon{color:var(--color-gold)}#shop-terms{margin:0}
 .shop-floor{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}.shop-scene{position:absolute;inset:0;width:100%;height:100%;color:var(--color-line);opacity:.5;pointer-events:none}#shop-columns{position:relative}
 #shop-columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"wares pack" "details details";align-content:start;gap:var(--space-3) var(--space-5);overflow-y:auto;padding-right:var(--space-2)}#shop-wares{grid-area:wares;min-width:0}#shop-details{grid-area:details;min-width:0}#shop-pack{grid-area:pack;min-width:0}#shop-columns h4{margin-top:0}
@@ -1332,7 +1335,6 @@ function showAdventure(value) {
   const form = element("message-form");
   if (form.dataset.session !== session.id) {
     form.dataset.session = session.id;
-    knownRoomId = null;
     openCarried.clear();
     openStats.clear();
     treasureOpen = null;
@@ -1354,7 +1356,8 @@ function showAdventure(value) {
 function renderAdventure() {
   const { adventure, encounter } = session;
   // It takes the bar's spare width, so the bar never wraps (#430, #480); cut short, it shows in full on hover.
-  element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
+  // The room panel names the room, so the bar does not (#522).
+  element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty);
   element("adventure-meta").title = element("adventure-meta").textContent;
   element("adventure-title").textContent = adventure.title;
   // One line under the header bar (#430); a long objective shows in full on hover.
@@ -1362,7 +1365,6 @@ function renderAdventure() {
   element("adventure-objective").title = adventure.objective;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
-  renderKnownRooms();
   if (element("map-dialog").open) renderMap();
   // In a fight the Fight section comes before the room (#386); otherwise after.
   const scene = element("session-scene");
@@ -1918,53 +1920,10 @@ const ROOM_LISTS = [
 
 const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
 
-// The known rooms (#405), as the engine projects them: the room chosen to
-// show its record, or null for none.
-let knownRoomId = null;
+// A known room's fight (#405), as its record on the map says it.
 const KNOWN_FIGHTS = { "under-way": "under way", won: "won", peaceful: "ended peacefully", bypassed: "slipped past", fled: "fled from", waiting: "still waits" };
 
-function renderKnownRooms() {
-  const groups = session.knownRooms;
-  const rooms = groups.flatMap((group) => group.rooms);
-  const chosen = rooms.find(({ id }) => id === knownRoomId);
-  element("known-room-list").replaceChildren(...groups.map(({ region, rooms }) => {
-    const group = make("div", undefined, "known-region");
-    const list = make("ul", undefined, "known-list");
-    if (region) {
-      group.append(make("h4", region));
-      list.setAttribute("aria-label", region);
-    }
-    list.append(...rooms.map((room) => {
-      const item = make("li");
-      // Every room keeps a mark, so a room left behind never looks forgotten.
-      const button = make("button", room.name + (room.current ? " (you are here)" : room.visited ? " (visited)" : " (seen)"), "secondary");
-      button.type = "button";
-      button.dataset.room = room.id;
-      button.setAttribute("aria-pressed", String(room === chosen));
-      button.addEventListener("click", () => {
-        knownRoomId = room === chosen ? null : room.id;
-        renderKnownRooms();
-        document.querySelector("#known-room-list button[data-room='" + room.id + "']").focus();
-        // The record opens below the list: bring it into the column's view.
-        if (knownRoomId) element("known-room-record").scrollIntoView({ block: "nearest" });
-      });
-      item.append(button);
-      return item;
-    }));
-    group.append(list);
-    return group;
-  }));
-  renderKnownRecord(chosen);
-}
-
-// A known room's record (#405): what the engine says was learned there.
-function renderKnownRecord(room) {
-  const record = element("known-room-record");
-  record.hidden = !room;
-  record.replaceChildren(...(room ? recordNodes(room) : []));
-}
-
-// A known room's heading and record, in the Known rooms panel and the map (#457).
+// A known room's heading and record (#405), on the map (#457).
 function recordNodes(room) {
   const heading = make("h4", room.name + (room.current ? ": you are here" : ""));
   if (!room.record) return [heading, make("p", "Seen through an exit; you have not been in.", "hint")];
@@ -1993,7 +1952,7 @@ function recordNodes(room) {
 // one origin and scale; it opens on the character's floor. Choosing the
 // room at the other end of a passage from the character's room, its stub or
 // its stair makes the same move as Go to and closes the map; choosing any
-// other room shows its record, as in Known rooms. No room is named here
+// other room shows its record (#405). No room is named here
 // that is neither visited nor named by the character's room's exits. M
 // opens it (not while typing); Escape or Close returns focus to where it
 // was.
@@ -2245,7 +2204,7 @@ function renderMapKey(withStubs) {
   );
 }
 
-// The record of the room chosen on the map, as Known rooms shows it.
+// The record of the room chosen on the map (#405).
 function renderMapRecord() {
   const record = element("map-record");
   const room = session.knownRooms.flatMap(({ rooms }) => rooms).find(({ id }) => id === mapRecordId);

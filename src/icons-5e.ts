@@ -7,7 +7,7 @@
  *
  * To add an icon, copy the `d` of the single path in its game-icons.net SVG
  * into `GAME_ICONS` under its slug, with its artist and `author/slug`; then
- * name it for a monster in `MONSTER_ICONS` or for an item below. The footer
+ * name it for a monster in `MONSTER_ICONS` or for an item below. Settings
  * credits every artist with an icon here.
  */
 import type { FifthItem } from "./adventure-5e.js";

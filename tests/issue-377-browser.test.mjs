@@ -2,7 +2,7 @@
 // Goblin Yard and goes down to the goblin. Each shows its icon in the room's
 // lists and beside the log line that names it, the goblin also in the
 // initiative table; the log's text is unchanged, the icons survive a reload,
-// and the footer credits the artists.
+// and Settings credits the artists.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -58,7 +58,7 @@ test("monsters and items show their icons beside the text that names them", asyn
     await page.goto(server.url);
     await page.locator("#characters button").filter({ hasText: "Bea" }).click();
     await startAdventure(page, "goblin-yard");
-    assert.equal(await text(page.locator(".credits")), iconCredits());
+    assert.equal(await text(page.locator("#credits p").first()), iconCredits());
 
     // Found: each item in the room's list after its icon, and in the line
     // that finds it.
