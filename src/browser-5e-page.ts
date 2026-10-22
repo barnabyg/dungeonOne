@@ -2176,7 +2176,7 @@ function closeMap(restore) {
 function moveRefusal(option) {
   if (session.status !== "playing") return "The adventure is over.";
   if (acting) return "Wait for the Dungeon Master's reply first.";
-  if (!option) return fightingNow() ? "Not in a fight: flee from the action bar instead." : "You can't go that way now.";
+  if (!option) return fightingNow() ? "Not in a fight: flee from the fight panel instead." : "You can't go that way now.";
   return option.available ? "" : option.reason + ".";
 }
 
