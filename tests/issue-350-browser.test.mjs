@@ -355,7 +355,7 @@ test(
       await play(page, WIZARD_ROUTE.slice(0, 2), "wizard", ends);
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
-        /^This is a safe place to rest\. Long rests: 1 of 1 left in this adventure/u,
+        /^Long rest 1 of 1 left in this adventure\. This is a safe place to rest\./u,
       );
       const log = await play(page, WIZARD_ROUTE.slice(2), "wizard", ends);
       // Nave, the restless dead, the Prior's Cell, the undercroft.

@@ -61,18 +61,21 @@
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
 //   on its entry, a spell scroll's Read too (#346; in a fight a scroll or
 //   wand is cast from the Cast choice), and the character's own gear has
-//   its Unequip, Wield, Equip and Drop there (#209). A short
-//   rest (#334) sits in the character column's #rest-group, never the bar: the
-//   short rests and hit dice left, a choice of how many hit dice to spend
-//   (#rest-dice) and its Rest button, disabled with its reason when the
-//   engine would refuse it. Rest and its choice show only while a rest would
-//   restore something. A level-5 Wizard's rest also offers Memorize Spell (#344): the prepared spell to forget
-//   (#rest-forget) and the spellbook's spell to prepare in its place
-//   (#rest-learn), or neither unless the swap is all the rest would bring.
-//   At a rest site (#335) the
-//   group's #long-rest part shows the long rests left and, while one would
-//   restore something, its Long rest button, disabled with its reason when
-//   the engine would refuse it. A merchant's card in #creatures (#210) has
+//   its Unequip, Wield, Equip and Drop there (#209). Resting
+//   sits in the character column's #rest-group (#521), never the bar, shown
+//   whenever the adventure is in play. In a fight #rest-fight says "Not
+//   during a fight" with the rests left. Otherwise #short-rest (#334) has
+//   the short rests and hit dice left, a choice of how many hit dice to
+//   spend (#rest-dice) while a rest would restore something, and its Short
+//   rest button, disabled with its reason as visible text when the engine
+//   would refuse it or offers none ("Nothing to recover", "No short rests
+//   left"). A level-5 Wizard's rest also offers Memorize Spell (#344): the
+//   prepared spell to forget (#rest-forget) and the spellbook's spell to
+//   prepare in its place (#rest-learn), or neither unless the swap is all
+//   the rest would bring. #long-rest (#335) at a rest site shows the long
+//   rests left and its Long rest button, disabled with its reason likewise;
+//   elsewhere one line, "Only at a rest site" or "No long rest left". The
+//   rules are behind #rest-rules, "How resting works", closed by default. A merchant's card in #creatures (#210) has
 //   Trade (#open-shop), which opens the shop, described below. Gems and art
 //   objects (#239) show their value on their "You carry" entry. Arrows and
 //   bolts (#230) have an entry each with their count. Facing a
@@ -304,7 +307,7 @@ ${SETTINGS_SOUND(sound)}
 <section id="session-character" aria-label="Character">
 <section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="inventory-group"><h3 id="inventory-title">You carry</h3><div id="inventory"></div><p id="purse"></p><p id="carrying"></p></div>
-<div id="rest-group" hidden><h3 id="rest-title">Short rest</h3><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls rest-panel"></div><div id="long-rest" hidden><h3 id="long-rest-title">Long rest</h3><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls rest-panel"></div></div></div>
+<div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left.</p></details></div>
 </section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><h3 id="room-title"></h3>
@@ -421,8 +424,8 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-dock{grid-area:1/2}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1}#session-scene,#scene-backdrop{grid-area:1/2}#session-dock{grid-area:1/3}}
 #session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
-button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}.thing-actions[data-creature] .action{width:auto;min-width:8.5em}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
+.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}:is(#initiative-breakdown,#rest-rules) summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}.thing-actions[data-creature] .action{width:auto;min-width:8.5em}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
@@ -2571,7 +2574,7 @@ const ACTIONS = {
   // On the check just failed (#315): a use of Second Wind adds 1d10.
   "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
   // A short rest (#334), in the character column with its choice of hit dice.
-  rest: { label: "Rest", busy: "Resting", busyLabel: "Resting…" },
+  rest: { label: "Short rest", busy: "Resting", busyLabel: "Resting…" },
   // A long rest at a rest site (#335), in the character column.
   "long-rest": { label: "Long rest", busy: "Taking a long rest", busyLabel: "Resting…" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
@@ -2691,7 +2694,7 @@ function renderActions() {
   const foes = new Set(session.actions.filter(({ action, cunningStrike: effect }) => FOE_WORDS[action] !== undefined && !effect).map(({ target }) => target.id));
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
   renderRest(session.actions.find(({ action }) => action === "rest"), fighting);
-  renderLongRest(session.actions.find(({ action }) => action === "long-rest"));
+  renderLongRest(session.actions.find(({ action }) => action === "long-rest"), fighting);
   // Spells (#337) go in one choice of spell and target, with Cast. A
   // scroll's or wand's (#346) go in a choice of their own in a fight's Items
   // row (#392), and outside a fight on its "You carry" entry.
@@ -2925,18 +2928,32 @@ function actionRow(key, name, controls) {
   return row;
 }
 
-// A short rest (#334) in the character column while exploring: the short rests and
-// hit dice left and, while a rest would restore something, how many hit dice
-// to spend (the most the engine accepts unless the player chose fewer) and
-// Rest, disabled with the engine's reason when it would refuse.
+// "2 of 2 left", or "unlimited" by the adventure's settings (#508).
+const restsLeft = ({ left, max, unlimited }) => unlimited ? "unlimited" : left + " of " + max + " left";
+// "2 of 2 left in this region", or "unlimited".
+const restsLeftIn = (rests) => restsLeft(rests) + (rests.unlimited ? "" : " in this " + (rests.per || "adventure"));
+const noneLeft = ({ left, unlimited }) => !unlimited && left === 0;
+
+// The Rest section (#521) in the character column, shown whenever the
+// adventure is in play. In a fight it says why not, with the rests left.
+// Otherwise the short rest (#334): the short rests and hit dice left, how
+// many hit dice to spend (the most the engine accepts unless the player
+// chose fewer) and Short rest, disabled with its reason when the engine
+// would refuse, or when it offers no rest because none is left or a rest
+// would restore nothing.
 function renderRest(option, fighting) {
-  element("rest-group").hidden = fighting || session.status !== "playing";
-  const { left, max, per, unlimited } = session.shortRests;
-  const { available, total, sides } = session.hitDice;
-  // Unlimited by the adventure's settings (#508).
-  element("rest-summary").textContent = (unlimited ? "Short rests: unlimited" : "Short rests: " + left + " of " + max + " left in this " + (per || "adventure")) + ". Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
-  if (!option) {
+  element("rest-group").hidden = session.status !== "playing";
+  element("rest-fight").hidden = !fighting;
+  element("short-rest").hidden = fighting;
+  if (fighting) {
+    element("rest-counts").textContent = "Short rests " + restsLeft(session.shortRests) + " · Long rests " + restsLeft(session.longRests);
     element("rest-controls").replaceChildren();
+    return;
+  }
+  const { available, total, sides } = session.hitDice;
+  element("rest-summary").replaceChildren(make("b", "Short rest"), " " + restsLeftIn(session.shortRests) + " · Hit dice " + available + " of " + total + " d" + sides + " left");
+  if (!option) {
+    element("rest-controls").replaceChildren(restButton("rest", { available: false, reason: noneLeft(session.shortRests) ? "No short rests left" : "Nothing to recover" }, () => {}));
     return;
   }
   const counts = option.available ? option.rest.hitDice : [];
@@ -3028,18 +3045,24 @@ function restButton(action, option, onClick) {
   return wrap;
 }
 
-// A long rest (#335) at a rest site: the long rests left and, while one
-// would restore something, Long rest, disabled with the engine's reason when
-// it would refuse (foes here, or the long rest already taken).
-function renderLongRest(option) {
-  element("long-rest").hidden = !session.room.restSite;
-  const { left, max, per } = session.longRests;
-  element("long-rest-summary").textContent = "This is a safe place to rest. Long rests: " + left + " of " + max + " left in this " + (per || "adventure") + "; a long rest restores every hit point, hit die and feature use.";
-  if (!option) {
-    element("long-rest-controls").replaceChildren();
+// The long rest (#335, #521): at a rest site the long rests left and Long
+// rest, disabled with the engine's reason when it would refuse (foes here, or
+// the long rest already taken) or with why the engine offers none. Elsewhere
+// one line: only at a rest site, or none left. In a fight it is hidden.
+function renderLongRest(option, fighting) {
+  element("long-rest").hidden = fighting;
+  const controls = element("long-rest-controls");
+  const label = make("b", "Long rest");
+  const spent = noneLeft(session.longRests);
+  if (fighting || !session.room.restSite) {
+    const reason = make("span", spent ? "No long rest left" : "Only at a rest site", "reason");
+    reason.id = "long-rest-reason";
+    element("long-rest-summary").replaceChildren(label, " ", reason);
+    controls.replaceChildren();
     return;
   }
-  element("long-rest-controls").replaceChildren(restButton("long-rest", option, takeLongRest));
+  element("long-rest-summary").replaceChildren(label, " " + restsLeftIn(session.longRests) + ". This is a safe place to rest.");
+  controls.replaceChildren(restButton("long-rest", option ?? { available: false, reason: spent ? "No long rest left" : "Nothing to recover" }, takeLongRest));
 }
 
 async function takeLongRest() {

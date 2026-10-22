@@ -108,9 +108,11 @@ const furnishedCellar = (() => {
 /** The adventure screen's regions, in their order in a fight (#386). */
 const REGIONS = [
   // The character's column (#432), which the status strip heads, comes first;
-  // its "You carry" entries open to their stats (#504).
+  // its "You carry" entries open to their stats (#504), and the Rest
+  // section's "How resting works" opens in a fight too (#521).
   "#session-status",
   "#inventory-group",
+  "#rest-group",
   "#encounter",
   "#room",
   "#session-actions",

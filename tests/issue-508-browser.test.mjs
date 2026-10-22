@@ -107,10 +107,14 @@ test(
       );
 
       await createAndStart(page, server.url, "fleeing-cellar");
-      // Before the fight: no short rest left.
+      // Before the fight: no short rest left (#521 names why).
       assert.match(
         await page.locator("#rest-summary").textContent(),
-        /^Short rests: 0 of 0 left in this adventure\./u,
+        /^Short rest 0 of 0 left in this adventure · /u,
+      );
+      assert.equal(
+        await page.locator("#rest-reason").textContent(),
+        "No short rests left",
       );
       await clickAction(page, "move", "rat-cellar");
       await actionButton(page, "flee", "stair-foot").waitFor();

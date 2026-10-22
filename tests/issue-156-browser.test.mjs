@@ -178,15 +178,20 @@ test(
 
       // Exploring actions live in the action region, not the room panel;
       // only the character's own gear is acted on, from "You carry" in the
-      // character column (#198, #209, #432).
+      // character column (#198, #209, #432), beside its Rest section's
+      // Short rest, greyed with nothing to recover (#521).
       assert.equal(await page.locator("#room button").count(), 0);
       assert.deepEqual(
         await page
           .locator("#session-character button")
           .evaluateAll((buttons) =>
-            buttons.map((button) => button.getAttribute("aria-label")),
+            buttons.map(
+              (button) =>
+                button.getAttribute("aria-label") ??
+                `${button.textContent} (${button.disabled ? "disabled" : "enabled"})`,
+            ),
           ),
-        ["Unequip Leather armour"],
+        ["Unequip Leather armour", "Short rest (disabled)"],
       );
       assert.deepEqual(
         await page
