@@ -3200,7 +3200,7 @@ function turnUndeadRefusal(
  * Preserve Life's healing for `actor` now (#341): up to its pool, never
  * above half its hit points.
  */
-function preserved(actor: Combatant): number {
+export function preserveLifeHealing(actor: Combatant): number {
   return Math.min(
     actor.channelDivinity?.preserveLife ?? 0,
     Math.max(0, Math.floor(actor.maxHp / 2) - actor.hp),
@@ -3218,7 +3218,7 @@ function preserveLifeRefusal(
   if (refusal !== undefined) {
     return refusal;
   }
-  return actor.hp * 2 > actor.maxHp || preserved(actor) === 0
+  return actor.hp * 2 > actor.maxHp || preserveLifeHealing(actor) === 0
     ? refused(
         "not-bloodied",
         "Preserve Life heals only the Bloodied, and never above half their hit points: you are at half or more.",
@@ -5232,6 +5232,20 @@ function itemRefusal(
 }
 
 /**
+ * Disciple of Life's extra healing (#341) for a healing spell `casting`
+ * casts with a slot of `slotLevel`: 2 + the slot level; none without the
+ * feature or a slot.
+ */
+export function discipleHealing(
+  casting: CombatSpellcasting,
+  slotLevel: number | undefined,
+): number {
+  return casting.discipleOfLife === true && slotLevel !== undefined
+    ? 2 + slotLevel
+    : 0;
+}
+
+/**
  * The slot levels `actor` could cast `spell` with (#336): none for a
  * cantrip; for a levelled spell, its own level up to the highest slot level
  * `actor` has.
@@ -6213,10 +6227,7 @@ function castAndLand(
         maximised,
       );
       const modifier = effect.noModifier === true ? 0 : casting.modifier;
-      const disciple =
-        casting.discipleOfLife === true && action.slotLevel !== undefined
-          ? 2 + action.slotLevel
-          : 0;
+      const disciple = discipleHealing(casting, action.slotLevel);
       const hpAfter = Math.min(
         target.maxHp,
         target.hp + Math.max(0, sum(rolls) + modifier) + disciple,
@@ -7805,7 +7816,7 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      const healing = preserved(actor);
+      const healing = preserveLifeHealing(actor);
       const spent = spendChannel(state, actor);
       const { usesLeft } = spent;
       events.push({

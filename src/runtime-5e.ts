@@ -182,6 +182,8 @@ import {
   type DivineSparkMode,
   itemCastLevels,
   slotLevels,
+  discipleHealing,
+  preserveLifeHealing,
   armorClassOf,
   concentrationOf,
   effectEnded,
@@ -5894,23 +5896,14 @@ function healingViews(self: Combatant): readonly HealingView[] {
     ) {
       continue;
     }
-    const levels =
-      spell.level === 0
-        ? [undefined]
-        : casting!.slots
-            .map((_, index) => index + 1)
-            .filter((slotLevel) => slotLevel >= spell.level);
-    for (const slotLevel of levels) {
+    for (const slotLevel of slotLevels(self, spell)) {
       const effect = effectAtSlot(spell, slotLevel);
       if (effect.kind !== "healing") {
         continue;
       }
-      const disciple =
-        casting!.discipleOfLife === true && slotLevel !== undefined
-          ? 2 + slotLevel
-          : 0;
       const modifier =
-        (effect.noModifier === true ? 0 : casting!.modifier) + disciple;
+        (effect.noModifier === true ? 0 : casting!.modifier) +
+        discipleHealing(casting!, slotLevel);
       views.push({
         action: "cast",
         id: spell.id,
@@ -5928,10 +5921,7 @@ function healingViews(self: Combatant): readonly HealingView[] {
   if (preserve !== undefined) {
     // As much as it would restore now, up to half the character's HP; while
     // it would restore nothing, its pool.
-    const amount = Math.min(
-      preserve,
-      Math.max(0, Math.floor(self.maxHp / 2) - self.hp),
-    );
+    const amount = preserveLifeHealing(self);
     views.push({
       action: "preserve-life",
       amount: amount === 0 ? `up to ${preserve} HP` : `${amount} HP`,
