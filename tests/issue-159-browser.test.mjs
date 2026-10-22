@@ -98,6 +98,7 @@ const FONTS = [
   ["Arial", "0.06em"],
   ["Arial", "0.09em"],
   ["Verdana", "0"],
+  ["Verdana", "0.06em"],
 ];
 
 /** Waits for the history to gain an entry after `run`. */
@@ -356,12 +357,21 @@ test(
             if (!card.querySelector(".compact .roll.attack")) {
               continue;
             }
-            const probe = document.createElement("div");
-            probe.className = "card result";
-            const text = document.createElement("p");
-            text.style.whiteSpace = "pre-line";
-            text.textContent = card.querySelector(".full-text").textContent;
-            probe.append(text);
+            // The probe is the card with each compact roll line put back to
+            // its engine text, so what else a line holds (an arrival's bold
+            // room name and icons, #524) counts the same in both.
+            const probe = card.cloneNode(true);
+            for (const compact of probe.querySelectorAll(".compact")) {
+              compact.previousElementSibling?.classList.remove(
+                "visually-hidden",
+              );
+              compact.remove();
+            }
+            for (const extra of probe.querySelectorAll(
+              ".card-more, .full-text",
+            )) {
+              extra.remove();
+            }
             card.after(probe);
             if (card.offsetHeight > probe.offsetHeight + 1) {
               found.push([
@@ -369,7 +379,7 @@ test(
                 spacing,
                 card.offsetHeight,
                 probe.offsetHeight,
-                text.textContent,
+                card.querySelector(".full-text").textContent,
               ]);
             }
             probe.remove();
