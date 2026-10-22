@@ -1,9 +1,10 @@
 // #529, browser → API: each new turn shows from its top. After an action or
-// a reply, the history rests with the turn's first entry at the top of its
-// view, older entries scrolled up out of sight and empty space under a short
-// turn; a taller turn shows its start. A reader scrolled up to older entries
-// is not moved (#221), focus goes to the turn's first entry, and a reload
-// shows the latest turn from its top. Nothing scrolls sideways.
+// a reply, the history rests with the turn's first entry midway down its
+// view, older entries above it and empty space under a short turn; a turn
+// too tall for the lower half rests higher so all of it shows, and one
+// taller than the view rests just under the top. A reader scrolled up to
+// older entries is not moved (#221), focus goes to the turn's first entry,
+// and a reload shows the latest turn the same way. Nothing scrolls sideways.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -40,9 +41,9 @@ const nextFrame = (page) =>
   );
 
 /**
- * Where the newest entry, the turn, sits in the log's view: its top and
- * the space under it, whether every older entry is out of sight above, its
- * first line, and whether it has focus.
+ * Where the newest entry, the turn, sits in the log's view: its top, its
+ * height and the view's, whether an older entry shows above it, its first
+ * line, and whether it has focus.
  */
 const turnView = async (page) => {
   await nextFrame(page);
@@ -53,16 +54,33 @@ const turnView = async (page) => {
     const box = entries.at(-1).getBoundingClientRect();
     return {
       top: Math.round(box.top - port.top),
-      below: Math.round(port.bottom - box.bottom),
-      olderHidden: entries
-        .slice(0, -1)
-        .every((entry) => entry.getBoundingClientRect().bottom <= port.top + 1),
+      height: Math.round(box.height),
+      view: log.clientHeight,
+      olderShown:
+        entries.length > 1 &&
+        entries.at(-2).getBoundingClientRect().bottom > port.top + 1,
       firstLine: entries.at(-1).innerText.trim().split("\n")[0],
       focused: document.activeElement === entries.at(-1),
       scrollTop: log.scrollTop,
     };
   });
 };
+
+/**
+ * Asserts the turn rests where it should: its start midway down the view,
+ * higher so all of it fits, but never nearer the top than 8 px; with older
+ * entries above it whenever it rests clear of the top.
+ */
+function assertRests(view, label) {
+  const at = Math.max(8, Math.min(view.view / 2, view.view - view.height - 8));
+  assert.ok(
+    Math.abs(view.top - at) <= 2,
+    `${label}: rests at ${view.top}, not ${at} (${JSON.stringify(view)})`,
+  );
+  if (at > 40) {
+    assert.equal(view.olderShown, true, `${label}: older entries above`);
+  }
+}
 
 /**
  * Scrolls the log to `top`, as a reader would, and waits for its event; a
@@ -107,12 +125,13 @@ test(
       assert.equal(opening.top, 0);
       assert.ok(opening.firstLine.startsWith(stair.name), opening.firstLine);
 
-      // In a history shorter than the column, the turn still rests at the
-      // top, the opening scrolled out of sight above it.
+      // In a history too short to scroll, the turn sits where it falls,
+      // above the middle, under the opening.
       await say(page, "I wait and listen");
       const short = await turnView(page);
-      assert.ok(Math.abs(short.top) <= 2, `short history: ${short.top}`);
-      assert.equal(short.olderHidden, true, "short history: older hidden");
+      assert.ok(short.top < short.view / 2, `short history: ${short.top}`);
+      assert.equal(short.olderShown, true, "short history: opening above");
+      assert.equal(short.scrollTop, 0);
 
       // A history long enough to scroll at every width.
       for (let turn = 0; turn < 8; turn += 1) {
@@ -123,31 +142,28 @@ test(
       for (const viewport of WIDTHS) {
         await page.setViewportSize(viewport);
         const label = `${viewport.width}×${viewport.height}`;
-        // Moving: the arrival's first line, the room's name, at the top,
-        // older entries out of sight, focus on the arrival.
+        // Moving: the arrival, its first line the room's name, rests with
+        // focus on it.
         here = here === stair ? alcove : stair;
         await clickAction(page, "move", here.id);
         const arrived = await turnView(page);
-        assert.ok(Math.abs(arrived.top) <= 2, `${label}: ${arrived.top}`);
+        assertRests(arrived, `${label} arrival`);
         assert.ok(arrived.firstLine.startsWith(here.name), arrived.firstLine);
-        assert.equal(arrived.olderHidden, true, `${label}: older hidden`);
         assert.equal(arrived.focused, true, `${label}: focus on the arrival`);
-        // A short turn leaves space under it rather than older entries.
-        assert.ok(arrived.below > 40, `${label}: ${arrived.below} px below`);
 
-        // A typed message and its reply: the message at the top.
+        // A typed message and its reply: the message first.
         await say(page, `I look around, at ${viewport.width}`);
         const said = await turnView(page);
-        assert.ok(Math.abs(said.top) <= 2, `${label}: ${said.top}`);
+        assertRests(said, `${label} message`);
         assert.equal(
           said.firstLine,
           `You: I look around, at ${viewport.width}`,
         );
-        assert.equal(said.olderHidden, true, `${label}: older hidden`);
         await assertNoSideScroll(page, `${label}: no side scroll`);
       }
 
-      // A turn taller than the column shows its start, resized or not.
+      // A turn taller than the column shows its start just under the top of
+      // the view, resized or not.
       await page
         .locator("#log > li")
         .last()
@@ -156,7 +172,8 @@ test(
         });
       await page.setViewportSize(WIDTHS[1]);
       const tall = await turnView(page);
-      assert.ok(Math.abs(tall.top) <= 2, `tall turn: ${tall.top}`);
+      assertRests(tall, "tall turn");
+      assert.ok(Math.abs(tall.top - 8) <= 2, `tall turn: ${tall.top}`);
       await page
         .locator("#log > li")
         .last()
@@ -186,22 +203,21 @@ test(
       here = stair;
       await clickAction(page, "move", here.id);
       const taken = await turnView(page);
-      assert.ok(Math.abs(taken.top) <= 2, `taken to the turn: ${taken.top}`);
+      assertRests(taken, "taken to the turn");
       assert.equal(taken.focused, true, "focus on the turn");
 
-      // Back on the latest turn, the next one shows from its top again.
+      // Back on the latest turn, the next one rests as before.
       await scrollLog(page, "end");
       await say(page, "I catch my breath");
       const again = await turnView(page);
-      assert.ok(Math.abs(again.top) <= 2, `following again: ${again.top}`);
+      assertRests(again, "following again");
 
-      // A reload shows the latest turn from its top.
+      // A reload shows the latest turn resting likewise.
       await page.reload();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await page.locator("#log > li").first().waitFor();
       const reloaded = await turnView(page);
-      assert.ok(Math.abs(reloaded.top) <= 2, `reload: ${reloaded.top}`);
-      assert.equal(reloaded.olderHidden, true, "reload: older hidden");
+      assertRests(reloaded, "reload");
       await assertNoSideScroll(page, "no side scroll after a reload");
     } finally {
       await browser.close();

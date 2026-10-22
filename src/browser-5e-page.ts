@@ -153,8 +153,8 @@
 //   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; each turn shows from its top (#529),
-//   its first entry at the top of the view, while the reader is on the
-//   latest turn. Each entry (#159) has a data-kind (narration, message or
+//   its first entry midway down the view with older entries above it, or
+//   higher so the whole turn fits, while the reader is on the latest turn. Each entry (#159) has a data-kind (narration, message or
 //   action); the newest has class "newest" and tabindex -1, as the latest
 //   turn's first entry does, and focusTurnEntry() moves focus to that. A
 //   card arriving in a room (#524) has data-arrival, the room's name, which its first line starts with in
@@ -2001,7 +2001,7 @@ function markNewest(log) {
 /**
  * Moves focus to the latest turn's first entry (#529), if there is one.
  * Focus is never left off screen: a reader scrolled up to older entries is
- * taken to the turn, shown from its top, as focus once scrolled the newest
+ * taken to the turn, where the log rests, as focus once scrolled the newest
  * entry into view (#221).
  */
 function focusTurnEntry() {
@@ -2015,22 +2015,28 @@ function focusTurnEntry() {
 
 // History only grows, so new entries are appended: the live region announces
 // just them. Each turn (an action's or a message's entries) shows from its
-// top (#529): the log scrolls so the turn's first entry sits at the top of
-// the view, with space under the newest entry (#log's ::after,
-// --turn-room) for a short turn to get there. The log follows the latest
-// turn only while the reader has not scrolled up from its start; someone
-// who scrolled up to read older entries stays where they are. Only the reader's scrolling decides
-// that, not the window resizing around it; while following, a resized log
-// is scrolled back to the latest turn (#221).
+// top (#529): the log scrolls so the turn's first entry rests midway down
+// the view, with older entries above it for context. A turn too tall for
+// the lower half rests higher, so all of it shows, and one taller than the
+// view rests TURN_MARGIN from the top, its focus ring in view. Space under
+// the newest entry (#log's ::after, --turn-room) lets a short turn get
+// there. The log follows the latest turn only while the reader has not
+// scrolled up from where it rests; someone who scrolled up to read older
+// entries stays where they are. Only the reader's scrolling decides that,
+// not the window resizing around it; while following, a resized log is
+// scrolled back to the latest turn (#221).
+const TURN_MARGIN = 8;
 let followHistory = true;
 let turnStart;
+// How far below the top of the view the latest turn rests.
+let turnRest = 0;
 
 /** Where an entry starts in the log's scrolled content. */
 const entryTop = (log, entry) => log.scrollTop + entry.getBoundingClientRect().top - log.getBoundingClientRect().top;
 
 /**
- * Sizes the space under the newest entry so the latest turn can reach the
- * top of the view, and scrolls there while the reader follows it.
+ * Works out where the latest turn rests, sizes the space under the newest
+ * entry so it can get there, and scrolls there while the reader follows it.
  */
 function followTurn() {
   const log = element("log");
@@ -2039,18 +2045,21 @@ function followTurn() {
   // exact (never just the view's): the space shrinks by what is spare.
   log.style.setProperty("--turn-room", log.clientHeight + "px");
   const top = entryTop(log, turnStart);
-  const spare = log.scrollHeight - log.clientHeight - top;
+  const height = log.lastElementChild.getBoundingClientRect().bottom - turnStart.getBoundingClientRect().top;
+  turnRest = Math.max(TURN_MARGIN, Math.min(log.clientHeight / 2, log.clientHeight - height - TURN_MARGIN));
+  const target = Math.max(0, Math.round(top - turnRest));
+  const spare = log.scrollHeight - log.clientHeight - target;
   log.style.setProperty("--turn-room", Math.max(0, Math.ceil(log.clientHeight - spare)) + "px");
-  if (followHistory) log.scrollTop = top;
+  if (followHistory) log.scrollTop = target;
 }
 
 /**
  * Whether the reader is on the latest turn: its start no more than 24 px
- * below the top of the view, or scrolled past reading it.
+ * below where it rests, or scrolled past reading it.
  */
 function onLatestTurn() {
   const log = element("log");
-  return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < 24;
+  return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < turnRest + 24;
 }
 
 function renderHistory() {
@@ -2090,7 +2099,8 @@ function showArrival() {
   const entry = arrivalEntry();
   if (!entry) return;
   const log = element("log");
-  log.scrollTop = entryTop(log, entry);
+  // Just under the top of the view, its focus ring in view.
+  log.scrollTop = entryTop(log, entry) - TURN_MARGIN;
   entry.tabIndex = -1;
   entry.focus({ preventScroll: true });
 }

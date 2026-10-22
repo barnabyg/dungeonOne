@@ -214,7 +214,11 @@ test(
         await page.setViewportSize(viewport);
         const went = await jump(page, "bottom");
         assert.equal(went.focused, alcoveArrival.index, `${viewport.width}`);
-        assert.ok(Math.abs(went.top) <= 2, `${viewport.width}: ${went.top}`);
+        // Just under the top, its focus ring in view (#529).
+        assert.ok(
+          Math.abs(went.top - 8) <= 2,
+          `${viewport.width}: ${went.top}`,
+        );
         await assertNoSideScroll(page, `${viewport.width}: no side scroll`);
       }
       await page.setViewportSize(WIDTHS[0]);
