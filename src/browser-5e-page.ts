@@ -20,11 +20,17 @@
 //   · Leave"), and #room-history-link ("Description in history", #524),
 //   shown while the history has an arrival in the room; the description
 //   itself is only in the history. Then #leave-confirm, #room-actions (the
-//   row for what acts on no one thing: a search of the room, an ambush, a
-//   reaction's options, Tactical Mind) and #room-alarm. Then the room's
-//   things, one card each (li.thing[data-id]), in the order Here
-//   (#creatures), Items here (#room-items), Look at (#features) and Ways on
-//   (#exits); an empty list is left out (#157). A card's .thing-head has its
+//   row for what acts on no one thing: a search of the room, Tactical
+//   Mind) and #room-alarm. Then the room's things, one card each
+//   (li.thing[data-id]), in the order Here (#creatures), Items here
+//   (#room-items), Look at (#features) and Ways on (#exits); an empty list
+//   is left out (#157). While the character is unseen in a fight's room or
+//   its opponents react, Here opens with the encounter's card (#530),
+//   li.opponents-card[data-id] (the encounter's id) with data-state
+//   (unseen or the band): .opponents-state ("Hasn't seen you", or the band
+//   in words), an .opponent line each (icon, .opponent-name, description)
+//   and .opponents-controls with Ambush, or the reaction's options and
+//   Trade. It goes when the fight begins. A card's .thing-head has its
 //   name and description (.thing-text) and, on the right, its buttons
 //   (.thing-controls): an exit's Go (primary) and Sneak and its door's and
 //   trap's Force, Pick, Break, Unlock and Disarm; a feature's (or body's)
@@ -132,13 +138,13 @@
 //   Trade (#open-shop), which opens the shop, described below. Gems and art
 //   objects (#239) show their value on their "You carry" entry. Arrows and
 //   bolts (#230) have an entry each with their count. Facing a
-//   reaction (#304), #room-actions holds only its options: a parley (#305)
-//   has a button per skill with the skill and DC under it, and a toll names
-//   its price; while the band offers trade, the reacting opponents are a
-//   merchant in #creatures, with Trade as above.
+//   reaction (#304), its options are on the opponents' card (#530): a
+//   parley (#305) has a button per skill with the skill and DC under it, a
+//   toll names its price, and while the band offers trade the card has
+//   Trade as above.
 //   After an action, focus stays on the clicked control if it is still
-//   enabled, and otherwise moves to the newest history entry. When the
-//   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
+//   enabled, and otherwise moves to the latest turn's first history entry.
+//   When the adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
 //   escape-with-loot, escape-without-loot or defeat (in words, #ending-kind,
 //   and colour), the title and text, a defeat's permanence, #ending-rewards
 //   (the XP, treasure and coin a surviving ending earned, #ending-coin, and a
@@ -146,11 +152,12 @@
 //   and #ending-next back to the character sheet. Focus moves to
 //   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
-//   scroll area, newest at the bottom; it follows new entries only while the
-//   reader is at the bottom. Each entry (#159) has a data-kind (narration,
-//   message or action); the newest has class "newest" and tabindex -1, and
-//   focusNewestEntry() moves focus to it. A card arriving in a room (#524)
-//   has data-arrival, the room's name, which its first line starts with in
+//   scroll area, newest at the bottom; each turn shows from its top (#529),
+//   its first entry midway down the view with older entries above it, or
+//   higher so the whole turn fits, while the reader is on the latest turn. Each entry (#159) has a data-kind (narration, message or
+//   action); the newest has class "newest" and tabindex -1, as the latest
+//   turn's first entry does, and focusTurnEntry() moves focus to that. A
+//   card arriving in a room (#524) has data-arrival, the room's name, which its first line starts with in
 //   bold; #room-history-link scrolls to and focuses the newest one for the
 //   character's room.
 // - #session-composer: #message-form, and #dm-notice when typing to the AI DM
@@ -162,7 +169,8 @@
 // them, except below. #session-layout is a grid of two rows: the composer
 // sits in the second, a row of its own height under the scene, so it stays
 // on screen however long the room; the history spans both, at the panel's
-// full height. The session fills the window. From 1500 px wide it is up to
+// full height. Its top half is #history-panel, "What happened" framed with
+// the log in it; the bottom half is kept empty for later use. The session fills the window. From 1500 px wide it is up to
 // 1880 px wide, in three columns: character (both rows), the scene over the
 // composer, and the history, the columns scrolling on their own. Narrower,
 // it is up to 1240 px wide, in two: on the left #session-main scrolls the
@@ -392,8 +400,8 @@ ${SETTINGS_SOUND(sound)}
 </div>
 </div>
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
-<section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
-<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
+<section id="session-history" aria-labelledby="history-title"><div id="history-panel"><h3 id="history-title">What happened</h3>
+<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></div></section>
 </div>
 <section id="shop" aria-labelledby="shop-title" hidden>
 <div class="shop-sign">${SHOP_BELL}<div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-greeting"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
@@ -478,7 +486,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log li>:first-child{margin-top:0}.arrival-room{font-weight:700}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card,.log .player,.log .reply,.log .narration{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.initiative-how{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin-top:2px}.initiative-how summary{cursor:pointer;width:max-content;color:var(--color-text-label)}.initiative-how p{margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room #room-history-link{display:inline-block;padding:1px 6px;font-size:var(--text-xs)}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room #room-history-link{display:inline-block;padding:1px 6px;font-size:var(--text-xs)}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}.things li.opponents-card{display:grid;gap:var(--space-2);border:2px solid var(--color-danger);border-left-width:6px;background:linear-gradient(var(--color-danger-soft),var(--color-surface));padding:var(--space-2) var(--space-3)}.opponents-state{justify-self:start;margin:0;color:var(--color-on-ink);background:var(--color-danger);border-color:var(--color-danger)}.opponent{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--space-2);overflow-wrap:anywhere}.opponent-name{font:700 var(--text-lg)/1.3 var(--font-sans);color:var(--color-danger)}.things .opponent>.icon{width:1.9em;height:1.9em;margin:0;align-self:center;color:var(--color-danger)}.opponent-text{flex:1 1 14em;min-width:0}.things .opponents-controls{justify-content:flex-start;margin:0}.opponents-controls .action{align-items:flex-start}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr) auto;gap:0 var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,6fr) minmax(0,5fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -486,7 +494,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>#session-actions+section h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-composer{grid-area:2/1}#session-history{grid-area:1/2/3/3}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1/3/2}#session-scene,#scene-backdrop{grid-area:1/2}#session-composer{grid-area:2/2}#session-history{grid-area:1/3/3/4}}
 #session-history{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--color-line);padding-left:var(--space-5)}#session-actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-actions:has(.error:not(:empty),#ending:not([hidden]),.controls:not(:empty)){margin-bottom:var(--space-4)}#session-composer{min-width:0;border-top:1px solid var(--color-line);padding:var(--space-2) var(--space-2) 0 0;margin-top:var(--space-2)}
-.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-panel{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;border:1px solid var(--color-panel-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-2) 0 var(--space-3)}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}#log::after{content:"";height:var(--turn-room,0px)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.end-line{justify-content:flex-end;flex-wrap:nowrap}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
@@ -1428,8 +1436,9 @@ function showAdventure(value) {
   const title = session.adventure.title;
   show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
   element(session.ending ? "ending-title" : "adventure-title").focus();
+  // The latest turn shows from its top (#529).
   followHistory = true;
-  element("log").scrollTop = element("log").scrollHeight;
+  followTurn();
 }
 
 function renderAdventure() {
@@ -1975,10 +1984,10 @@ function historyEntry(entry) {
   return item;
 }
 
-// The newest entry is marked and can take focus, so the action bar can move
-// focus to an action's result.
+// The newest entry is marked, and it and the latest turn's first entry can
+// take focus, so the action bar can move focus to an action's result.
 function markNewest(log) {
-  for (const old of log.querySelectorAll(":scope > li.newest")) {
+  for (const old of log.querySelectorAll(":scope > li[tabindex]")) {
     old.removeAttribute("class");
     old.removeAttribute("tabindex");
   }
@@ -1987,37 +1996,94 @@ function markNewest(log) {
     newest.classList.add("newest");
     newest.tabIndex = -1;
   }
+  if (turnStart) turnStart.tabIndex = -1;
 }
 
-/** Moves focus to the newest history entry, if there is one. */
-function focusNewestEntry() {
-  const newest = element("log").lastElementChild;
-  if (newest) newest.focus();
+/**
+ * Moves focus to the latest turn's first entry (#529), if there is one.
+ * Focus is never left off screen: a reader scrolled up to older entries is
+ * taken to the turn, where the log rests, as focus once scrolled the newest
+ * entry into view (#221).
+ */
+function focusTurnEntry() {
+  if (!turnStart) return;
+  if (!followHistory) {
+    followHistory = true;
+    followTurn();
+  }
+  turnStart.focus({ preventScroll: true });
 }
 
 // History only grows, so new entries are appended: the live region announces
-// just them. The log follows the newest entry only while the reader is at the
-// bottom; someone who scrolled up to read older entries stays where they are.
-// Only the reader's scrolling decides that, not the window resizing around it;
-// while following, a resized log is scrolled back to its newest entry (#221).
+// just them. Each turn (an action's or a message's entries) shows from its
+// top (#529): the log scrolls so the turn's first entry rests midway down
+// the view, with older entries above it for context. A turn too tall for
+// the lower half rests higher, so all of it shows, and one taller than the
+// view rests TURN_MARGIN from the top, its focus ring in view. Space under
+// the newest entry (#log's ::after, --turn-room) lets a short turn get
+// there. The log follows the latest turn only while the reader has not
+// scrolled up from where it rests; someone who scrolled up to read older
+// entries stays where they are. Only the reader's scrolling decides that,
+// not the window resizing around it; while following, a resized log is
+// scrolled back to the latest turn (#221).
+const TURN_MARGIN = 8;
 let followHistory = true;
+let turnStart;
+// How far below the top of the view the latest turn rests, and the log's
+// size it was worked out for.
+let turnRest = 0;
+let restSize = "";
+const logSize = (log) => log.clientWidth + "x" + log.clientHeight;
 
-/** Scrolls the log to its newest entry while the reader follows it. */
-function followNewest() {
+/** Where an entry starts in the log's scrolled content. */
+const entryTop = (log, entry) => log.scrollTop + entry.getBoundingClientRect().top - log.getBoundingClientRect().top;
+
+/**
+ * Works out where the latest turn rests, sizes the space under the newest
+ * entry so it can get there, and scrolls there while the reader follows it.
+ */
+function followTurn() {
   const log = element("log");
-  if (followHistory) log.scrollTop = log.scrollHeight;
+  if (!turnStart) return;
+  // A view's height of space overfills the log, so its scroll height is
+  // exact (never just the view's): the space shrinks by what is spare.
+  log.style.setProperty("--turn-room", log.clientHeight + "px");
+  const top = entryTop(log, turnStart);
+  const height = log.lastElementChild.getBoundingClientRect().bottom - turnStart.getBoundingClientRect().top;
+  turnRest = Math.max(TURN_MARGIN, Math.min(log.clientHeight / 2, log.clientHeight - height - TURN_MARGIN));
+  const target = Math.max(0, Math.round(top - turnRest));
+  const spare = log.scrollHeight - log.clientHeight - target;
+  log.style.setProperty("--turn-room", Math.max(0, Math.ceil(log.clientHeight - spare)) + "px");
+  restSize = logSize(log);
+  if (followHistory) log.scrollTop = target;
+}
+
+/**
+ * Whether the reader is on the latest turn: its start no more than 24 px
+ * below where it rests, or scrolled past reading it.
+ */
+function onLatestTurn() {
+  const log = element("log");
+  return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < turnRest + 24;
 }
 
 function renderHistory() {
   const log = element("log");
   for (const pending of log.querySelectorAll(":scope > li[data-pending]")) pending.remove();
-  if (log.dataset.session !== session.id || log.children.length > session.history.length) {
+  const rebuilt = log.dataset.session !== session.id || log.children.length > session.history.length;
+  if (rebuilt) {
     log.dataset.session = session.id;
     log.replaceChildren();
   }
-  log.append(...session.history.slice(log.children.length).map(historyEntry));
+  const added = session.history.slice(log.children.length).map(historyEntry);
+  log.append(...added);
+  // A whole history shows its latest entry as the turn; otherwise the
+  // turn starts with the first entry it added.
+  if (rebuilt) turnStart = log.lastElementChild ?? undefined;
+  else if (added.length) turnStart = added[0];
+  else if (!turnStart?.isConnected) turnStart = log.lastElementChild ?? undefined;
   markNewest(log);
-  followNewest();
+  followTurn();
   element("room-history-link").hidden = !arrivalEntry();
 }
 
@@ -2038,7 +2104,8 @@ function showArrival() {
   const entry = arrivalEntry();
   if (!entry) return;
   const log = element("log");
-  log.scrollTop = entry.offsetTop;
+  // Just under the top of the view, its focus ring in view.
+  log.scrollTop = entryTop(log, entry) - TURN_MARGIN;
   entry.tabIndex = -1;
   entry.focus({ preventScroll: true });
 }
@@ -2052,8 +2119,9 @@ function showPending(message) {
   waiting.classList.add("pending");
   item.append(waiting);
   log.append(item);
+  turnStart = item;
   markNewest(log);
-  followNewest();
+  followTurn();
 }
 
 // Each list's entries, a card each (#520), in the room panel's order: Here,
@@ -2499,10 +2567,15 @@ function renderRoom(room) {
   // Once raised, the module's alarm (#401) shows in its own words.
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
+  // The encounter waiting here (#530) heads Here; its opponents trading
+  // while their band offers it (#305), a creature with the encounter's id,
+  // are that card, not one of their own.
+  const { waiting } = room;
   for (const list of ROOM_LISTS) {
-    const entries = room[list.key];
-    element(list.id + "-group").hidden = entries.length === 0;
-    element(list.id).replaceChildren(...entries.map((entry) => {
+    const head = list.key === "creatures" && waiting ? [waitingCard(waiting)] : [];
+    const entries = room[list.key].filter(({ id }) => !head.length || id !== waiting.id);
+    element(list.id + "-group").hidden = entries.length + head.length === 0;
+    element(list.id).replaceChildren(...head, ...entries.map((entry) => {
       const item = make("li", undefined, "thing");
       item.dataset.id = entry.id;
       // The card's head (#520): its name and description, and its buttons
@@ -2536,7 +2609,33 @@ function renderRoom(room) {
     }));
   }
   renderInventory(room);
-  element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
+  element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0 || Boolean(waiting);
+}
+
+// The opponents waiting in the room while their fight has not begun (#530):
+// one card for the encounter, at the top of Here and stronger than the
+// rest, as the centre of events there. Its state in words, each opponent's
+// icon, name and description, and the buttons that act on them all, which
+// renderActions puts on it: Ambush while unseen, the reaction's options
+// while they react (and Trade while their band offers it). The fight
+// panel's foe cards take over once the fight begins.
+// Unseen, by one opponent or several.
+const UNSEEN_TAGS = ["Hasn't seen you", "Haven't seen you"];
+function waitingCard(waiting) {
+  const item = make("li", undefined, "thing opponents-card");
+  item.dataset.id = waiting.id;
+  item.dataset.state = waiting.state;
+  const several = waiting.opponents.length > 1;
+  const state = waiting.state === "unseen" ? UNSEEN_TAGS[several ? 1 : 0] : REACTION_TAGS[waiting.state];
+  item.append(make("p", state, "tag opponents-state"));
+  for (const opponent of waiting.opponents) {
+    const line = make("p", undefined, "opponent");
+    line.append(...iconned(opponent.icon, make("strong", opponent.name, "opponent-name")));
+    if (opponent.description) line.append(make("span", opponent.description, "opponent-text"));
+    item.append(line);
+  }
+  item.append(make("div", undefined, "controls thing-controls opponents-controls"));
+  return item;
 }
 
 // In a fight (#525) the room folds to its heading and one line naming its
@@ -3166,9 +3265,13 @@ function renderActions() {
     }
     // The rest is done in the room (#520): on the card of the thing it acts
     // on, a creature's topics in its "Ask about" row (#490), and what acts
-    // on no thing (a search of the room, an ambush, a reaction's options,
-    // Tactical Mind) in the row under the room's heading.
-    const card = asking ? "creatures/" + asking.creature.id : cardOf(target);
+    // on no thing (a search of the room, Tactical Mind) in the row under the
+    // room's heading.
+    // Ambush and a reaction's options act on the whole encounter waiting
+    // here (#530), so they go on its card, which has the encounter's id and
+    // so gets the reacting opponents' Trade as a merchant card would.
+    const waiting = (action === "ambush" || action === "react") && session.room.waiting;
+    const card = asking ? "creatures/" + asking.creature.id : waiting ? "creatures/" + waiting.id : cardOf(target);
     if (!card) {
       roomWide.push(wrap);
       return;
@@ -4480,7 +4583,7 @@ function keepFocus(action, targetId) {
   }
   const same = [...document.querySelectorAll("button.act")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
   if (same && !same.disabled) same.focus();
-  else focusNewestEntry();
+  else focusTurnEntry();
 }
 
 async function sendMessage(event) {
@@ -5470,13 +5573,14 @@ document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();
   element("content").focus();
 });
+// A resized log re-wraps its entries and may scroll before the observer
+// below places the turn again: that scroll is not the reader's.
 element("log").addEventListener("scroll", () => {
-  const log = element("log");
-  followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+  if (logSize(element("log")) === restSize) followHistory = onLatestTurn();
 });
 // When the column around the log changes, as the window is resized, the log
-// changes size: a following reader stays on the newest entry (#221).
-new ResizeObserver(followNewest).observe(element("log"));
+// changes size: a following reader stays on the latest turn (#221, #529).
+new ResizeObserver(followTurn).observe(element("log"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
   library = value;

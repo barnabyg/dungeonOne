@@ -77,14 +77,16 @@ test(
         .click();
       await startAdventure(page, "bandit-toll");
 
-      // Attack, three parleys and the toll, in the row under the room's
-      // heading (#520): every button, and the reaction card, on screen with
-      // the newest entry.
+      // Attack, three parleys and the toll, on the opponents' card (#530):
+      // every button, and the reaction card, on screen with the newest
+      // entry.
       await act(page, "reaction", () =>
         actionButton(page, "move", "rat-cellar").click(),
       );
       assert.equal(
-        await page.locator('#room-actions button[data-action="react"]').count(),
+        await page
+          .locator('.opponents-card button[data-action="react"]')
+          .count(),
         5,
       );
       assert.match(
@@ -106,7 +108,7 @@ test(
         "Parley with Deception DC 14",
       );
       assert.deepEqual(
-        await page.locator("#room-actions .approach").allInnerTexts(),
+        await page.locator(".opponents-card .approach").allInnerTexts(),
         ["Persuasion DC 12", "Deception DC 14", "Intimidation DC 13"],
       );
       assert.equal(await toll().innerText(), "Pay the toll (5 sp)");

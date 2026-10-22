@@ -96,11 +96,11 @@ const layout = (page) =>
         height,
         scrollY: window.scrollY,
       }),
+      // Each turn shows from its top (#529): the newest entry starts in view.
       newestShown:
         inWindow(log) &&
-        newest.bottom <= log.bottom + 1 &&
-        newest.bottom > log.top &&
-        newest.bottom - Math.max(newest.top, log.top) >= 16,
+        newest.top >= log.top - 1 &&
+        newest.top <= log.bottom - 16,
       hiddenButtons: buttons
         .filter((button) => !shownAt(button))
         .map((button) => button.textContent),
