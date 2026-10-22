@@ -425,7 +425,7 @@ test(
       assert.equal(await page.locator("#log > li.newest").count(), 1);
       assert.equal(
         await page.evaluate(() => {
-          window.focusNewestEntry();
+          window.focusTurnEntry();
           return (
             document.activeElement ===
             document.querySelector("#log > li:last-child")

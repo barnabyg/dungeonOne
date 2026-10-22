@@ -1999,12 +1999,18 @@ function markNewest(log) {
 }
 
 /**
- * Moves focus to the latest turn's first entry (#529), if there is one:
- * where a following log rests, and never scrolling a reader off older
- * entries (#221).
+ * Moves focus to the latest turn's first entry (#529), if there is one.
+ * Focus is never left off screen: a reader scrolled up to older entries is
+ * taken to the turn, shown from its top, as focus once scrolled the newest
+ * entry into view (#221).
  */
 function focusTurnEntry() {
-  if (turnStart) turnStart.focus({ preventScroll: true });
+  if (!turnStart) return;
+  if (!followHistory) {
+    followHistory = true;
+    followNewest();
+  }
+  turnStart.focus({ preventScroll: true });
 }
 
 // History only grows, so new entries are appended: the live region announces

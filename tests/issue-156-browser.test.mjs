@@ -131,18 +131,17 @@ async function keyboardAction(page, action, target) {
   await enterAction(page);
 }
 
-/** The newest entry is inside the window and the log's scroll area. */
+/** The newest entry starts inside the window and the log's scroll area. */
 const newestOnScreen = (page) =>
   page.evaluate(() => {
     const log = document.getElementById("log").getBoundingClientRect();
     const newest = document
       .querySelector("#log > li:last-child")
       .getBoundingClientRect();
+    // It shows from its top (#529).
     return (
-      newest.bottom <= window.innerHeight + 1 &&
-      newest.top >= -1 &&
-      newest.bottom <= log.bottom + 1 &&
-      newest.bottom - Math.max(newest.top, log.top) >= 16
+      newest.top >= log.top - 1 &&
+      newest.top <= Math.min(log.bottom, window.innerHeight) - 16
     );
   });
 

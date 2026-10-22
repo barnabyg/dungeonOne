@@ -64,13 +64,18 @@ const turnView = async (page) => {
   });
 };
 
-/** Scrolls the log to `top`, as a reader would, and waits for its event. */
+/**
+ * Scrolls the log to `top`, as a reader would, and waits for its event; a
+ * log already there fires none.
+ */
 const scrollLog = (page, top) =>
   page.locator("#log").evaluate(
     (log, top) =>
       new Promise((resolve) => {
+        const was = log.scrollTop;
         log.addEventListener("scroll", resolve, { once: true });
         log.scrollTop = top === "end" ? log.scrollHeight : top;
+        if (log.scrollTop === was) resolve();
       }),
     top,
   );
@@ -168,11 +173,19 @@ test(
       });
       assert.equal((await turnView(page)).scrollTop, nearly, "near place kept");
 
-      // So does one scrolled right up to the oldest entries.
+      // So does one scrolled right up to the oldest entries, while focus
+      // stays on the clicked button.
+      assert.equal(here, alcove);
       await scrollLog(page, 0);
-      here = here === stair ? alcove : stair;
-      await clickAction(page, "move", here.id);
+      await clickAction(page, "examine", "iron-chest");
       assert.equal((await turnView(page)).scrollTop, 0, "place kept");
+      // Focus moving to the turn, as the clicked button goes, takes the
+      // reader there: focus is never off screen.
+      here = stair;
+      await clickAction(page, "move", here.id);
+      const taken = await turnView(page);
+      assert.ok(Math.abs(taken.top) <= 2, `taken to the turn: ${taken.top}`);
+      assert.equal(taken.focused, true, "focus on the turn");
 
       // Back on the latest turn, the next one shows from its top again.
       await scrollLog(page, "end");
