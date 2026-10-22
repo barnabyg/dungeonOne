@@ -293,9 +293,9 @@ test(
         }
       });
       await clickAction(page, "move", "rat-cellar");
-      await page.locator("#attack-controls button.attack").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
       assert.equal(
-        await inView(page, "#attack-controls button.attack"),
+        await inView(page, "#encounter button.attack"),
         true,
         "Attack on screen after going on",
       );
@@ -325,13 +325,13 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await createAndStart(page, server.url, "lone-goblin");
-      await page.locator("#attack-controls button.attack").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
 
-      // The fight's controls open the centre, the Fight section under them,
-      // then the room; Tab follows the same order.
+      // The fight panel (#525) opens the centre, its cards then its
+      // footer, then the room; Tab follows the same order.
       for (const viewport of WIDTHS) {
         await page.setViewportSize(viewport);
-        for (const id of ["session-actions", "attack-controls", "encounter"]) {
+        for (const id of ["encounter", "foe-cards", "fight-foot"]) {
           assert.deepEqual(
             await placeInCentre(page, id),
             { inScene: true, shown: true, inColumn: true, aboveRoom: true },
@@ -349,7 +349,7 @@ test(
           `controls above the Fight section at ${viewport.width}`,
         );
         assert.equal(
-          await inView(page, "#attack-controls button.attack"),
+          await inView(page, "#encounter button.attack"),
           true,
           `Attack on screen at ${viewport.width}`,
         );
@@ -362,10 +362,7 @@ test(
       // no stop; if it has, it comes last.
       assert.deepEqual(
         order.parts,
-        ["session-actions", "encounter", "room"].slice(
-          0,
-          Math.max(2, order.parts.length),
-        ),
+        ["encounter", "room"].slice(0, Math.max(1, order.parts.length)),
       );
 
       // The controls work as before, until the fight is won.

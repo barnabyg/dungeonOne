@@ -268,11 +268,11 @@ test(
 
       // A clicked action is busy, and every action is held until it ends.
       const acting = await holdRequests(page, "/api/5e/session/attack");
-      const attack = page.locator("#attack-controls button.attack").first();
+      const attack = page.locator("#encounter button.attack").first();
       const target = await attack.getAttribute("data-target");
       await attack.click();
       const busyAttack = page.locator(
-        `#attack-controls button[data-target="${target}"][aria-busy="true"]`,
+        `#encounter button.attack[data-target="${target}"][aria-busy="true"]`,
       );
       await busyAttack.waitFor({ state: "attached" });
       assert.equal(await busyAttack.isDisabled(), true);

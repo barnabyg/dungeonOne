@@ -11,11 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { DEFAULT_SETTINGS } from "../dist/settings-5e.js";
-import {
-  actionButton,
-  clickAction,
-  createAndStart,
-} from "./fixtures/browser-journey.mjs";
+import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
 import { fleeingCellar } from "./fixtures/modules.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
@@ -33,11 +29,16 @@ async function choose(page, id, value) {
     .waitFor();
 }
 
+/** "11/11": a foe's HP on its card in the fight panel (#525). */
 const hpOf = (page, id) =>
   page
-    .locator(`#initiative-rows tr[data-combatant="${id}"] td`)
-    .nth(1)
-    .textContent();
+    .locator(`#foe-cards li[data-combatant="${id}"] .card-hp`)
+    .evaluate(
+      (line) =>
+        line.querySelector(".hp-now").textContent +
+        "/" +
+        /\d+/u.exec(line.querySelector(".hp-max").textContent)[0],
+    );
 
 test(
   "the survival settings play in the browser: 150% opponent HP, no short rests, no attacks on fleeing",
@@ -117,7 +118,7 @@ test(
         "No short rests left",
       );
       await clickAction(page, "move", "rat-cellar");
-      await actionButton(page, "flee", "stair-foot").waitFor();
+      await page.locator("#flee-toggle").waitFor();
       assert.equal(await hpOf(page, "giant-rat"), "11/11");
       assert.equal(await hpOf(page, "zombie"), "23/23");
       const saved = await sessionFile(directory);
@@ -128,9 +129,7 @@ test(
         [undefined, undefined],
       );
       assert.equal(
-        await page
-          .locator(".action-row[data-row=flee] #flee-attacks")
-          .textContent(),
+        await page.locator("#flee-attacks").textContent(),
         "Draws no attacks",
       );
 
@@ -144,7 +143,7 @@ test(
         .filter({ hasText: "back to its default" })
         .waitFor();
       await page.goBack();
-      await actionButton(page, "flee", "stair-foot").waitFor();
+      await page.locator("#flee-toggle").waitFor();
       assert.equal(await hpOf(page, "zombie"), "23/23");
       await clickAction(page, "flee", "stair-foot");
       assert.match(

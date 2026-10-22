@@ -33,22 +33,43 @@
 //   "Ask <name> about" with an "Ask about" label and a button per topic by
 //   its name, an asked one greyed out with no caption (#490); then what was
 //   found or said there, an exit's route, door and trap. Each button's
-//   accessible name is the full action ("Examine Rusted Lantern"). In a fight
-//   the Fight section (#encounter) moves above the room, under the actions,
-//   in the DOM and so in tab order (#386), and the cards have no buttons the
-//   engine doesn't offer. A new room, or a fight beginning or ending, scrolls
-//   the centre column back to its top.
-//   The fight's initiative table shows totals, marks the current turn, tags
-//   fleeing and fled opponents (#237) and surrendering and surrendered ones
-//   (#238), and
-//   keeps each roll in #initiative-breakdown; it collapses behind
-//   #initiative-toggle once the fight is over. The known rooms (#405) and
-//   their records are on the map (#457), not here (#522).
+//   accessible name is the full action ("Examine Rusted Lantern"). The
+//   cards are in #room-things; in a fight it folds behind #room-fold, a
+//   disclosure naming the room's creatures, items and features on one line
+//   (#525), and the cards have no buttons the engine doesn't offer. A new
+//   room, or a fight beginning or ending, scrolls the centre column back to
+//   its top and folds the room again. The known rooms (#405) and their
+//   records are on the map (#457), not here (#522).
+// - #encounter, the fight panel (#525), after #session-actions and before
+//   the room, shown only while a fight is under way: #fight-top (h3
+//   #encounter-title "Fight · Round N" and #turn-order, each combatant's
+//   .turn-entry[data-combatant] with its initiative, the current one a
+//   strong with aria-current, " · your turn"), #fight-sides (#fight-you
+//   with #you-card: .card-head (.card-name, .card-ac), .card-hp and
+//   .hp-bar, .card-tags (its conditions, Hidden, Surprised), then
+//   #heal-controls, the ways to heal (Second Wind, Drink each potion, each
+//   healing spell as data-action=heal-spell at its lowest slot, Preserve
+//   Life) with what each restores and its action in .act-detail;
+//   #fight-foes with #strike-control (Cunning Strike's choice, #308, for
+//   the attacks under it) and #foe-cards, an li.foe-card[data-combatant]
+//   per foe in initiative order: head, HP and bar, .card-tags (conditions,
+//   effects, Sapped, Hidden, Fleeing, Surrendering, Surprised) and either
+//   .foe-controls, holding its one attack (the weapon attack the engine
+//   offers on it, else its first attack: "Attack with Mace +6 · 1d6 + 4"),
+//   or .card-state, Fallen, Fled, Surrendered or Turned), then #fight-foot:
+//   #flee-control (#flee-toggle "Flee ▾", a disclosure of #flee-menu:
+//   #flee-attacks, whom a flight draws attacks from, over #flee-ways, a
+//   button per way out; Escape or a click elsewhere closes it; disabled
+//   with #flee-reason when every flight is refused), #turn-resources (the
+//   turn's Action, Bonus and Reaction pips) and #end-controls (End turn and
+//   what it leaves unused), then the action bar's other rows, moved in
+//   (over the cards while a hit or a fall waits for an answer). The rolls
+//   behind the turn order are in the history's arrival entry (#524).
 // - #session-status: the status strip (#155): HP with its bar and health,
 //   the round and whose turn it is (#turn), the character's conditions in a
-//   fight (#conditions, #232), and #resources, a pip for each
-//   turn resource and class feature use, and outside a fight's turns for
-//   each hit die (#333). It shows only what the session view projects.
+//   fight (#conditions, #232), and #resources, a pip for each class feature
+//   use, and outside a fight's turns for each hit die (#333); the turn's
+//   pips are in the fight panel's footer (#525). It shows only what the session view projects.
 // - #inventory-group: "You carry" (#432), #inventory, in groups (worn and
 //   wielded, consumables, treasure, other), a line per entry with its verbs
 //   on the right and its description and stats behind its name (#504:
@@ -59,17 +80,18 @@
 // - #session-actions, at the top of the centre column (#523), above the
 //   room: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls and #feature-controls (out of a fight, a spell's or
-//   Divine Spark's choice) and, in a fight, the turn's
-//   options in labelled rows (#392), .action-row with data-row and a
-//   role=group named by its .row-label: #attack-controls holds Attack (each
-//   attack naming its weapon; against several foes each foe's attacks by its
-//   name; Cunning Strike's choice first) and #feature-controls the rest, in
-//   FIGHT_ROWS order: Cast a spell, Channel Divinity (its shared uses once,
-//   in .row-uses), Fighter features, Rogue features, Items (Drink, and a
-//   scroll's or wand's Use), Weapons, Last Stand (#499: Drink each potion
-//   or Fall, alone while the character's fall waits), Answer the hit and
-//   End turn (only
-//   Wait, with why, while paralysed, #234). Exploring actions are on the
+//   Divine Spark's choice) and, in a fight, inside the fight panel, the
+//   turn's other options in labelled rows (#392), .action-row with data-row
+//   and a role=group named by its .row-label: #attack-controls holds Attack
+//   (the attacks not on a foe's card, each naming its weapon; against
+//   several foes each foe's by its name) and
+//   #feature-controls the rest, in FIGHT_ROWS order: Cast a spell, Channel
+//   Divinity (its shared uses once, in .row-uses), Fighter features, Rogue
+//   features, Items (a scroll's or wand's Use), Weapons, Last Stand (#499:
+//   Drink each potion or Fall, alone while the character's fall waits),
+//   Answer the hit, Use the room and Other actions. Healing, Flee and End
+//   turn (only Wait, with why, while paralysed, #234) are on the panel's
+//   card and footer (#525). Exploring actions are on the
 //   room's cards, not here (#520). Leave (#133), on a way-out room's
 //   heading, asks first in #leave-confirm, under the heading in place of the
 //   button, never in a browser dialog,
@@ -220,6 +242,7 @@
 import { BACKDROP_ART, BACKDROPS } from "./backdrops-5e.js";
 import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
+import { TURN_UNDEAD_ID } from "./encounter-5e.js";
 import { formatCoins, parseCoins } from "./equipment-5e.js";
 import { COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
@@ -340,20 +363,20 @@ ${SETTINGS_SOUND(sound)}
 </section>
 <div id="session-scene">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
+<section id="encounter" class="fight-panel" aria-labelledby="encounter-title" hidden><div id="fight-top"><h3 id="encounter-title">Fight</h3><p id="turn-order"></p></div>
+<div id="fight-sides"><section id="fight-you" class="fight-side" aria-labelledby="fight-you-title"><h4 id="fight-you-title">You</h4><div id="you-card" class="fight-card"></div></section><section id="fight-foes" class="fight-side" aria-labelledby="fight-foes-title"><h4 id="fight-foes-title">Enemies</h4><div id="strike-control" class="controls"></div><ul id="foe-cards" aria-labelledby="fight-foes-title"></ul></section></div>
+<div id="fight-foot"><div id="flee-control" hidden><button id="flee-toggle" type="button" class="danger" aria-expanded="false" aria-controls="flee-menu" aria-label="Flee"><span>Flee ▾</span></button><div id="flee-menu" hidden><p id="flee-attacks"></p><div id="flee-ways" role="group" aria-labelledby="flee-attacks"></div></div><span id="flee-reason" class="reason"></span></div><ul id="turn-resources" class="resources" aria-label="This turn"></ul><div id="end-controls"></div></div>
+</section>
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div><button id="room-history-link" type="button" class="quiet" hidden>Description in history</button></div>
 <div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><p id="leave-warning"></p><div class="controls"><button id="confirm-leave" type="button" class="primary" aria-describedby="leave-question leave-warning">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div>
 <div id="room-actions" class="controls"></div>
 <p id="room-alarm" class="alarm" role="status" hidden></p>
-<div id="creatures-group"><h4 id="creatures-title">Here</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
+<button id="room-fold" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-things" hidden></button>
+<div id="room-things"><div id="creatures-group"><h4 id="creatures-title">Here</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <div id="features-group"><h4 id="features-title">Look at</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
 <div id="exits-group"><h4 id="exits-title">Ways on</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
-<p id="room-empty" class="hint" hidden>There is nothing else here.</p>
-</section>
-<section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
-<button id="initiative-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="initiative-panel" hidden>Initiative order</button>
-<div id="initiative-panel"><div class="table-wrap"><table id="initiative" aria-label="Initiative order"><thead><tr><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
-<details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
+<p id="room-empty" class="hint" hidden>There is nothing else here.</p></div>
 </section>
 </div>
 </div>
@@ -452,12 +475,12 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>#session-actions+section h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-composer{grid-area:2/1}#session-history{grid-area:1/2/3/3}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1/3/2}#session-scene,#scene-backdrop{grid-area:1/2}#session-composer{grid-area:2/2}#session-history{grid-area:1/3/3/4}}
 #session-history{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--color-line);padding-left:var(--space-5)}#session-actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-actions:has(.error:not(:empty),#ending:not([hidden]),.controls:not(:empty)){margin-bottom:var(--space-4)}#session-composer{min-width:0;border-top:1px solid var(--color-line);padding:var(--space-2) var(--space-2) 0 0;margin-top:var(--space-2)}
-.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
-button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}:is(#initiative-breakdown,#rest-rules) summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
+.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.end-line{justify-content:flex-end;flex-wrap:nowrap}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
-.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(.card-name,.things,.carry-list,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
 #shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-sign{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);background:var(--color-ink);color:var(--color-on-dark);border-bottom:3px solid var(--color-gold);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-4)}.shop-sign p{margin:0}.shop-bell{flex:none;width:30px;height:30px;fill:var(--color-gold)}.shop-heading{flex:1 1 0;min-width:12rem}#shop-title{margin:0;font-family:var(--font-serif);color:var(--color-on-ink)}.shop-open{margin-left:var(--space-2);font:600 var(--text-xs) var(--font-sans);color:var(--color-gold);white-space:nowrap}#shop-greeting{font:italic var(--text-sm) var(--font-serif)}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);font-size:var(--text-sm)}.shop-sign #leave-shop{color:var(--color-on-dark);border-color:var(--color-gold)}.shop-sign #leave-shop:hover:not(:disabled){background:var(--color-night-light)}.shop-sign .icon{color:var(--color-gold)}#shop-terms{margin:0}
 .shop-floor{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}.shop-scene{position:absolute;inset:0;width:100%;height:100%;color:var(--color-line);opacity:.5;pointer-events:none}#shop-columns{position:relative}
 #shop-columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"wares pack" "details details";align-content:start;gap:var(--space-3) var(--space-5);overflow-y:auto;padding-right:var(--space-2)}#shop-wares{grid-area:wares;min-width:0}#shop-details{grid-area:details;min-width:0}#shop-pack{grid-area:pack;min-width:0}#shop-columns h4{margin-top:0}
@@ -465,6 +488,12 @@ body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;f
 #shop-details{align-self:start;border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3)}#shop-detail p{margin:0 0 var(--space-2);font-size:var(--text-sm)}#shop-item-name{margin:0 0 var(--space-2);font:600 var(--text-md) var(--font-serif);color:var(--color-text)}#shop-detail .item-stats{margin:0 0 var(--space-2);font-size:var(--text-sm);color:var(--color-text)}#shop-detail .item-compare{margin:0 0 var(--space-1);font-size:var(--text-sm)}#shop-detail .action{margin-top:var(--space-2)}#shop-detail .shop-note{color:var(--color-text-muted)}
 .shop-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1)}.shop-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-color:transparent;color:var(--color-text);text-align:left}.shop-item[aria-pressed=true]{background:var(--color-highlight);border-color:var(--color-ink)}.shop-name{min-width:0;overflow-wrap:anywhere}.shop-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.shop-price{flex:none;padding:0 var(--space-2) 0 var(--space-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-gold);color:var(--color-text);font:600 var(--text-xs)/1.6 var(--font-sans);font-variant-numeric:tabular-nums;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%)}.purse-after{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}.shop-group[data-shelf=unsold] .shop-item{color:var(--color-text-muted)}.shop-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);margin:var(--space-2) 0 var(--space-1)}.shop-group h5{margin:0;font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.shop-group-head button{padding:var(--space-1) var(--space-2);font-size:var(--text-xs)}:is(.shop-list,.shop-heading) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}
 #shop-receipt{margin:0;min-height:2em;border-left:4px solid var(--color-gold);border-radius:var(--radius-sm);background:var(--color-surface);padding:var(--space-1) var(--space-3);font-size:var(--text-sm)}#shop-receipt:empty{visibility:hidden}#shop-receipt.error{color:var(--color-danger);border-left-color:var(--color-danger);font-weight:600}
+#encounter{flex-basis:100%;min-width:0;border:1px solid var(--color-danger);border-radius:var(--radius-md);background:color-mix(in srgb,var(--color-danger-soft) 40%,var(--color-surface));padding:var(--space-2) var(--space-3);margin-bottom:var(--space-4);font-family:var(--font-sans)}#session-scene>#session-actions+#encounter h3{margin:0}#fight-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#encounter-title{font-size:var(--text-lg);color:var(--color-danger)}#turn-order{margin:0 0 0 auto;font-size:var(--text-xs);color:var(--color-text-muted);overflow-wrap:anywhere}#turn-order strong{color:var(--color-ink)}
+#fight-sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-3);margin:var(--space-2) 0}.fight-side{min-width:0}.fight-side h4{margin:0 0 var(--space-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em}#foe-cards{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}.fight-card{min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);--hp-color:var(--color-danger)}.foe-card[aria-current=true]{border-color:var(--color-danger)}.foe-card[data-state]{color:var(--color-text-muted);--hp-color:var(--color-hp-down)}#you-card{--hp-color:var(--color-hp-healthy)}#you-card[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}#you-card[data-health=critical]{--hp-color:var(--color-hp-critical)}#you-card[data-health=down]{--hp-color:var(--color-hp-down)}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}.card-name{min-width:0;overflow-wrap:anywhere}.card-ac{flex:none;font-size:var(--text-xs);color:var(--color-text-muted)}.card-hp{margin:2px 0 0;line-height:1.2}.hp-now{font-size:1.3rem;font-weight:700}.hp-max{font-size:var(--text-xs);font-weight:600;color:var(--color-text-muted)}.fight-card .hp-bar{height:8px;margin:var(--space-1) 0 var(--space-2)}.card-tags{margin:0 0 var(--space-1);font-size:var(--text-xs);line-height:1.7}.card-state{margin:0;font-weight:600}#encounter .card-controls{gap:var(--space-1)}#heal-controls{flex-direction:column;align-items:stretch}#heal-controls .action{display:flex}#heal-controls button{text-align:left}.act-detail{font-size:var(--text-xs);font-weight:400;white-space:nowrap}
+#fight-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);border-top:1px solid var(--color-line);padding-top:var(--space-2)}#fight-foot:not(:has(#flee-control:not([hidden]),li,button:not(#flee-toggle))){display:none}#flee-control{position:relative;display:flex;align-items:center;gap:var(--space-2)}#flee-control[hidden]{display:none}#flee-reason:empty{display:none}#turn-resources{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);list-style:none;margin:0 0 0 auto;padding:0}#end-controls{display:flex;min-width:0}#end-controls:empty{display:none}#end-controls .end-note{text-align:right}
+button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}#flee-menu{position:absolute;left:0;bottom:calc(100% + var(--space-1));z-index:3;width:max-content;min-width:14rem;max-width:min(24rem,60vw);background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);box-shadow:0 6px 18px rgb(0 0 0/.2);padding:var(--space-1)}#flee-attacks{margin:0;padding:2px var(--space-2) var(--space-1);font-size:var(--text-xs);color:var(--color-danger)}#flee-ways{display:grid;gap:2px}#flee-ways .action{display:flex}#flee-ways button{text-align:left;border-color:transparent}#flee-ways button:hover:not(:disabled){background:var(--color-highlight)}#encounter #action-bar{margin:var(--space-2) 0 0}#fight-foot+#action-bar:has(.action-row){border-top:1px solid var(--color-line);padding-top:var(--space-2)}#strike-control{margin:0 0 var(--space-1)}
+#room #room-fold{display:block;margin:0 0 var(--space-2);padding:2px 0;text-decoration:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left;font-size:var(--text-sm);color:var(--color-text-label)}@media(max-width:1499px){#fight-sides{gap:var(--space-2);margin:6px 0}.fight-side h4{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.fight-card{padding:6px var(--space-2)}#encounter .fight-card button{padding:6px 10px}.hp-now{font-size:1.15rem}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -1301,6 +1330,10 @@ let acting = false;
 // The room, and whether a fight is under way there, the centre column last
 // showed (#523).
 let shownPlace = "";
+// Whether the player opened the room's things in a fight (#525), and the
+// Flee menu: both close when the fight begins or ends, or the room changes.
+let roomUnfolded = false;
+let fleeOpen = false;
 // Whether Leave is asking for confirmation (#133).
 let confirmingLeave = false;
 // The equipped item whose sale is asking for confirmation, if any (#210).
@@ -1400,26 +1433,34 @@ function renderAdventure() {
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
   if (element("map-dialog").open) renderMap();
-  // The actions open the centre column (#523). In a fight the Fight section
-  // comes next, before the room (#386); otherwise after it. Only the Fight
-  // section moves, so focus in the actions or the room stays put.
-  const scene = element("session-scene");
-  const fightSection = element("encounter");
-  if (fighting !== (fightSection.nextElementSibling === element("room"))) {
-    scene.insertBefore(fightSection, fighting ? element("room") : null);
-  }
   // A new room, or a fight beginning or ending, shows the centre column from
-  // its top, where a fight's controls are (#523).
+  // its top, where a fight's panel is (#523, #525); the room folds again.
   const place = session.room.id + (fighting ? " fighting" : "");
   if (place !== shownPlace) {
     shownPlace = place;
+    roomUnfolded = false;
+    fleeOpen = false;
     element("session-main").scrollTop = 0;
     element("session-scene").scrollTop = 0;
   }
-  element("encounter").hidden = !encounter;
-  if (encounter) renderInitiative(encounter, fighting);
+  // The fight panel (#525) opens the centre column while a fight is under
+  // way, and is gone once it ends. The action bar moves into it, under the
+  // cards and the footer, or over the cards while a hit or a fall waits for
+  // an answer; out of a fight it is back in #session-actions. It moves only
+  // when its place changes, so focus in it stays put.
+  element("encounter").hidden = !fighting;
+  if (fighting) renderFight(encounter);
+  else {
+    element("you-card").replaceChildren();
+    element("foe-cards").replaceChildren();
+  }
+  const bar = element("action-bar");
+  const holder = fighting ? element("encounter") : element("session-actions");
+  const next = fighting && encounter.pendingReaction ? element("fight-sides") : null;
+  if (bar.parentElement !== holder || bar.nextElementSibling !== next) holder.insertBefore(bar, next);
   renderGear(session.room.gear);
   renderActions();
+  renderRoomFold(fighting);
   renderShop();
   renderStatus();
   renderEnding();
@@ -1668,22 +1709,24 @@ function renderStatus() {
   element("effects").replaceChildren(...session.effects.map((effect) => {
     const item = make("li");
     item.dataset.effect = effect.spellId;
-    const tag = make("span", effect.spell, "tag effect");
-    tag.append(spoken(": " + effect.text));
-    item.append(tag, make("span", (effect.concentration ? "concentration, " : "") + effect.until, "effect-until"));
+    item.append(effectTag(effect), make("span", (effect.concentration ? "concentration, " : "") + effect.until, "effect-until"));
     return item;
   }));
   const items = [];
+  // The turn's Action, Bonus and Reaction pips sit in the fight panel's
+  // footer, by End turn (#525).
+  const pips = [];
   if (turn) {
     // Extra Attack (#287): the Attack action under way still has an attack.
     const pending = turn.attacks > 0 ? "; second attack to make" : "";
     const actions = (turn.actions === 0 ? "used" : turn.maxActions === 1 ? "available" : turn.actions + " of " + turn.maxActions + " left") + pending;
-    items.push(
+    pips.push(
       resource("action", "Action", turn.actions, turn.maxActions, "Action: " + actions),
       resource("bonus-action", "Bonus", turn.bonusAction ? 1 : 0, 1, "Bonus action: " + (turn.bonusAction ? "available" : "used")),
       resource("reaction", "Reaction", turn.reaction ? 1 : 0, 1, "Reaction: " + (turn.reaction ? "available" : "used")),
     );
   }
+  element("turn-resources").replaceChildren(...pips);
   if (features) {
     items.push(resource("second-wind", "Second Wind", features.secondWind.uses, features.secondWind.max, usesLeft("Second Wind", features.secondWind)));
     if (features.actionSurge) items.push(resource("action-surge", "Action Surge", features.actionSurge.uses, features.actionSurge.max, usesLeft("Action Surge", features.actionSurge)));
@@ -2297,20 +2340,6 @@ function renderMapRecord() {
   record.replaceChildren(...(room ? recordNodes(room) : []));
 }
 
-// Disclosures (#157): once the fight is over the initiative table collapses
-// behind #initiative-toggle. It starts collapsed whenever it appears; the
-// player's choice holds until then. #initiative-breakdown, a native details
-// element, holds each combatant's roll and roll-offs.
-const disclosures = { initiative: false };
-
-function disclose(name, shown) {
-  const toggle = element(name + "-toggle");
-  if (!shown) disclosures[name] = false;
-  toggle.hidden = !shown;
-  toggle.setAttribute("aria-expanded", String(disclosures[name]));
-  element(toggle.getAttribute("aria-controls")).hidden = shown && !disclosures[name];
-}
-
 // The character's own gear in "You carry" (#209): what it wears and the
 // weapons in hand head the list, its arrows and bolts (#230) go with the
 // consumables and its stowed gear with the other things (#432), each kind
@@ -2489,6 +2518,23 @@ function renderRoom(room) {
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
 }
 
+// In a fight (#525) the room folds to its heading and one line naming its
+// things, #room-fold, which opens them; out of a fight they are shown, as
+// they are while a card offers an action (a way out once every foe is
+// turned, #341).
+function renderRoomFold(fighting) {
+  const { room } = session;
+  const names = [...room.creatures, ...room.items, ...room.features].map(({ name }) => name);
+  const offers = [...element("room-things").querySelectorAll(".thing-controls")].some((controls) => controls.childElementCount > 0);
+  const folding = fighting && !offers;
+  const fold = element("room-fold");
+  fold.hidden = !folding || names.length === 0;
+  fold.textContent = names.join(", ");
+  fold.title = fold.textContent;
+  fold.setAttribute("aria-expanded", String(roomUnfolded));
+  element("room-things").hidden = folding && !roomUnfolded;
+}
+
 // The character's AC and attacks from its gear as it stands (#209), in the
 // status strip so a swap in a fight shows at once. Stowed gear is listed
 // with what the character carries. The arrows and bolts held follow (#230),
@@ -2500,14 +2546,6 @@ function renderGear(gear) {
   element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + (gear.stealthDisadvantage ? "; Stealth disadvantage" : "") + untrainedText(gear) + ".";
 }
 
-// A surprised combatant (#301), or one in armour it isn't trained with,
-// rolled two d20s and kept the lower.
-// Initiative's advantage (#315) and disadvantage (#301) name their sources; together they cancel.
-const initiativeMode = ({ d20s, advantage, disadvantage }) =>
-  advantage.length && disadvantage.length
-    ? "(" + advantage.join(", ") + ": advantage, and " + disadvantage.join(", ") + ": disadvantage, cancel) "
-    : d20s.join(" and ") + " (" + (advantage.length ? advantage.join(", ") + ": advantage" : disadvantage.join(", ") + ": disadvantage") + "), kept ";
-const rollText = (roll) => "d20 " + (roll.mode ? initiativeMode(roll.mode) : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -2515,36 +2553,95 @@ const conditionTag = (condition) => {
   tag.append(spoken(": " + condition.text));
   return tag;
 };
-const combatantName = (encounter, combatant) => combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
+/** An ongoing spell effect (#337) as a tag, what it does spoken. */
+const effectTag = (effect) => {
+  const tag = make("span", effect.spell, "tag effect");
+  tag.append(spoken(": " + effect.text));
+  return tag;
+};
 
-// The initiative table shows each total; the current turn's row is
-// highlighted and its name tagged. The rolls behind the totals are on demand.
+// The fight panel (#525), at the top of the centre column while a fight is
+// under way: "Fight · Round N" and the turn order, the character's card
+// (its HP and every way to heal) beside each foe's card (its HP, what is on
+// it and one attack), then the fight's other rows (the action bar moves
+// in) and a footer of Flee, the turn's pips and End turn. The rolls behind
+// the turn order are in the history's arrival entry (#524).
 const MORALE_TAGS = { fleeing: "Fleeing", fled: "Fled", surrendering: "Surrendering", surrendered: "Surrendered" };
-function renderInitiative(encounter, fighting) {
-  element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
+const TURN_UNDEAD_ID = ${JSON.stringify(TURN_UNDEAD_ID)};
+/** A foe out of the fight, or turned, shows its state in place of an attack (#525). */
+const foeState = (combatant) =>
+  combatant.defeated ? "Fallen" : combatant.morale === "fled" ? "Fled" : combatant.morale === "surrendered" ? "Surrendered" : combatant.effects.some(({ spellId }) => spellId === TURN_UNDEAD_ID) ? "Turned" : "";
+
+/** A card's name, with its icon (#377), and AC. */
+function cardHead(combatant) {
+  const head = make("div", undefined, "card-head");
+  const name = make("strong", undefined, "card-name");
+  name.append(...iconned(combatant.icon, combatant.name));
+  head.append(name, make("span", "AC " + combatant.armorClass, "card-ac"));
+  return head;
+}
+
+/** HP in large type ("4 / 10 HP") over its bar; screen readers hear "HP 4 of 10". */
+function hpNodes({ hp, maxHp }) {
+  const line = make("p", undefined, "card-hp");
+  line.append(spoken("HP " + hp + " of " + maxHp), unspoken(make("span", String(hp), "hp-now")), unspoken(make("span", " / " + maxHp + " HP", "hp-max")));
+  const bar = unspoken(make("span", undefined, "hp-bar"));
+  const fill = make("span", undefined, "hp-fill");
+  fill.style.width = (maxHp > 0 ? (100 * hp) / maxHp : 0) + "%";
+  bar.append(fill);
+  return [line, bar];
+}
+
+function renderFight(encounter) {
+  element("encounter-title").textContent = "Fight · Round " + encounter.round;
+  // The turn order on one line, the current turn in bold.
+  element("turn-order").replaceChildren(spoken("Turn order: "), ...encounter.combatants.flatMap((combatant, index) => {
     const current = combatant.id === encounter.currentTurn;
-    const row = make("tr", undefined, (current ? "current" : "") + (combatant.defeated || combatant.morale === "fled" || combatant.morale === "surrendered" ? " defeated" : ""));
-    row.dataset.combatant = combatant.id;
-    if (current) row.setAttribute("aria-current", "true");
-    const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : "") + (combatant.hidden ? " (hidden)" : ""));
-    name.scope = "row";
-    if (combatant.icon) name.prepend(icon(combatant.icon));
-    for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
-    if (current) name.append(" ", make("span", "Now", "tag now"));
-    if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
-    if (combatant.initiative.mode?.disadvantage.includes("surprised")) name.append(" ", make("span", "Surprised", "tag surprised"));
-    // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
-    // One that may surrender (#238) yields on its turn instead.
-    if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));
-    row.append(name, make("td", combatant.initiative.total), make("td", combatant.hp + "/" + combatant.maxHp), make("td", combatant.armorClass));
-    return row;
+    const whose = current ? (combatant.id === encounter.playerId ? " · your turn" : " · their turn") : "";
+    const entry = make(current ? "strong" : "span", combatant.name + " " + combatant.initiative.total + whose, "turn-entry" + (foeState(combatant) ? " out" : ""));
+    entry.dataset.combatant = combatant.id;
+    if (current) entry.setAttribute("aria-current", "true");
+    return [...(index > 0 ? [unspoken(make("span", " → ", "turn-arrow")), spoken(", ")] : []), entry];
   }));
-  element("initiative-rolls").replaceChildren(...encounter.combatants.map((combatant) => {
-    const item = make("li", combatantName(encounter, combatant) + ": " + rollText(combatant.initiative));
-    item.dataset.combatant = combatant.id;
-    return item;
+  const self = encounter.combatants.find(({ id }) => id === encounter.playerId);
+  // The character's card: its healing goes in #heal-controls (renderActions).
+  const you = element("you-card");
+  you.dataset.combatant = self.id;
+  you.dataset.health = session.room.character.health;
+  const heal = make("div", undefined, "controls card-controls");
+  heal.id = "heal-controls";
+  heal.setAttribute("role", "group");
+  heal.setAttribute("aria-label", "Heal");
+  // Its conditions (#232) and Hide (#307), as the status strip has them too.
+  const own = make("p", undefined, "card-tags");
+  // And whether it was surprised (#303).
+  const surprised = self.initiative.mode?.disadvantage.includes("surprised") ? [make("span", "Surprised", "tag surprised")] : [];
+  for (const node of [...self.conditions.map(conditionTag), ...(self.hidden ? [make("span", "Hidden", "tag")] : []), ...surprised]) own.append(...(own.childNodes.length ? [" "] : []), node);
+  you.replaceChildren(cardHead(self), ...hpNodes(self), ...(own.childNodes.length ? [own] : []), heal);
+  // A card per foe: its attack goes in its .foe-controls (renderActions).
+  element("foe-cards").replaceChildren(...encounter.combatants.filter(({ id, side }) => id !== self.id && side !== self.side).map((foe) => {
+    const card = make("li", undefined, "fight-card foe-card");
+    card.dataset.combatant = foe.id;
+    const state = foeState(foe);
+    if (state) card.dataset.state = state.toLowerCase();
+    if (foe.id === encounter.currentTurn) card.setAttribute("aria-current", "true");
+    const tags = make("p", undefined, "card-tags");
+    const tag = (node) => tags.append(...(tags.childNodes.length ? [" "] : []), node);
+    // What is on it, unless it is out of the fight.
+    if (!foe.defeated && foe.morale !== "fled" && foe.morale !== "surrendered") {
+      foe.conditions.forEach((condition) => tag(conditionTag(condition)));
+      foe.effects.forEach((effect) => tag(effectTag(effect)));
+      if (foe.sapped) tag(make("span", "Sapped", "tag"));
+      if (foe.hidden) tag(make("span", "Hidden", "tag"));
+      // Morale (#237): a fleeing opponent leaves on its turn. One that may
+      // surrender (#238) yields on its turn instead.
+      if (foe.morale) tag(make("span", MORALE_TAGS[foe.morale], "tag morale"));
+    }
+    if (foe.initiative.mode?.disadvantage.includes("surprised")) tag(make("span", "Surprised", "tag surprised"));
+    const controls = make("div", undefined, "controls card-controls foe-controls");
+    card.append(cardHead(foe), ...hpNodes(foe), ...(tags.childNodes.length ? [tags] : []), state ? make("p", state, "card-state") : controls);
+    return card;
   }));
-  disclose("initiative", !fighting);
 }
 
 // One action at a time: every action control is disabled while one is in
@@ -2653,6 +2750,8 @@ const ACTIONS = {
   fall: { label: "Fall", busy: "Falling", busyLabel: "Falling…" },
   // A spell (#337), chosen with its slot level and target beside the button.
   cast: { label: "Cast", busy: "Casting", busyLabel: "Casting…" },
+  // A healing spell on the character's card in a fight (#525).
+  "heal-spell": { label: "Cast ", busy: "Casting ", busyLabel: "Casting…" },
   // A scroll's or wand's cast in a fight (#392), in the Items row.
   "cast-item": { label: "Use", busy: "Using", busyLabel: "Using…" },
   // A spell scroll read, or a wand used, outside a fight (#346), on its
@@ -2727,11 +2826,13 @@ const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASON
 // reaction spells such as Shield among them; "last-stand" every option
 // while the character's fall waits for Last Stand (#499); "other" any fight
 // action FIGHT_ROW doesn't place.
-const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["last-stand", "Last Stand"], ["answer", "Answer the hit"], ["room", "Use the room"], ["flee", "Flee"], ["other", "Other actions"], ["end", ""]];
+const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["last-stand", "Last Stand"], ["answer", "Answer the hit"], ["room", "Use the room"], ["other", "Other actions"]];
 // The row each of the fight's actions goes in.
-const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", flee: "flee", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", fall: "last-stand", "end-turn": "end" };
+const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", fall: "last-stand" };
 // What End turn would leave unused (#392), by the engine's option kinds.
 const UNUSED_NAMES = { attack: "Attack", "light-attack": "Extra attack", "second-wind": "Second Wind", "action-surge": "Action Surge", hide: "Hide", "steady-aim": "Steady Aim", "drink-potion": "Drink", cast: "Cast a spell", "divine-spark": "Divine Spark", "turn-undead": "Turn Undead", "preserve-life": "Preserve Life", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
+// The ways to heal on the character's card (#525), in this order.
+const HEALS = ["second-wind", "use", "heal-spell", "preserve-life"];
 // Whom a Channel Divinity action that takes no choice reaches (#392).
 const CHANNEL_REACH = { "turn-undead": "every undead foe", "preserve-life": "heals you" };
 // The ways out a flight (#396) can't take: the bar leaves them out.
@@ -2765,14 +2866,37 @@ const cardOf = (target) => {
 };
 
 /**
- * The attacks a flight would draw (#396), as its row says them: by name for
- * one foe, by count for several, which the title names.
+ * The attacks a flight would draw (#396), as Flee's menu says them (#525):
+ * "Draws attacks from Snagtooth and Wick".
  */
 function drawnAttacks(attackers) {
-  if (!attackers || !attackers.length) return { text: "Draws no attacks", title: "" };
+  if (!attackers || !attackers.length) return "Draws no attacks";
   const names = attackers.map(({ name }) => name);
   const all = names.length < 2 ? names[0] : names.slice(0, -1).join(", ") + " and " + names.at(-1);
-  return { text: names.length < 2 ? "Draws an attack from " + all : "Draws " + names.length + " attacks", title: "Draws an attack from " + all };
+  return (names.length < 2 ? "Draws an attack from " : "Draws attacks from ") + all;
+}
+
+/**
+ * Flee (#525): one button opening a short menu of the ways out, headed by
+ * the attacks a flight draws, or disabled with the reason every flight is
+ * refused. The menu is a disclosure: Escape closes it and returns focus to
+ * Flee, as choosing elsewhere on the page does.
+ */
+function renderFlee(ways, option) {
+  element("flee-control").hidden = ways.length === 0;
+  const refused = !option || !option.available;
+  if (refused) fleeOpen = false;
+  element("flee-toggle").disabled = acting || refused;
+  element("flee-reason").textContent = option && refused ? option.reason : "";
+  element("flee-attacks").textContent = option && !refused ? drawnAttacks(option.attackers) : "";
+  element("flee-ways").replaceChildren(...ways);
+  showFleeMenu(fleeOpen);
+}
+
+function showFleeMenu(open) {
+  fleeOpen = open;
+  element("flee-toggle").setAttribute("aria-expanded", String(open));
+  element("flee-menu").hidden = !open;
 }
 
 function renderActions() {
@@ -2792,28 +2916,70 @@ function renderActions() {
   const rows = Object.fromEntries(FIGHT_ROWS.map(([key]) => [key, []]));
   const carried = new Set(session.room.inventory.map(({ id }) => id));
   const { gear } = session.room;
+  // While the character's fall waits (#499), its potions and Fall make the
+  // Last Stand row.
+  const lastStand = fighting && Boolean(session.encounter.pendingReaction && session.encounter.pendingReaction.lastStand);
   // Cunning Strike (#308): the effects the engine offers with some attack
   // go in one choice beside the turn's features, not on buttons of their
   // own; an attack that can't take the chosen one is disabled.
   const strikes = session.actions.filter((option) => option.cunningStrike);
   const effects = [...new Map(strikes.map(({ cunningStrike: effect }) => [effect.id, effect])).values()];
   if (!effects.some(({ id }) => id === cunningStrike)) cunningStrike = "";
-  if (effects.length) (fighting ? rows.attack : groups.feature).push(strikeChoice(effects));
+  // In a fight it heads the foes' cards (#525), whose attacks it goes with.
+  if (effects.length && !fighting) groups.feature.push(strikeChoice(effects));
+  element("strike-control").replaceChildren(...(effects.length && fighting ? [strikeChoice(effects)] : []));
   // The foes the character could attack now (#392).
   const foes = new Set(session.actions.filter(({ action, cunningStrike: effect }) => FOE_WORDS[action] !== undefined && !effect).map(({ target }) => target.id));
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
+  // Each foe's card (#525) carries one attack: the weapon attack the engine
+  // offers on it, else its first attack; the rest stay in the Attack row. A
+  // foe out of the fight, or turned, has no place for one.
+  const foeControls = new Map(fighting ? [...element("foe-cards").querySelectorAll(".foe-controls")].map((controls) => {
+    controls.replaceChildren();
+    return [controls.parentElement.dataset.combatant, controls];
+  }) : []);
+  const onCard = new Map();
+  session.actions.forEach((option, index) => {
+    if (option.cunningStrike || FOE_WORDS[option.action] === undefined || !foeControls.has(option.target.id)) return;
+    const known = onCard.get(option.target.id);
+    if (known === undefined || (option.action === "attack" && session.actions[known].action !== "attack")) onCard.set(option.target.id, index);
+  });
+  // The ways to heal on the character's card (#525), with what each
+  // restores and the action it takes; not while a fall waits for Last
+  // Stand, whose row has its potions.
+  const heals = session.healing || [];
+  const healOf = (option) => {
+    if (!fighting || lastStand) return undefined;
+    const { action, target } = option;
+    if (action === "second-wind" || action === "preserve-life") return heals.find((heal) => heal.action === action);
+    if (action === "use") return heals.find((heal) => heal.action === "use" && heal.id === target.id);
+    return undefined;
+  };
+  const healWraps = [];
+  const fleeWraps = [];
+  let fleeOption;
+  const endWraps = [];
   renderRest(session.actions.find(({ action }) => action === "rest"), fighting);
   renderLongRest(session.actions.find(({ action }) => action === "long-rest"), fighting);
   // Spells (#337) go in one choice of spell and target, with Cast. A
   // scroll's or wand's (#346) go in a choice of their own in a fight's Items
   // row (#392), and outside a fight on its "You carry" entry.
   const casts = session.actions.filter(({ action, spell }) => action === "cast" && !spell.item);
-  // While the character's fall waits (#499), its potions and Fall make the
-  // Last Stand row.
-  const lastStand = fighting && Boolean(session.encounter.pendingReaction && session.encounter.pendingReaction.lastStand);
   // While a hit waits, a reaction spell is one of its answers.
   const answering = session.actions.some(({ action }) => action === "take-hit");
   if (casts.length) (fighting ? rows[answering ? "answer" : "cast"] : groups.feature).push(castPanel(casts));
+  // A healing spell on the character (#525) is a button of its own on its
+  // card, at the lowest slot it could spend now; Cast still offers it at
+  // every slot.
+  if (fighting && !lastStand && !answering) {
+    const healOn = ({ spell, target }) => heals.find((heal) => heal.action === "cast" && heal.id === spell.id && (heal.slotLevel ?? 0) === (spell.slotLevel ?? 0) && target && target.id === encounter.playerId);
+    const healing = casts.filter(healOn);
+    for (const id of new Set(healing.map(({ spell }) => spell.id))) {
+      const own = healing.filter(({ spell }) => spell.id === id);
+      const chosen = own.find(({ available }) => available) || own[0];
+      healWraps.push(healSpellButton(chosen, healOn(chosen)));
+    }
+  }
   const itemCasts = session.actions.filter(({ action, spell }) => action === "cast" && spell.item);
   if (fighting && itemCasts.length) rows.items.push(castPanel(itemCasts, "item"));
   session.actions.forEach((option, index) => {
@@ -2857,20 +3023,33 @@ function renderActions() {
     const parley = action === "react" && option.approach;
     // A flight (#396) sits in the Flee row by the name of the room it leads to.
     const fleeing = fighting && action === "flee";
-    // Against several foes each one's attacks sit by its name (#392).
-    const byFoe = fighting && foes.size > 1 && FOE_WORDS[action] !== undefined;
-    const foeWords = byFoe ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : "";
+    // A foe's card (#525) carries one attack, by its weapon, then its
+    // to-hit and damage as the sheet gives them (#504).
+    const carded = fighting && target !== undefined && onCard.get(target.id) === index;
+    const profile = action === "attack" ? gear.attack : action === "light-attack" ? gear.lightAttack : undefined;
+    // A way to heal (#525) on the character's card, with what it restores.
+    const heal = healOf(option);
+    const detail = carded && profile ? signed(profile.bonus) + " · " + damageText(profile.damage) : heal ? heal.amount + " · " + heal.cost : "";
+    // Against several foes each one's other attacks sit by its name (#392).
+    const byFoe = !carded && fighting && foes.size > 1 && FOE_WORDS[action] !== undefined;
+    const foeWords = byFoe || carded ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : "";
     // A topic sits in its creature's row (#490), by the topic's name.
     const asking = action === "talk" && short ? topicAndCreature(target) : undefined;
     // Leave sits on the way-out room's heading (#520), named in full.
     const leaving = action === "leave";
-    button.append(make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe ? foeWords : leaving ? WAY_OUT : label));
+    const face = make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe || carded ? foeWords : leaving ? WAY_OUT : label);
+    if (detail) {
+      const small = make("small", detail, "act-detail");
+      small.id = "action-detail-" + index;
+      face.append(" ", small);
+    }
+    button.append(face);
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
-    if (short || parley || byFoe || fleeing) button.setAttribute("aria-label", label + (examined ? " (examined)" : ""));
+    if (short || parley || byFoe || carded || fleeing) button.setAttribute("aria-label", label + (examined ? " (examined)" : ""));
     if (leaving) button.setAttribute("aria-label", WAY_OUT + " the adventure");
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + (action === "move" ? " primary" : " secondary");
+    button.className = carded ? "attack primary" : heal ? "heal secondary" : action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + (action === "move" ? " primary" : " secondary");
     // "act" marks an action control, in the bar or on a carried item.
     button.classList.add("act");
     if (examined) button.classList.add("examined");
@@ -2909,6 +3088,18 @@ function renderActions() {
       }
       wrap.append(reason);
     }
+    // A card's attack is named in full; its to-hit and damage describe it,
+    // unless the reason it is refused does.
+    if (carded) {
+      if (detail && !button.hasAttribute("aria-describedby")) button.setAttribute("aria-describedby", "action-detail-" + index);
+      foeControls.get(target.id).append(wrap);
+      return;
+    }
+    if (heal) {
+      wrap.dataset.heal = action;
+      healWraps.push(wrap);
+      return;
+    }
     if (group === "carried") {
       wrap.dataset.target = target.id;
       if (GEAR.includes(action)) wrap.dataset.slot = action === "unequip" ? "equipped" : "stowed";
@@ -2939,23 +3130,23 @@ function renderActions() {
       note.id = "end-note";
       button.setAttribute("aria-describedby", [button.getAttribute("aria-describedby"), note.id].filter(Boolean).join(" "));
       line.append(note, wrap);
-      rows.end.push(line);
+      endWraps.push(line);
+      return;
+    }
+    // End turn closes the panel's footer (#525).
+    if (fighting && action === "end-turn" && !lastStand) {
+      endWraps.push(wrap);
       return;
     }
     // Each Channel Divinity action takes a line of its own, saying whom it
     // reaches when it needs no choice, so none reads as part of another's.
-    // Every flight (#396) draws the same attacks: the row says whose once.
+    // Every flight (#396) draws the same attacks: Flee's menu (#525) says
+    // whose once, over the ways out.
     if (fleeing) {
-      if (!rows.flee.length) {
-        // Every flight is refused alike, or draws the same attacks.
-        const { text, title } = option.available ? drawnAttacks(option.attackers) : { text: option.reason, title: "" };
-        const drawn = make("span", text, "reach");
-        drawn.id = "flee-attacks";
-        if (title) drawn.title = title;
-        rows.flee.push(drawn);
-      }
+      fleeOption ??= option;
+      if (option.available && !fleeOption.available) fleeOption = option;
       button.setAttribute("aria-describedby", [button.getAttribute("aria-describedby"), "flee-attacks"].filter(Boolean).join(" "));
-      rows.flee.splice(rows.flee.length - 1, 0, wrap);
+      fleeWraps.push(wrap);
       return;
     }
     const reach = CHANNEL_REACH[action];
@@ -3009,6 +3200,10 @@ function renderActions() {
     }
   }
   element("room-actions").replaceChildren(...roomWide);
+  // The fight panel's healing, Flee and End turn (#525).
+  element("heal-controls")?.replaceChildren(...healWraps.sort((one, other) => HEALS.indexOf(one.dataset.heal) - HEALS.indexOf(other.dataset.heal)));
+  element("end-controls").replaceChildren(...endWraps);
+  renderFlee(fleeWraps, fleeOption);
   element("leave-controls").replaceChildren(...groups.leave);
   // A carried item's verbs go on its entry in "You carry" (#198).
   for (const entry of document.querySelectorAll("#inventory li[data-id]")) {
@@ -3721,6 +3916,40 @@ function castPanel(casts, kind = "spell") {
   if (why) {
     const reason = make("span", why, "reason");
     reason.id = prefix + "-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  return wrap;
+}
+
+/**
+ * A healing spell on the character's card (#525): Cast, its name and slot,
+ * what it restores and the action it takes, disabled with the engine's
+ * reason when it would refuse.
+ */
+function healSpellButton(option, heal) {
+  const { spell } = option;
+  const button = make("button");
+  const face = make("span", spell.name + (spell.slotLevel ? " (" + ORDINALS[spell.slotLevel] + "-level slot)" : ""));
+  face.append(" ", make("small", heal.amount + " · " + heal.cost, "act-detail"));
+  button.append(face);
+  button.dataset.busyLabel = ACTIONS["heal-spell"].busyLabel;
+  button.type = "button";
+  button.className = "heal secondary act";
+  button.dataset.action = "heal-spell";
+  button.dataset.target = spell.id;
+  button.disabled = acting || !option.available;
+  const control = "button.act[data-action=heal-spell][data-target=" + JSON.stringify(spell.id) + "]";
+  button.addEventListener("click", async () => {
+    await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds: [option.target.id] }, control, ACTIONS["heal-spell"].busy + spell.name + "…");
+    keepFocus("heal-spell", spell.id);
+  });
+  const wrap = make("span", undefined, "action");
+  wrap.dataset.heal = "heal-spell";
+  wrap.append(button);
+  if (!option.available) {
+    const reason = make("span", option.reason, "reason");
+    reason.id = "heal-reason-" + spell.id;
     button.setAttribute("aria-describedby", reason.id);
     wrap.append(reason);
   }
@@ -4854,14 +5083,28 @@ element("ending-next").addEventListener("click", () => go(findEntry(session.char
 element("confirm-leave").addEventListener("click", leaveAdventure);
 element("cancel-leave").addEventListener("click", cancelLeave);
 element("room-history-link").addEventListener("click", showArrival);
+element("flee-toggle").addEventListener("click", () => {
+  showFleeMenu(!fleeOpen);
+  if (fleeOpen) element("flee-ways").querySelector("button:enabled")?.focus();
+});
+// Escape closes Flee's menu and returns focus to Flee (#525); so does
+// choosing anything else on the page.
+element("flee-control").addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !fleeOpen) return;
+  event.preventDefault();
+  event.stopPropagation();
+  showFleeMenu(false);
+  element("flee-toggle").focus();
+});
+document.addEventListener("click", (event) => {
+  if (fleeOpen && !element("flee-control").contains(event.target)) showFleeMenu(false);
+});
+element("room-fold").addEventListener("click", () => {
+  roomUnfolded = !roomUnfolded;
+  renderRoomFold(fightingNow());
+});
 element("confirm-abandon").addEventListener("click", abandonAdventure);
 element("cancel-abandon").addEventListener("click", closeAbandon);
-for (const name of Object.keys(disclosures)) {
-  element(name + "-toggle").addEventListener("click", () => {
-    disclosures[name] = !disclosures[name];
-    disclose(name, true);
-  });
-}
 // The skip link moves focus without adding a history entry.
 document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();

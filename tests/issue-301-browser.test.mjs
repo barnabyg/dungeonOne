@@ -79,9 +79,9 @@ test(
           card,
           /^You spring your ambush: [^\n]+ is surprised and rolls initiative with disadvantage\./u,
         );
-        // The initiative table tags each surprised opponent.
+        // The fight panel's cards (#525) tag each surprised opponent.
         assert.equal(
-          await page.locator("#initiative-rows .tag.surprised").count(),
+          await page.locator("#foe-cards .tag.surprised").count(),
           1,
         );
         await fight(page);

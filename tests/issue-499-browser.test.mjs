@@ -66,7 +66,7 @@ async function toLastStand(page, url) {
       "The fight is over.",
     );
     await settled(page, () =>
-      page.locator('#feature-controls button[data-action="end-turn"]').click(),
+      page.locator('#encounter button[data-action="end-turn"]').click(),
     );
   }
   return row;

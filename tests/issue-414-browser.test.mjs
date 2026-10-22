@@ -19,7 +19,12 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
 import { rogueLibrary } from "../dist/test-rogue-5e.js";
-import { settled, startAdventure, text } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  settled,
+  startAdventure,
+  text,
+} from "./fixtures/browser-journey.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
@@ -121,7 +126,7 @@ async function fightTurn(page, chain) {
           ),
         ]
       : []),
-    page.locator("#attack-controls button.attack"),
+    page.locator("#encounter button.attack"),
     page.locator('button.act[data-action="light-attack"]'),
   ];
   for (const choice of choices) {
@@ -130,7 +135,7 @@ async function fightTurn(page, chain) {
     }
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 
@@ -366,11 +371,8 @@ test(
         page.locator('button.act[data-action="disengage"]').click(),
       );
       assert.equal(await drawn.textContent(), "Draws no attacks");
-      await settled(page, () =>
-        page
-          .locator('button.act[data-action="flee"][data-target="pump-room"]')
-          .click(),
-      );
+      // From Flee's menu (#525).
+      await clickAction(page, "flee", "pump-room");
       assert.equal(
         await page.locator("#room-title").textContent(),
         "Pump Room",

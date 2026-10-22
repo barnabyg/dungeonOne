@@ -75,7 +75,7 @@ const tabRegions = async (page) => {
     const region = await page.evaluate(
       () =>
         document.activeElement.closest(
-          "#session-character, #session-actions, #session-scene, #session-composer, #session-history",
+          "#session-character, #session-actions, #encounter, #session-scene, #session-composer, #session-history",
         )?.id,
     );
     if (!region) {
@@ -88,11 +88,13 @@ const tabRegions = async (page) => {
   return regions;
 };
 
-// The character's column (#432), then the centre: the actions opening the
-// scene, the scene and the DM box; then the history (#523).
+// The character's column (#432), then the centre: the actions, or in a
+// fight its panel (#525), opening the scene, the scene and the DM box; then
+// the history (#523).
 const ORDER = [
   "session-character",
   "session-actions",
+  "encounter",
   "session-scene",
   "session-composer",
   "session-history",
@@ -171,7 +173,7 @@ test(
       // Mid-fight: tab order and the skip link, then a reload keeps the
       // same layout with the newest entry shown.
       assertTabOrder(await tabRegions(page), [
-        "session-actions",
+        "encounter",
         "session-composer",
         "session-history",
       ]);
@@ -190,7 +192,7 @@ test(
       const before = await regions(page);
       await page.reload();
       await page.locator("#adventure").waitFor({ state: "visible" });
-      await page.locator("#attack-controls button").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
       assert.deepEqual(await regions(page), before);
       await assertTogether(page, "reload mid-fight");
 

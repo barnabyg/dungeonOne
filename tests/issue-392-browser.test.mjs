@@ -1,9 +1,11 @@
 // #392, browser → API: the fight's actions in labelled rows. A level-2
-// Cleric facing a zombie sees Attack, Cast a spell, Channel Divinity,
-// Weapons and End turn, in that order and in tab order; Channel Divinity's
-// uses show once; the attack names the mace; and holding the dagger in the
-// other hand, which can't work beside a mace, isn't offered. A Fighter's
-// and a Rogue's features take a row of their own in the same structure.
+// Cleric facing a zombie sees Cast a spell, Channel Divinity and Weapons, in
+// that order and in tab order, under the fight panel's cards and footer
+// (#525), whose zombie card's attack names the mace and whose End turn says
+// what it leaves unused; Channel Divinity's uses show once; and holding the
+// dagger in the other hand, which can't work beside a mace, isn't offered. A
+// Fighter's and a Rogue's features take a row of their own in the same
+// structure.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -108,7 +110,7 @@ async function fightWith(sheet, adventure, run, seed = 0) {
       .click();
     await page.locator("#sheet-name").filter({ hasText: sheet.name }).waitFor();
     await startAdventure(page, adventure.id);
-    await page.locator("#attack-controls button.attack:enabled").waitFor();
+    await page.locator("#encounter button.attack:enabled").waitFor();
     await run(page);
   } finally {
     await browser.close();
@@ -128,6 +130,12 @@ const rows = (page) =>
         uses: row.querySelector(".row-uses")?.innerText ?? "",
       })),
   );
+
+/** The attack on `foe`'s card in the fight panel (#525), by its full name. */
+const cardAttack = (page, foe) =>
+  page
+    .locator(`#foe-cards li[data-combatant="${foe}"] button`)
+    .getAttribute("aria-label");
 
 /** What End turn says it gives up, and what a screen reader hears for it. */
 const endTurnNote = (page) =>
@@ -199,9 +207,8 @@ test(
   { timeout: 120000 },
   () =>
     fightWith(MIRA, crypt, async (page) => {
-      const order = ["attack", "cast", "channel-divinity", "weapons", "end"];
+      const order = ["cast", "channel-divinity", "weapons"];
       assert.deepEqual(await rows(page), [
-        { row: "attack", label: "Attack", uses: "" },
         { row: "cast", label: "Cast a spell", uses: "" },
         {
           row: "channel-divinity",
@@ -209,11 +216,8 @@ test(
           uses: "2 of 2 left",
         },
         { row: "weapons", label: "Weapons", uses: "" },
-        { row: "end", label: "", uses: "" },
       ]);
-      assert.deepEqual(await buttons(page, "attack"), [
-        "Attack Zombie with Mace",
-      ]);
+      assert.equal(await cardAttack(page, "zombie"), "Attack Zombie with Mace");
       assert.deepEqual(await buttons(page, "channel-divinity"), [
         "Divine Spark",
         "Turn Undead",
@@ -251,7 +255,10 @@ test(
         await page.locator('#action-bar button[data-action="equip"]').count(),
         0,
       );
-      assert.deepEqual(await buttons(page, "end"), ["End turn"]);
+      assert.deepEqual(
+        await page.locator("#end-controls button").allInnerTexts(),
+        ["End turn"],
+      );
       // End turn says what it gives up, and the fight's first turn says
       // the turn ends by itself.
       const note =
@@ -269,9 +276,10 @@ test(
       await settled(page, () =>
         page.locator('#action-bar button[data-action="swap"]').click(),
       );
-      assert.deepEqual(await buttons(page, "attack"), [
+      assert.equal(
+        await cardAttack(page, "zombie"),
         "Attack Zombie with Dagger",
-      ]);
+      );
       // The second dagger can go in the other hand; swapping it for the
       // first would change nothing.
       assert.deepEqual(await buttons(page, "weapons"), [
@@ -282,29 +290,31 @@ test(
 );
 
 test(
-  "a Fighter's Second Wind and Action Surge share a row of their own",
+  "a Fighter's Second Wind sits on its card and Action Surge in a row of its own",
   { timeout: 120000 },
   () =>
     fightWith(veteran(), yard, async (page) => {
       const shown = (await rows(page)).map(({ row, label }) => [row, label]);
       assert.deepEqual(
         shown.filter(([row]) => row !== "weapons"),
-        [
-          ["attack", "Attack"],
-          ["fighter", "Fighter features"],
-          ["end", ""],
-        ],
+        [["fighter", "Fighter features"]],
       );
       assert.deepEqual(
         (await tabRows(page)).filter((row) => row !== "weapons"),
-        ["attack", "fighter", "end"],
+        ["fighter"],
       );
       assert.deepEqual(await buttons(page, "fighter"), [
-        "Second Wind (2 of 2 left)",
         "Action Surge (1 of 1 left)",
       ]);
+      // Second Wind heals, so it is on the character's card (#525).
       assert.match(
-        (await buttons(page, "attack"))[0],
+        await page
+          .locator('#heal-controls button[data-action="second-wind"]')
+          .innerText(),
+        /^Second Wind \(2 of 2 left\) 1d10 \+ \d+ · bonus$/u,
+      );
+      assert.match(
+        await cardAttack(page, "goblin"),
         /^Attack Goblin Warrior with /u,
       );
       // After the attack only Action Surge is left: End turn says so.
@@ -313,7 +323,7 @@ test(
         "Left unused: Attack, Action Surge",
       );
       await settled(page, () =>
-        page.locator('#action-bar button[data-action="attack"]').click(),
+        page.locator('#encounter button[data-action="attack"]').click(),
       );
       assert.equal(
         (await endTurnNote(page)).shown,
@@ -323,17 +333,17 @@ test(
 );
 
 test(
-  "a Rogue's Hide and Steady Aim share a row, and Cunning Strike joins the attack",
+  "a Rogue's Hide and Steady Aim share a row, and Cunning Strike heads the foes' cards",
   { timeout: 120000 },
   () =>
     fightWith(rogueAt5(), yard, async (page) => {
       const shown = (await rows(page)).map(({ row, label }) => [row, label]);
+      // The dagger's extra attack stays in the Attack row (#525).
       assert.deepEqual(
         shown.filter(([row]) => row !== "weapons"),
         [
           ["attack", "Attack"],
           ["rogue", "Rogue features"],
-          ["end", ""],
         ],
       );
       // Cunning Action's Disengage (#396) joins them, refused here: the
@@ -357,18 +367,25 @@ test(
       );
       assert.deepEqual(
         (await tabRows(page)).filter((row) => row !== "weapons"),
-        ["attack", "rogue", "end"],
+        // The extra attack waits for the attack, so Tab passes it by.
+        ["rogue"],
       );
       // Steady Aim's advantage makes Sneak Attack, and so Cunning Strike,
-      // possible: its choice sits in the Attack row, named by its words.
+      // possible: its choice heads the foes' cards (#525), named by its
+      // words.
       await settled(page, () =>
         page.locator('#action-bar button[data-action="steady-aim"]').click(),
       );
-      const strike = page.locator(
-        '.action-row[data-row="attack"] #cunning-strike',
-      );
+      const strike = page.locator("#strike-control #cunning-strike");
       await strike.waitFor();
-      assert.match(await readRow(page, "attack"), /^Cunning Strike None /u);
+      assert.equal(
+        await page
+          .locator("#cunning-strike")
+          .evaluate((select) =>
+            select.labels[0].textContent.trim().startsWith("Cunning Strike"),
+          ),
+        true,
+      );
     }),
 );
 

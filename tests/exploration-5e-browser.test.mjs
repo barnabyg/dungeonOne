@@ -108,8 +108,9 @@ const screen = (page) =>
       })
       .join("\n"),
     encounterHidden: document.getElementById("encounter").hidden,
-    rows: [...document.querySelectorAll("#initiative-rows tr")].map(
-      (row) => row.textContent,
+    // The fight panel's foe cards (#525).
+    rows: [...document.querySelectorAll("#foe-cards > li")].map(
+      (card) => card.textContent,
     ),
     log: document.getElementById("log").textContent,
   }));
@@ -129,11 +130,11 @@ async function explore(page, action, target) {
 /** Clicks the first Attack button, or End turn once the action is spent. */
 async function clickNext(page) {
   const count = await page.locator("#log li").count();
-  const attack = page.locator("#attack-controls button.attack:enabled");
+  const attack = page.locator("#encounter button.attack:enabled");
   await (
     (await attack.count()) > 0
       ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]')
+      : page.locator('#encounter button[data-action="end-turn"]')
   ).click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,

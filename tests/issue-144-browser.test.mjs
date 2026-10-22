@@ -178,9 +178,7 @@ test(
         .filter({ hasText: "Applies: the longsword is held in two hands." })
         .waitFor();
       await startAdventure(page, "lone-goblin");
-      await page
-        .locator('#attack-controls button[data-action="attack"]')
-        .click();
+      await page.locator('#encounter button[data-action="attack"]').click();
       const line = page
         .locator("#log li")
         .filter({ hasText: "Ada attacks Goblin Warrior with Longsword" })

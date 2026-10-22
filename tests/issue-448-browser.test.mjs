@@ -101,7 +101,7 @@ const fighting = async (page) =>
  */
 async function ruleTurn(page) {
   for (const choice of [
-    page.locator("#attack-controls button.attack"),
+    page.locator("#encounter button.attack"),
     page.locator('button.act[data-action="light-attack"]'),
   ]) {
     if ((await choice.count()) > 0 && (await choice.first().isEnabled())) {
@@ -109,7 +109,7 @@ async function ruleTurn(page) {
     }
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 

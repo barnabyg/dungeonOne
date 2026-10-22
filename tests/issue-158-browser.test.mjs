@@ -46,11 +46,11 @@ function seedFor(wanted) {
 async function playToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
     const count = await page.locator("#log li").count();
-    const attack = page.locator("#attack-controls button.attack:enabled");
+    const attack = page.locator("#encounter button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
+        : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
     await page.waitForFunction(
       (seen) => document.querySelectorAll("#log li").length > seen,

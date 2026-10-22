@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   actionButton,
+  openFlee,
   clickAction,
   createAndStart,
 } from "./fixtures/browser-journey.mjs";
@@ -65,8 +66,8 @@ test("the room panel's exits and their buttons give each way's direction", async
 
     // In the cellar's fight, Flee names the way back.
     await clickAction(page, "move", "rat-cellar");
+    await openFlee(page);
     const flee = actionButton(page, "flee", "stair-foot");
-    await flee.waitFor();
     assert.equal(await flee.textContent(), "North: Foot of the Stair");
     assert.equal(
       await flee.getAttribute("aria-label"),

@@ -1,10 +1,10 @@
-// #157: a trimmed room panel and initiative table. Empty room lists are left
-// out, and a room with nothing in it says so in one line. In a fight the
-// room's details stay shown, with the Fight section above them (#386). The
-// initiative table shows totals, marks the current turn by highlighting its
-// row and tagging the name, keeps the rolls and roll-offs in a disclosure,
-// and collapses once the fight is over. The exploring side (short verbs,
-// left-out empty lists) is checked in issue-214-browser.test.mjs.
+// #157: a trimmed room panel. Empty room lists are left out, and a room with
+// nothing in it says so in one line. In a fight the fight panel (#525) comes
+// above the room (#386), which folds to its heading and one line naming its
+// things; the turn order shows totals and marks the current turn, the rolls
+// and roll-offs are in the history's arrival entry (#524), and the panel is
+// gone once the fight is over. The exploring side (short verbs, left-out
+// empty lists) is checked in issue-214-browser.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -44,11 +44,11 @@ function rollOffSeed() {
 /** Clicks the first Attack button, or End turn once the action is spent. */
 async function clickNext(page) {
   const count = await page.locator("#log li").count();
-  const attack = page.locator("#attack-controls button.attack:enabled");
+  const attack = page.locator("#encounter button.attack:enabled");
   await (
     (await attack.count()) > 0
       ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]')
+      : page.locator('#encounter button[data-action="end-turn"]')
   ).click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,
@@ -58,20 +58,6 @@ async function clickNext(page) {
 
 const fightOver = async (page) =>
   (await page.locator("#turn").textContent()) === "The fight is over.";
-
-/** Tabs from the adventure title until `selector` has focus. */
-async function tabTo(page, selector) {
-  await page.locator("#adventure-title").focus();
-  for (let step = 0; step < 40; step++) {
-    await page.keyboard.press("Tab");
-    if (
-      await page.evaluate((s) => document.activeElement.matches(s), selector)
-    ) {
-      return;
-    }
-  }
-  assert.fail(`Tab never reached ${selector}`);
-}
 
 const rollOff = rollOffSeed();
 
@@ -113,8 +99,8 @@ const REGIONS = [
   "#session-status",
   "#inventory-group",
   "#rest-group",
-  // Then the centre (#523): the fight's controls, the Fight section, the
-  // room and the DM box; the history last.
+  // Then the centre (#523): the error and ending line, the fight panel
+  // (#525), the room and the DM box; the history last.
   "#session-actions",
   "#encounter",
   "#room",
@@ -161,7 +147,7 @@ async function tabRegions(page) {
 
 const viewport = { width: 1280, height: 850 };
 test(
-  `a fight with the room shown below it, and the table after it (${viewport.width}px)`,
+  `a fight panel over the room, gone after the fight (${viewport.width}px)`,
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
@@ -179,8 +165,8 @@ test(
     try {
       await createAndStart(page, server.url, "lone-goblin");
 
-      // In the fight, the room's details show with no disclosure (#386),
-      // and no "None." rows render anywhere.
+      // In the fight the room's heading shows (#386), and no "None." rows
+      // render anywhere.
       assert.equal(await page.locator("#room-toggle").count(), 0);
       assert.equal(await page.locator("#room-title").isVisible(), true);
       assert.doesNotMatch(
@@ -190,14 +176,6 @@ test(
       // The fight starts on the first screen.
       const fightTop = (await page.locator("#encounter").boundingBox()).y;
       assert.ok(fightTop + 100 < viewport.height, String(fightTop));
-
-      // A cellar with nothing in it shows one short line and no empty
-      // lists.
-      assert.equal(
-        await page.locator("#room-empty").textContent(),
-        "There is nothing else here.",
-      );
-      assert.equal(await page.locator("#room-empty").isVisible(), true);
       // No lists at all: what the character carries is in its own column
       // (#432).
       assert.deepEqual(
@@ -213,65 +191,35 @@ test(
         "#room",
       ]);
 
-      // A compact table: no Turn column or caption; each initiative is the
-      // total, and the current turn's row is highlighted and tagged.
-      assert.deepEqual(
-        await page.locator("#initiative thead th").allTextContents(),
-        ["Combatant", "Initiative", "HP", "AC"],
-      );
-      assert.equal(await page.locator("#initiative caption").count(), 0);
-      for (const cell of await page
-        .locator("#initiative-rows td:nth-child(2)")
-        .allTextContents()) {
-        assert.match(cell, /^\d+$/);
-      }
-      // The roll-off seed's fight outlasts that first action.
+      // The turn order: each initiative is the total, and the current turn
+      // is marked. The roll-off seed's fight outlasts that first action.
       assert.equal(await fightOver(page), false, "the fight is still on");
-      const current = page.locator("#initiative-rows tr.current");
-      assert.equal(await current.count(), 1);
-      assert.equal(await current.getAttribute("aria-current"), "true");
-      assert.equal(await current.locator("th .tag.now").textContent(), "Now");
-
-      // The rolls behind the totals, with the roll-off, open by keyboard.
-      const breakdown = page.locator("#initiative-breakdown");
-      assert.equal(await page.locator("#initiative-rolls").isVisible(), false);
-      await tabTo(page, "#initiative-breakdown summary");
-      await page.keyboard.press("Enter");
-      assert.equal(await breakdown.evaluate((node) => node.open), true);
-      const rolls = await page
-        .locator("#initiative-rolls li")
+      assert.equal(await page.locator("#initiative").count(), 0);
+      const entries = await page
+        .locator("#turn-order .turn-entry")
         .allTextContents();
-      assert.ok(
-        rolls.some((roll) => /^Ada \(you\): d20 \d+ [+−] \d+ = \d+/.test(roll)),
-        rolls.join("; "),
-      );
-      assert.ok(
-        rolls.some((roll) => /, roll-off \d+(, \d+)*$/.test(roll)),
-        rolls.join("; "),
+      assert.equal(entries.length, 2);
+      for (const entry of entries) {
+        assert.match(entry, /^(Ada|Goblin Warrior) \d+( · your turn)?$/u);
+      }
+      const current = page.locator('#turn-order [aria-current="true"]');
+      assert.equal(await current.count(), 1);
+      assert.match(await current.textContent(), /^Ada \d+ · your turn$/u);
+      // The rolls behind the totals, with the roll-off, are in the history
+      // (#524).
+      assert.match(
+        await page.locator("#log").textContent(),
+        /Initiative: .*roll-off \d+/u,
       );
 
       while (!(await fightOver(page))) {
         await clickNext(page);
       }
 
-      // After the fight: the room is back above the Fight section, and the
-      // table is collapsed behind its own disclosure.
+      // After the fight the panel is gone, and the room unfolds.
+      assert.equal(await page.locator("#encounter").isHidden(), true);
       assert.equal(await page.locator("#room-title").isVisible(), true);
-      assert.deepEqual(await documentOrder(page, ["#encounter", "#room"]), [
-        "#room",
-        "#encounter",
-      ]);
-      const table = page.getByRole("button", { name: "Initiative order" });
-      assert.equal(await table.getAttribute("aria-expanded"), "false");
-      assert.equal(await page.locator("#initiative").isVisible(), false);
-      await tabTo(page, "#initiative-toggle");
-      await page.keyboard.press("Enter");
-      assert.equal(await table.getAttribute("aria-expanded"), "true");
-      assert.equal(await page.locator("#initiative").isVisible(), true);
-      assert.equal(
-        await page.locator("#initiative-rows tr.current").count(),
-        0,
-      );
+      assert.equal(await page.locator("#room-things").isVisible(), true);
 
       // No horizontal scroll, even with a wide font as CI's Linux one is.
       await assertNoSideScroll(page, "no horizontal scroll", {
@@ -305,14 +253,19 @@ test(
       await createAndStart(page, server.url, "furnished-cellar");
       assert.equal(await fightOver(page), false, "the fight is on");
 
-      // No disclosure: the initiative table sits above the exits and the
-      // features, all three shown without a click. The fight's controls now
-      // open the centre column (#523), so the room may sit below the fold:
-      // scrolling the centre brings each group into view above the DM box.
+      // The fight panel (#525) sits above the room, which folds to its
+      // heading and one line naming its features; the line opens them.
+      // Scrolling the centre brings each group into view above the DM box.
       assert.equal(await page.locator("#room-toggle").count(), 0);
       const area = await page.locator("#session-main").boundingBox();
-      const table = await page.locator("#initiative").boundingBox();
-      assert.ok(table, "the initiative table is shown");
+      const fold = page.locator("#room-fold");
+      assert.equal(await fold.textContent(), "Ale Rack");
+      assert.equal(await fold.getAttribute("aria-expanded"), "false");
+      assert.equal(await page.locator("#features-group").isVisible(), false);
+      await fold.click();
+      assert.equal(await fold.getAttribute("aria-expanded"), "true");
+      const table = await page.locator("#encounter").boundingBox();
+      assert.ok(table, "the fight panel is shown");
       for (const selector of ["#exits-group", "#features-group"]) {
         const group = await page.locator(selector).boundingBox();
         assert.ok(group, selector + " is shown");
@@ -332,8 +285,8 @@ test(
       assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
       assert.match(await page.locator("#features").textContent(), /Ale Rack/);
 
-      // DOM and tab order: the character's column, the fight's controls,
-      // Fight, room, composer, history.
+      // DOM and tab order: the character's column, the fight panel, room,
+      // composer, history.
       assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
       const tabbed = await tabRegions(page);
       assert.deepEqual(
@@ -342,7 +295,7 @@ test(
       );
       for (const region of [
         "#encounter",
-        "#session-actions",
+        "#room",
         "#session-history",
         "#session-composer",
       ]) {

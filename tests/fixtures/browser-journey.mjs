@@ -67,9 +67,26 @@ export const actionButton = (page, action, target) =>
     `button.act[data-action="${action}"]${target === undefined ? "" : `[data-target="${target}"]`}`,
   );
 
-/** Clicks `actionButton` and waits for its settled history entry. */
+/** Opens Flee's menu (#525) in the fight panel, unless it is open. */
+export async function openFlee(page) {
+  const toggle = page.locator("#flee-toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await page.locator("#flee-menu").waitFor();
+}
+
+/**
+ * Clicks `actionButton` and waits for its settled history entry. A flight
+ * (#525) is chosen from Flee's menu, opened first.
+ */
 export const clickAction = (page, action, target) =>
-  settled(page, () => actionButton(page, action, target).click());
+  settled(page, async () => {
+    if (action === "flee") {
+      await openFlee(page);
+    }
+    await actionButton(page, action, target).click();
+  });
 
 /**
  * Takes one fight turn: attacks the first target offered, or ends the turn
@@ -77,18 +94,22 @@ export const clickAction = (page, action, target) =>
  */
 export const fightTurn = (page) =>
   settled(page, async () => {
-    const attack = page.locator("#attack-controls button.attack:enabled");
+    const attack = page.locator("#encounter button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
+        : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
   });
 
-/** Takes fight turns until the turn line says the fight is over. */
-export async function fight(page) {
+/**
+ * Takes fight turns until the turn line says the fight is over, calling
+ * `after` once each turn has settled.
+ */
+export async function fight(page, after = async () => {}) {
   while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
     await fightTurn(page);
+    await after();
   }
 }
 

@@ -316,11 +316,14 @@ test(
       );
       await clickAction(page, "move", "rat-cellar");
       await page.locator("#cast-spell").waitFor();
-      assert.deepEqual(await stripResources(), [
-        "action",
-        "bonus-action",
-        "reaction",
-      ]);
+      // In a fight the turn's pips are in the fight panel's footer (#525).
+      assert.deepEqual(await stripResources(), []);
+      assert.deepEqual(
+        await page
+          .locator("#turn-resources li")
+          .evaluateAll((items) => items.map((item) => item.dataset.resource)),
+        ["action", "bonus-action", "reaction"],
+      );
       await castNamed(page, "Ray of Sickness (1st-level slot)");
       assert.match(
         await text(page.locator("#log")),

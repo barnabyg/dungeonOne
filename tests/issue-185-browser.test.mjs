@@ -43,26 +43,28 @@ async function holdRequests(page, path) {
 /** Every action button: its place, state and what it shows and is named. */
 const bar = (page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll("#room button.act, #action-bar button")].map(
-      (button) => {
-        const { x, y, width, height } = button.getBoundingClientRect();
-        const label = button.querySelector("span");
-        const busy = getComputedStyle(button, "::after");
-        return {
-          key: button.dataset.action + ":" + (button.dataset.target || ""),
-          box: [x, y, width, height].map(Math.round),
-          disabled: button.disabled,
-          busy: button.getAttribute("aria-busy"),
-          name: button.getAttribute("aria-label") || label.textContent,
-          shows:
-            getComputedStyle(label).visibility === "visible"
-              ? label.textContent
-              : busy.visibility === "visible"
-                ? JSON.parse(busy.content)
-                : "",
-        };
-      },
-    ),
+    [
+      ...document.querySelectorAll(
+        "#room button.act, #action-bar button, #encounter button.act",
+      ),
+    ].map((button) => {
+      const { x, y, width, height } = button.getBoundingClientRect();
+      const label = button.querySelector("span");
+      const busy = getComputedStyle(button, "::after");
+      return {
+        key: button.dataset.action + ":" + (button.dataset.target || ""),
+        box: [x, y, width, height].map(Math.round),
+        disabled: button.disabled,
+        busy: button.getAttribute("aria-busy"),
+        name: button.getAttribute("aria-label") || label.textContent,
+        shows:
+          getComputedStyle(label).visibility === "visible"
+            ? label.textContent
+            : busy.visibility === "visible"
+              ? JSON.parse(busy.content)
+              : "",
+      };
+    }),
   );
 
 /**
@@ -197,14 +199,10 @@ test(
       );
 
       // Fighting: no button is widened by its busy label.
-      await page.locator("#attack-controls button").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
       assert.deepEqual(
         await page.evaluate(() =>
-          [
-            ...document.querySelectorAll(
-              "#attack-controls button, #feature-controls button",
-            ),
-          ]
+          [...document.querySelectorAll("#encounter button.act")]
             .map((button) => {
               const busy = button.dataset.busyLabel;
               const width = button.getBoundingClientRect().width;
@@ -221,21 +219,25 @@ test(
       // End turn, a control without a target, then the attack.
       await holdAction(
         page,
-        '#feature-controls button[data-action="end-turn"]',
+        '#encounter button[data-action="end-turn"]',
         "/api/5e/session/action",
         "Ending",
         "Ending turn…",
         "stays",
       );
       const attack = page
-        .locator('#attack-controls button[data-action="attack"]')
+        .locator('#encounter button[data-action="attack"]')
         .first();
       await attack.waitFor();
       const target = await attack.getAttribute("data-target");
-      const opponent = (await attack.textContent()).replace(/^Attack /, "");
+      // A card's attack (#525) is named in full by its aria-label.
+      const opponent = (await attack.getAttribute("aria-label")).replace(
+        /^Attack /,
+        "",
+      );
       await holdAction(
         page,
-        `#attack-controls button[data-action="attack"][data-target="${target}"]`,
+        `#encounter button[data-action="attack"][data-target="${target}"]`,
         "/api/5e/session/attack",
         "Attacking…",
         `Attacking ${opponent}…`,

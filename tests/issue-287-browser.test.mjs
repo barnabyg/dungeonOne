@@ -110,15 +110,15 @@ test(
       // The first attack, at the left goblin, leaves the second to make.
       await clickAction(page, "attack", "left");
       assert.match(
-        await page.locator("#resources").innerText(),
+        await page.locator("#turn-resources").innerText(),
         /second attack to make/u,
       );
       const second = actionButton(page, "attack", "right");
-      // By two goblins the button shows its words and weapon by the
-      // goblin's name, and is named in full (#392).
-      assert.equal(
+      // On the goblin's card (#525) the button shows its words, weapon,
+      // to-hit and damage, and is named in full (#392).
+      assert.match(
         (await second.innerText()).trim(),
-        "Second attack with Mace",
+        /^Second attack with Mace \+\d+ · 1d6 \+ \d+$/u,
       );
       assert.equal(
         await second.getAttribute("aria-label"),
@@ -133,7 +133,7 @@ test(
       while (
         (await page.locator("#turn").textContent()) !== "The fight is over."
       ) {
-        const attacks = page.locator("#attack-controls button.attack:enabled");
+        const attacks = page.locator("#encounter button.attack:enabled");
         if ((await attacks.count()) === 0) {
           await clickAction(page, "end-turn");
           continue;

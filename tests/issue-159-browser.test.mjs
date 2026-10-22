@@ -238,11 +238,11 @@ test(
 
       // Clicks until the fight ends.
       while (!(await page.locator("#ending").isVisible())) {
-        const attack = page.locator("#attack-controls button.attack:enabled");
+        const attack = page.locator("#encounter button.attack:enabled");
         await added(page, async () =>
           ((await attack.count()) > 0
             ? attack.first()
-            : page.locator('#feature-controls button[data-action="end-turn"]')
+            : page.locator('#encounter button[data-action="end-turn"]')
           ).click(),
         );
       }

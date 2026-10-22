@@ -236,37 +236,35 @@ test(
       await keyboardAction(page, "move", "stair-foot");
       await keyboardAction(page, "move", "rat-cellar");
 
-      // The fight's whole toolkit, in one bar.
+      // The fight's whole toolkit, in its panel (#525).
       const bar = async () =>
         page
-          .locator("#action-bar button")
+          .locator("#encounter button.act")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.action),
           );
-      // In the fight's row order (#392): Attack, Fighter features, Items,
-      // and Flee (#396) by each way out.
+      // In the panel's order (#525): the healing on Ada's card, the attack
+      // on the rat's, then Flee's menu (#396) by each way out and End turn.
       const toolkit = [
-        "attack",
         "second-wind",
         "use",
+        "attack",
         "flee",
         "flee",
         "end-turn",
       ];
       assert.deepEqual(await bar(), toolkit);
       assert.equal(await page.locator("#room button.act").count(), 0);
-      // The potion's Drink sits in the Items row (#392).
+      // The potion's Drink sits on Ada's card (#525).
       assert.equal(
-        await page
-          .locator('.action-row[data-row="items"] button[data-action="use"]')
-          .count(),
+        await page.locator('#heal-controls button[data-action="use"]').count(),
         1,
       );
 
       // Keyboard only: Attack, then Enter again and again. Each Enter
       // attacks again (focus stayed on Attack) or does nothing (focus moved
       // to the newest entry); then End turn and back to Attack.
-      const attack = '#attack-controls button[data-action="attack"]';
+      const attack = '#encounter button[data-action="attack"]';
       await page.locator("#adventure-title").focus();
       await tabTo(page, attack);
       let spentShown = false;
@@ -298,11 +296,7 @@ test(
           await assertReason(page, attack, "Action used");
           spentShown = true;
           // Shift+Tab back into the bar: disabled actions are skipped.
-          await tabTo(
-            page,
-            '#feature-controls button[data-action="end-turn"]',
-            true,
-          );
+          await tabTo(page, '#encounter button[data-action="end-turn"]', true);
           await enterAction(page);
         } else if (now.action === "end-turn") {
           await tabTo(page, attack, true);

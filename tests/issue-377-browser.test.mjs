@@ -1,7 +1,7 @@
 // #377, browser → API → storage: Bea finds a purse and a dagger in the
 // Goblin Yard and goes down to the goblin. Each shows its icon in the room's
-// lists and beside the log line that names it, the goblin also in the
-// initiative table; the log's text is unchanged, the icons survive a reload,
+// lists and beside the log line that names it, the goblin also on its card
+// in the fight panel (#525); the log's text is unchanged, the icons survive a reload,
 // and Settings credits the artists.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -98,7 +98,8 @@ test("monsters and items show their icons beside the text that names them", asyn
       ["#icon-plain-dagger"],
     );
 
-    // The goblin: before its description as Bea enters, and in the table.
+    // The goblin: before its description as Bea enters, and on its card in
+    // the fight panel (#525).
     await clickAction(page, "move", "cellar");
     const entered = last().locator(".card-line").first();
     assert.deepEqual(await iconsIn(entered), ["#icon-goblin"]);
@@ -108,7 +109,7 @@ test("monsters and items show their icons beside the text that names them", asyn
     );
     assert.deepEqual(
       await iconsIn(
-        page.locator('#initiative-rows tr[data-combatant="goblin"]'),
+        page.locator('#foe-cards li[data-combatant="goblin"] .card-name'),
       ),
       ["#icon-goblin"],
     );

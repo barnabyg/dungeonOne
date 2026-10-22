@@ -1,8 +1,9 @@
 // #238, browser → API → storage: in the burial hall a goblin loses its nerve
-// and surrenders. The initiative table tags it Surrendered and offers no body
-// for it; once the fight is won it kneels in the room. Ada asks it for mercy,
-// takes the ring it offers and escapes; the ending, the stored sheet and the
-// sheet page show the ring, half the captive's XP and the XP for sparing it.
+// and surrenders. Its card in the fight panel (#525) tags it Surrendering,
+// and the room offers no body for it; once the fight is won it kneels in the
+// room. Ada asks it for mercy, takes the ring it offers and escapes; the
+// ending, the stored sheet and the sheet page show the ring, half the
+// captive's XP and the XP for sparing it.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -53,7 +54,17 @@ test(
       await createAndStart(page, server.url, surrenderingGoblins.id);
 
       await clickAction(page, "move", "burial-hall");
-      await fight(page);
+      // Its card in the fight panel (#525) shows what became of it.
+      const shownStates = new Set();
+      await fight(page, async () => {
+        for (const tag of await page
+          .locator(
+            `#foe-cards li[data-combatant="${captive}"] :is(.card-state, .tag.morale)`,
+          )
+          .allTextContents()) {
+          shownStates.add(tag);
+        }
+      });
       const log = await text(page.locator("#log"));
       assert.match(
         log,
@@ -66,10 +77,7 @@ test(
         log,
         new RegExp(`${captiveName} throws down its arms and surrenders\\.`),
       );
-      const row = page.locator(
-        `#initiative-rows tr[data-combatant="${captive}"]`,
-      );
-      assert.match(await row.textContent(), /Surrendered/);
+      assert.ok(shownStates.has("Surrendering"), [...shownStates].join(", "));
       // Only the fallen leave bodies; the captive is there to talk to.
       assert.equal(
         await page.locator(`button.act[data-action="examine"]`).count(),

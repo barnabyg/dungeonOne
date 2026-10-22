@@ -164,19 +164,17 @@ test(
 
         // Fight with it: attack, then the extra attack with two light weapons.
         await startAdventure(page, "lone-goblin");
-        const attack = page.locator(
-          '#attack-controls button[data-action="attack"]',
-        );
+        const attack = page.locator('#encounter button[data-action="attack"]');
         await attack.waitFor();
         const extra = page.locator(
-          '#attack-controls button[data-action="light-attack"]',
+          '#encounter button[data-action="light-attack"]',
         );
         if (profile.lightAttack === undefined) {
           assert.equal(await extra.count(), 0, kit);
         } else {
           assert.equal(await extra.isDisabled(), true);
           assert.match(
-            await page.locator("#attack-controls").innerText(),
+            await page.locator("#action-bar").innerText(),
             /Extra attack on Goblin Warrior with Dagger\s+Attack first/,
           );
         }

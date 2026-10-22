@@ -193,7 +193,7 @@ test(
         await explore(page, action, target);
         while (
           (await page
-            .locator('#feature-controls button[data-action="end-turn"]')
+            .locator('#encounter button[data-action="end-turn"]')
             .count()) > 0
         ) {
           await fightOn(page);

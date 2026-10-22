@@ -89,10 +89,16 @@ const post = (page, path, body) =>
   );
 
 /** What the encounter panel shows: initiative rows, turn and the log. */
+/**
+ * The fight panel (#525): a line per card, Ada's then each foe's in
+ * initiative order, "Goblin Warrior: 4/10, AC 15" with a fallen foe's state;
+ * the turn line and the history.
+ */
 const panel = (page) =>
   page.evaluate(() => ({
-    rows: [...document.querySelectorAll("#initiative-rows tr")].map(
-      (row) => row.textContent,
+    rows: [...document.querySelectorAll("#you-card, #foe-cards > li")].map(
+      (card) =>
+        `${card.querySelector(".card-name").textContent}: ${card.querySelector(".hp-now").textContent}/${/\d+/u.exec(card.querySelector(".hp-max").textContent)[0]}, ${card.querySelector(".card-ac").textContent}${card.querySelector(".card-state") ? `, ${card.querySelector(".card-state").textContent}` : ""}`,
     ),
     turn: document.getElementById("turn").textContent,
     log: document.getElementById("log").textContent,
@@ -125,14 +131,12 @@ test(
         library.characters[0].sheet.abilities,
         firstFighter(seed).abilities,
       );
-      // Initiative order with totals, HP and the current turn.
+      // Each card's HP and AC, and the current turn.
       let shown = await panel(page);
       assert.equal(shown.rows.length, 2);
+      assert.ok(shown.rows.some((row) => /^Ada: \d+\/\d+, AC \d+$/.test(row)));
       assert.ok(
-        shown.rows.some((row) => /Ada \(you\)( Now)?\d+\d+\/\d+\d+/.test(row)),
-      );
-      assert.ok(
-        shown.rows.some((row) => /Goblin Warrior( Now)?\d+\d+\/1015/.test(row)),
+        shown.rows.some((row) => /^Goblin Warrior: \d+\/10, AC 15$/.test(row)),
       );
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.match(shown.log, /Initiative: /);
@@ -177,7 +181,7 @@ test(
         await page.locator("#ending-title").textContent(),
         "The cellar is clear",
       );
-      assert.equal(await page.locator("#attack-controls button").count(), 0);
+      assert.equal(await page.locator("#encounter button.attack").count(), 0);
       assert.ok(await page.locator("#send-message").isDisabled());
 
       // Every die matches an uninterrupted engine run on the same seed.
@@ -313,7 +317,7 @@ test(
     // words and weapon (#392).
     const attackLabels = () =>
       page
-        .locator("#attack-controls button.attack")
+        .locator("#encounter button.attack")
         .evaluateAll((buttons) =>
           buttons.map(
             (button) => button.getAttribute("aria-label") ?? button.textContent,
@@ -324,14 +328,14 @@ test(
       // Every combatant in initiative order.
       let shown = await panel(page);
       assert.equal(shown.rows.length, 3);
-      for (const name of ["Ada (you)", "Goblin Minion", "Goblin Warrior"]) {
+      for (const name of ["Ada:", "Goblin Minion", "Goblin Warrior"]) {
         assert.equal(shown.rows.filter((row) => row.includes(name)).length, 1);
       }
       // One attack control per living opponent, in initiative order.
       assert.deepEqual(
         await attackLabels(),
         shown.rows
-          .filter((row) => !row.includes("Ada (you)"))
+          .filter((row) => !row.startsWith("Ada:"))
           .map(
             (row) =>
               `Attack ${/Goblin (Minion|Warrior)/.exec(row)[0]} with Mace`,
@@ -365,7 +369,11 @@ test(
         ({ id }) => id === expected.firstFall.id,
       ).name;
       shown = await panel(page);
-      assert.ok(shown.rows.some((row) => row.includes(`${fallen} Defeated`)));
+      assert.ok(
+        shown.rows.some(
+          (row) => row.startsWith(`${fallen}: 0/`) && row.endsWith(", Fallen"),
+        ),
+      );
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.ok(!(await attackLabels()).includes(`Attack ${fallen} with Mace`));
 
@@ -473,7 +481,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     const feature = (action) =>
-      page.locator(`#feature-controls button[data-action="${action}"]:enabled`);
+      page.locator(`#encounter button[data-action="${action}"]:enabled`);
     try {
       await createAndStart(page, server.url, "lone-goblin");
       // At full health there is no Second Wind to click.
@@ -482,9 +490,16 @@ test(
       while (!(await page.locator("#ending").isVisible())) {
         const count = await page.locator("#log li").count();
         if ((await feature("second-wind").count()) > 0) {
+          // On Ada's card in the fight panel (#525), with its dice.
           assert.equal(
             await feature("second-wind").textContent(),
-            `Second Wind (${usedSecondWind ? 1 : 2} of 2 left)`,
+            `Second Wind (${usedSecondWind ? 1 : 2} of 2 left) 1d10 + 1 · bonus`,
+          );
+          assert.equal(
+            await page
+              .locator('#heal-controls button[data-action="second-wind"]')
+              .count(),
+            1,
           );
           await feature("second-wind").click();
           await page.waitForFunction(

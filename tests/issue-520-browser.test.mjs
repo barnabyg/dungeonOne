@@ -410,11 +410,11 @@ test(
       ]);
       await assertFits(page, "in the hall");
 
-      // Into the tomb's fight: the room's cards have no buttons; the bar's
-      // fight controls work as before.
+      // Into the tomb's fight: the room's cards have no buttons; the fight
+      // panel's controls (#525) work as before.
       await onCard(page, "exits", "tomb", "move", "tomb");
       assert.equal(await page.locator("#room button.act").count(), 0);
-      assert.ok((await page.locator("#action-bar button.act").count()) > 0);
+      assert.ok((await page.locator("#encounter button.act").count()) > 0);
       await fightTurn(page);
       await assertFits(page, "in the fight");
     } finally {

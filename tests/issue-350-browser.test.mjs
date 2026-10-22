@@ -98,7 +98,7 @@ async function fightTurn(page, who) {
   const turn = page.locator('button.act[data-action="turn-undead"]');
   const cast = page.locator("button.act[data-action=cast]");
   const use = page.locator("button.act[data-action=cast-item]");
-  const attack = page.locator("#attack-controls button.attack:enabled");
+  const attack = page.locator("#encounter button.attack:enabled");
   if (await enabled(takeHit)) {
     return settled(page, () => takeHit.first().click());
   }
@@ -138,7 +138,7 @@ async function fightTurn(page, who) {
     return settled(page, () => attack.first().click());
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 

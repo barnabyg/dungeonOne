@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   actionButton,
+  openFlee,
   clickAction,
   createAndStart,
 } from "./fixtures/browser-journey.mjs";
@@ -36,10 +37,15 @@ test("Ada flees a fight, reloads, and meets it again on going back", async () =>
     await createAndStart(page, server.url, "fleeing-cellar");
     await clickAction(page, "move", "rat-cellar");
     const flee = actionButton(page, "flee", "stair-foot");
-    await flee.waitFor({ state: "visible" });
-    // The Flee row: one control by each usable way, with the attacks drawn.
-    const row = page.locator(".action-row[data-row=flee]");
-    assert.equal(await row.locator(".row-label").textContent(), "Flee");
+    // Flee (#525) opens a menu: one control by each usable way, under the
+    // attacks drawn.
+    assert.equal(await page.locator("#flee-toggle").innerText(), "Flee ▾");
+    assert.equal(
+      await page.locator("#flee-toggle").getAttribute("aria-label"),
+      "Flee",
+    );
+    await openFlee(page);
+    const row = page.locator("#flee-menu");
     assert.deepEqual(
       await row
         .locator("button.act")
@@ -53,10 +59,9 @@ test("Ada flees a fight, reloads, and meets it again on going back", async () =>
       "Flee north to Foot of the Stair",
     );
     const drawn = row.locator("#flee-attacks");
-    assert.equal(await drawn.textContent(), "Draws 2 attacks");
     assert.match(
-      await drawn.getAttribute("title"),
-      /^Draws an attack from (Giant Rat and Zombie|Zombie and Giant Rat)$/u,
+      await drawn.textContent(),
+      /^Draws attacks from (Giant Rat and Zombie|Zombie and Giant Rat)$/u,
     );
     assert.match(await flee.getAttribute("aria-describedby"), /flee-attacks/u);
     const before = await sessionFile(directory);

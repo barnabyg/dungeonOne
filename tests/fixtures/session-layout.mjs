@@ -77,13 +77,15 @@ const layout = (page) =>
     const newest = document
       .querySelector("#log li:last-child")
       .getBoundingClientRect();
-    // Shown buttons only: the ending's (#158) is hidden while playing. Out
-    // of a fight the actions are on the room's cards and in "You carry",
-    // which scroll with the room (#520, #523); the DM box and a fight's rows
-    // stay on screen.
+    // Shown buttons only: the ending's (#158) is hidden while playing, as
+    // Flee's menu is while closed. Out of a fight the actions are on the
+    // room's cards and in "You carry", which scroll with the room (#520,
+    // #523); the DM box stays on screen, and so do a fight panel's cards,
+    // footer and answers to a waiting hit (#525). Its other rows follow the
+    // footer, and may need a scroll.
     const buttons = [
       ...document.querySelectorAll(
-        "#action-bar .rows button, #ending button, #send-message",
+        "#fight-sides button, #fight-foot button, #action-bar :is([data-row=answer], [data-row=last-stand]) button, #ending button, #send-message",
       ),
     ].filter((button) => button.getClientRects().length > 0);
     const focused = document.activeElement;
@@ -146,11 +148,11 @@ export const explore = (page, action, target) =>
 
 export const fightOn = (page) =>
   act(page, "fight", async () => {
-    const attack = page.locator("#attack-controls button.attack:enabled");
+    const attack = page.locator("#encounter button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
+        : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
   });
 

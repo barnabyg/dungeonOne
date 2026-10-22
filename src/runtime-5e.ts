@@ -278,6 +278,7 @@ import {
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import { isOneOf } from "./json-shape.js";
 import {
+  effectAtSlot,
   effectEnds,
   isSpellId,
   maxTargets,
@@ -5626,11 +5627,120 @@ export type FightView = Readonly<{
       hidden: boolean;
       /** Its conditions, each with what gave it and how it ends. */
       conditions: readonly ConditionView[];
+      /**
+       * The ongoing spell effects on it (#525): an opponent's turning,
+       * curse or slowing, for its card in the fight panel.
+       */
+      effects: readonly EffectView[];
       initiative: Omit<InitiativeRoll, "combatantId">;
     }>[];
   }>;
   targets: readonly Readonly<{ id: string; name: string }>[];
+  /**
+   * The ways the character could heal itself in the fight (#525), whether
+   * or not the engine would accept them now, for its card in the fight
+   * panel.
+   */
+  healing: readonly HealingView[];
 }>;
+
+/**
+ * A way the character heals itself (#525): Second Wind, a potion it
+ * carries, a healing spell it has prepared at a slot level it has, or
+ * Preserve Life; what it would restore, in the sheet's words ("2d4 + 2",
+ * or Preserve Life's "5 HP", "up to 15 HP" while it would restore none),
+ * and the action it takes.
+ */
+export type HealingView = Readonly<{
+  action: "second-wind" | "use" | "cast" | "preserve-life";
+  /** The potion's id, or the spell's. */
+  id?: string;
+  /** A levelled spell's slot level. */
+  slotLevel?: number;
+  amount: string;
+  cost: "action" | "bonus";
+}>;
+
+/** "2d4 + 2", "1d10 − 1", as the sheet writes dice. */
+const healingText = (dice: number, sides: number, modifier: number) =>
+  `${dice}d${sides}${modifier === 0 ? "" : ` ${modifier > 0 ? "+" : "−"} ${Math.abs(modifier)}`}`;
+
+/** The ways `self` heals itself in a fight (#525). */
+function healingViews(self: Combatant): readonly HealingView[] {
+  const views: HealingView[] = [];
+  if (self.secondWind !== undefined) {
+    const { dice, sides, modifier } = self.secondWind.healing;
+    views.push({
+      action: "second-wind",
+      amount: healingText(dice, sides, modifier),
+      cost: "bonus",
+    });
+  }
+  const potions = new Map(
+    (self.potions ?? []).map((potion) => [potion.id, potion]),
+  );
+  for (const { id, healing } of potions.values()) {
+    views.push({
+      action: "use",
+      id,
+      amount: healingText(healing.dice, healing.sides, healing.modifier),
+      cost: "bonus",
+    });
+  }
+  const casting = self.spellcasting;
+  for (const spell of casting?.spells ?? []) {
+    if (
+      spell.effect.kind !== "healing" ||
+      (spell.castingTime !== "action" && spell.castingTime !== "bonus-action")
+    ) {
+      continue;
+    }
+    const levels =
+      spell.level === 0
+        ? [undefined]
+        : casting!.slots
+            .map((_, index) => index + 1)
+            .filter((slotLevel) => slotLevel >= spell.level);
+    for (const slotLevel of levels) {
+      const effect = effectAtSlot(spell, slotLevel);
+      if (effect.kind !== "healing") {
+        continue;
+      }
+      const disciple =
+        casting!.discipleOfLife === true && slotLevel !== undefined
+          ? 2 + slotLevel
+          : 0;
+      const modifier =
+        (effect.noModifier === true ? 0 : casting!.modifier) + disciple;
+      views.push({
+        action: "cast",
+        id: spell.id,
+        ...(slotLevel === undefined ? {} : { slotLevel }),
+        amount: healingText(
+          effect.healing.dice,
+          effect.healing.sides,
+          modifier,
+        ),
+        cost: spell.castingTime === "action" ? "action" : "bonus",
+      });
+    }
+  }
+  const preserve = self.channelDivinity?.preserveLife;
+  if (preserve !== undefined) {
+    // As much as it would restore now, up to half the character's HP; while
+    // it would restore nothing, its pool.
+    const amount = Math.min(
+      preserve,
+      Math.max(0, Math.floor(self.maxHp / 2) - self.hp),
+    );
+    views.push({
+      action: "preserve-life",
+      amount: amount === 0 ? `up to ${preserve} HP` : `${amount} HP`,
+      cost: "action",
+    });
+  }
+  return views;
+}
 
 export type ConditionView = Readonly<{
   kind: ConditionKind;
@@ -5847,6 +5957,7 @@ function projectFight(
                   // Hidden by Hide (#307): advantage on its next attack.
                   hidden: encounter.hidden.includes(entrant.id),
                   conditions: conditionsOf(encounter, entrant.id),
+                  effects: effectViews(entrant),
                   // A surprised combatant's two d20s (#301), or two with
                   // advantage (#315).
                   initiative: {
@@ -5862,6 +5973,7 @@ function projectFight(
           },
         }),
     targets: targets.map(({ id, name }) => ({ id, name })),
+    healing: healingViews(self),
   };
 }
 

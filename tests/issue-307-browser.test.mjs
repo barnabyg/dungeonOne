@@ -94,18 +94,16 @@ const seed = (() => {
 /** Takes one fight turn's click as `choose` does, and waits for its entry. */
 async function fightClick(page) {
   const aim = page.locator(
-    '#feature-controls button[data-action="steady-aim"]:enabled',
+    '#encounter button[data-action="steady-aim"]:enabled',
   );
-  const attack = page.locator("#attack-controls button.attack:enabled");
+  const attack = page.locator("#encounter button.attack:enabled");
   await settled(page, async () => {
     if ((await aim.count()) > 0) {
       await aim.click();
     } else if ((await attack.count()) > 0) {
       await attack.first().click();
     } else {
-      await page
-        .locator('#feature-controls button[data-action="end-turn"]')
-        .click();
+      await page.locator('#encounter button[data-action="end-turn"]').click();
     }
   });
 }

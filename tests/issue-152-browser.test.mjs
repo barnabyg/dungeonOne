@@ -229,11 +229,11 @@ async function check(page, screen) {
 async function fightToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
     const count = await page.locator("#log li").count();
-    const attack = page.locator("#attack-controls button.attack:enabled");
+    const attack = page.locator("#encounter button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
+        : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
     await page.waitForFunction(
       (seen) => document.querySelectorAll("#log li").length > seen,
@@ -321,21 +321,8 @@ test(
       await fightToTheEnd(page);
       await check(page, "fight over");
 
-      // A defeated combatant is tagged and dimmed, never struck through.
-      const defeated = await page.evaluate(() =>
-        [...document.querySelectorAll("#initiative-rows tr.defeated")].map(
-          (row) => ({
-            tag: row.querySelector(".tag")?.textContent,
-            struck: [...row.cells].some((cell) =>
-              getComputedStyle(cell).textDecorationLine.includes(
-                "line-through",
-              ),
-            ),
-          }),
-        ),
-      );
-      assert.equal(defeated.length, 1);
-      assert.deepEqual(defeated[0], { tag: "Defeated", struck: false });
+      // Once the fight is over its panel is gone (#525).
+      assert.equal(await page.locator("#encounter").isHidden(), true);
 
       // Headings follow one scale, largest first.
       const sizes = await page.evaluate(() =>
