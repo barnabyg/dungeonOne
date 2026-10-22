@@ -43,7 +43,11 @@ async function holdRequests(page, path) {
 /** Every action button: its place, state and what it shows and is named. */
 const bar = (page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll("#action-bar button")].map((button) => {
+    [
+      ...document.querySelectorAll(
+        "#room button.act, #action-bar button, #encounter button.act",
+      ),
+    ].map((button) => {
       const { x, y, width, height } = button.getBoundingClientRect();
       const label = button.querySelector("span");
       const busy = getComputedStyle(button, "::after");
@@ -177,7 +181,7 @@ test(
       // Exploring: a short verb shows its own busy verb.
       await holdAction(
         page,
-        '#explore-controls button[data-action="examine"][data-target="rusted-lantern"]',
+        '#room button[data-action="examine"][data-target="rusted-lantern"]',
         "/api/5e/session/explore",
         "Examining…",
         "Examining Rusted Lantern…",
@@ -187,7 +191,7 @@ test(
       );
       await holdAction(
         page,
-        '#explore-controls button[data-action="move"][data-target="rat-cellar"]',
+        '#room button[data-action="move"][data-target="rat-cellar"]',
         "/api/5e/session/explore",
         "Going…",
         "Going to Rat-Gnawed Cellar…",
@@ -195,14 +199,10 @@ test(
       );
 
       // Fighting: no button is widened by its busy label.
-      await page.locator("#attack-controls button").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
       assert.deepEqual(
         await page.evaluate(() =>
-          [
-            ...document.querySelectorAll(
-              "#attack-controls button, #feature-controls button",
-            ),
-          ]
+          [...document.querySelectorAll("#encounter button.act")]
             .map((button) => {
               const busy = button.dataset.busyLabel;
               const width = button.getBoundingClientRect().width;
@@ -219,21 +219,25 @@ test(
       // End turn, a control without a target, then the attack.
       await holdAction(
         page,
-        '#feature-controls button[data-action="end-turn"]',
+        '#encounter button[data-action="end-turn"]',
         "/api/5e/session/action",
         "Ending",
         "Ending turn…",
         "stays",
       );
       const attack = page
-        .locator('#attack-controls button[data-action="attack"]')
+        .locator('#encounter button[data-action="attack"]')
         .first();
       await attack.waitFor();
       const target = await attack.getAttribute("data-target");
-      const opponent = (await attack.textContent()).replace(/^Attack /, "");
+      // A card's attack (#525) is named in full by its aria-label.
+      const opponent = (await attack.getAttribute("aria-label")).replace(
+        /^Attack /,
+        "",
+      );
       await holdAction(
         page,
-        `#attack-controls button[data-action="attack"][data-target="${target}"]`,
+        `#encounter button[data-action="attack"][data-target="${target}"]`,
         "/api/5e/session/attack",
         "Attacking…",
         `Attacking ${opponent}…`,

@@ -101,7 +101,7 @@ const fighting = async (page) =>
  */
 async function ruleTurn(page) {
   for (const choice of [
-    page.locator("#attack-controls button.attack"),
+    page.locator("#encounter button.attack"),
     page.locator('button.act[data-action="light-attack"]'),
   ]) {
     if ((await choice.count()) > 0 && (await choice.first().isEnabled())) {
@@ -109,7 +109,7 @@ async function ruleTurn(page) {
     }
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 
@@ -423,7 +423,7 @@ test(
       /something huge snores beneath it\./u,
       /You use the Side of Salt Pork on the Feeding Hatch\. [^\n]*Heavy steps drag after it toward the spillway/u,
       /The Side of Salt Pork is used up\./u,
-      /You enter the Lock Chamber\./u,
+      /Lock Chamber — /u,
       /You find the Gilded Guild Seal, Strongbox Gold and Wand of Magic Missiles\./u,
       /You take the Wand of Magic Missiles\./u,
       /Grisk is defeated\./u,
@@ -488,7 +488,7 @@ test(
       /Kennel Mastiff checks morale as the first of its side falls: a Wisdom saving throw, 7 \+ 1 = 8 against DC 8\. Success: it stands its ground\./u,
       /Kennel Mastiff is defeated\./u,
       /You use the Haunch of Venison on the Serving Hatch\. You heave the haunch through the hatch\. The bear falls on it with a roar\./u,
-      /You enter the Lodge Hall\./u,
+      /Lodge Hall — /u,
       /King's Hanger and stow it\./u,
       /Out with the spoils\./u,
     ]);

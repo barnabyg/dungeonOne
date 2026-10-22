@@ -1,7 +1,7 @@
 // #233, browser → API → storage: in the sealed crypt the risen warden, a
 // Zombie, is reduced to 0 HP and its Undead Fortitude keeps it standing. The
-// history narrates the save and shows its roll, the initiative table shows
-// it at 1 HP, and a restart serves the same state from the saved session.
+// history narrates the save and shows its roll, its card in the fight panel
+// (#525) shows it at 1 HP, and a restart serves the same state from the saved session.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
@@ -57,9 +57,9 @@ function refusal(seed) {
   return undefined;
 }
 
-/** The warden's row in the initiative table. */
+/** The warden's HP on its card in the fight panel (#525). */
 const wardenRow = (page) =>
-  page.locator('#initiative-rows tr[data-combatant="risen-warden"]');
+  page.locator('#foe-cards li[data-combatant="risen-warden"] .card-hp');
 
 test(
   "the risen warden refuses to fall: narrated, rolled and shown at 1 HP, and kept across a restart",
@@ -109,7 +109,7 @@ test(
         /^Zombie Constitution saving throw \(Undead Fortitude\) Success d20 \d+ \+ 3 = \d+ vs DC \d+$/u,
       );
       // Shown: still in the fight at 1 HP.
-      assert.match(await wardenRow(page).innerText(), /1\/15/);
+      assert.match(await wardenRow(page).innerText(), /^1 \/ 15 HP$/mu);
 
       // Stored: a restart serves the warden at 1 HP from the saved session.
       const [file] = await readdir(join(directory, "characters-adventures"));
@@ -129,7 +129,7 @@ test(
       });
       await page.goto(`${server.url}/#adventure-${saved.id}`);
       await page.locator("#adventure").waitFor({ state: "visible" });
-      assert.match(await wardenRow(page).innerText(), /1\/15/);
+      assert.match(await wardenRow(page).innerText(), /^1 \/ 15 HP$/mu);
       assert.match(
         await page.locator("#log").innerText(),
         /Zombie refuses to fall and has 1\/15 HP\./,

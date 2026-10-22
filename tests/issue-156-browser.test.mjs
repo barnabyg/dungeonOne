@@ -109,7 +109,7 @@ async function enterAction(page) {
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log > li").length > seen &&
-      !document.querySelector("#action-bar [aria-busy=true]"),
+      !document.querySelector("button.act[aria-busy=true]"),
     count,
   );
   // The page moves focus once the action settles.
@@ -121,7 +121,7 @@ async function enterAction(page) {
   );
 }
 
-/** Tabs to an action (in the bar or the inventory) from the adventure title and presses Enter. */
+/** Tabs to an action (on a room card, in the bar or the inventory) from the adventure title and presses Enter. */
 async function keyboardAction(page, action, target) {
   await page.locator("#adventure-title").focus();
   await tabTo(
@@ -176,29 +176,34 @@ test(
     try {
       await createAndStart(page, server.url, "rat-tunnels");
 
-      // Exploring actions live in the action region, not the room panel;
-      // only the character's own gear is acted on, from "You carry" in the
-      // character column (#198, #209, #432).
-      assert.equal(await page.locator("#room button").count(), 0);
+      // Exploring actions live on the room's cards (#520), not the action
+      // bar; the character's own gear is acted on from "You carry" in the
+      // character column (#198, #209, #432), beside its Rest section's
+      // Short rest, greyed with nothing to recover (#521).
+      assert.equal(await page.locator("#action-bar button").count(), 0);
       assert.deepEqual(
         await page
           .locator("#session-character button")
           .evaluateAll((buttons) =>
-            buttons.map((button) => button.getAttribute("aria-label")),
+            buttons.map(
+              (button) =>
+                button.getAttribute("aria-label") ??
+                `${button.textContent} (${button.disabled ? "disabled" : "enabled"})`,
+            ),
           ),
-        ["Unequip Leather armour"],
+        ["Unequip Leather armour", "Short rest (disabled)"],
       );
       assert.deepEqual(
         await page
-          .locator("#explore-controls button")
+          .locator("#room button.act")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.getAttribute("aria-label")),
           ),
         [
+          "Examine Rusted Lantern",
           "Go west to Alcove",
           "Go south to Rat-Gnawed Cellar",
           "Sneak south into Rat-Gnawed Cellar",
-          "Examine Rusted Lantern",
         ],
       );
 
@@ -216,7 +221,7 @@ test(
       assert.equal((await focused(page)).newest, true);
       assert.match(
         await page.locator("#log > li:last-child").textContent(),
-        /You enter the Alcove/,
+        /^Alcove — A cramped alcove/,
       );
       await keyboardAction(page, "examine", "iron-chest");
       await keyboardAction(page, "take", "healing-potion");
@@ -231,37 +236,35 @@ test(
       await keyboardAction(page, "move", "stair-foot");
       await keyboardAction(page, "move", "rat-cellar");
 
-      // The fight's whole toolkit, in one bar.
+      // The fight's whole toolkit, in its panel (#525).
       const bar = async () =>
         page
-          .locator("#action-bar button")
+          .locator("#encounter button.act")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.action),
           );
-      // In the fight's row order (#392): Attack, Fighter features, Items,
-      // and Flee (#396) by each way out.
+      // In the panel's order (#525): the healing on Ada's card, the attack
+      // on the rat's, then Flee's menu (#396) by each way out and End turn.
       const toolkit = [
-        "attack",
         "second-wind",
         "use",
+        "attack",
         "flee",
         "flee",
         "end-turn",
       ];
       assert.deepEqual(await bar(), toolkit);
-      assert.equal(await page.locator("#explore-controls button").count(), 0);
-      // The potion's Drink sits in the Items row (#392).
+      assert.equal(await page.locator("#room button.act").count(), 0);
+      // The potion's Drink sits on Ada's card (#525).
       assert.equal(
-        await page
-          .locator('.action-row[data-row="items"] button[data-action="use"]')
-          .count(),
+        await page.locator('#heal-controls button[data-action="use"]').count(),
         1,
       );
 
       // Keyboard only: Attack, then Enter again and again. Each Enter
       // attacks again (focus stayed on Attack) or does nothing (focus moved
       // to the newest entry); then End turn and back to Attack.
-      const attack = '#attack-controls button[data-action="attack"]';
+      const attack = '#encounter button[data-action="attack"]';
       await page.locator("#adventure-title").focus();
       await tabTo(page, attack);
       let spentShown = false;
@@ -293,11 +296,7 @@ test(
           await assertReason(page, attack, "Action used");
           spentShown = true;
           // Shift+Tab back into the bar: disabled actions are skipped.
-          await tabTo(
-            page,
-            '#feature-controls button[data-action="end-turn"]',
-            true,
-          );
+          await tabTo(page, '#encounter button[data-action="end-turn"]', true);
           await enterAction(page);
         } else if (now.action === "end-turn") {
           await tabTo(page, attack, true);

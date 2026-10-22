@@ -47,7 +47,7 @@ const climbWall = (page) =>
   settled(page, () =>
     page
       .locator(
-        '#action-bar button[data-target="crumbling-wall"][data-approach="athletics"]',
+        '#room button[data-target="crumbling-wall"][data-approach="athletics"]',
       )
       .click(),
   );

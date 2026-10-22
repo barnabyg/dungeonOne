@@ -143,4 +143,4 @@ The icons are from [game-icons.net](https://game-icons.net) by Carl Olsen,
 Caro Asercion, Delapouite, Lorc, Skoll and Willdabeast, licensed under the
 Creative Commons Attribution 3.0 Unported License, available at
 https://creativecommons.org/licenses/by/3.0/. `src/icons-5e.ts` names each
-icon's source; the game's footer credits them too.
+icon's source; the game's Settings screen credits them too.

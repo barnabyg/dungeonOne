@@ -55,9 +55,9 @@ function winningSeed() {
  * ending can appear just after the result that caused it.
  */
 async function fight(page) {
-  const attack = page.locator("#attack-controls button.attack:enabled");
+  const attack = page.locator("#encounter button.attack:enabled");
   const endTurn = page.locator(
-    '#feature-controls button[data-action="end-turn"]:enabled',
+    '#encounter button[data-action="end-turn"]:enabled',
   );
   const over = page.locator(
     "#ending:visible, #turn:text-is('The fight is over.')",

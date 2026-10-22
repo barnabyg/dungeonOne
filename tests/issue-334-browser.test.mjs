@@ -42,17 +42,25 @@ test(
       await createAndStart(page, server.url, "rat-tunnels");
       const before = (await readAda(libraryPath)).sheet;
       const rest = page.locator("#rest-controls button.act");
-      // Fresh, there is nothing to rest for: what is left shows, with no
-      // Rest.
+      // Fresh, there is nothing to rest for: what is left shows, with Short
+      // rest greyed and its reason (#521).
       assert.equal(await page.locator("#rest-group").isVisible(), true);
-      assert.equal(await rest.count(), 0);
+      assert.equal(await rest.isDisabled(), true);
+      assert.equal(
+        await page.locator("#rest-reason").textContent(),
+        "Nothing to recover",
+      );
       assert.equal(
         await page.locator("#rest-summary").textContent(),
-        "Short rests: 2 of 2 left in this adventure. Hit dice: 1 of 1 d10 left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.",
+        "Short rest 2 of 2 left in this adventure · Hit dice 1 of 1 d10 left",
       );
-      // No rest in a fight.
+      // No rest in a fight: the section says why (#521).
       await clickAction(page, "move", "rat-cellar");
-      assert.equal(await page.locator("#rest-group").isVisible(), false);
+      assert.equal(await page.locator("#short-rest").isVisible(), false);
+      assert.match(
+        await page.locator("#rest-fight").innerText(),
+        /^Not during a fight\n/u,
+      );
       await fight(page);
       assert.match(
         await page.locator("#character-hp").textContent(),
@@ -86,11 +94,15 @@ test(
         await page.locator("#character-hp").textContent(),
         new RegExp(`^HP ${hp} of 13,`, "u"),
       );
-      // Nothing is left to spend or recover, so Rest goes.
-      assert.equal(await rest.count(), 0);
-      assert.match(
+      // Nothing is left to spend or recover, so Short rest is greyed.
+      assert.equal(await rest.isDisabled(), true);
+      assert.equal(
+        await page.locator("#rest-reason").textContent(),
+        "Nothing to recover",
+      );
+      assert.equal(
         await page.locator("#rest-summary").textContent(),
-        /^Short rests: 1 of 2 left in this adventure. Hit dice: 0 of 1 d10 left;/u,
+        "Short rest 1 of 2 left in this adventure · Hit dice 0 of 1 d10 left",
       );
       const file = await sessionFile(directory);
       assert.equal(file.state.shortRests, 1);

@@ -433,7 +433,7 @@ test(
       assert.equal(await focusedId(page), "open-shop");
       assert.ok(
         (await page
-          .locator('#session-actions button[data-action="react"]')
+          .locator('#room-actions button[data-action="react"]')
           .count()) > 0,
       );
     } finally {

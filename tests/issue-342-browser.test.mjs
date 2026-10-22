@@ -21,6 +21,7 @@ import { CLERIC } from "../dist/cleric-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import {
   actionButton,
+  chooseSpell,
   clickAction,
   settled,
   startAdventure,
@@ -245,7 +246,7 @@ test(
 );
 
 test(
-  "a level-5 Cleric chooses Bestow Curse's curse in the fight's cast list",
+  "a level-5 Cleric chooses Bestow Curse's curse in the attack chooser",
   { timeout: 180000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-342-browser-"));
@@ -265,26 +266,20 @@ test(
       await openMira(page, server.url);
       await startAdventure(page, "bandit-tunnels");
       await clickAction(page, "move", "rat-cellar");
-      const select = page.locator("#cast-spell");
-      await select.waitFor();
-      const options = await select.locator("option").allTextContents();
-      assert.ok(
-        options.includes(
-          "Bestow Curse: disadvantage on its attacks against you (3rd-level slot)",
-        ),
-        options.join(" | "),
+      // Bestow Curse is the attack chooser's (#526): its curse is chosen
+      // beside its slot level.
+      await chooseSpell(page, "bestow-curse");
+      assert.deepEqual(
+        await page.locator("#chooser-variant option").allTextContents(),
+        [
+          "disadvantage on its attacks against you",
+          "extra necrotic damage from your attacks and spells",
+        ],
       );
-      assert.ok(
-        options.includes(
-          "Bestow Curse: extra necrotic damage from your attacks and spells (3rd-level slot)",
-        ),
-      );
-      await select.selectOption({
-        label:
-          "Bestow Curse: extra necrotic damage from your attacks and spells (3rd-level slot)",
-      });
+      assert.equal(await page.locator("#chooser-slot").inputValue(), "3");
+      await page.locator("#chooser-variant").selectOption("necrotic");
       await settled(page, () =>
-        page.locator("button.act[data-action=cast]").click(),
+        page.locator("#foe-cards button.act[data-action=cast]").click(),
       );
       assert.match(
         await text(page.locator("#log")),

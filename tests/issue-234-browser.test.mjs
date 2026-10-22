@@ -65,8 +65,11 @@ const shown = (page) =>
     strip: [...document.querySelectorAll("#conditions li")].map(
       (item) => item.textContent,
     ),
-    bar: [...document.querySelectorAll("#action-bar .action")].map(
-      (wrap) => wrap.textContent,
+    // The fight panel's actions (#525), a card's attack by its full name.
+    bar: [...document.querySelectorAll("#encounter .action")].map(
+      (wrap) =>
+        wrap.querySelector("button").getAttribute("aria-label") ??
+        wrap.textContent,
     ),
   }));
 
@@ -118,9 +121,7 @@ test(
       assert.deepEqual(held.bar, [
         "WaitYou are paralysed, so you can only wait.",
       ]);
-      const wait = page.locator(
-        '#feature-controls button[data-action="end-turn"]',
-      );
+      const wait = page.locator('#encounter button[data-action="end-turn"]');
       assert.equal(
         await wait.getAttribute("aria-describedby"),
         "action-reason-0",
@@ -140,9 +141,7 @@ test(
 
       // Ada waits: the paralysis runs out as her turn ends, with no save.
       await settled(page, () =>
-        page
-          .locator('#feature-controls button[data-action="end-turn"]')
-          .click(),
+        page.locator('#encounter button[data-action="end-turn"]').click(),
       );
       const after = await page.locator("#log").innerText();
       assert.match(

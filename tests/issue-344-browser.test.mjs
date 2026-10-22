@@ -120,8 +120,9 @@ test(
       );
       // In the cellar's fight Shatter can be cast and Ice Knife can't.
       await clickAction(page, "move", "rat-cellar");
-      const spells = page.locator("#cast-spell option");
-      await page.locator("#cast-spell").waitFor();
+      // Both are cast at a foe, so both would be attack chooser chips (#526).
+      const spells = page.locator("#chooser-chips .chip-name");
+      await spells.first().waitFor();
       const offered = await spells.allTextContents();
       assert.ok(
         offered.some((label) => label.startsWith("Shatter")),

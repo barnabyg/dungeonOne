@@ -5,7 +5,7 @@
  *
  * To add a sound, put a short, small file in sounds/ and name it here with
  * its source and licence. Prefer CC0 (such as Kenney's packs); a CC BY sound
- * also names its author, and the footer credits it.
+ * also names its author, and Settings credits it.
  */
 import { readFile } from "node:fs/promises";
 import type { EndingKind } from "./adventure-5e.js";
@@ -27,7 +27,7 @@ export type Sound = Readonly<
     | { licence: "CC0 1.0"; author?: string }
     | {
         licence: Exclude<SoundLicence, "CC0 1.0">;
-        /** Who made it, which the footer credits. */
+        /** Who made it, which Settings credits. */
         author: string;
       }
   )

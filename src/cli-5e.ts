@@ -433,7 +433,6 @@ async function play(
   }
   write(COMMANDS);
   const opening = session.history[0]!;
-  write(opening.reply);
   opening.cards.forEach((card) => write(renderCard(card)));
   await saveTrace();
 

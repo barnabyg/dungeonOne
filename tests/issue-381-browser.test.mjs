@@ -1,7 +1,8 @@
 // #381, browser → API: the page is desktop-only. In a window below
 // the 900 × 560 px floor the adventure keeps its two columns at the floor's
-// size and the window scrolls: every scene and dock button can be scrolled
-// into view, unclipped and uncovered, and still works.
+// size and the window scrolls: every button in the centre (the scene and the
+// DM box, #523) and the history can be scrolled into view, unclipped and
+// uncovered, and still works.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -17,7 +18,7 @@ import {
 import { beaLibrary } from "./fixtures/charismatic-fighter.mjs";
 import { goblinYard } from "./fixtures/modules.mjs";
 
-/** The page's size, and where the scene and the dock sit. */
+/** The page's size, and where the scene and the history sit. */
 const pageLayout = (page) =>
   page.evaluate(() => {
     const box = (id) => {
@@ -28,17 +29,18 @@ const pageLayout = (page) =>
       width: document.documentElement.scrollWidth,
       height: document.documentElement.scrollHeight,
       scene: box("session-scene"),
-      dock: box("session-dock"),
+      history: box("session-history"),
     };
   });
 
 /**
- * Scrolls each shown button in `#session-scene` and `#session-dock` into view
- * and returns the names of any still outside the window or covered there.
+ * Scrolls each shown button in `#session-scene`, `#session-composer` and
+ * `#session-history` into view and returns the names of any still outside
+ * the window or covered there.
  */
 const unreachable = async (page) => {
   const buttons = page.locator(
-    "#session-scene button:visible, #session-dock button:visible",
+    "#session-scene button:visible, #session-composer button:visible, #session-history button:visible",
   );
   const missed = [];
   for (const button of await buttons.all()) {
@@ -104,12 +106,12 @@ test("below 900 x 560 px the adventure keeps its two columns and the window scro
     const before = await pageLayout(page);
     assert.ok(before.width >= 900, `page width ${before.width}`);
     assert.ok(before.height >= 560, `page height ${before.height}`);
-    // Two columns: the dock beside the scene, not below it.
-    assert.ok(before.dock.left >= before.scene.right);
-    assert.ok(before.dock.top < before.scene.top + 1);
+    // Two columns: the history beside the scene, not below it.
+    assert.ok(before.history.left >= before.scene.right);
+    assert.ok(before.history.top < before.scene.top + 1);
     assert.deepEqual(await unreachable(page), []);
 
-    // Scrolled to the far corner, the dock's buttons still work.
+    // Scrolled to the far corner, the scene's buttons still work.
     await page.evaluate(() =>
       window.scrollTo(
         document.documentElement.scrollWidth,

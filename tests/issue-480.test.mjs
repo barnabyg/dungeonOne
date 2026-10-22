@@ -1,5 +1,5 @@
 // #480, server: every bundled sound has a recorded source and licence, a CC
-// BY one is credited in the footer, and the server serves exactly the named
+// BY one is credited in Settings, and the server serves exactly the named
 // sound files while sound is on. Launched with sound off, the page has no
 // sound controls and no sound file is served.
 import assert from "node:assert/strict";
@@ -47,7 +47,7 @@ test("every sound is a short, small file with its source and licence", async () 
   }
 });
 
-test("the footer credits each CC BY sound's author, and no CC0 one", () => {
+test("Settings credits each CC BY sound's author, and no CC0 one", () => {
   assert.equal(
     soundCredits({
       bell: { file: "bell.wav", source: "x", licence: "CC0 1.0" },
@@ -90,7 +90,10 @@ test("with sound on, the header has its controls and the server serves only the 
     assert.match(html, /<header class="masthead">.*id="sound-controls"/su);
     assert.match(html, /id="sound-mute"[^>]*aria-pressed="false"/u);
     assert.match(html, /id="sound-volume"[^>]*type="range"/u);
-    assert.match(html, /<footer class="credits">[^<]*Icons by /u);
+    assert.match(
+      html,
+      /<section id="credits"[^>]*><h3[^>]*>Credits<\/h3><p class="hint">Icons by /u,
+    );
     assert.ok(html.includes(soundCredits()));
 
     for (const sound of Object.values(SOUNDS)) {

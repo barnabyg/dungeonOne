@@ -1,8 +1,8 @@
 // #377, browser → API → storage: Bea finds a purse and a dagger in the
 // Goblin Yard and goes down to the goblin. Each shows its icon in the room's
-// lists and beside the log line that names it, the goblin also in the
-// initiative table; the log's text is unchanged, the icons survive a reload,
-// and the footer credits the artists.
+// lists and beside the log line that names it, the goblin also on its card
+// in the fight panel (#525); the log's text is unchanged, the icons survive a reload,
+// and Settings credits the artists.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -58,7 +58,7 @@ test("monsters and items show their icons beside the text that names them", asyn
     await page.goto(server.url);
     await page.locator("#characters button").filter({ hasText: "Bea" }).click();
     await startAdventure(page, "goblin-yard");
-    assert.equal(await text(page.locator(".credits")), iconCredits());
+    assert.equal(await text(page.locator("#credits p").first()), iconCredits());
 
     // Found: each item in the room's list after its icon, and in the line
     // that finds it.
@@ -71,11 +71,16 @@ test("monsters and items show their icons beside the text that names them", asyn
       "#icon-two-coins",
       "#icon-plain-dagger",
     ]);
-    // The action bar's row for each shows it too.
-    const purseRow = page
-      .locator('#explore-controls .thing-actions[data-target="lost-purse"]')
-      .locator("svg.icon");
-    assert.equal(await purseRow.isVisible(), true);
+    // Its card, which carries its Take (#520), shows it beside its name.
+    const purseCard = page.locator('#room-items li[data-id="lost-purse"]');
+    assert.equal(
+      await purseCard.locator(".thing-text svg.icon").isVisible(),
+      true,
+    );
+    assert.equal(
+      await purseCard.locator('button.act[data-action="take"]').count(),
+      1,
+    );
 
     // Taken: the coin line starts with the purse; the purse shows it too.
     await clickAction(page, "take", "lost-purse");
@@ -93,7 +98,8 @@ test("monsters and items show their icons beside the text that names them", asyn
       ["#icon-plain-dagger"],
     );
 
-    // The goblin: before its description as Bea enters, and in the table.
+    // The goblin: before its description as Bea enters, and on its card in
+    // the fight panel (#525).
     await clickAction(page, "move", "cellar");
     const entered = last().locator(".card-line").first();
     assert.deepEqual(await iconsIn(entered), ["#icon-goblin"]);
@@ -103,7 +109,7 @@ test("monsters and items show their icons beside the text that names them", asyn
     );
     assert.deepEqual(
       await iconsIn(
-        page.locator('#initiative-rows tr[data-combatant="goblin"]'),
+        page.locator('#foe-cards li[data-combatant="goblin"] .card-name'),
       ),
       ["#icon-goblin"],
     );

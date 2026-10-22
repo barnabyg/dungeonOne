@@ -65,12 +65,9 @@ test(
       await clickAction(page, ...ROUTE[0]);
       const card = await text(page.locator("#log li").last());
       assert.match(card, SURPRISE);
-      // The initiative table tags Ada, not the rat, as surprised.
-      const surprised = page.locator("#initiative-rows tr", {
-        has: page.locator(".tag.surprised"),
-      });
-      assert.equal(await surprised.count(), 1);
-      assert.match(await text(surprised), /Ada/u);
+      // The fight panel's cards (#525) tag Ada, not the rat, as surprised.
+      assert.equal(await page.locator("#you-card .tag.surprised").count(), 1);
+      assert.equal(await page.locator("#foe-cards .tag.surprised").count(), 0);
       await fight(page);
 
       // Storage keeps the remembered roll and the card.

@@ -444,7 +444,7 @@ test("an armed trap springs on the way through: a saving throw against its damag
       "Dart Trap: A wire snaps underfoot and darts hiss from the wall.",
       "Dexterity saving throw: d20 5 + 1 = 6 against DC 12. Failure.",
       "The Dart Trap deals 3 + 4 = 7 piercing; you have 5/12 HP.",
-      "You enter the Offering Room. A low chamber with a stone altar. Mouldering offerings are heaped around a bronze bowl.",
+      "Offering Room — A low chamber with a stone altar. Mouldering offerings are heaped around a bronze bowl.",
     ].join("\n"),
   );
   assert.equal(sprung.state.character.hp, 5);

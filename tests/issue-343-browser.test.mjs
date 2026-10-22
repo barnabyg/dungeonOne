@@ -20,6 +20,7 @@ import { WIZARD } from "../dist/wizard-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import {
   actionButton,
+  chooseSpell,
   clickAction,
   settled,
   startAdventure,
@@ -308,15 +309,16 @@ test(
       await page.locator("#save-prepared").click();
       await startAdventure(page, "bandit-tunnels");
       await clickAction(page, "move", "rat-cellar");
-      const select = page.locator("#cast-spell");
-      await select.waitFor();
-      await select.selectOption({
-        label: "Scorching Ray (2nd-level slot)",
-      });
-      await page.locator("#cast-targets").waitFor();
-      assert.match(await text(page.locator("#cast-targets")), /Up to 3:/u);
+      // Scorching Ray from the attack chooser (#526): its rays' targets
+      // ticked on the foes' cards, up to three.
+      await chooseSpell(page, "scorching-ray");
+      assert.equal(await page.locator("#chooser-slot").inputValue(), "2");
+      assert.match(
+        await text(page.locator("#chooser-detail")),
+        /Up to 3 targets: tick them\.$/u,
+      );
       await settled(page, () =>
-        page.locator("button.act[data-action=cast]").click(),
+        page.locator("#area-cast button.act[data-action=cast]").click(),
       );
       assert.match(
         await text(page.locator("#log")),

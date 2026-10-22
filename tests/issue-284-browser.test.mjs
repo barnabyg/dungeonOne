@@ -29,7 +29,7 @@ const SEED = 4;
 /** The cliff's buttons: each accessible name, retry caption and state. */
 const cliffButtons = (page) =>
   page
-    .locator('#action-bar button[data-target="sheer-cliff"]')
+    .locator('#room button[data-target="sheer-cliff"]')
     .evaluateAll((buttons) =>
       buttons.map((button) => ({
         name: button.getAttribute("aria-label"),
@@ -104,7 +104,7 @@ test(
 
       await settled(page, () =>
         page
-          .locator('#action-bar button[data-target="sheer-cliff"][data-retry]')
+          .locator('#room button[data-target="sheer-cliff"][data-retry]')
           .click(),
       );
       const entry = await page.locator("#log li").last().textContent();

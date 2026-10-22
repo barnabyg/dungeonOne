@@ -44,10 +44,8 @@ test("Ada carries the stone snake to the door, fits it, and the way stays open a
     await clickAction(page, "move", "alcove");
     await clickAction(page, "take", "stone-snake");
     await clickAction(page, "move", "stair-foot");
-    // The door's row offers the snake, by name, beside Examine.
-    const row = page.locator(
-      '#explore-controls .thing-actions[data-target="stone-door"]',
-    );
+    // The door's card offers the snake, by name, beside Examine (#520).
+    const row = page.locator('#features li[data-id="stone-door"]');
     assert.deepEqual(
       (await row.locator("button.act").allTextContents()).sort(),
       ["Examine", "Use Stone Snake"],

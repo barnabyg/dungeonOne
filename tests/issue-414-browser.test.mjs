@@ -2,8 +2,8 @@
 // Weirgate, each on its own library (tests/fixtures/libraries/) and seed:
 // - Scenario 1: the level-3 Fighter Ada beats Sergeant Larrow for the grate
 //   key, rings the weir bell by failing to break the grate, unlocks it, and
-//   drops the counterweight on Grisk in the gear hall. On the way, the Known
-//   rooms panel shows the Toll Hall's record without moving her.
+//   drops the counterweight on Grisk in the gear hall. On the way, the map
+//   shows the Toll Hall's record without moving her.
 // - Scenario 2: the level-3 Rogue Vex finds the keeper's crank and drains
 //   the culvert with it, beats the Lockjaw patrol that wanders into the
 //   sluice-house, disengages and flees Old Sullage in the lock chamber, and
@@ -19,7 +19,12 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
 import { rogueLibrary } from "../dist/test-rogue-5e.js";
-import { settled, startAdventure, text } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  settled,
+  startAdventure,
+  text,
+} from "./fixtures/browser-journey.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
@@ -121,7 +126,7 @@ async function fightTurn(page, chain) {
           ),
         ]
       : []),
-    page.locator("#attack-controls button.attack"),
+    page.locator("#encounter button.attack"),
     page.locator('button.act[data-action="light-attack"]'),
   ];
   for (const choice of choices) {
@@ -130,7 +135,7 @@ async function fightTurn(page, chain) {
     }
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 
@@ -182,20 +187,19 @@ function says(log, quoted) {
   }
 }
 
-/** Each region's heading and its rooms' buttons, as the panel shows them. */
-const knownRooms = (page) =>
-  page
-    .locator("#known-room-list .known-region")
-    .evaluateAll((groups) =>
-      groups.map((group) => [
-        group.querySelector("h4")?.textContent,
-        [...group.querySelectorAll("button")].map(
-          (button) =>
-            button.textContent +
-            (button.getAttribute("aria-pressed") === "true" ? " [shown]" : ""),
-        ),
-      ]),
-    );
+/** Opens the map on the floor of `room` and shows its record. */
+async function mapRecord(page, room) {
+  await page.locator("#open-map").click();
+  const box = page.locator(`.map-room[data-room='${room}'] > button`);
+  const floors = page.locator("#map-floors button");
+  for (let index = 0; (await box.count()) === 0; index += 1) {
+    await floors.nth(index).click();
+  }
+  await box.click();
+  const record = await text(page.locator("#map-record"));
+  await page.locator("#close-map").click();
+  return record;
+}
 
 const STAIR_ROUTE = [
   ["move", "toll-hall"],
@@ -219,7 +223,7 @@ const FIGHTER_ROUTE = [...STAIR_ROUTE, ["move", "gear-hall"]];
 const FIGHTER_SEED = 129;
 
 test(
-  `increment 17 handoff 1: a Fighter rings the weir bell at the grate, checks the known rooms and drops the counterweight on Grisk (seed ${FIGHTER_SEED})`,
+  `increment 17 handoff 1: a Fighter rings the weir bell at the grate, checks the map and drops the counterweight on Grisk (seed ${FIGHTER_SEED})`,
   { timeout: 180000 },
   async () => {
     const [{ sheet: ada }] = levelThreeLibrary().characters;
@@ -248,36 +252,10 @@ test(
       await startAdventure(page, "coldwater-weirgate");
       const ends = [];
       await play(page, STAIR_ROUTE, ends);
-      // The Known rooms panel, in the Pump Room: the rooms Ada has been in
-      // and those seen through their exits, by region.
-      assert.deepEqual(await knownRooms(page), [
-        [
-          "The Keep",
-          [
-            "Towpath Gate (visited)",
-            "Toll Hall (visited)",
-            "Barge Yard (seen)",
-            "Stair Head (visited)",
-          ],
-        ],
-        [
-          "The Culverts",
-          [
-            "Stair Foot (visited)",
-            "Pump Room (you are here)",
-            "Outfall (seen)",
-            "Wheel Pit (seen)",
-            "Lock Chamber (seen)",
-            "Gear Hall (seen)",
-          ],
-        ],
-      ]);
-      // Choosing the Toll Hall shows its record without moving her.
-      await page
-        .locator("#known-room-list button[data-room='toll-hall']")
-        .click();
+      // The map, in the Pump Room: choosing the Toll Hall, a floor up,
+      // shows its record without moving her.
       assert.equal(
-        await text(page.locator("#known-room-record")),
+        await mapRecord(page, "toll-hall"),
         [
           "Toll Hall",
           "Fight with Sergeant Larrow: won.",
@@ -393,11 +371,8 @@ test(
         page.locator('button.act[data-action="disengage"]').click(),
       );
       assert.equal(await drawn.textContent(), "Draws no attacks");
-      await settled(page, () =>
-        page
-          .locator('button.act[data-action="flee"][data-target="pump-room"]')
-          .click(),
-      );
+      // From Flee's menu (#525).
+      await clickAction(page, "flee", "pump-room");
       assert.equal(
         await page.locator("#room-title").textContent(),
         "Pump Room",

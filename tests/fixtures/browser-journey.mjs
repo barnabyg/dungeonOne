@@ -67,28 +67,137 @@ export const actionButton = (page, action, target) =>
     `button.act[data-action="${action}"]${target === undefined ? "" : `[data-target="${target}"]`}`,
   );
 
-/** Clicks `actionButton` and waits for its settled history entry. */
-export const clickAction = (page, action, target) =>
-  settled(page, () => actionButton(page, action, target).click());
+/** Opens Flee's menu (#525) in the fight panel, unless it is open. */
+export async function openFlee(page) {
+  const toggle = page.locator("#flee-toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await page.locator("#flee-menu").waitFor();
+}
+
+/** The attacks the fight panel's foe cards carry once chosen (#526). */
+const CHOSEN = ["attack", "light-attack", "spectral-attack", "drain-attack"];
 
 /**
- * Takes one fight turn: attacks the first target offered, or ends the turn
- * once Ada's action is spent; waits for its settled history entry.
+ * Clicks `actionButton` and waits for its settled history entry. A flight
+ * (#525) is chosen from Flee's menu, opened first; an attack (#526) in the
+ * attack chooser.
+ */
+export const clickAction = (page, action, target) =>
+  settled(page, async () => {
+    if (action === "flee") {
+      await openFlee(page);
+    }
+    if (CHOSEN.includes(action)) {
+      await chooseAttack(page, action);
+    }
+    await actionButton(page, action, target).click();
+  });
+
+/**
+ * The attack chooser's chip (#526) for `choice`: "attack", "light-attack",
+ * "spectral-attack", "drain-attack", "divine-spark", or a spell's
+ * "cast:<spell id>", a scroll's or wand's "cast:<spell id>:<item id>".
+ */
+export const attackChip = (page, choice) =>
+  page.locator(`#chooser-chips label[data-choice="${choice}"]`);
+
+/**
+ * Chooses `choice` in the attack chooser (#526) unless it is chosen; with
+ * one way to attack the chooser hides, and that one is chosen.
+ */
+export async function chooseAttack(page, choice) {
+  const chip = attackChip(page, choice);
+  if ((await chip.count()) > 0 && !(await chip.locator("input").isChecked())) {
+    await chip.click();
+    await page
+      .locator(`#chooser-chips label.on[data-choice="${choice}"]`)
+      .waitFor();
+  }
+}
+
+/** The chosen attack's button on foe `target`'s card (#526). */
+export const foeButton = (page, target) =>
+  page.locator(`#foe-cards li[data-combatant="${target}"] button.act`);
+
+/**
+ * Chooses `spell` in the attack chooser (#526): a scroll's or wand's cast
+ * with `item`, at the slot level `slot` (a wand's level), with the damage
+ * type, curse or Divine Spark's damage `variant`.
+ */
+export async function chooseSpell(page, spell, { item, slot, variant } = {}) {
+  await chooseAttack(
+    page,
+    spell === "divine-spark"
+      ? spell
+      : `cast:${spell}${item === undefined ? "" : `:${item}`}`,
+  );
+  if (slot !== undefined) {
+    await page.locator("#chooser-slot").selectOption(String(slot));
+  }
+  if (variant !== undefined) {
+    await page.locator("#chooser-variant").selectOption(variant);
+  }
+}
+
+/**
+ * Casts `spell` (or uses Divine Spark) at foe `target` from the attack
+ * chooser (#526), as `chooseSpell` chooses it, and waits for its settled
+ * history entry.
+ */
+export async function castAt(page, spell, target, options = {}) {
+  await chooseSpell(page, spell, options);
+  await settled(page, () => foeButton(page, target).click());
+}
+
+/**
+ * Casts the area or ray spell `spell` (#526) at the foes `targets`, ticked
+ * in that order, as `chooseSpell` chooses it, and waits for its settled
+ * history entry.
+ */
+export async function castArea(page, spell, targets, options = {}) {
+  await chooseSpell(page, spell, options);
+  const ticked = page.locator("#foe-cards .blast-tick input:checked");
+  // Each tick redraws the boxes, so each is clicked, not checked.
+  while ((await ticked.count()) > 0) {
+    await ticked.first().click();
+  }
+  for (const id of targets) {
+    await page.locator(`#blast-${id}`).click();
+  }
+  await settled(page, () => page.locator("#area-cast button.act").click());
+}
+
+/**
+ * Takes one fight turn: attacks the first target offered, the weapon chosen
+ * in the attack chooser (#526) while it can attack, or ends the turn once
+ * Ada's action is spent; waits for its settled history entry.
  */
 export const fightTurn = (page) =>
   settled(page, async () => {
-    const attack = page.locator("#attack-controls button.attack:enabled");
+    const weapon = page.locator(
+      '#chooser-chips label[data-choice="attack"]:not(.off, .on)',
+    );
+    if ((await weapon.count()) > 0) {
+      await weapon.click();
+    }
+    const attack = page.locator("#encounter button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
+        : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
   });
 
-/** Takes fight turns until the turn line says the fight is over. */
-export async function fight(page) {
+/**
+ * Takes fight turns until the turn line says the fight is over, calling
+ * `after` once each turn has settled.
+ */
+export async function fight(page, after = async () => {}) {
   while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
     await fightTurn(page);
+    await after();
   }
 }
 

@@ -332,7 +332,7 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     await page.locator(".map-room[data-room='stair-foot'] > button").click();
     assert.equal(
       await status.textContent(),
-      "Not in a fight: flee from the action bar instead.",
+      "Not in a fight: flee from the fight panel instead.",
     );
     assert.match(await record.innerText(), /^Foot of the Stair\n/u);
     assert.equal(

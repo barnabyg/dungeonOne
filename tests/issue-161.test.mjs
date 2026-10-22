@@ -146,7 +146,7 @@ test("without a key the composer is disabled with a notice and the buttons work"
       );
       // The buttons still play: an attack adds a result to the history.
       const before = await page.locator("#log li").count();
-      await page.locator("#attack-controls button.attack").click();
+      await page.locator("#encounter button.attack").click();
       await page.waitForFunction(
         (count) => document.querySelectorAll("#log li").length > count,
         before,

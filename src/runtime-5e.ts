@@ -182,6 +182,8 @@ import {
   type DivineSparkMode,
   itemCastLevels,
   slotLevels,
+  discipleHealing,
+  preserveLifeHealing,
   armorClassOf,
   concentrationOf,
   effectEnded,
@@ -278,6 +280,7 @@ import {
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import { isOneOf } from "./json-shape.js";
 import {
+  effectAtSlot,
   effectEnds,
   isSpellId,
   maxTargets,
@@ -2646,13 +2649,37 @@ function effectDiceText(dice: readonly EffectDie[] | undefined): string {
     .join("");
 }
 
+/** The numbers a caster casts with, for a spell's summary in a fight (#526). */
+export type CastingNumbers = Readonly<{
+  attackBonus: number;
+  saveDc: number;
+  modifier: number;
+}>;
+
 /**
  * What a spell does, in a few words (#339), for the cast tool and the
  * sheet: "ranged spell attack, 4d6 radiant; a hit gives the next attack on
- * the target advantage".
+ * the target advantage". With the caster's `numbers` (#526), its attack
+ * bonus, save DC and spellcasting modifier are written in: "ranged spell
+ * attack +7, 2d10 fire", "Dexterity save DC 15, 8d6 fire, half on a
+ * success".
  */
-export function spellSummary(spell: SpellDefinition): string {
+export function spellSummary(
+  spell: SpellDefinition,
+  numbers?: CastingNumbers,
+): string {
   const { effect } = spell;
+  const attack =
+    numbers === undefined
+      ? "spell attack"
+      : `spell attack ${numbers.attackBonus >= 0 ? "+" : "−"}${Math.abs(numbers.attackBonus)}`;
+  const save = (ability: string) =>
+    `${titleCase(ability)} save${numbers === undefined ? "" : ` DC ${numbers.saveDc}`}`;
+  const modifier =
+    numbers === undefined
+      ? "your spellcasting modifier"
+      : `${Math.abs(numbers.modifier)}`;
+  const plus = numbers !== undefined && numbers.modifier < 0 ? "−" : "+";
   const dice = ({
     dice: count,
     sides,
@@ -2662,10 +2689,10 @@ export function spellSummary(spell: SpellDefinition): string {
       // Scorching Ray's rays, Acid Arrow's splash and acid, Ray of
       // Sickness's poison and Ice Knife's burst (#343).
       return effect.rays !== undefined
-        ? `${effect.rays} rays, each a ${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}; split among up to ${effect.rays} targets, the first taking any more`
-        : `${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}${effect.nextAttackAdvantage === true ? "; a hit gives the next attack roll on the target advantage" : ""}${effect.missHalf === true ? "; a miss deals half" : ""}${effect.later === undefined ? "" : `; a hit also deals ${dice(effect.later)} ${effect.later.type} at the end of the target's next turn`}${effect.condition === undefined ? "" : `; a hit leaves it ${effect.condition.kind} for its next turn`}${effect.burst === undefined ? "" : `; hit or miss, it bursts: ${titleCase(effect.burst.ability)} save or ${dice(effect.burst.damage)} ${effect.burst.damage.type}`}`;
+        ? `${effect.rays} rays, each a ${effect.range} ${attack}, ${dice(effect.damage)} ${effect.damage.type}; split among up to ${effect.rays} targets, the first taking any more`
+        : `${effect.range} ${attack}, ${dice(effect.damage)} ${effect.damage.type}${effect.nextAttackAdvantage === true ? "; a hit gives the next attack roll on the target advantage" : ""}${effect.missHalf === true ? "; a miss deals half" : ""}${effect.later === undefined ? "" : `; a hit also deals ${dice(effect.later)} ${effect.later.type} at the end of the target's next turn`}${effect.condition === undefined ? "" : `; a hit leaves it ${effect.condition.kind} for its next turn`}${effect.burst === undefined ? "" : `; hit or miss, it bursts: ${save(effect.burst.ability)} or ${dice(effect.burst.damage)} ${effect.burst.damage.type}`}`;
     case "save":
-      return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, ${effect.onSuccess === "half" ? "half" : "none"} on a success`;
+      return `${save(effect.ability)}, ${dice(effect.damage)} ${effect.damage.type}, ${effect.onSuccess === "half" ? "half" : "none"} on a success`;
     case "auto-hit":
       return `${effect.missiles} darts that always hit, each ${dice(effect.damage)} + ${effect.damage.modifier} ${effect.damage.type}`;
     case "healing":
@@ -2680,23 +2707,23 @@ export function spellSummary(spell: SpellDefinition): string {
     case "control":
       // Hold Person (#341) holds a humanoid until it saves.
       return effect.then === undefined
-        ? `${effect.creatureType ?? "creature"} only: ${titleCase(effect.ability)} save or ${effect.condition}, a save at the end of each of its turns ends it, concentration`
-        : `${titleCase(effect.ability)} save or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration;${effect.saveAdvantage === true ? " its target makes both saves with advantage (house rule);" : ""} a creature immune to ${effect.immunity} is unaffected`;
+        ? `${effect.creatureType ?? "creature"} only: ${save(effect.ability)} or ${effect.condition}, a save at the end of each of its turns ends it, concentration`
+        : `${save(effect.ability)} or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration;${effect.saveAdvantage === true ? " its target makes both saves with advantage (house rule);" : ""} a creature immune to ${effect.immunity} is unaffected`;
     case "restoration":
       return `ends one condition on you: ${listed([...effect.conditions], "or")}`;
     case "spectral-weapon":
-      return `a melee spell attack, ${dice(effect.damage)} + your spellcasting modifier ${effect.damage.type}, then again with a bonus action each turn, concentration`;
+      return `a melee ${attack}, ${dice(effect.damage)} ${plus} ${modifier} ${effect.damage.type}, then again with a bonus action each turn, concentration`;
     case "curse":
       // Bestow Curse (#342): its curse is chosen at casting.
-      return `${titleCase(effect.ability)} save or cursed until the fight ends: ${CURSE_NAMES.attacks}, or ${dice(effect.damage)} ${effect.damage.type} more whenever your attacks or spells damage it; concentration`;
+      return `${save(effect.ability)} or cursed until the fight ends: ${CURSE_NAMES.attacks}, or ${dice(effect.damage)} ${effect.damage.type} more whenever your attacks or spells damage it; concentration`;
     case "guardians":
       // Spirit Guardians (#342).
-      return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, half on a success, as it is cast and at the end of each caught foe's turn until the fight ends; concentration`;
+      return `${save(effect.ability)}, ${dice(effect.damage)} ${effect.damage.type}, half on a success, as it is cast and at the end of each caught foe's turn until the fight ends; concentration`;
     // Vampiric Touch and Slow (#344).
     case "drain":
-      return `a melee spell attack, ${dice(effect.damage)} ${effect.damage.type}, and you regain half the damage dealt; then again with your action each turn until the fight ends, concentration`;
+      return `a melee ${attack}, ${dice(effect.damage)} ${effect.damage.type}, and you regain half the damage dealt; then again with your action each turn until the fight ends, concentration`;
     case "slow":
-      return `${titleCase(effect.ability)} save or slowed until the fight ends: −2 AC and Dexterity saves, one attack a turn; a save at the end of each of its turns ends it, concentration`;
+      return `${save(effect.ability)} or slowed until the fight ends: −2 AC and Dexterity saves, one attack a turn; a save at the end of each of its turns ends it, concentration`;
   }
 }
 
@@ -3463,7 +3490,8 @@ export function renderFifthEvent(
       return "The fight is over.";
     case "entered":
       return [
-        `You enter the ${event.name}. ${event.description}`,
+        // The room's name heads its arrival (#524), as on the room's card.
+        `${event.name} — ${event.description}`,
         ...event.opponents,
       ].join(" ");
     case "arrived":
@@ -5625,11 +5653,283 @@ export type FightView = Readonly<{
       hidden: boolean;
       /** Its conditions, each with what gave it and how it ends. */
       conditions: readonly ConditionView[];
+      /**
+       * The ongoing spell effects on it (#525): an opponent's turning,
+       * curse or slowing, for its card in the fight panel.
+       */
+      effects: readonly EffectView[];
       initiative: Omit<InitiativeRoll, "combatantId">;
     }>[];
   }>;
   targets: readonly Readonly<{ id: string; name: string }>[];
+  /**
+   * The ways the character could heal itself in the fight (#525), whether
+   * or not the engine would accept them now, for its card in the fight
+   * panel.
+   */
+  healing: readonly HealingView[];
+  /**
+   * What each way the character could attack a foe with a spell, Divine
+   * Spark, a spiritual weapon or a draining touch does (#526), for the
+   * fight panel's attack chooser and the buttons on the foes' cards.
+   */
+  attackStats: readonly AttackStatsView[];
+  /** The character's spell slots left (#526), 1st level first. */
+  spellSlots?: readonly Readonly<{ uses: number; max: number }>[];
 }>;
+
+/**
+ * What a way to attack a foe does (#526): a spell cast at a slot level
+ * (none for a cantrip, or a scroll's), from a scroll or wand, dealing a
+ * chosen damage type (Chromatic Orb's); Divine Spark's damage; a spiritual
+ * weapon's attack or a draining touch again. Its to-hit or save DC and
+ * its damage in short ("+7", "2d10"), and what it does in the sheet's
+ * words with the numbers in ("ranged spell attack +7, 2d10 fire").
+ */
+export type AttackStatsView = Readonly<{
+  action: "cast" | "divine-spark" | "spectral-attack" | "drain-attack";
+  spellId?: string;
+  slotLevel?: number;
+  itemId?: string;
+  damageType?: string;
+  mode?: "radiant" | "necrotic";
+  /** "+7" for an attack roll, "DC 15" for a save; none for darts that always hit. */
+  hit?: string;
+  /** "2d10", "3 × 1d4 + 1"; none for a spell that deals no damage at once. */
+  damage?: string;
+  /** An area spell (#338), whose targets are ticked. */
+  area?: true;
+  text: string;
+}>;
+
+/** "+7", "−1": an attack bonus as a button shows it. */
+const bonusText = (bonus: number) =>
+  `${bonus >= 0 ? "+" : "−"}${Math.abs(bonus)}`;
+
+/**
+ * A foe-targeting spell effect's to-hit or save DC and damage as a button
+ * shows them (#526), or undefined for one that targets the caster.
+ */
+function spellHitAndDamage(
+  effect: SpellEffect,
+  numbers: CastingNumbers,
+): Pick<AttackStatsView, "hit" | "damage"> | undefined {
+  const dice = ({ dice: count, sides }: { dice: number; sides: number }) =>
+    `${count}d${sides}`;
+  const dc = `DC ${numbers.saveDc}`;
+  switch (effect.kind) {
+    case "attack":
+    case "drain":
+      return {
+        hit: bonusText(numbers.attackBonus),
+        damage: dice(effect.damage),
+      };
+    case "spectral-weapon":
+      return {
+        hit: bonusText(numbers.attackBonus),
+        damage: healingText(
+          effect.damage.dice,
+          effect.damage.sides,
+          numbers.modifier,
+        ),
+      };
+    case "save":
+    case "guardians":
+      return { hit: dc, damage: dice(effect.damage) };
+    case "auto-hit":
+      return {
+        damage: `${effect.missiles} × ${healingText(effect.damage.dice, effect.damage.sides, effect.damage.modifier)}`,
+      };
+    case "control":
+    case "curse":
+    case "slow":
+      return { hit: dc };
+    case "healing":
+    case "buff":
+    case "flavour":
+    case "restoration":
+      return undefined;
+  }
+}
+
+/** What each of `self`'s ways to attack a foe does (#526). */
+function attackStatsViews(self: Combatant): readonly AttackStatsView[] {
+  const views: AttackStatsView[] = [];
+  const casting = self.spellcasting;
+  const own: CastingNumbers = {
+    attackBonus: casting?.attackBonus ?? 0,
+    saveDc: casting?.saveDc ?? 0,
+    modifier: casting?.modifier ?? 0,
+  };
+  const add = (
+    spell: SpellDefinition,
+    levels: readonly (number | undefined)[],
+    item?: CombatMagicItem,
+  ) => {
+    // A scroll casts with its own save DC and attack bonus (#346).
+    const numbers =
+      item?.kind === "scroll"
+        ? { ...own, attackBonus: item.attackBonus, saveDc: item.saveDc }
+        : own;
+    for (const slotLevel of levels) {
+      const effect = effectAtSlot(spell, slotLevel);
+      // Chromatic Orb (#340) deals the damage type chosen.
+      const types =
+        spell.damageTypes !== undefined && "damage" in effect
+          ? spell.damageTypes
+          : [undefined];
+      for (const damageType of types) {
+        const dealt =
+          damageType === undefined || !("damage" in effect)
+            ? effect
+            : ({
+                ...effect,
+                damage: { ...effect.damage, type: damageType },
+              } as SpellEffect);
+        const shown = spellHitAndDamage(dealt, numbers);
+        if (shown === undefined) {
+          continue;
+        }
+        views.push({
+          action: "cast",
+          spellId: spell.id,
+          ...(slotLevel === undefined ? {} : { slotLevel }),
+          ...(item === undefined ? {} : { itemId: item.id }),
+          ...(damageType === undefined ? {} : { damageType }),
+          ...shown,
+          ...(spell.area === undefined ? {} : { area: true as const }),
+          text: spellSummary({ ...spell, effect: dealt }, numbers),
+        });
+      }
+    }
+  };
+  for (const spell of casting?.spells ?? []) {
+    add(spell, slotLevels(self, spell));
+  }
+  for (const item of self.magicItems ?? []) {
+    add(item.spell, itemCastLevels(item), item);
+  }
+  const channel = self.channelDivinity;
+  if (channel !== undefined) {
+    const { dice, sides, modifier } = channel.divineSpark;
+    for (const mode of ["radiant", "necrotic"] as const) {
+      views.push({
+        action: "divine-spark",
+        mode,
+        hit: `DC ${channel.saveDc}`,
+        damage: healingText(dice, sides, modifier),
+        text: `Constitution save DC ${channel.saveDc}, ${healingText(dice, sides, modifier)} ${mode}, half on a success`,
+      });
+    }
+  }
+  for (const { buff } of self.effects ?? []) {
+    if (buff.kind === "spectral-weapon") {
+      const damage = healingText(buff.dice, buff.sides, own.modifier);
+      views.push({
+        action: "spectral-attack",
+        hit: bonusText(own.attackBonus),
+        damage,
+        text: `melee spell attack ${bonusText(own.attackBonus)}, ${damage} ${buff.type}`,
+      });
+    }
+    if (buff.kind === "drain") {
+      const damage = `${buff.damage.dice}d${buff.damage.sides}`;
+      views.push({
+        action: "drain-attack",
+        hit: bonusText(own.attackBonus),
+        damage,
+        text: `melee spell attack ${bonusText(own.attackBonus)}, ${damage} ${buff.damage.type}, and you regain half the damage dealt`,
+      });
+    }
+  }
+  return views;
+}
+
+/**
+ * A way the character heals itself (#525): Second Wind, a potion it
+ * carries, a healing spell it has prepared at a slot level it has, or
+ * Preserve Life; what it would restore, in the sheet's words ("2d4 + 2",
+ * or Preserve Life's "5 HP", "up to 15 HP" while it would restore none),
+ * and the action it takes.
+ */
+export type HealingView = Readonly<{
+  action: "second-wind" | "use" | "cast" | "preserve-life";
+  /** The potion's id, or the spell's. */
+  id?: string;
+  /** A levelled spell's slot level. */
+  slotLevel?: number;
+  amount: string;
+  cost: "action" | "bonus";
+}>;
+
+/** "2d4 + 2", "1d10 − 1", as the sheet writes dice. */
+const healingText = (dice: number, sides: number, modifier: number) =>
+  `${dice}d${sides}${modifier === 0 ? "" : ` ${modifier > 0 ? "+" : "−"} ${Math.abs(modifier)}`}`;
+
+/** The ways `self` heals itself in a fight (#525). */
+function healingViews(self: Combatant): readonly HealingView[] {
+  const views: HealingView[] = [];
+  if (self.secondWind !== undefined) {
+    const { dice, sides, modifier } = self.secondWind.healing;
+    views.push({
+      action: "second-wind",
+      amount: healingText(dice, sides, modifier),
+      cost: "bonus",
+    });
+  }
+  const potions = new Map(
+    (self.potions ?? []).map((potion) => [potion.id, potion]),
+  );
+  for (const { id, healing } of potions.values()) {
+    views.push({
+      action: "use",
+      id,
+      amount: healingText(healing.dice, healing.sides, healing.modifier),
+      cost: "bonus",
+    });
+  }
+  const casting = self.spellcasting;
+  for (const spell of casting?.spells ?? []) {
+    if (
+      spell.effect.kind !== "healing" ||
+      (spell.castingTime !== "action" && spell.castingTime !== "bonus-action")
+    ) {
+      continue;
+    }
+    for (const slotLevel of slotLevels(self, spell)) {
+      const effect = effectAtSlot(spell, slotLevel);
+      if (effect.kind !== "healing") {
+        continue;
+      }
+      const modifier =
+        (effect.noModifier === true ? 0 : casting!.modifier) +
+        discipleHealing(casting!, slotLevel);
+      views.push({
+        action: "cast",
+        id: spell.id,
+        ...(slotLevel === undefined ? {} : { slotLevel }),
+        amount: healingText(
+          effect.healing.dice,
+          effect.healing.sides,
+          modifier,
+        ),
+        cost: spell.castingTime === "action" ? "action" : "bonus",
+      });
+    }
+  }
+  const preserve = self.channelDivinity?.preserveLife;
+  if (preserve !== undefined) {
+    // As much as it would restore now, up to half the character's HP; while
+    // it would restore nothing, its pool.
+    const amount = preserveLifeHealing(self);
+    views.push({
+      action: "preserve-life",
+      amount: amount === 0 ? `up to ${preserve} HP` : `${amount} HP`,
+      cost: "action",
+    });
+  }
+  return views;
+}
 
 export type ConditionView = Readonly<{
   kind: ConditionKind;
@@ -5846,6 +6146,7 @@ function projectFight(
                   // Hidden by Hide (#307): advantage on its next attack.
                   hidden: encounter.hidden.includes(entrant.id),
                   conditions: conditionsOf(encounter, entrant.id),
+                  effects: effectViews(entrant),
                   // A surprised combatant's two d20s (#301), or two with
                   // advantage (#315).
                   initiative: {
@@ -5861,6 +6162,11 @@ function projectFight(
           },
         }),
     targets: targets.map(({ id, name }) => ({ id, name })),
+    healing: healingViews(self),
+    attackStats: attackStatsViews(self),
+    ...(self.spellcasting === undefined
+      ? {}
+      : { spellSlots: self.spellcasting.slots.map(uses) }),
   };
 }
 

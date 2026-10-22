@@ -84,7 +84,11 @@ const status = (page) =>
       health: document.getElementById("status-hp").dataset.health,
       turn: document.getElementById("turn").textContent,
       resources: Object.fromEntries(
-        [...strip.querySelectorAll("#resources li")].map((item) => [
+        // The turn's pips are in the fight panel's footer (#525).
+        [
+          ...document.querySelectorAll("#turn-resources li"),
+          ...strip.querySelectorAll("#resources li"),
+        ].map((item) => [
           item.dataset.resource,
           {
             words: tidy(spoken(item)),
@@ -140,7 +144,10 @@ test(
         },
       });
       // Attacking marks the action used; the bonus action is left.
-      await clickAndWait(page, page.locator("#attack-controls button").first());
+      await clickAndWait(
+        page,
+        page.locator("#encounter button.attack").first(),
+      );
       const attacked = {
         action: { words: "Action: used", pips: "○" },
         "bonus-action": { words: "Bonus action: available", pips: "●" },
@@ -158,7 +165,7 @@ test(
       // Second Wind ends the first turn; the next starts fresh.
       await clickAndWait(
         page,
-        page.locator('#feature-controls button[data-action="second-wind"]'),
+        page.locator('#encounter button[data-action="second-wind"]'),
       );
       await page
         .locator("#turn")
@@ -172,7 +179,7 @@ test(
       // Second Wind takes a use and the bonus action, not the action.
       await clickAndWait(
         page,
-        page.locator('#feature-controls button[data-action="second-wind"]'),
+        page.locator('#encounter button[data-action="second-wind"]'),
       );
       const healed = {
         action: { words: "Action: available", pips: "●" },

@@ -1,9 +1,9 @@
 // #237, browser → API → storage: in the burial hall a goblin loses its nerve
-// and flees. The initiative table tags it Fled and offers no body for it. Ada
-// searches the bodies of the goblins she cut down, takes their pouches and
-// escapes; the ending, the stored sheet and the sheet page credit the
-// defeated goblins' XP and coin, and half the XP of the one that fought and
-// fled.
+// and flees. Its card in the fight panel (#525) tags it Fleeing, and the room
+// offers no body for it. Ada searches the bodies of the goblins she cut
+// down, takes their pouches and escapes; the ending, the stored sheet and
+// the sheet page credit the defeated goblins' XP and coin, and half the XP
+// of the one that fought and fled.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -48,7 +48,17 @@ test(
       await createAndStart(page, server.url, fleeingGoblins.id);
 
       await clickAction(page, "move", "burial-hall");
-      await fight(page);
+      // Its card in the fight panel (#525) shows what became of it.
+      const shownStates = new Set();
+      await fight(page, async () => {
+        for (const tag of await page
+          .locator(
+            `#foe-cards li[data-combatant="${gone}"] :is(.card-state, .tag.morale)`,
+          )
+          .allTextContents()) {
+          shownStates.add(tag);
+        }
+      });
       const log = await text(page.locator("#log"));
       const goneName = `Goblin ${gone.slice(-1)}`;
       assert.match(
@@ -59,10 +69,9 @@ test(
         ),
       );
       assert.match(log, new RegExp(`${goneName} flees the fight\\.`));
-      // The initiative table tags the fled goblin; only the fallen leave
+      // Its card tagged it Fleeing before it fled; only the fallen leave
       // bodies to search.
-      const row = page.locator(`#initiative-rows tr[data-combatant="${gone}"]`);
-      assert.match(await row.textContent(), /Fled/);
+      assert.ok(shownStates.has("Fleeing"), [...shownStates].join(", "));
       assert.equal(
         await page.locator(`button.act[data-action="examine"]`).count(),
         fallen.length,

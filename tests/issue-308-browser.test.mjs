@@ -115,12 +115,10 @@ const seed = (() => {
 /** Takes one fight click as `choose` does, and waits for its entry. */
 async function fightClick(page) {
   const enabled = (selector) => page.locator(`${selector}:enabled`);
-  const dodge = enabled(
-    '#feature-controls button[data-action="uncanny-dodge"]',
-  );
-  const aim = enabled('#feature-controls button[data-action="steady-aim"]');
+  const dodge = enabled('#encounter button[data-action="uncanny-dodge"]');
+  const aim = enabled('#encounter button[data-action="steady-aim"]');
   const strike = page.locator("#cunning-strike");
-  const attack = enabled("#attack-controls button.attack");
+  const attack = enabled("#encounter button.attack");
   if ((await dodge.count()) > 0) {
     // The hit waits: only the two answers are offered, on screen with the
     // newest entry.
@@ -147,9 +145,7 @@ async function fightClick(page) {
     if ((await attack.count()) > 0) {
       await attack.first().click();
     } else {
-      await page
-        .locator('#feature-controls button[data-action="end-turn"]')
-        .click();
+      await page.locator('#encounter button[data-action="end-turn"]').click();
     }
   });
   return "plain";

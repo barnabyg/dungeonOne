@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   actionButton,
+  openFlee,
   clickAction,
   createAndStart,
 } from "./fixtures/browser-journey.mjs";
@@ -38,12 +39,16 @@ test("the room panel's exits and their buttons give each way's direction", async
       "East: Long Gallery",
       "Up: Belfry",
     ]);
-    // Each exit's row of verbs is headed by its way, and Go says it.
-    const row = (id) =>
-      page.locator(`#explore-controls .thing-actions[data-target="${id}"]`);
+    // Each exit's card, with its verbs (#520), is headed by its way, and Go
+    // says it.
+    const card = (id) => page.locator(`#exits li[data-id="${id}"]`);
     assert.equal(
-      await row("belfry").locator(".thing-name").textContent(),
+      await card("belfry").locator("strong").textContent(),
       "Up: Belfry",
+    );
+    assert.equal(
+      await card("belfry").locator('button.act[data-action="move"]').count(),
+      1,
     );
     const go = actionButton(page, "move", "alcove");
     assert.equal(await go.getAttribute("aria-label"), "Go west to Alcove");
@@ -61,8 +66,8 @@ test("the room panel's exits and their buttons give each way's direction", async
 
     // In the cellar's fight, Flee names the way back.
     await clickAction(page, "move", "rat-cellar");
+    await openFlee(page);
     const flee = actionButton(page, "flee", "stair-foot");
-    await flee.waitFor();
     assert.equal(await flee.textContent(), "North: Foot of the Stair");
     assert.equal(
       await flee.getAttribute("aria-label"),

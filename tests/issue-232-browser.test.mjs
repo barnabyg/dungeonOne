@@ -1,6 +1,7 @@
 // #232, browser → API → storage: the bestiary's Wolf knocks the
-// character prone. The initiative table and the status strip show it when it
-// lands, a restart keeps it, and it ends when the character gets up.
+// character prone. Ada's card in the fight panel (#525) and the status strip
+// show it when it lands, a restart keeps it, and it ends when the character
+// gets up.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
@@ -61,14 +62,12 @@ function knockdown(seed) {
   return ongoing() && down > 0 ? { down, up } : undefined;
 }
 
-/** The conditions the initiative table and the status strip show for Ada. */
+/** The conditions Ada's card (#525) and the status strip show for her. */
 const shown = (page) =>
   page.evaluate(() => ({
-    table: [
-      ...document.querySelectorAll(
-        '#initiative-rows tr[data-combatant="pc"] .tag.condition',
-      ),
-    ].map((tag) => tag.textContent),
+    table: [...document.querySelectorAll("#you-card .tag.condition")].map(
+      (tag) => tag.textContent,
+    ),
     strip: [...document.querySelectorAll("#conditions li")].map(
       (item) => item.textContent,
     ),
@@ -98,7 +97,7 @@ test(
     page.setDefaultTimeout(8000);
     try {
       await createAndStart(page, server.url, "wolf-den");
-      await page.locator("#initiative-rows tr").first().waitFor();
+      await page.locator("#you-card").waitFor();
       assert.deepEqual(await shown(page), { table: [], strip: [] });
       for (let count = 0; count < clicks.down; count++) {
         await fightTurn(page);

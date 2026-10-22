@@ -82,23 +82,21 @@ const fighting = async (page) =>
   ((await page.locator("#turn").textContent()) ?? "").startsWith("Round");
 
 /** The cantrip each caster casts by the handoff's rule. */
-const CANTRIPS = { cleric: "Sacred Flame", wizard: "Fire Bolt" };
+const CANTRIPS = { cleric: "sacred-flame", wizard: "fire-bolt" };
 
 /**
  * One fight turn by the handoff's rule for `who`, the clicks a `journey`
  * with the same chooser makes: take a hit a reaction could answer; Mira
- * turns undead while both uses are left; Vela uses a scroll she holds
- * from the Items row; a caster chooses her cantrip and presses Cast;
- * otherwise attack, or end the turn.
+ * turns undead while both uses are left; Vela uses a scroll she holds; a
+ * caster casts her cantrip; otherwise attack, or end the turn. A scroll,
+ * a cantrip or the weapon is chosen in the attack chooser (#526), then the
+ * first foe's button it can be used on is clicked.
  */
 async function fightTurn(page, who) {
   const enabled = async (locator) =>
     (await locator.count()) > 0 && (await locator.first().isEnabled());
   const takeHit = page.locator('button.act[data-action="take-hit"]');
   const turn = page.locator('button.act[data-action="turn-undead"]');
-  const cast = page.locator("button.act[data-action=cast]");
-  const use = page.locator("button.act[data-action=cast-item]");
-  const attack = page.locator("#attack-controls button.attack:enabled");
   if (await enabled(takeHit)) {
     return settled(page, () => takeHit.first().click());
   }
@@ -113,32 +111,36 @@ async function fightTurn(page, who) {
   ) {
     return settled(page, () => turn.first().click());
   }
-  // A scroll's or wand's casts are the Items row's choice (#392).
-  if (who === "wizard" && (await enabled(use))) {
-    return settled(page, () => use.first().click());
-  }
-  if (who !== "fighter" && (await page.locator("#cast-spell").count()) > 0) {
-    // A cantrip's choice is its bare name; a scroll's or disabled one's
-    // has more after it.
-    const label = new RegExp(`^${CANTRIPS[who]}$`, "u");
-    // A spell that can't be cast now is disabled, with why (#392).
-    const cantrip = page.locator("#cast-spell option:not([disabled])", {
-      hasText: label,
-    });
-    if ((await cantrip.count()) > 0) {
-      await page
-        .locator("#cast-spell")
-        .selectOption(await cantrip.first().getAttribute("value"));
-      if (await enabled(cast)) {
-        return settled(page, () => cast.first().click());
+  // A chip the engine would accept now: not greyed.
+  const usable = (selector) =>
+    page.locator(`#chooser-chips ${selector}:not(.off)`);
+  const foe = page.locator("#foe-cards button.act:enabled");
+  const chosen = [
+    ...(who === "wizard" ? [usable('[data-group="items"] label')] : []),
+    ...(who === "fighter"
+      ? []
+      : [usable(`label[data-choice="cast:${CANTRIPS[who]}"]`)]),
+    usable('label[data-choice="attack"]'),
+  ];
+  for (const chip of chosen) {
+    if ((await chip.count()) > 0) {
+      await chip.first().click();
+      if ((await foe.count()) > 0) {
+        return settled(page, () => foe.first().click());
       }
     }
   }
-  if ((await attack.count()) > 0) {
+  // With one way to attack the chooser hides (#526): the foes' buttons
+  // name the weapon.
+  const attack = page.locator("#encounter button.attack:enabled");
+  if (
+    (await page.locator("#attack-chooser").isHidden()) &&
+    (await attack.count()) > 0
+  ) {
     return settled(page, () => attack.first().click());
   }
   return settled(page, () =>
-    page.locator('#feature-controls button[data-action="end-turn"]').click(),
+    page.locator('#encounter button[data-action="end-turn"]').click(),
   );
 }
 
@@ -355,7 +357,7 @@ test(
       await play(page, WIZARD_ROUTE.slice(0, 2), "wizard", ends);
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
-        /^This is a safe place to rest\. Long rests: 1 of 1 left in this adventure/u,
+        /^Long rest 1 of 1 left in this adventure\. This is a safe place to rest\./u,
       );
       const log = await play(page, WIZARD_ROUTE.slice(2), "wizard", ends);
       // Nave, the restless dead, the Prior's Cell, the undercroft.

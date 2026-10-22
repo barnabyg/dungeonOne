@@ -1,5 +1,5 @@
-// #159: each kind of conversation-history entry looks different and is
-// labelled, result cards show their rolls grouped beside the line they
+// #159: each kind of conversation-history entry is labelled (one card style
+// since #524), result cards show their rolls grouped beside the line they
 // belong to, the newest entry is marked and focusable, and a reload restores
 // the same rendering. #186: attack and initiative lines are compact, built
 // from their roll groups, with the engine text for screen readers and behind
@@ -98,6 +98,7 @@ const FONTS = [
   ["Arial", "0.06em"],
   ["Arial", "0.09em"],
   ["Verdana", "0"],
+  ["Verdana", "0.06em"],
 ];
 
 /** Waits for the history to gain an entry after `run`. */
@@ -174,14 +175,12 @@ test(
     try {
       await createAndStart(page, server.url, "goblin-band");
 
-      // The opening: unboxed narration, then the initiative card.
+      // The opening (#524): one card, the start room's arrival, then
+      // initiative.
       assert.deepEqual(await entries(page), [
         {
-          kind: "narration",
-          parts: [
-            ["note", "Narration"],
-            ["note", "Resolved action"],
-          ],
+          kind: "action",
+          parts: [["note", "Resolved action"]],
           newest: true,
           tabIndex: "-1",
         },
@@ -240,11 +239,11 @@ test(
 
       // Clicks until the fight ends.
       while (!(await page.locator("#ending").isVisible())) {
-        const attack = page.locator("#attack-controls button.attack:enabled");
+        const attack = page.locator("#encounter button.attack:enabled");
         await added(page, async () =>
           ((await attack.count()) > 0
             ? attack.first()
-            : page.locator('#feature-controls button[data-action="end-turn"]')
+            : page.locator('#encounter button[data-action="end-turn"]')
           ).click(),
         );
       }
@@ -342,10 +341,15 @@ test(
       assert.equal(await more.getAttribute("aria-expanded"), "false");
 
       // A card with an attack is no taller than its engine text alone, as
-      // cards were before #159, with slack for CI's wider fonts (#196).
+      // cards were before #159, with slack for CI's wider fonts (#196). The
+      // line "How initiative was rolled" (#525) adds to it, so it is left
+      // out of the measure.
       const taller = await page.evaluate((fonts) => {
         const log = document.querySelector("#log");
         const found = [];
+        for (const how of log.querySelectorAll(".initiative-how")) {
+          how.hidden = true;
+        }
         for (const [family, spacing] of fonts) {
           log.style.fontFamily = family;
           log.style.letterSpacing = spacing;
@@ -353,12 +357,21 @@ test(
             if (!card.querySelector(".compact .roll.attack")) {
               continue;
             }
-            const probe = document.createElement("div");
-            probe.className = "card result";
-            const text = document.createElement("p");
-            text.style.whiteSpace = "pre-line";
-            text.textContent = card.querySelector(".full-text").textContent;
-            probe.append(text);
+            // The probe is the card with each compact roll line put back to
+            // its engine text, so what else a line holds (an arrival's bold
+            // room name and icons, #524) counts the same in both.
+            const probe = card.cloneNode(true);
+            for (const compact of probe.querySelectorAll(".compact")) {
+              compact.previousElementSibling?.classList.remove(
+                "visually-hidden",
+              );
+              compact.remove();
+            }
+            for (const extra of probe.querySelectorAll(
+              ".card-more, .full-text",
+            )) {
+              extra.remove();
+            }
             card.after(probe);
             if (card.offsetHeight > probe.offsetHeight + 1) {
               found.push([
@@ -366,7 +379,7 @@ test(
                 spacing,
                 card.offsetHeight,
                 probe.offsetHeight,
-                text.textContent,
+                card.querySelector(".full-text").textContent,
               ]);
             }
             probe.remove();
@@ -374,29 +387,34 @@ test(
         }
         log.style.fontFamily = "";
         log.style.letterSpacing = "";
+        for (const how of log.querySelectorAll(".initiative-how")) {
+          how.hidden = false;
+        }
         return found;
       }, FONTS);
       assert.deepEqual(taller, []);
 
-      // Each kind looks different.
+      // Each kind is a card in one style (#524); a reply is attributed.
       const looks = await page.evaluate(() => {
-        const style = (selector) =>
-          getComputedStyle(document.querySelector(`#log ${selector}`));
+        const style = (selector) => {
+          const shown = getComputedStyle(
+            document.querySelector(`#log ${selector}`),
+          );
+          return [shown.borderTopStyle, shown.backgroundColor].join(" ");
+        };
         return {
-          narration: style(".narration").borderTopStyle,
-          card: style(".card.result").borderTopStyle,
-          player: style(".player").backgroundColor,
-          reply: style(".reply").borderLeftStyle,
+          card: style(".card.result"),
+          player: style(".player"),
+          reply: style(".reply"),
           replyLabel: getComputedStyle(
             document.querySelector("#log .reply"),
             "::before",
           ).content,
         };
       });
-      assert.equal(looks.narration, "none");
-      assert.equal(looks.card, "solid");
-      assert.notEqual(looks.player, "rgba(0, 0, 0, 0)");
-      assert.equal(looks.reply, "solid");
+      assert.match(looks.card, /^solid rgb/u);
+      assert.equal(looks.player, looks.card);
+      assert.equal(looks.reply, looks.card);
       assert.match(looks.replyLabel, /Dungeon Master/);
 
       // Only the newest entry is marked, and it takes focus.

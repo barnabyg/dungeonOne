@@ -24,6 +24,7 @@ import { sessionSeed } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import {
   actionButton,
+  chooseSpell,
   clickAction,
   settled,
   startAdventure,
@@ -387,15 +388,20 @@ test(
           .innerText(),
         "2 of 2 left",
       );
-      // Divine Spark is chosen with its target and mode.
+      // Divine Spark is the attack chooser's (#526), with its damage
+      // chosen beside it and its target by the foe's card.
+      await chooseSpell(page, "divine-spark");
       assert.deepEqual(
-        await page.locator("#spark-choice option").allTextContents(),
-        [
-          "Zombie: radiant damage",
-          "Zombie: necrotic damage",
-          "Ghoul: radiant damage",
-          "Ghoul: necrotic damage",
-        ],
+        await page.locator("#chooser-variant option").allTextContents(),
+        ["radiant damage", "necrotic damage"],
+      );
+      assert.deepEqual(
+        await page
+          .locator("#foe-cards button.act[data-action=divine-spark]")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.dataset.target),
+          ),
+        ["zombie", "ghoul"],
       );
       assert.deepEqual(await channelPips(page), full);
       await settled(page, () => turn.click());

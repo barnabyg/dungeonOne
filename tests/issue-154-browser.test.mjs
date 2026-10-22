@@ -75,7 +75,7 @@ const tabRegions = async (page) => {
     const region = await page.evaluate(
       () =>
         document.activeElement.closest(
-          "#session-character, #session-scene, #session-actions, #session-history, #session-composer",
+          "#session-character, #session-actions, #encounter, #session-scene, #session-composer, #session-history",
         )?.id,
     );
     if (!region) {
@@ -88,13 +88,16 @@ const tabRegions = async (page) => {
   return regions;
 };
 
-// The character's column (#432), then the scene, then the dock.
+// The character's column (#432), then the centre: the actions, or in a
+// fight its panel (#525), opening the scene, the scene and the DM box; then
+// the history (#523).
 const ORDER = [
   "session-character",
-  "session-scene",
   "session-actions",
-  "session-history",
+  "encounter",
+  "session-scene",
   "session-composer",
+  "session-history",
 ];
 
 /** Tab visits the regions in ORDER, including each of `expected`. */
@@ -110,10 +113,15 @@ function assertTabOrder(seen, expected) {
   }
 }
 
-/** The regions' columns and how the dock is placed, to compare reloads. */
+/** The regions' columns and how each is placed, to compare reloads. */
 const regions = (page) =>
   page.evaluate(() =>
-    ["session-status", "session-scene", "session-dock"].map((id) => {
+    [
+      "session-status",
+      "session-scene",
+      "session-composer",
+      "session-history",
+    ].map((id) => {
       const node = document.getElementById(id);
       const rect = node.getBoundingClientRect();
       return {
@@ -146,10 +154,11 @@ test(
       await createAndStart(page, server.url, "rat-tunnels");
       await assertTogether(page, "start");
 
+      // Exploring, the actions are on the room's cards (#520).
       assertTabOrder(await tabRegions(page), [
-        "session-actions",
-        "session-history",
+        "session-scene",
         "session-composer",
+        "session-history",
       ]);
       await explore(page, "examine", "rusted-lantern");
       await explore(page, "move", "alcove");
@@ -164,9 +173,9 @@ test(
       // Mid-fight: tab order and the skip link, then a reload keeps the
       // same layout with the newest entry shown.
       assertTabOrder(await tabRegions(page), [
-        "session-actions",
-        "session-history",
+        "encounter",
         "session-composer",
+        "session-history",
       ]);
       await page.evaluate(() => document.activeElement.blur());
       await page.evaluate(() => window.scrollTo(0, 0));
@@ -183,7 +192,7 @@ test(
       const before = await regions(page);
       await page.reload();
       await page.locator("#adventure").waitFor({ state: "visible" });
-      await page.locator("#attack-controls button").first().waitFor();
+      await page.locator("#encounter button.attack").first().waitFor();
       assert.deepEqual(await regions(page), before);
       await assertTogether(page, "reload mid-fight");
 
@@ -202,7 +211,7 @@ test(
       const count = await page.locator("#log li").count();
       await page
         .locator(
-          '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
+          '#room button[data-action="examine"][data-target="gnawed-sacks"]',
         )
         .click();
       await page.waitForFunction(

@@ -70,13 +70,11 @@ function findSeed() {
   throw new Error("no seed wins the barrow twice");
 }
 
-/** Clicks an exploring button and waits for its result card. */
+/** Clicks a room card's button (#520) and waits for its result card. */
 async function explore(page, action, target) {
   const count = await page.locator("#log li").count();
   await page
-    .locator(
-      `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-    )
+    .locator(`#room button[data-action="${action}"][data-target="${target}"]`)
     .click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,
@@ -141,9 +139,14 @@ test(
       );
       await startAdventure(page, "lintel-barrow");
 
-      // Leave is an explicit choice that asks first, inside the panel.
-      const leaveButton = page.locator("#leave-controls button");
-      assert.equal(await leaveButton.textContent(), "Leave the adventure");
+      // Leave is an explicit choice that asks first, inside the panel: on
+      // the way-out room's heading (#520).
+      const leaveButton = page.locator("#room-heading #leave-controls button");
+      assert.equal(await leaveButton.textContent(), "Way out · Leave");
+      assert.equal(
+        await leaveButton.getAttribute("aria-label"),
+        "Way out · Leave the adventure",
+      );
       await leaveButton.click();
       // Leaving now falls short of the objective: the warning says so, and
       // the button reads it out with the question (#475).
@@ -179,15 +182,13 @@ test(
       await explore(page, "take", "silver-torc");
       // The goblin's pouch is on its body: searched, then taken.
       assert.equal(
-        await page
-          .locator('#action-bar button[data-target="coin-pouch"]')
-          .count(),
+        await page.locator('#room button[data-target="coin-pouch"]').count(),
         0,
       );
       await explore(page, "examine", "barrow-goblin");
       assert.match(
         await page.locator("#room").innerText(),
-        /Goblin Warrior's body — It lies where it fell\.\s+You found: Pouch of Old Coins/,
+        /Goblin Warrior's body — It lies where it fell\.\s+✓ Examined\s+You found: Pouch of Old Coins/,
       );
       assert.equal(await page.locator("#purse").isVisible(), false);
       await explore(page, "take", "coin-pouch");
@@ -292,7 +293,7 @@ test(
       await explore(page, "examine", "stone-bier");
       await explore(page, "examine", "barrow-goblin");
       assert.equal(
-        await page.locator('#action-bar button[data-action="take"]').count(),
+        await page.locator('#room button[data-action="take"]').count(),
         0,
       );
       // The purse Ada brought is still hers.

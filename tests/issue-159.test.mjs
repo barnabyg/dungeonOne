@@ -164,8 +164,11 @@ test("the session saves grouped rolls and refuses a card whose lines do not make
     const [card] = file.history[0].cards;
     assert.equal(card.kind, "result");
     assert.deepEqual(Object.keys(card).sort(), ["kind", "lines", "text"]);
-    assert.match(card.lines[0].text, /^Initiative: /);
-    assert.equal(card.lines[0].rolls[0].purpose, "initiative");
+    // The start room's arrival (#524), then initiative.
+    assert.match(card.lines[0].text, /^Mill Storeroom — /);
+    assert.deepEqual(card.lines[0].rolls, []);
+    assert.match(card.lines[1].text, /^Initiative: /);
+    assert.equal(card.lines[1].rolls[0].purpose, "initiative");
     const loaded = await FifthSession.load(path, adventures);
     assert.deepEqual(loaded.history, session.history);
 
@@ -198,7 +201,7 @@ test("entering a room without a fight is a narration card", async () => {
     );
     const card = session.card(moved.result, moved.rolls);
     assert.equal(card.kind, "narration");
-    assert.match(card.text, /^You enter the /);
+    assert.match(card.text, /^Alcove — A cramped alcove/);
     const examined = session.act(
       { type: "examine", targetId: "iron-chest" },
       "click",

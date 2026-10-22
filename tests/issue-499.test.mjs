@@ -201,7 +201,7 @@ test("a saved session waiting for Last Stand reloads it, a trace replays it, and
     assert.deepEqual(replayed.state, run.session.state);
     // Older formats are refused, naming the file.
     assert.equal(FIFTH_SESSION_FORMAT, 66);
-    assert.equal(FIFTH_TRACE_FORMAT, 60);
+    assert.equal(FIFTH_TRACE_FORMAT, 61);
     const saved = JSON.parse(await readFile(path, "utf8"));
     await writeFile(path, JSON.stringify({ ...saved, formatVersion: 64 }));
     await assert.rejects(
@@ -216,7 +216,7 @@ test("a saved session waiting for Last Stand reloads it, a trace replays it, and
     await assert.rejects(
       verifyFifthTraceFile(tracePath, [potionCellar]),
       new RegExp(
-        String.raw`trace\.json is a trace in format version 58, not 60\. This build cannot replay it\. Move it aside; the file has not been changed\.`,
+        String.raw`trace\.json is a trace in format version 58, not 61\. This build cannot replay it\. Move it aside; the file has not been changed\.`,
         "u",
       ),
     );

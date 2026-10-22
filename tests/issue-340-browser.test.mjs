@@ -21,6 +21,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { WIZARD } from "../dist/wizard-5e.js";
 import {
+  chooseSpell,
   clickAction,
   fight,
   settled,
@@ -315,13 +316,20 @@ test(
         /You cast Mage Armor on yourself with a 1st-level spell slot \(1 of 2 left\)\.\nMage Armor takes hold on you: base AC 13 \+ Dexterity while wearing no armour, until a long rest or the adventure's end\./u,
       );
       await clickAction(page, "move", "rat-cellar");
-      await page.locator("#cast-spell").waitFor();
-      assert.deepEqual(await stripResources(), [
-        "action",
-        "bonus-action",
-        "reaction",
-      ]);
-      await castNamed(page, "Ray of Sickness (1st-level slot)");
+      await page.locator("#foe-cards button.act").first().waitFor();
+      // In a fight the turn's pips are in the fight panel's footer (#525).
+      assert.deepEqual(await stripResources(), []);
+      assert.deepEqual(
+        await page
+          .locator("#turn-resources li")
+          .evaluateAll((items) => items.map((item) => item.dataset.resource)),
+        ["action", "bonus-action", "reaction"],
+      );
+      // Ray of Sickness at the rat, from the attack chooser (#526).
+      await chooseSpell(page, "ray-of-sickness");
+      await settled(page, () =>
+        page.locator("#foe-cards button.act[data-action=cast]").click(),
+      );
       assert.match(
         await text(page.locator("#log")),
         /You cast Ray of Sickness at Giant Rat with a 1st-level spell slot \(0 of 2 left\)\./u,

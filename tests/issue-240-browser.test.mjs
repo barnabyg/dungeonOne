@@ -108,7 +108,10 @@ test("defeat a bestiary goblin, search its body and find exactly the loot the mo
     await explore(page, "examine", "barrow-goblin");
     assert.match(
       await page.locator("#room").innerText(),
-      new RegExp(`Goblin Warrior's body — [^\\n]*\\s+You found: ${pouch.name}`),
+      // On the body's card (#520), under its examined mark (#491).
+      new RegExp(
+        `Goblin Warrior's body — [^\\n]*\\s+✓ Examined\\s+You found: ${pouch.name}`,
+      ),
     );
     await explore(page, "take", pouch.id);
     assert.equal(

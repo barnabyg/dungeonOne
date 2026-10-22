@@ -1,9 +1,9 @@
-// #214: exploring actions in an aligned, one-thing-per-row layout. Each
-// thing's name sits in a shared column on its own row, its verb buttons start
-// at the same x on every row, and every verb button is the same width, so the
-// same verb lines up from row to row. Names longer than their column wrap
-// rather than pushing the buttons out of line, and each name is level with
-// its first button even when a disabled button's reason makes the row taller.
+// #214: exploring actions in an aligned, one-thing-per-row layout, now on
+// the room's cards (#520). Each thing is a card of its own with its verb
+// buttons on its right: every card's buttons end at the same x, to the right
+// of its name and description, which start at one left edge and wrap rather
+// than pushing the buttons out of line. Each name is level with its first
+// button even when a disabled button's reason makes the card taller.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -14,9 +14,9 @@ import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 
-/** Each thing row's box, its name's box and its verb buttons' boxes. */
+/** Each card's box, its text's box and its verb buttons' boxes. */
 const rows = (page) =>
-  page.locator("#explore-controls .thing-actions").evaluateAll((things) =>
+  page.locator("#room li[data-id]").evaluateAll((things) =>
     things.map((thing) => {
       const box = (node) => {
         const { left, right, top, bottom, width } =
@@ -24,50 +24,42 @@ const rows = (page) =>
         return { left, right, top, bottom, width };
       };
       return {
-        name: thing.querySelector(".thing-name").textContent,
+        name: thing.querySelector("strong").textContent,
         row: box(thing),
-        label: box(thing.querySelector(".thing-name")),
-        buttons: [...thing.querySelectorAll("button")].map(box),
+        label: box(thing.querySelector(".thing-text")),
+        buttons: [...thing.querySelectorAll(".thing-controls button")].map(box),
       };
     }),
   );
 
-/** Checks the layout rules of #214 against the current action bar. */
+/** Checks the layout rules of #214 against the room's cards. */
 async function assertAligned(page) {
   const things = await rows(page);
   assert.ok(things.length >= 2, JSON.stringify(things));
   const names = things.map(({ name }) => name).join(", ");
-  // One thing per row: no two rows share any vertical space.
+  // One thing per card: no two cards share any vertical space.
   for (let index = 1; index < things.length; index++) {
     assert.ok(
       things[index].row.top >= things[index - 1].row.bottom - 0.5,
       `${things[index].name} shares a row with ${things[index - 1].name}`,
     );
   }
-  // Names share a left edge, and every row's first button starts at one x,
-  // to the right of every name.
+  // Texts share a left edge, and every card's last button ends at one x,
+  // to the right of its text.
   const lefts = new Set(things.map(({ label }) => Math.round(label.left)));
   assert.equal(lefts.size, 1, names);
-  const starts = new Set(
-    things.map(({ buttons }) => Math.round(buttons[0].left)),
+  const ends = new Set(
+    things.map(({ buttons }) => Math.round(buttons.at(-1).right)),
   );
-  assert.equal(starts.size, 1, names);
-  const start = [...starts][0];
+  assert.equal(ends.size, 1, names);
   for (const { name, label, buttons } of things) {
-    assert.ok(label.right <= start, `${name} runs into its buttons`);
-    // A name sits level with its first button, not centred on the row.
+    assert.ok(label.right <= buttons[0].left, `${name} runs into its buttons`);
+    // A name sits level with its first button, not centred on the card.
     assert.ok(
-      label.top >= buttons[0].top && label.top < buttons[0].bottom,
+      label.top >= buttons[0].top - 1 && label.top < buttons[0].bottom,
       `${name} is not level with its first button`,
     );
   }
-  // Every verb button is the same width.
-  const widths = new Set(
-    things.flatMap(({ buttons }) =>
-      buttons.map(({ width }) => Math.round(width)),
-    ),
-  );
-  assert.equal(widths.size, 1, [...widths].join(", "));
 }
 
 const viewport = { width: 1280, height: 850 };
@@ -103,20 +95,25 @@ test(
       assert.equal(await page.locator("#room-empty").isVisible(), false);
       assert.doesNotMatch(await page.locator("#room").innerText(), /None\./);
 
-      // The stair: two exits and a feature, with "Go" beside "Examine".
+      // The stair: a feature and two exits, each card with its own verb.
       // Each name is shown once, beside its short verbs, and the verbs are
       // named in full (#157).
       await assertAligned(page);
       assert.deepEqual(
         await page
-          .locator("#explore-controls .thing-actions")
+          .locator("#room li[data-id]")
           .evaluateAll((things) =>
-            things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
+            things.map(
+              (thing) =>
+                thing.querySelector("strong").textContent +
+                " " +
+                thing.querySelector(".thing-controls").innerText,
+            ),
           ),
         [
+          "Rusted Lantern Examine",
           "West: Alcove Go",
           "South: Rat-Gnawed Cellar Go",
-          "Rusted Lantern Examine",
         ],
       );
       assert.equal(

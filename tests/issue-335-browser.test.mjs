@@ -89,16 +89,23 @@ test(
     try {
       await createAndStart(page, server.url, "resting-tunnels");
       const longRest = page.locator("#long-rest-controls button.act");
-      // The stair is no rest site: no long rest shows.
-      assert.equal(await page.locator("#long-rest").isVisible(), false);
+      // The stair is no rest site: the long rest's line says so (#521).
+      assert.equal(await longRest.count(), 0);
+      assert.equal(
+        await page.locator("#long-rest-reason").textContent(),
+        "Only at a rest site",
+      );
       // The alcove is one, but fresh there is nothing to restore.
       await clickAction(page, "move", "alcove");
-      assert.equal(await page.locator("#long-rest").isVisible(), true);
       assert.equal(
         await page.locator("#long-rest-summary").textContent(),
-        "This is a safe place to rest. Long rests: 1 of 1 left in this adventure; a long rest restores every hit point, hit die and feature use.",
+        "Long rest 1 of 1 left in this adventure. This is a safe place to rest.",
       );
-      assert.equal(await longRest.count(), 0);
+      assert.equal(await longRest.isDisabled(), true);
+      assert.equal(
+        await page.locator("#long-rest-reason").textContent(),
+        "Nothing to recover",
+      );
       await clickAction(page, "move", "stair-foot");
       await clickAction(page, "move", "rat-cellar");
       await fight(page);
@@ -107,7 +114,11 @@ test(
         /^HP 7 of 13,/u,
       );
       // Hurt, away from the rest site: still no long rest.
-      assert.equal(await page.locator("#long-rest").isVisible(), false);
+      assert.equal(await longRest.count(), 0);
+      assert.equal(
+        await page.locator("#long-rest-reason").textContent(),
+        "Only at a rest site",
+      );
       await clickAction(page, "move", "stair-foot");
       await clickAction(page, "move", "alcove");
       assert.equal(await longRest.isEnabled(), true);
@@ -120,11 +131,15 @@ test(
         await page.locator("#character-hp").textContent(),
         /^HP 13 of 13,/u,
       );
-      // Nothing is left to restore, so Long rest goes.
-      assert.equal(await longRest.count(), 0);
+      // None is left, so Long rest is greyed with its reason.
+      assert.equal(await longRest.isDisabled(), true);
+      assert.equal(
+        await page.locator("#long-rest-reason").textContent(),
+        "No long rest left",
+      );
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
-        /Long rests: 0 of 1 left in this adventure;/u,
+        /^Long rest 0 of 1 left in this adventure\./u,
       );
       const file = await sessionFile(directory);
       assert.equal(file.state.longRests, 1);
@@ -137,7 +152,7 @@ test(
       await page.locator("#log li").first().waitFor();
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
-        /Long rests: 0 of 1 left/u,
+        /^Long rest 0 of 1 left/u,
       );
       assert.ok((await readAda(libraryPath)).session !== undefined);
     } finally {
@@ -180,9 +195,14 @@ test(
           .textContent(),
         /^d100 \d+ vs 100 or less$/u,
       );
-      // Nothing restored; the fight is on and the rest panel is away.
+      // Nothing restored; the fight is on and the rest panel says so, the
+      // interrupted rest not counted (#521).
       assert.doesNotMatch(card, /You spend a hit die/u);
-      assert.equal(await page.locator("#rest-group").isVisible(), false);
+      assert.equal(await page.locator("#short-rest").isVisible(), false);
+      assert.equal(
+        await text(page.locator("#rest-fight")),
+        "Not during a fight\nShort rests 2 of 2 left · Long rests 1 of 1 left",
+      );
       assert.match(
         await page.locator("#encounter").innerText(),
         /Prowling Rat/u,
@@ -257,7 +277,7 @@ test(
       );
       assert.match(
         await page.locator("#long-rest-summary").textContent(),
-        /Long rests: 0 of 1 left in this adventure;/u,
+        /^Long rest 0 of 1 left in this adventure\./u,
       );
     } finally {
       await browser.close();

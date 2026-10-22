@@ -15,7 +15,7 @@ import { obstacleYard } from "./fixtures/modules.mjs";
 /** The wall's Examine buttons: each accessible name, skill and state. */
 const wallButtons = (page) =>
   page
-    .locator('#action-bar button[data-target="crumbling-wall"]')
+    .locator('#room button[data-target="crumbling-wall"]')
     .evaluateAll((buttons) =>
       buttons.map((button) => ({
         name: button.getAttribute("aria-label"),
@@ -62,7 +62,7 @@ test(
       await settled(page, () =>
         page
           .locator(
-            '#action-bar button[data-target="crumbling-wall"][data-approach="acrobatics"]',
+            '#room button[data-target="crumbling-wall"][data-approach="acrobatics"]',
           )
           .click(),
       );

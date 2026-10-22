@@ -107,10 +107,16 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await startSage(page, server.url);
+      // The cantrips cast at the goblin are the attack chooser's (#526);
+      // the Cast choice holds the spells on Sage.
+      assert.deepEqual(
+        await page
+          .locator('#chooser-chips [data-group="cantrips"] .chip-name')
+          .allTextContents(),
+        ["Fire Bolt", "Sacred Flame"],
+      );
       const spell = page.locator("#cast-spell");
       assert.deepEqual(await spell.locator("option").allTextContents(), [
-        "Fire Bolt",
-        "Sacred Flame",
         "Bless (1st-level slot)",
         "Shield of Faith (1st-level slot)",
         "Cure Wounds (1st-level slot) — Full HP",

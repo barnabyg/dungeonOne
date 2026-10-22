@@ -164,21 +164,26 @@ test(
 
         // Fight with it: attack, then the extra attack with two light weapons.
         await startAdventure(page, "lone-goblin");
-        const attack = page.locator(
-          '#attack-controls button[data-action="attack"]',
-        );
+        const attack = page.locator('#encounter button[data-action="attack"]');
         await attack.waitFor();
         const extra = page.locator(
-          '#attack-controls button[data-action="light-attack"]',
+          '#encounter button[data-action="light-attack"]',
+        );
+        // The extra attack is the attack chooser's greyed chip (#526) until
+        // the attack is made; then the chooser moves to it.
+        const chip = page.locator(
+          '#chooser-chips label[data-choice="light-attack"]',
         );
         if (profile.lightAttack === undefined) {
-          assert.equal(await extra.count(), 0, kit);
+          assert.equal(await chip.count(), 0, kit);
+          assert.equal(await page.locator("#attack-chooser").isHidden(), true);
         } else {
-          assert.equal(await extra.isDisabled(), true);
-          assert.match(
-            await page.locator("#attack-controls").innerText(),
-            /Extra attack on Goblin Warrior with Dagger\s+Attack first/,
-          );
+          assert.equal(await chip.getAttribute("class"), "chip off");
+          assert.deepEqual((await chip.innerText()).split("\n"), [
+            "Dagger",
+            "extra",
+            "Attack first",
+          ]);
         }
         await attack.click();
         await page

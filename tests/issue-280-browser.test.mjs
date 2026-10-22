@@ -81,7 +81,7 @@ test(
       // The remembered checks stay tried.
       const disabled = await page
         .locator(
-          '#action-bar button[data-action="talk"][data-target="key-whereabouts"]',
+          '#room button[data-action="talk"][data-target="key-whereabouts"]',
         )
         .isDisabled();
       assert.ok(disabled);
