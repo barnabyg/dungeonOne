@@ -113,11 +113,13 @@ const REGIONS = [
   "#session-status",
   "#inventory-group",
   "#rest-group",
+  // Then the centre (#523): the fight's controls, the Fight section, the
+  // room and the DM box; the history last.
+  "#session-actions",
   "#encounter",
   "#room",
-  "#session-actions",
-  "#session-history",
   "#session-composer",
+  "#session-history",
 ];
 
 /** `selectors` sorted by where each element sits in the document. */
@@ -304,21 +306,34 @@ test(
       assert.equal(await fightOver(page), false, "the fight is on");
 
       // No disclosure: the initiative table sits above the exits and the
-      // features, and all three are on screen without a click.
+      // features, all three shown without a click. The fight's controls now
+      // open the centre column (#523), so the room may sit below the fold:
+      // scrolling the centre brings each group into view above the DM box.
       assert.equal(await page.locator("#room-toggle").count(), 0);
+      const area = await page.locator("#session-main").boundingBox();
       const table = await page.locator("#initiative").boundingBox();
       assert.ok(table, "the initiative table is shown");
       for (const selector of ["#exits-group", "#features-group"]) {
         const group = await page.locator(selector).boundingBox();
         assert.ok(group, selector + " is shown");
         assert.ok(table.y + table.height <= group.y, selector);
-        assert.ok(group.y + group.height <= viewport.height, selector);
       }
+      for (const selector of ["#exits-group", "#features-group"]) {
+        await page.locator(selector).scrollIntoViewIfNeeded();
+        const seen = await page.locator(selector).boundingBox();
+        assert.ok(
+          seen.y >= area.y - 1 && seen.y + seen.height <= area.y + area.height,
+          selector,
+        );
+      }
+      await page.locator("#session-main").evaluate((main) => {
+        main.scrollTop = 0;
+      });
       assert.match(await page.locator("#exits").textContent(), /Cellar Stair/);
       assert.match(await page.locator("#features").textContent(), /Ale Rack/);
 
-      // DOM and tab order: status, Fight, room, known rooms, actions,
-      // history, composer.
+      // DOM and tab order: the character's column, the fight's controls,
+      // Fight, room, composer, history.
       assert.deepEqual(await documentOrder(page, REGIONS), REGIONS);
       const tabbed = await tabRegions(page);
       assert.deepEqual(

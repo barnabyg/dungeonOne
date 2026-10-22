@@ -75,7 +75,7 @@ const tabRegions = async (page) => {
     const region = await page.evaluate(
       () =>
         document.activeElement.closest(
-          "#session-character, #session-scene, #session-actions, #session-history, #session-composer",
+          "#session-character, #session-actions, #session-scene, #session-composer, #session-history",
         )?.id,
     );
     if (!region) {
@@ -88,13 +88,14 @@ const tabRegions = async (page) => {
   return regions;
 };
 
-// The character's column (#432), then the scene, then the dock.
+// The character's column (#432), then the centre: the actions opening the
+// scene, the scene and the DM box; then the history (#523).
 const ORDER = [
   "session-character",
-  "session-scene",
   "session-actions",
-  "session-history",
+  "session-scene",
   "session-composer",
+  "session-history",
 ];
 
 /** Tab visits the regions in ORDER, including each of `expected`. */
@@ -110,10 +111,15 @@ function assertTabOrder(seen, expected) {
   }
 }
 
-/** The regions' columns and how the dock is placed, to compare reloads. */
+/** The regions' columns and how each is placed, to compare reloads. */
 const regions = (page) =>
   page.evaluate(() =>
-    ["session-status", "session-scene", "session-dock"].map((id) => {
+    [
+      "session-status",
+      "session-scene",
+      "session-composer",
+      "session-history",
+    ].map((id) => {
       const node = document.getElementById(id);
       const rect = node.getBoundingClientRect();
       return {
@@ -149,8 +155,8 @@ test(
       // Exploring, the actions are on the room's cards (#520).
       assertTabOrder(await tabRegions(page), [
         "session-scene",
-        "session-history",
         "session-composer",
+        "session-history",
       ]);
       await explore(page, "examine", "rusted-lantern");
       await explore(page, "move", "alcove");
@@ -166,8 +172,8 @@ test(
       // same layout with the newest entry shown.
       assertTabOrder(await tabRegions(page), [
         "session-actions",
-        "session-history",
         "session-composer",
+        "session-history",
       ]);
       await page.evaluate(() => document.activeElement.blur());
       await page.evaluate(() => window.scrollTo(0, 0));

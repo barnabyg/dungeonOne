@@ -1,5 +1,6 @@
 // #432: from 1500 px wide the adventure screen has three columns, character,
-// scene and dock, in that tab order, up to about 1880 px in all; the
+// centre (the scene and the DM box) and history (#523), in that tab order,
+// up to about 1880 px in all; the
 // character column holds the status strip, "You carry" and the rests.
 // "You carry" is a compact, grouped list, a line per entry with its verbs on
 // the right. Narrower, the screen keeps two columns without scrolling
@@ -48,7 +49,8 @@ const columns = (page) =>
       layout: box("session-layout"),
       scene: box("session-scene"),
       character: box("session-character"),
-      dock: box("session-dock"),
+      composer: box("session-composer"),
+      history: box("session-history"),
       status: box("session-status"),
       carry: box("inventory-group"),
       sceneHolds: ["inventory-group", "session-status", "rest-group"].filter(
@@ -66,7 +68,7 @@ async function tabRegions(page) {
     const region = await page.evaluate(
       () =>
         document.activeElement.closest(
-          "#session-scene, #session-character, #session-dock",
+          "#session-scene, #session-character, #session-composer, #session-history",
         )?.id,
     );
     if (!region) {
@@ -110,13 +112,19 @@ test(
       // The character's column is on the left (owner decision, 14 October
       // 2026).
       assert.ok(wide.character.right <= wide.scene.left, JSON.stringify(wide));
-      assert.ok(wide.scene.right <= wide.dock.left, JSON.stringify(wide));
+      assert.ok(wide.scene.right <= wide.history.left, JSON.stringify(wide));
+      assert.ok(
+        wide.composer.left === wide.scene.left &&
+          wide.composer.right <= wide.history.left,
+        JSON.stringify(wide),
+      );
       assert.deepEqual(wide.sceneHolds, []);
       assert.ok(wide.status.left >= wide.character.left);
       assert.deepEqual(await tabRegions(page), [
         "session-character",
         "session-scene",
-        "session-dock",
+        // No AI DM, so the DM box is off and Tab passes it by.
+        "session-history",
       ]);
 
       await clickAction(page, "examine", "scratched-lintel");
@@ -318,7 +326,7 @@ test(
         await page.setViewportSize(viewport);
         const narrow = await columns(page);
         assert.ok(
-          narrow.carry.right <= narrow.dock.left,
+          narrow.carry.right <= narrow.history.left,
           `${viewport.width} px: ${JSON.stringify(narrow)}`,
         );
         assert.ok(narrow.layout.width <= 1240);

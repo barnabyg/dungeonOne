@@ -45,8 +45,9 @@ export const narratingDm = () => ({
 
 /**
  * Where the newest history entry, the action buttons and the focused control
- * sit: each must be inside the window, and the entry inside the log's
- * scroll area, without the player scrolling.
+ * sit: each must be inside the window and its column's scroll area (#523:
+ * the fight's controls open the centre column, which scrolls above the DM
+ * box), and the entry inside the log's, without the player scrolling.
  */
 const layout = (page) =>
   page.evaluate(() => {
@@ -58,16 +59,34 @@ const layout = (page) =>
       rect.bottom <= height + 1 &&
       rect.left >= -1 &&
       rect.right <= width + 1;
+    // Inside the window and the scroll area that holds it, if any.
+    const shownAt = (node) => {
+      const rect = node.getBoundingClientRect();
+      let port = node.parentElement;
+      while (port && !/auto|scroll/u.test(getComputedStyle(port).overflowY)) {
+        port = port.parentElement;
+      }
+      const area = port?.getBoundingClientRect();
+      return (
+        inWindow(rect) &&
+        (area === undefined ||
+          (rect.top >= area.top - 1 && rect.bottom <= area.bottom + 1))
+      );
+    };
     const log = document.getElementById("log").getBoundingClientRect();
     const newest = document
       .querySelector("#log li:last-child")
       .getBoundingClientRect();
-    // Shown buttons only: the ending's (#158) is hidden while playing.
+    // Shown buttons only: the ending's (#158) is hidden while playing. Out
+    // of a fight the actions are on the room's cards and in "You carry",
+    // which scroll with the room (#520, #523); the DM box and a fight's rows
+    // stay on screen.
     const buttons = [
-      ...document.querySelectorAll("#session-actions button, #send-message"),
+      ...document.querySelectorAll(
+        "#action-bar .rows button, #ending button, #send-message",
+      ),
     ].filter((button) => button.getClientRects().length > 0);
     const focused = document.activeElement;
-    const focusRect = focused.getBoundingClientRect();
     return {
       geometry: JSON.stringify({
         log,
@@ -81,13 +100,13 @@ const layout = (page) =>
         newest.bottom > log.top &&
         newest.bottom - Math.max(newest.top, log.top) >= 16,
       hiddenButtons: buttons
-        .filter((button) => !inWindow(button.getBoundingClientRect()))
+        .filter((button) => !shownAt(button))
         .map((button) => button.textContent),
       focus: focused.id || focused.textContent,
       focusShown:
         focused === document.body ||
         focused.tagName !== "BUTTON" ||
-        inWindow(focusRect),
+        shownAt(focused),
     };
   });
 

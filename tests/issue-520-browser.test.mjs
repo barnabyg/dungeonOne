@@ -5,8 +5,8 @@
 // actions on an exit, Examine on a feature, Take on an item, a button per
 // topic under "Ask about" on a creature. A room-wide action (Search) sits in
 // a row under the room's heading, and the way-out room's heading has "Way
-// out · Leave", which asks first as before. The dock keeps no exploring
-// button; the fight's controls are still there. She plays the crypt with
+// out · Leave", which asks first as before. The action bar keeps no
+// exploring button; the fight's controls are still there. She plays the crypt with
 // the cards alone, and the layout holds at every width.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -132,7 +132,7 @@ async function assertFits(page, when) {
 /**
  * Every action control on the page outside "You carry" and the rests: where
  * it sits (its card as list/id, the room-wide row, the heading, or the
- * dock) and what it does.
+ * action bar) and what it does.
  */
 const placedActions = (page) =>
   page.evaluate(() =>
@@ -147,8 +147,8 @@ const placedActions = (page) =>
               ? "room"
               : button.closest("#leave-controls")
                 ? "heading"
-                : button.closest("#session-dock")
-                  ? "dock"
+                : button.closest("#action-bar")
+                  ? "bar"
                   : "elsewhere",
           action: button.dataset.action,
           target: button.dataset.target,
@@ -174,7 +174,7 @@ const focusedAction = (page) =>
   }));
 
 test(
-  "Ada explores the crypt from the room's cards, and the dock keeps only the fight",
+  "Ada explores the crypt from the room's cards, and the action bar keeps only the fight",
   { timeout: 180000 },
   async () => {
     const seed = findSeed();
@@ -386,7 +386,7 @@ test(
       const archway = page.locator('#exits li[data-id="offering-room"]');
       assert.match(await text(archway), /Dart Trap: found, armed\./u);
       // Every action sits on its card or in the room's row, nothing in the
-      // dock: the door's Break on the strongroom's way, the tomb's Sneak
+      // action bar: the door's Break on the strongroom's way, the tomb's Sneak
       // beside its Go.
       assert.deepEqual(await placedActions(page), [
         { place: "room", action: "search", target: "hall" },
@@ -410,11 +410,11 @@ test(
       ]);
       await assertFits(page, "in the hall");
 
-      // Into the tomb's fight: the room's cards have no buttons; the dock's
+      // Into the tomb's fight: the room's cards have no buttons; the bar's
       // fight controls work as before.
       await onCard(page, "exits", "tomb", "move", "tomb");
       assert.equal(await page.locator("#room button.act").count(), 0);
-      assert.ok((await page.locator("#session-dock button.act").count()) > 0);
+      assert.ok((await page.locator("#action-bar button.act").count()) > 0);
       await fightTurn(page);
       await assertFits(page, "in the fight");
     } finally {

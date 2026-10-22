@@ -12,7 +12,9 @@
 //   (#session-scene from 1500 px wide, #session-main narrower) and sits
 //   behind it, standing on the cell's foot while the column scrolls over
 //   it, hidden from assistive technology.
-// - #session-scene: the room and the fight. The room (#room) is where the
+// - #session-scene: the centre column above the composer (#523), scrolling
+//   on its own from 1500 px wide: #session-actions, then the room and the
+//   fight. The room (#room) is where the
 //   character acts out of a fight (#520): after #room-region, #room-heading
 //   holds #room-title and, in a way-out room only, #leave-controls ("Way out
 //   · Leave"); then #leave-confirm, #room-actions (the row for what acts on
@@ -30,8 +32,10 @@
 //   its name, an asked one greyed out with no caption (#490); then what was
 //   found or said there, an exit's route, door and trap. Each button's
 //   accessible name is the full action ("Examine Rusted Lantern"). In a fight
-//   the Fight section (#encounter) moves above the room, in the DOM and so in
-//   tab order (#386), and the cards have no buttons the engine doesn't offer.
+//   the Fight section (#encounter) moves above the room, under the actions,
+//   in the DOM and so in tab order (#386), and the cards have no buttons the
+//   engine doesn't offer. A new room, or a fight beginning or ending, scrolls
+//   the centre column back to its top.
 //   The fight's initiative table shows totals, marks the current turn, tags
 //   fleeing and fled opponents (#237) and surrendering and surrendered ones
 //   (#238), and
@@ -50,7 +54,8 @@
 //   what the character is carrying. Room loot that is gear has the same
 //   stats behind a Stats toggle. Nothing sells from here: trading is in the
 //   shop (#515).
-// - #session-actions: #adventure-error and the action bar (#156), #action-bar:
+// - #session-actions, at the top of the centre column (#523), above the
+//   room: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls and #feature-controls (out of a fight, a spell's or
 //   Divine Spark's choice) and, in a fight, the turn's
 //   options in labelled rows (#392), .action-row with data-row and a
@@ -113,16 +118,21 @@
 // - #session-composer: #message-form, and #dm-notice when typing to the AI DM
 //   is off (#161); once the adventure is over #composer-reason says why
 //   (#158). renderComposer() alone decides whether it is enabled.
-// Actions, history and composer share #session-dock. DOM order (and so tab
-// order) is character, scene, actions, history, composer (#432); the dock
-// shows history above actions and composer. The session fills the window.
-// From 1500 px wide it is up to 1880 px wide, in three columns (character,
-// scene, dock), each scrolling on its own. Narrower, it is up to 1240 px
-// wide, in two: #session-main on the left scrolls the scene with "You carry"
-// and the rests under it and the status strip held at its top, and the dock
-// on the right; there "You carry" comes after the scene on screen but before
-// it in tab order. The page is for desktop windows (#381): below 900 x 560 px it
-// keeps that size and the window scrolls. There is no footer: the icon and
+// One column per job (#523): who you are, what you can do, what has happened.
+// DOM order, and so tab order, is the same: #session-main (#session-character,
+// #session-scene), #session-composer, #session-history; no CSS order moves
+// them, except below. #session-layout is a grid of two rows: the composer
+// sits in the second, a row of its own height under the scene, so it stays
+// on screen however long the room; the history spans both, at the panel's
+// full height. The session fills the window. From 1500 px wide it is up to
+// 1880 px wide, in three columns: character (both rows), the scene over the
+// composer, and the history, the columns scrolling on their own. Narrower,
+// it is up to 1240 px wide, in two: on the left #session-main scrolls the
+// scene with "You carry" and the rests under it and the status strip held at
+// its top, over the composer; on the right the history. There "You carry"
+// comes after the scene on screen but before it in tab order. The page is for
+// desktop windows (#381): below 900 x 560 px it keeps that size and the
+// window scrolls. There is no footer: the icon and
 // sound credits (#377, #480) are in Settings (#credits, #522), which the
 // header bar opens from every screen.
 // In an adventure the header bar's #adventure-meta names the adventure's
@@ -324,6 +334,7 @@ ${SETTINGS_SOUND(sound)}
 <div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left.</p></details></div>
 </section>
 <div id="session-scene">
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div></div>
 <div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><p id="leave-warning"></p><div class="controls"><button id="confirm-leave" type="button" class="primary" aria-describedby="leave-question leave-warning">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div>
 <div id="room-actions" class="controls"></div>
@@ -342,12 +353,9 @@ ${SETTINGS_SOUND(sound)}
 </section>
 </div>
 </div>
-<div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
-<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
-</div>
 </div>
 <section id="shop" aria-labelledby="shop-title" hidden>
 <div class="shop-sign">${SHOP_BELL}<div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-greeting"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
@@ -434,12 +442,12 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
-#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
-@media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
+#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr) auto;gap:0 var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
+@media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,6fr) minmax(0,5fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
 #session-character h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}#inventory{display:grid;gap:var(--space-2)}.carry-title{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin:0 0 2px}summary.carry-title{cursor:pointer;padding:2px 0}.carry-list{list-style:none;padding:0;margin:0;font:var(--text-sm) var(--font-sans)}.carry-list li{display:grid;grid-template-columns:minmax(min(10em,50%),1fr) auto;align-items:center;gap:2px var(--space-2);padding:3px 0;border-top:1px solid var(--color-line)}.carry-list li:first-child{border-top:0}.carry-line,.carry-more>summary{margin:0;line-height:1.4;overflow-wrap:anywhere}.carry-line{padding-left:1.1em}.carry-more>summary{cursor:pointer;list-style:none}.carry-more>summary::-webkit-details-marker{display:none}.carry-more>summary::before{content:"▸"/"";display:inline-block;width:1.1em;color:var(--color-text-muted)}.carry-more[open]>summary::before{content:"▾"/""}.carry-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.carry-text{margin:2px 0 0 1.1em;font-size:var(--text-xs);color:var(--color-text-muted)}.item-stats{list-style:none;margin:2px 0 0 1.1em;padding:0;font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.item-stats li{margin:0;padding:0;border:0;display:block}.item-compare{margin:2px 0 0 1.1em;font:600 var(--text-xs) var(--font-sans)}.stats-more{flex-basis:100%;font:var(--text-xs) var(--font-sans)}.stats-more>summary{cursor:pointer;color:var(--color-text-muted);width:max-content}.stats-more .item-stats,.stats-more .item-compare{margin-left:0}.carry-list .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--space-1);margin:0}.carry-list .controls[hidden]{display:none}.carry-list .controls:has(.confirm){grid-column:1/-1}.carry-list .action{flex-direction:row-reverse;align-items:center;gap:var(--space-1)}#inventory button{padding:3px 8px;font-size:var(--text-xs)}
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
-.resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-dock{grid-area:1/2}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1}#session-scene,#scene-backdrop{grid-area:1/2}#session-dock{grid-area:1/3}}
-#session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
+.resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>#session-actions+section h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-composer{grid-area:2/1}#session-history{grid-area:1/2/3/3}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1/3/2}#session-scene,#scene-backdrop{grid-area:1/2}#session-composer{grid-area:2/2}#session-history{grid-area:1/3/3/4}}
+#session-history{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--color-line);padding-left:var(--space-5)}#session-actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-actions:has(.error:not(:empty),#ending:not([hidden]),.controls:not(:empty)){margin-bottom:var(--space-4)}#session-composer{min-width:0;border-top:1px solid var(--color-line);padding:var(--space-2) var(--space-2) 0 0;margin-top:var(--space-2)}
 .controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}:is(#initiative-breakdown,#rest-rules) summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
@@ -1286,6 +1294,9 @@ async function abandonAdventure() {
 
 let session;
 let acting = false;
+// The room, and whether a fight is under way there, the centre column last
+// showed (#523).
+let shownPlace = "";
 // Whether Leave is asking for confirmation (#133).
 let confirmingLeave = false;
 // The equipped item whose sale is asking for confirmation, if any (#210).
@@ -1385,10 +1396,21 @@ function renderAdventure() {
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
   if (element("map-dialog").open) renderMap();
-  // In a fight the Fight section comes before the room (#386); otherwise after.
+  // The actions open the centre column (#523). In a fight the Fight section
+  // comes next, before the room (#386); otherwise after it. Only the Fight
+  // section moves, so focus in the actions or the room stays put.
   const scene = element("session-scene");
-  if (fighting !== (scene.firstElementChild === element("encounter"))) {
-    scene.insertBefore(element(fighting ? "encounter" : "room"), scene.firstElementChild);
+  const fightSection = element("encounter");
+  if (fighting !== (fightSection.nextElementSibling === element("room"))) {
+    scene.insertBefore(fightSection, fighting ? element("room") : null);
+  }
+  // A new room, or a fight beginning or ending, shows the centre column from
+  // its top, where a fight's controls are (#523).
+  const place = session.room.id + (fighting ? " fighting" : "");
+  if (place !== shownPlace) {
+    shownPlace = place;
+    element("session-main").scrollTop = 0;
+    element("session-scene").scrollTop = 0;
   }
   element("encounter").hidden = !encounter;
   if (encounter) renderInitiative(encounter, fighting);
@@ -1893,7 +1915,7 @@ function focusNewestEntry() {
 // History only grows, so new entries are appended: the live region announces
 // just them. The log follows the newest entry only while the reader is at the
 // bottom; someone who scrolled up to read older entries stays where they are.
-// Only the reader's scrolling decides that, not the dock resizing around it;
+// Only the reader's scrolling decides that, not the window resizing around it;
 // while following, a resized log is scrolled back to its newest entry (#221).
 let followHistory = true;
 
@@ -4807,8 +4829,8 @@ element("log").addEventListener("scroll", () => {
   const log = element("log");
   followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
 });
-// When the dock around the log changes, as the Leave question opens or closes,
-// the log changes size: a following reader stays on the newest entry (#221).
+// When the column around the log changes, as the window is resized, the log
+// changes size: a following reader stays on the newest entry (#221).
 new ResizeObserver(followNewest).observe(element("log"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
