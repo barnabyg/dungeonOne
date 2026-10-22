@@ -1,7 +1,8 @@
 // #521, browser → API → storage: the character column's Rest section is
 // always shown while the adventure is in play, fights included. Each line
-// says what the player can do now or, in a few words, why not; the rules
-// sit behind "How resting works", closed by default. Resting works as
+// says what the player can do now or, in a few words, why not; one hint
+// line says what hit dice do (#533), and the rules sit behind "How resting
+// works", closed by default. Resting works as
 // before, and the layout holds at every width.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -114,6 +115,11 @@ test(
         "rest-reason",
       );
       assert.equal(await page.locator("#rest-dice").count(), 0);
+      // What hit dice do, without opening How resting works (#533).
+      assert.equal(
+        await text(page.locator("#rest-hint")),
+        "Each hit die spent heals its roll + Con. Only a long rest or a new adventure brings hit dice back.",
+      );
       assert.equal(
         await text(page.locator("#long-rest-summary")),
         "Long rest Only at a rest site",
@@ -125,15 +131,23 @@ test(
       assert.equal(await longRest.count(), 0);
       assert.equal(await page.locator("#rest-fight").isVisible(), false);
 
-      // How resting works: closed by default, the hit-dice rule inside.
+      // How resting works: closed by default, the hit-dice rules inside:
+      // where hit dice come from, what a short rest restores and doesn't,
+      // and what the short rests left count (#533).
       assert.equal(await rules.getAttribute("open"), null);
       assert.equal(await text(rules.locator("summary")), "How resting works");
       assert.equal(await page.locator("#rest-rules-text").isVisible(), false);
       await rules.locator("summary").click();
-      assert.match(
-        await text(page.locator("#rest-rules-text")),
+      const rulesText = await text(page.locator("#rest-rules-text"));
+      for (const rule of [
+        /one hit die per level, its size set by your class\./u,
         /each heals its roll \+ your Constitution modifier, and you stop spending them at full HP\./u,
-      );
+        /feature uses that return on a short rest, but no hit dice\./u,
+        /counted per adventure, or per region in a long module/u,
+        /Each new adventure starts with everything restored\./u,
+      ]) {
+        assert.match(rulesText, rule);
+      }
       await rules.locator("summary").click();
       assert.equal(await page.locator("#rest-rules-text").isVisible(), false);
 
@@ -145,6 +159,7 @@ test(
         "Not during a fight\nShort rests 2 of 2 left · Long rests 1 of 1 left",
       );
       assert.equal(await page.locator("#short-rest").isVisible(), false);
+      assert.equal(await page.locator("#rest-hint").isVisible(), false);
       assert.equal(await page.locator("#long-rest").isVisible(), false);
       assert.equal(await rules.isVisible(), true);
       await assertFits(page, "in a fight");
