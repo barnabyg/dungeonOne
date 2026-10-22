@@ -9,6 +9,8 @@
 //                                             (origin/main) call for
 //   npm test -- tests/x.test.mjs ...          just those files
 //   npm test -- --test-name-pattern <pattern> only the tests it matches
+//   npm test -- --ci-part <part>              one of the parts CI runs on its
+//                                             own runner (CI_PARTS)
 //
 // The test files run concurrently, then the files that run worker threads of
 // their own, one at a time. At most half the hardware threads run test files
@@ -27,6 +29,25 @@ import { selectForChanges, TIERS, tiersOf } from "./test-tiers.mjs";
 /** Test files that run worker threads, run after the rest, one at a time. */
 const ALONE = ["tests/shipped-modules.test.mjs"];
 
+/**
+ * The parts CI splits every test file into, each on its own runner beside
+ * the others (.github/workflows/verify.yml lists them): `checks` runs the
+ * files that start no browser, `browser-<n>` every other browser file, and
+ * `gate-<n>` the files that run worker threads, gating a share of the
+ * shipped modules (gateShares).
+ */
+export const CI_PARTS = Object.freeze([
+  "checks",
+  "browser-1",
+  "browser-2",
+  "gate-1",
+  "gate-2",
+]);
+
+/** The number of CI parts named `<kind>-<n>`. */
+const ciShards = (kind) =>
+  CI_PARTS.filter((part) => part.startsWith(`${kind}-`)).length;
+
 /** Each test's timeout unless it sets its own: a hang guard only (#469). */
 const TEST_TIMEOUT_MS = 10 * 60_000;
 
@@ -37,7 +58,9 @@ const USAGE = [
   "Usage: npm test -- [--tier <tier,tier>] [--modules <id,id>] [tests/x.test.mjs ...]",
   "       [--test-name-pattern <pattern>]",
   "       npm test -- --changed [<base>]",
+  "       npm test -- --ci-part <part>",
   `Tiers: ${TIERS.join(", ")}.`,
+  `CI parts: ${CI_PARTS.join(", ")}.`,
 ].join("\n");
 
 /** Reads the command line. */
@@ -47,6 +70,7 @@ export function parseArguments(args) {
     modules: [],
     files: [],
     changed: undefined,
+    ciPart: undefined,
     nodeArgs: [],
   };
   for (let index = 0; index < args.length; index += 1) {
@@ -62,6 +86,12 @@ export function parseArguments(args) {
       parsed.tiers.push(...list());
     } else if (argument === "--modules") {
       parsed.modules.push(...list());
+    } else if (argument === "--ci-part") {
+      index += 1;
+      if (index >= args.length || !CI_PARTS.includes(args[index])) {
+        throw new Error(USAGE);
+      }
+      parsed.ciPart = args[index];
     } else if (argument === "--changed") {
       const next = args[index + 1];
       if (next !== undefined && !next.startsWith("--")) {
@@ -85,13 +115,15 @@ export function parseArguments(args) {
       throw new Error(USAGE);
     }
   }
-  if (
-    parsed.tiers.some((tier) => !TIERS.includes(tier)) ||
-    (parsed.changed !== undefined &&
-      (parsed.tiers.length > 0 ||
-        parsed.files.length > 0 ||
-        parsed.modules.length > 0))
-  ) {
+  const chooses =
+    (parsed.changed !== undefined ? 1 : 0) +
+    (parsed.ciPart !== undefined ? 1 : 0) +
+    (parsed.tiers.length > 0 ||
+    parsed.files.length > 0 ||
+    parsed.modules.length > 0
+      ? 1
+      : 0);
+  if (parsed.tiers.some((tier) => !TIERS.includes(tier)) || chooses > 1) {
     throw new Error(USAGE);
   }
   // Modules alone ask for their content tests.
@@ -144,10 +176,40 @@ function changedPaths(base) {
 /**
  * The test files to run and the shipped modules to gate (none: every one)
  * for `parsed`, given every test file and its tiers, and lines that say what
- * was chosen and why.
+ * was chosen and why. A CI part's files are `files` cut by kind and shard;
+ * a gate part's modules are its share of `shares` (gateShares).
  */
-export function plan(parsed, files, changes = changedPaths) {
+export function plan(parsed, files, changes = changedPaths, shares = []) {
   const lines = [];
+  if (parsed.ciPart !== undefined) {
+    const [kind, shard] = parsed.ciPart.split("-");
+    const browser = ({ path, tiers }) =>
+      tiers.includes("browser") && !ALONE.includes(path);
+    let chosen;
+    let modules = [];
+    if (kind === "checks") {
+      chosen = files.filter(
+        (file) => !browser(file) && !ALONE.includes(file.path),
+      );
+    } else if (kind === "browser") {
+      chosen = files
+        .filter(browser)
+        .filter((_, index) => index % ciShards(kind) === shard - 1);
+    } else {
+      chosen = files.filter(({ path }) => ALONE.includes(path));
+      modules = shares[shard - 1] ?? [];
+      if (shares.length !== ciShards(kind) || modules.length === 0) {
+        throw new Error(
+          `CI part ${parsed.ciPart} has no shipped modules to gate.`,
+        );
+      }
+    }
+    const gating = modules.length > 0 ? `, gating ${modules.join(", ")}` : "";
+    lines.push(
+      `Running CI part ${parsed.ciPart}${gating}: ${chosen.length} files.`,
+    );
+    return { files: chosen.map(({ path }) => path), modules, lines };
+  }
   let { tiers, modules, files: named } = parsed;
   if (parsed.changed !== undefined) {
     const selected = selectForChanges(changes(parsed.changed));
@@ -189,12 +251,25 @@ export function plan(parsed, files, changes = changedPaths) {
   return { files: chosen, modules, lines };
 }
 
-function main(args) {
+/** The shipped modules dealt into the gate parts' shares (gateShares). */
+export async function shippedGateShares() {
+  // Loaded only when asked: they need the build that npm test makes first.
+  const [{ loadBuiltInFifthAdventures }, { gateShares }] = await Promise.all([
+    import("../dist/adventure-5e.js"),
+    import("../tests/fixtures/gate-workers.mjs"),
+  ]);
+  return gateShares(await loadBuiltInFifthAdventures(), ciShards("gate"));
+}
+
+async function main(args) {
   let chosen;
   let parsed;
   try {
     parsed = parseArguments(args);
-    chosen = plan(parsed, testFiles());
+    const shares = parsed.ciPart?.startsWith("gate-")
+      ? await shippedGateShares()
+      : [];
+    chosen = plan(parsed, testFiles(), changedPaths, shares);
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
     return 2;
@@ -230,5 +305,5 @@ function main(args) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 }

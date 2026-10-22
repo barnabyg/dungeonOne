@@ -11,13 +11,23 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  # npm run verify, split into parts that run at once, each on its own
+  # runner: the checks part runs every verify gate with the tests that start
+  # no browser, and the other parts run the rest of the tests
+  # (scripts/run-tests.mjs CI_PARTS, which tests/test-tiers.test.mjs checks
+  # this list against). In one job, verify took 8 to 14 minutes.
+  part:
+    name: ${{ matrix.part }}
     # Linux, not Windows: on near-identical code the job took 13.6 minutes on
     # ubuntu-latest and 23 on windows-latest (#468).
     runs-on: ubuntu-latest
-    # A full verify takes about 14 minutes; a hung step should fail, not hold
-    # the PR for the 6-hour default.
+    # A hung step should fail, not hold the PR for the 6-hour default.
     timeout-minutes: 20
+    strategy:
+      # Every part reports, so one failure doesn't hide another.
+      fail-fast: false
+      matrix:
+        part: [checks, browser-1, browser-2, gate-1, gate-2]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -25,9 +35,28 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - if: startsWith(matrix.part, 'browser-')
+        run: npx playwright install --with-deps chromium
         # This step has hung on the runner (PR #265); fail fast so a re-run can start.
         timeout-minutes: 10
-      - run: npm run verify
+      - if: matrix.part == 'checks'
+        run: npm run verify -- --ci-part checks
         env:
           CI: "true"
+      - if: matrix.part != 'checks'
+        run: npm test -- --ci-part ${{ matrix.part }}
+        env:
+          CI: "true"
+
+  # The one check branch protection requires. It runs even when a part failed
+  # or was cancelled, as a skipped required check counts as passed, and
+  # passes only when every part passed.
+  verify:
+    needs: part
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.part.result }}

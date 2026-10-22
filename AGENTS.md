@@ -19,7 +19,7 @@ Remove any worktree you created with `git worktree remove <path>`.
 
 ## Choosing tests
 
-`npm.cmd test` runs every test, as verify and CI do. While you work, run the tests your change can break. The tiers (`scripts/test-tiers.mjs`):
+`npm.cmd test` runs every test, as verify does. CI runs the same gates in parallel parts, one runner each (`npm.cmd test -- --ci-part <part>`; `CI_PARTS` in `scripts/run-tests.mjs`), and its **verify** check passes when every part passes. While you work, run the tests your change can break. The tiers (`scripts/test-tiers.mjs`):
 
 - `quick`: engine, rules, harness, server and script tests on fixture modules; no browser, no shipped content.
 - `browser`: tests that drive a browser or start the real launcher.
