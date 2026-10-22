@@ -402,6 +402,62 @@ test(
 );
 
 test(
+  "the history entry with the initiative rolls explains them, closed, and keeps it after a reload",
+  { timeout: 120000 },
+  () =>
+    withPage({ width: 1280, height: 850 }, async (page) => {
+      const RULE =
+        "Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.";
+      const how = async () => {
+        const line = page.locator("#log .card-line").filter({
+          has: page.locator(".compact", { hasText: /^Initiative: / }),
+        });
+        assert.equal(await line.count(), 1);
+        const details = line.locator("details.initiative-how");
+        assert.equal(await details.count(), 1);
+        assert.equal(
+          await details.locator("summary").textContent(),
+          "How initiative was rolled",
+        );
+        return details;
+      };
+      // Closed by default; opened, it says how the rolls were made.
+      let details = await how();
+      assert.equal(await details.getAttribute("open"), null);
+      assert.equal(await details.locator("p").isHidden(), true);
+      await details.locator("summary").click();
+      assert.equal(await details.locator("p").textContent(), RULE);
+      assert.equal(await details.locator("p").isVisible(), true);
+      // In the history's one style: nothing italic or serif.
+      assert.deepEqual(
+        await details.evaluate((node) =>
+          [node, ...node.querySelectorAll("*")].map((part) => {
+            const style = getComputedStyle(part);
+            return [
+              style.fontStyle,
+              /serif/u.test(style.fontFamily) &&
+                !/sans-serif/u.test(style.fontFamily),
+            ];
+          }),
+        ),
+        [
+          ["normal", false],
+          ["normal", false],
+          ["normal", false],
+        ],
+      );
+      // A reload draws it again from the saved history, closed.
+      await page.reload();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      await page.locator("#log > li").first().waitFor();
+      details = await how();
+      assert.equal(await details.getAttribute("open"), null);
+      await details.locator("summary").click();
+      assert.equal(await details.locator("p").textContent(), RULE);
+    }),
+);
+
+test(
   "a merchant's Trade, disabled in the fight, leaves the room folded",
   { timeout: 120000 },
   () =>

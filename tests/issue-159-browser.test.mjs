@@ -340,10 +340,15 @@ test(
       assert.equal(await more.getAttribute("aria-expanded"), "false");
 
       // A card with an attack is no taller than its engine text alone, as
-      // cards were before #159, with slack for CI's wider fonts (#196).
+      // cards were before #159, with slack for CI's wider fonts (#196). The
+      // line "How initiative was rolled" (#525) adds to it, so it is left
+      // out of the measure.
       const taller = await page.evaluate((fonts) => {
         const log = document.querySelector("#log");
         const found = [];
+        for (const how of log.querySelectorAll(".initiative-how")) {
+          how.hidden = true;
+        }
         for (const [family, spacing] of fonts) {
           log.style.fontFamily = family;
           log.style.letterSpacing = spacing;
@@ -372,6 +377,9 @@ test(
         }
         log.style.fontFamily = "";
         log.style.letterSpacing = "";
+        for (const how of log.querySelectorAll(".initiative-how")) {
+          how.hidden = false;
+        }
         return found;
       }, FONTS);
       assert.deepEqual(taller, []);
