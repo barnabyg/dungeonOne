@@ -58,8 +58,8 @@
 //   refuse it; and #chooser-detail, the chosen one's name, #chooser-slot
 //   (slot level, or a wand's charges) and #chooser-variant (damage type,
 //   curse or Divine Spark's damage), then what it does; then
-//   #strike-control (Cunning Strike's choice, #308, for the chosen weapon
-//   attack); #fight-foes with #foe-cards, an li.foe-card[data-combatant]
+//   #strike-control (Cunning Strike's choice, #308, shown only while a weapon
+//   attack is chosen); #fight-foes with #foe-cards, an li.foe-card[data-combatant]
 //   per foe in initiative order: head, HP and bar, .card-tags (conditions,
 //   effects, Sapped, Hidden, Fleeing, Surrendering, Surprised), .card-state
 //   (Fallen, Fled, Surrendered or Turned) and, while it can be attacked,
@@ -2949,14 +2949,17 @@ function renderActions() {
   const strikes = session.actions.filter((option) => option.cunningStrike);
   const effects = [...new Map(strikes.map(({ cunningStrike: effect }) => [effect.id, effect])).values()];
   if (!effects.some(({ id }) => id === cunningStrike)) cunningStrike = "";
-  // In a fight it sits under the attack chooser (#526), and goes with the
-  // weapon attack chosen there.
-  if (effects.length && !fighting) groups.feature.push(strikeChoice(effects));
-  element("strike-control").replaceChildren(...(effects.length && fighting ? [strikeChoice(effects)] : []));
   // In a fight every way to attack a foe is a chip in the attack chooser
   // (#526), and each foe's card carries the chosen one.
+  const choices = fighting ? attackChoices() : [];
+  // In a fight Cunning Strike sits under the attack chooser (#526), shown
+  // only while a weapon attack is chosen there, the one it goes with; the
+  // choice is kept while a spell is chosen.
+  const weaponChosen = choices.length > 0 && chosenAttack(choices).choice.group === "weapon";
+  if (effects.length && !fighting) groups.feature.push(strikeChoice(effects));
+  element("strike-control").replaceChildren(...(effects.length && weaponChosen ? [strikeChoice(effects)] : []));
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
-  renderChooser(fighting ? attackChoices() : [], struck, effects);
+  renderChooser(choices, struck, effects);
   // The ways to heal on the character's card (#525), with what each
   // restores and the action it takes; not while a fall waits for Last
   // Stand, whose row has its potions.

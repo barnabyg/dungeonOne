@@ -20,7 +20,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { validateCharacter } from "../dist/character-5e.js";
+import {
+  applyLevelChoice,
+  characterProfile,
+  levelForXp,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { legalTargets } from "../dist/encounter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -43,7 +48,7 @@ import {
   armedVela,
 } from "./fixtures/level-5-wizard.mjs";
 import { goblinTrio } from "./fixtures/modules.mjs";
-import { lifeCleric } from "./fixtures/playthroughs.mjs";
+import { lifeCleric, thief } from "./fixtures/playthroughs.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 
 /** Vela at level 5 with a wand and a scroll. */
@@ -660,6 +665,81 @@ test(
         game.act({ type: "spectral-attack", actorId: "pc", targetId: first() }),
       );
       await assertHp(page, game, "spectral attack");
+    }),
+);
+
+/**
+ * Vex, the Thief raised to level 5 (#308), carrying a Wand of Magic
+ * Missiles, which a character who casts no spells can use (#346).
+ */
+const VEX = (() => {
+  const xp = 6500;
+  const raised = { ...thief(), xp, level: levelForXp(xp) };
+  const sheet = applyLevelChoice(
+    validateCharacter({ ...raised, hp: characterProfile(raised).maxHp }),
+    { increase: { dexterity: 2 } },
+  );
+  return validateCharacter({
+    ...sheet,
+    magicItems: [{ id: WAND, wand: "wand-of-magic-missiles", charges: 7 }],
+  });
+})();
+const VEX_WAND = `cast:magic-missile:${WAND}`;
+
+/**
+ * The first seed whose Vex has her first turn fresh, with Steady Aim to
+ * take; once taken, Trip goes with an attack and the wand can be used.
+ */
+const rogueSeed = (() => {
+  for (let candidate = 0; candidate < 300; candidate++) {
+    const game = replay(VEX, candidate);
+    const aim = game
+      .views()
+      .find(({ action, available }) => action === "steady-aim" && available);
+    if (
+      game.fresh() &&
+      aim !== undefined &&
+      game.act(game.runtime.actionOf(aim)) &&
+      game
+        .views()
+        .some(
+          ({ cunningStrike, available }) =>
+            cunningStrike?.id === "trip" && available,
+        ) &&
+      game
+        .views()
+        .some(
+          ({ action, spell, available }) =>
+            action === "cast" && spell?.item?.id === WAND && available,
+        )
+    ) {
+      return candidate;
+    }
+  }
+  throw new Error("no seed below 300 gives Vex Steady Aim and Trip");
+})();
+
+test(
+  `a Rogue's Cunning Strike shows only while a weapon attack is chosen, and keeps its choice (seed ${rogueSeed})`,
+  { timeout: 120000 },
+  () =>
+    fightWith(VEX, rogueSeed, { width: 1280, height: 850 }, async (page) => {
+      await settled(page, () =>
+        page.locator('#encounter button[data-action="steady-aim"]').click(),
+      );
+      const strike = page.locator("#cunning-strike");
+      // The weapon attack is chosen: Cunning Strike goes with it.
+      assert.equal(await chosen(page), "attack");
+      assert.equal(await strike.isVisible(), true);
+      await strike.selectOption("trip");
+      // The wand's Magic Missile makes no weapon attack: no Cunning Strike.
+      await chooseAttack(page, VEX_WAND);
+      assert.equal(await strike.count(), 0);
+      assert.equal(await page.locator("#strike-control").isHidden(), true);
+      // Back to the weapon, the choice is as it was.
+      await chooseAttack(page, "attack");
+      assert.equal(await strike.isVisible(), true);
+      assert.equal(await strike.inputValue(), "trip");
     }),
 );
 
