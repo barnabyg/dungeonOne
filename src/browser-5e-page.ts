@@ -16,10 +16,12 @@
 //   on its own from 1500 px wide: #session-actions, then the room and the
 //   fight. The room (#room) is where the
 //   character acts out of a fight (#520): after #room-region, #room-heading
-//   holds #room-title and, in a way-out room only, #leave-controls ("Way out
-//   · Leave"); then #leave-confirm, #room-actions (the row for what acts on
-//   no one thing: a search of the room, an ambush, a reaction's options,
-//   Tactical Mind), #room-description and #room-alarm. Then the room's
+//   holds #room-title, in a way-out room only #leave-controls ("Way out
+//   · Leave"), and #room-history-link ("Description in history", #524),
+//   shown while the history has an arrival in the room; the description
+//   itself is only in the history. Then #leave-confirm, #room-actions (the
+//   row for what acts on no one thing: a search of the room, an ambush, a
+//   reaction's options, Tactical Mind) and #room-alarm. Then the room's
 //   things, one card each (li.thing[data-id]), in the order Here
 //   (#creatures), Items here (#room-items), Look at (#features) and Ways on
 //   (#exits); an empty list is left out (#157). A card's .thing-head has its
@@ -114,7 +116,10 @@
 //   scroll area, newest at the bottom; it follows new entries only while the
 //   reader is at the bottom. Each entry (#159) has a data-kind (narration,
 //   message or action); the newest has class "newest" and tabindex -1, and
-//   focusNewestEntry() moves focus to it.
+//   focusNewestEntry() moves focus to it. A card arriving in a room (#524)
+//   has data-arrival, the room's name, which its first line starts with in
+//   bold; #room-history-link scrolls to and focuses the newest one for the
+//   character's room.
 // - #session-composer: #message-form, and #dm-notice when typing to the AI DM
 //   is off (#161); once the adventure is over #composer-reason says why
 //   (#158). renderComposer() alone decides whether it is enabled.
@@ -335,10 +340,9 @@ ${SETTINGS_SOUND(sound)}
 </section>
 <div id="session-scene">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
-<section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div></div>
+<section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div><button id="room-history-link" type="button" class="quiet" hidden>Description in history</button></div>
 <div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><p id="leave-warning"></p><div class="controls"><button id="confirm-leave" type="button" class="primary" aria-describedby="leave-question leave-warning">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div>
 <div id="room-actions" class="controls"></div>
-<p id="room-description"></p>
 <p id="room-alarm" class="alarm" role="status" hidden></p>
 <div id="creatures-group"><h4 id="creatures-title">Here</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
@@ -436,11 +440,11 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);width:100%}.choice-head button{flex:0 0 auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}#adventure-choices .level-choice-notice{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-md) var(--font-sans);color:var(--color-text)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
-.log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
-.log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
-.card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
+.log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted)}
+.log li>:first-child{margin-top:0}.arrival-room{font-weight:700}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
+.card,.log .player,.log .reply,.log .narration{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room #room-history-link{display:inline-block;padding:1px 6px;font-size:var(--text-xs)}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr) auto;gap:0 var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,6fr) minmax(0,5fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -1605,11 +1609,12 @@ function icon(id) {
 // A name, after its icon when it has one.
 const iconned = (id, name) => (id ? [icon(id), name] : [name]);
 
-// A line's text with its icons, each before the character it marks.
-function iconText(line) {
+// A line's text, from character start on, with its icons, each before the
+// character it marks.
+function iconText(line, start = 0) {
   const parts = [];
-  let from = 0;
-  for (const mark of line.icons ?? []) {
+  let from = start;
+  for (const mark of (line.icons ?? []).filter(({ at }) => at >= start)) {
     parts.push(line.text.slice(from, mark.at), icon(mark.icon));
     from = mark.at;
   }
@@ -1695,10 +1700,11 @@ function renderStatus() {
   element("resources").replaceChildren(...items);
 }
 
-// Each kind of history entry looks different and is labelled (#159):
-// narration (the opening and entering a room) is unboxed, the player's words
-// are a bubble, AI DM replies are attributed, and result and rejection cards
-// are boxed. A line with rolls (an attack, initiative, healing, a check or
+// Every part of a history entry is one card in one font (#524): the player's
+// words after "You:", an AI DM reply under "Dungeon Master", and the engine's
+// narration, result and rejection cards (a rejection tinted and labelled),
+// each labelled for screen readers (#159). A line arriving in a room (the
+// opening's too) starts with the room's name in bold. A line with rolls (an attack, initiative, healing, a check or
 // saving throw (#132) with its DC and outcome, or a trap's damage) shows a
 // compact form built from its roll groups (#186), with the dice beside the
 // roll they belong to; screen readers get the line's engine text instead, and
@@ -1844,18 +1850,31 @@ function compactLine(line) {
 
 const compactable = (line) => line.rolls.length > 0;
 
+/**
+ * The room a line arrives in (#524), whose name heads it: "Dog Yard — A
+ * muddy yard…". Any room the character knows can be one; an older
+ * session's "You enter the…" line names none.
+ */
+function arrivalRoom(line) {
+  return session.knownRooms
+    .flatMap(({ rooms }) => rooms)
+    .map(({ name }) => name)
+    .filter((name) => line.text.startsWith(name + " — "))
+    .sort((a, b) => b.length - a.length)[0];
+}
+
 function historyCard(card) {
-  if (card.kind === "narration") {
-    const node = part("p", "narration");
-    card.lines.forEach((line, index) => node.append(...(index > 0 ? ["\n"] : []), ...iconText(line)));
-    return node;
-  }
   const node = part("div", card.kind);
   for (const line of card.lines) {
     const block = make("div", undefined, "card-line");
     const paragraph = make("p");
+    const room = compactable(line) ? undefined : arrivalRoom(line);
     if (compactable(line)) paragraph.append(spoken(line.text), compactLine(line));
-    else paragraph.append(...iconText(line));
+    else if (room) {
+      // The arrival "Description in history" finds (#524).
+      node.dataset.arrival = room;
+      paragraph.append(make("strong", room, "arrival-room"), ...iconText(line, room.length));
+    } else paragraph.append(...iconText(line));
     block.append(paragraph);
     node.append(block);
   }
@@ -1881,7 +1900,7 @@ function historyCard(card) {
 function historyEntry(entry) {
   const item = make("li");
   const message = entry.player !== undefined;
-  item.dataset.kind = message ? "message" : entry.reply ? "narration" : "action";
+  item.dataset.kind = message ? "message" : entry.reply || (entry.cards.length > 0 && entry.cards.every(({ kind }) => kind === "narration")) ? "narration" : "action";
   if (message) {
     const said = part("p", "player");
     said.append(make("strong", "You:"), " " + entry.player);
@@ -1935,6 +1954,29 @@ function renderHistory() {
   log.append(...session.history.slice(log.children.length).map(historyEntry));
   markNewest(log);
   followNewest();
+  element("room-history-link").hidden = !arrivalEntry();
+}
+
+/**
+ * The newest history entry arriving in the character's room (#524), whose
+ * card holds the room's description; none in an older session that has not
+ * moved since.
+ */
+function arrivalEntry() {
+  return [...element("log").querySelectorAll(":scope > li [data-arrival]")]
+    .filter((card) => card.dataset.arrival === session.room.name)
+    .at(-1)
+    ?.closest("li");
+}
+
+/** "Description in history": scrolls the log to the room's arrival and focuses it. */
+function showArrival() {
+  const entry = arrivalEntry();
+  if (!entry) return;
+  const log = element("log");
+  log.scrollTop = entry.offsetTop;
+  entry.tabIndex = -1;
+  entry.focus({ preventScroll: true });
 }
 
 /** Shows a typed message at once, with the Dungeon Master's reply pending. */
@@ -2404,7 +2446,6 @@ function renderRoom(room) {
   element("room-region").textContent = room.region ?? "";
   element("room-region").hidden = room.region === undefined;
   element("room-title").textContent = room.name;
-  element("room-description").textContent = room.description;
   // Once raised, the module's alarm (#401) shows in its own words.
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
@@ -4812,6 +4853,7 @@ document.addEventListener("keydown", (event) => {
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 element("confirm-leave").addEventListener("click", leaveAdventure);
 element("cancel-leave").addEventListener("click", cancelLeave);
+element("room-history-link").addEventListener("click", showArrival);
 element("confirm-abandon").addEventListener("click", abandonAdventure);
 element("cancel-abandon").addEventListener("click", closeAbandon);
 for (const name of Object.keys(disclosures)) {

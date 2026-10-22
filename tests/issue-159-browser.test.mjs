@@ -1,5 +1,5 @@
-// #159: each kind of conversation-history entry looks different and is
-// labelled, result cards show their rolls grouped beside the line they
+// #159: each kind of conversation-history entry is labelled (one card style
+// since #524), result cards show their rolls grouped beside the line they
 // belong to, the newest entry is marked and focusable, and a reload restores
 // the same rendering. #186: attack and initiative lines are compact, built
 // from their roll groups, with the engine text for screen readers and behind
@@ -174,14 +174,12 @@ test(
     try {
       await createAndStart(page, server.url, "goblin-band");
 
-      // The opening: unboxed narration, then the initiative card.
+      // The opening (#524): one card, the start room's arrival, then
+      // initiative.
       assert.deepEqual(await entries(page), [
         {
-          kind: "narration",
-          parts: [
-            ["note", "Narration"],
-            ["note", "Resolved action"],
-          ],
+          kind: "action",
+          parts: [["note", "Resolved action"]],
           newest: true,
           tabIndex: "-1",
         },
@@ -378,25 +376,27 @@ test(
       }, FONTS);
       assert.deepEqual(taller, []);
 
-      // Each kind looks different.
+      // Each kind is a card in one style (#524); a reply is attributed.
       const looks = await page.evaluate(() => {
-        const style = (selector) =>
-          getComputedStyle(document.querySelector(`#log ${selector}`));
+        const style = (selector) => {
+          const shown = getComputedStyle(
+            document.querySelector(`#log ${selector}`),
+          );
+          return [shown.borderTopStyle, shown.backgroundColor].join(" ");
+        };
         return {
-          narration: style(".narration").borderTopStyle,
-          card: style(".card.result").borderTopStyle,
-          player: style(".player").backgroundColor,
-          reply: style(".reply").borderLeftStyle,
+          card: style(".card.result"),
+          player: style(".player"),
+          reply: style(".reply"),
           replyLabel: getComputedStyle(
             document.querySelector("#log .reply"),
             "::before",
           ).content,
         };
       });
-      assert.equal(looks.narration, "none");
-      assert.equal(looks.card, "solid");
-      assert.notEqual(looks.player, "rgba(0, 0, 0, 0)");
-      assert.equal(looks.reply, "solid");
+      assert.match(looks.card, /^solid rgb/u);
+      assert.equal(looks.player, looks.card);
+      assert.equal(looks.reply, looks.card);
       assert.match(looks.replyLabel, /Dungeon Master/);
 
       // Only the newest entry is marked, and it takes focus.

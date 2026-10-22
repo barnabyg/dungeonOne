@@ -71,7 +71,12 @@ test("starting an adventure saves the session with its fight begun, then links i
     // Every initiative die (and any opening goblin attack) is recorded.
     assert.ok(file.transitions[0].rolls.length >= 2);
     assert.equal(file.random.position, file.transitions[0].rolls.length);
-    assert.match(file.history[0].cards[0].text, /^Initiative: /);
+    // The opening card is the start room's arrival (#524), then the fight.
+    assert.equal(file.history[0].reply, "");
+    assert.match(
+      file.history[0].cards[0].text,
+      /^Inn Cellar — .*\nInitiative: /su,
+    );
 
     await assert.rejects(
       startFifthAdventure(library, 3, sheet.id, adventure, data.revision),

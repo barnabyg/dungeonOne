@@ -182,7 +182,7 @@ test(
       // In the fight, the room's details show with no disclosure (#386),
       // and no "None." rows render anywhere.
       assert.equal(await page.locator("#room-toggle").count(), 0);
-      assert.equal(await page.locator("#room-description").isVisible(), true);
+      assert.equal(await page.locator("#room-title").isVisible(), true);
       assert.doesNotMatch(
         await page.locator("#session-scene").textContent(),
         /None\./,
@@ -207,7 +207,7 @@ test(
       assert.equal(await page.locator("#inventory-group").isVisible(), true);
       // Re-rendering after an action keeps the room shown, below the fight.
       await clickNext(page);
-      assert.equal(await page.locator("#room-description").isVisible(), true);
+      assert.equal(await page.locator("#room-title").isVisible(), true);
       assert.deepEqual(await documentOrder(page, ["#room", "#encounter"]), [
         "#encounter",
         "#room",
@@ -256,7 +256,7 @@ test(
 
       // After the fight: the room is back above the Fight section, and the
       // table is collapsed behind its own disclosure.
-      assert.equal(await page.locator("#room-description").isVisible(), true);
+      assert.equal(await page.locator("#room-title").isVisible(), true);
       assert.deepEqual(await documentOrder(page, ["#encounter", "#room"]), [
         "#room",
         "#encounter",

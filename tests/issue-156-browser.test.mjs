@@ -221,7 +221,7 @@ test(
       assert.equal((await focused(page)).newest, true);
       assert.match(
         await page.locator("#log > li:last-child").textContent(),
-        /You enter the Alcove/,
+        /^Alcove — A cramped alcove/,
       );
       await keyboardAction(page, "examine", "iron-chest");
       await keyboardAction(page, "take", "healing-potion");

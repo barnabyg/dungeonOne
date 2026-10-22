@@ -72,9 +72,10 @@ export type Transition = Readonly<{
 
 /**
  * An engine-authored result the browser shows as a card: `narration` for an
- * action that only entered a room, `result` for any other resolved action,
- * `rejection` for a refusal. `lines` split `text` line by line, each with
- * the rolls behind it grouped by purpose.
+ * action that only entered a room, or a quiet start room's opening; `result`
+ * for any other resolved action; `rejection` for a refusal. The browser
+ * shows them in one card style (#524). `lines` split `text` line by line,
+ * each with the rolls behind it grouped by purpose.
  */
 export type HistoryCard = Readonly<{
   kind: "narration" | "result" | "rejection";
@@ -487,8 +488,8 @@ export class FifthSession {
 
   /**
    * Creates a session at `path` and begins it (starting the start room's
-   * fight, if it has one), saving it before it is returned. The opening reply
-   * introduces the start room.
+   * fight, if it has one), saving it before it is returned. The opening card
+   * enters the start room.
    */
   static async create(
     path: string,
@@ -564,13 +565,24 @@ export class FifthSession {
       ({ id: roomId }) => roomId === adventure.startRoomId,
     )!;
     const opponents =
-      adventure.encounters
-        .find(({ id: encounterId }) => encounterId === room.encounterId)
-        ?.opponents.map(({ description }) => description) ?? [];
+      adventure.encounters.find(
+        ({ id: encounterId }) => encounterId === room.encounterId,
+      )?.opponents ?? [];
+    // The opening is an arrival like any other (#524): the start room
+    // entered, then whatever its fight began with.
+    const arrival: FifthEvent = {
+      type: "entered",
+      roomId: room.id,
+      name: room.name,
+      description: room.description,
+      opponents: opponents.map(({ description }) => description),
+      opponentIds: opponents.map(({ id: opponentId }) => opponentId),
+    };
     session.history.push({
-      reply: [`${room.name}.`, room.description, ...opponents].join(" "),
-      // A quiet start room begins with nothing to show.
-      cards: result.events.length === 0 ? [] : [session.card(result, rolls)],
+      reply: "",
+      cards: [
+        session.card({ ...result, events: [arrival, ...result.events] }, rolls),
+      ],
     });
     return session;
   }

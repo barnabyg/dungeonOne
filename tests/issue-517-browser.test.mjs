@@ -54,13 +54,16 @@ const worstContrast = (page) =>
     const behind = paper.map(
       (channel, index) => channel * (1 - strength) + line[index] * strength,
     );
+    // Body text, as the room's description was before #524, and a hint.
+    const plain = document.createElement("p");
     const muted = document.createElement("p");
     muted.className = "hint";
-    document.getElementById("room").append(muted);
+    document.getElementById("room").append(plain, muted);
     const colours = [
-      getComputedStyle(document.getElementById("room-description")).color,
+      getComputedStyle(plain).color,
       getComputedStyle(muted).color,
     ];
+    plain.remove();
     muted.remove();
     return {
       strength,

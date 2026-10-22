@@ -267,8 +267,9 @@ test(
 
       // A long room: the DM box stays on screen, the room scrolls above it.
       await page.evaluate(() => {
-        document.getElementById("room-description").textContent +=
-          " Water drips.".repeat(400);
+        const long = document.createElement("p");
+        long.textContent = " Water drips.".repeat(400);
+        document.getElementById("room-alarm").before(long);
       });
       await assertColumns(page, "a long room");
 

@@ -3463,7 +3463,8 @@ export function renderFifthEvent(
       return "The fight is over.";
     case "entered":
       return [
-        `You enter the ${event.name}. ${event.description}`,
+        // The room's name heads its arrival (#524), as on the room's card.
+        `${event.name} — ${event.description}`,
         ...event.opponents,
       ].join(" ");
     case "arrived":

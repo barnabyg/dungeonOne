@@ -104,10 +104,7 @@ test("a recorded command-mode trace replays exactly", () =>
     // Into the hall, to the tomb (its fight begins), attack the zombie.
     const played = runCrypt(["--seed", "0", "--trace", trace], ["2", "2", "1"]);
     assert.equal(played.status, 0, played.stderr);
-    assert.match(
-      played.stdout,
-      /\[Result\]\n {2}You enter the Warden's Tomb\./,
-    );
+    assert.match(played.stdout, /\[Result\]\n {2}Warden's Tomb — /);
     assert.match(played.stdout, /Ada's initiative: d20 \d+ \+ 2 = \d+/);
     const recorded = await readJson(trace);
     assert.equal(recorded.kind, "dungeon-one-5e-trace");
@@ -212,7 +209,7 @@ test("the scripted DM route plays typed messages, and their trace replays exactl
       { DUNGEON_ONE_TEST_DM_SCRIPT: script },
     );
     assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /You enter the Hall of Niches\./);
+    assert.match(played.stdout, /Hall of Niches — /);
     assert.match(played.stdout, /Ada's attack/);
     const recorded = await readJson(trace);
     assert.deepEqual(
