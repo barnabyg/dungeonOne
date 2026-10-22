@@ -38,10 +38,37 @@ const chrome = (page) =>
     };
   });
 
+/**
+ * The tops and bottoms of the bar's shown parts, and whether the levels and
+ * the current crumb are cut short.
+ */
+const barRow = (page) =>
+  page.evaluate(() => {
+    const parts = [...document.querySelector(".masthead").children]
+      .filter((node) => node.getClientRects().length > 0)
+      .map((node) => {
+        const rect = node.getBoundingClientRect();
+        return {
+          id: node.id || node.className,
+          top: rect.top,
+          bottom: rect.bottom,
+        };
+      });
+    const meta = document.querySelector("#adventure-meta");
+    const current = document.querySelector("#breadcrumb [aria-current=page]");
+    return {
+      parts,
+      metaClipped: meta.scrollWidth > meta.clientWidth,
+      currentTitle: current.title,
+    };
+  });
+
 // The yard with an objective as long as the longest a shipped module has
-// (165 characters), which wraps unless it is kept to one line.
+// (165 characters), which wraps unless it is kept to one line, and a title
+// longer than any shipped module's, which the bar cuts short.
 const yard = {
   ...goblinYard,
+  title: "The Goblin Yard behind the Old Mill at Crossroads Farm",
   objective:
     "Goblins hold the old inn cellar below the yard, and the landlord's barrels are stuck behind a barricade. Clear the cellar or take what you can, and get out alive.",
 };
@@ -51,6 +78,7 @@ const within = (inner, outer) =>
   inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
 
 for (const viewport of [
+  { width: 1880, height: 1000 },
   { width: 1280, height: 850 },
   { width: 900, height: 560 },
 ]) {
@@ -116,13 +144,23 @@ for (const viewport of [
       );
       assert.equal(
         await text(page.locator("#breadcrumb [aria-current=page]")),
-        goblinYard.title,
+        yard.title,
       );
+      // Every part of the bar, the settings button included, sits on one
+      // row; a long title is cut short before the levels and difficulty are,
+      // and shows in full on hover.
+      const row = await barRow(page);
+      const [first] = row.parts;
+      for (const part of row.parts) {
+        assert.ok(
+          part.top < first.bottom && part.bottom > first.top,
+          `${part.id} on the bar's row: ${JSON.stringify(row.parts)}`,
+        );
+      }
+      assert.equal(row.metaClipped, false, "levels and difficulty in full");
+      assert.equal(row.currentTitle, yard.title);
       // Headings stay in order, and the title is the focused h2.
-      assert.deepEqual(shown.headings, [
-        "H1 Dungeon One",
-        `H2 ${goblinYard.title}`,
-      ]);
+      assert.deepEqual(shown.headings, ["H1 Dungeon One", `H2 ${yard.title}`]);
       assert.deepEqual(
         await page.evaluate(() => ({
           focused: document.activeElement.id,
