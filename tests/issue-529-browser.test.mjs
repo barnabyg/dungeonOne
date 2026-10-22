@@ -11,7 +11,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
-import { clickAction, createAndStart } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  createAndStart,
+  settled,
+} from "./fixtures/browser-journey.mjs";
 import {
   assertNoSideScroll,
   launch,
@@ -153,7 +157,18 @@ test(
           entry.removeAttribute("style");
         });
 
-      // A reader scrolled up to older entries stays where they are (#221).
+      // A reader scrolled up a little from a short turn, to the entries
+      // just before it, stays where they are (#221).
+      const nearly = (await turnView(page)).scrollTop - 100;
+      await scrollLog(page, nearly);
+      // Sent without say(), which expects the newest entry on screen.
+      await settled(page, async () => {
+        await page.locator("#message").fill("I listen again");
+        await page.locator("#message").press("Enter");
+      });
+      assert.equal((await turnView(page)).scrollTop, nearly, "near place kept");
+
+      // So does one scrolled right up to the oldest entries.
       await scrollLog(page, 0);
       here = here === stair ? alcove : stair;
       await clickAction(page, "move", here.id);

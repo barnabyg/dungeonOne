@@ -2012,8 +2012,8 @@ function focusTurnEntry() {
 // top (#529): the log scrolls so the turn's first entry sits at the top of
 // the view, with space under the newest entry (#log's ::after,
 // --turn-room) for a short turn to get there. The log follows the latest
-// turn only while the reader is on it; someone who scrolled up to read
-// older entries stays where they are. Only the reader's scrolling decides
+// turn only while the reader has not scrolled up from its start; someone
+// who scrolled up to read older entries stays where they are. Only the reader's scrolling decides
 // that, not the window resizing around it; while following, a resized log
 // is scrolled back to the latest turn (#221).
 let followHistory = true;
@@ -2038,10 +2038,13 @@ function followNewest() {
   if (followHistory) log.scrollTop = top;
 }
 
-/** Whether the reader is on the latest turn: its start is above the view's foot. */
+/**
+ * Whether the reader is on the latest turn: its start no more than 24 px
+ * below the top of the view, or scrolled past reading it.
+ */
 function onLatestTurn() {
   const log = element("log");
-  return !turnStart || turnStart.getBoundingClientRect().top < log.getBoundingClientRect().bottom - 24;
+  return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < 24;
 }
 
 function renderHistory() {
