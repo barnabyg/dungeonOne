@@ -12,9 +12,26 @@
 //   (#session-scene from 1500 px wide, #session-main narrower) and sits
 //   behind it, standing on the cell's foot while the column scrolls over
 //   it, hidden from assistive technology.
-// - #session-scene: the room and the fight. The room lists only
-//   what is there (#157) and always shows its details; in a fight the Fight
-//   section (#encounter) moves above it, in the DOM and so in tab order (#386).
+// - #session-scene: the room and the fight. The room (#room) is where the
+//   character acts out of a fight (#520): after #room-region, #room-heading
+//   holds #room-title and, in a way-out room only, #leave-controls ("Way out
+//   · Leave"); then #leave-confirm, #room-actions (the row for what acts on
+//   no one thing: a search of the room, an ambush, a reaction's options,
+//   Tactical Mind), #room-description and #room-alarm. Then the room's
+//   things, one card each (li.thing[data-id]), in the order Here
+//   (#creatures), Items here (#room-items), Look at (#features) and Ways on
+//   (#exits); an empty list is left out (#157). A card's .thing-head has its
+//   name and description (.thing-text) and, on the right, its buttons
+//   (.thing-controls): an exit's Go (primary) and Sneak and its door's and
+//   trap's Force, Pick, Break, Unlock and Disarm; a feature's (or body's)
+//   Examine and Use <item> (#400); an item's Take and Examine; a merchant's
+//   Trade. Under it an item's Stats; a creature's .ask-row, a group named
+//   "Ask <name> about" with an "Ask about" label and a button per topic by
+//   its name, an asked one greyed out with no caption (#490); then what was
+//   found or said there, an exit's route, door and trap. Each button's
+//   accessible name is the full action ("Examine Rusted Lantern"). In a fight
+//   the Fight section (#encounter) moves above the room, in the DOM and so in
+//   tab order (#386), and the cards have no buttons the engine doesn't offer.
 //   The fight's initiative table shows totals, marks the current turn, tags
 //   fleeing and fled opponents (#237) and surrendering and surrendered ones
 //   (#238), and
@@ -34,8 +51,8 @@
 //   stats behind a Stats toggle. Nothing sells from here: trading is in the
 //   shop (#515).
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
-//   #attack-controls, #feature-controls (Tactical Mind right after a failed
-//   check, #315; a reaction's options, #304) and, in a fight, the turn's
+//   #attack-controls and #feature-controls (out of a fight, a spell's or
+//   Divine Spark's choice) and, in a fight, the turn's
 //   options in labelled rows (#392), .action-row with data-row and a
 //   role=group named by its .row-label: #attack-controls holds Attack (each
 //   attack naming its weapon; against several foes each foe's attacks by its
@@ -45,17 +62,13 @@
 //   scroll's or wand's Use), Weapons, Last Stand (#499: Drink each potion
 //   or Fall, alone while the character's fall waits), Answer the hit and
 //   End turn (only
-//   Wait, with why, while paralysed, #234), and
-//   #explore-controls (Go, Examine, Take, Drink, Force, Pick, Break, Unlock,
-//   Search, Disarm and Talk, grouped by target with the
-//   full name as each button's accessible name; a creature's topics share
-//   one row, "Ask <name> about", a button per topic by its name and an
-//   asked one greyed out with no caption, #490) and #leave-controls (Leave
-//   the adventure, in an exit room; #133). Leave asks first in #leave-confirm,
-//   just after the bar, in place of the button, never in a browser dialog,
+//   Wait, with why, while paralysed, #234). Exploring actions are on the
+//   room's cards, not here (#520). Leave (#133), on a way-out room's
+//   heading, asks first in #leave-confirm, under the heading in place of the
+//   button, never in a browser dialog,
 //   naming the ending leaving brings and, in #leave-warning, what leaving
-//   short of the objective gives up (#475). It
-//   shows every action the session view projects, an unavailable one disabled
+//   short of the objective gives up (#475). The bar and the room
+//   show every action the session view projects, an unavailable one disabled
 //   with its reason as visible text linked by aria-describedby. Outside a
 //   fight, what the character carries is acted on from
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
@@ -79,9 +92,9 @@
 //   Trade (#open-shop), which opens the shop, described below. Gems and art
 //   objects (#239) show their value on their "You carry" entry. Arrows and
 //   bolts (#230) have an entry each with their count. Facing a
-//   reaction (#304), the bar holds only its options: a parley (#305) has a
-//   button per skill with the skill and DC under it, and a toll names its
-//   price; while the band offers trade, the reacting opponents are a
+//   reaction (#304), #room-actions holds only its options: a parley (#305)
+//   has a button per skill with the skill and DC under it, and a toll names
+//   its price; while the band offers trade, the reacting opponents are a
 //   merchant in #creatures, with Trade as above.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
@@ -179,9 +192,10 @@
 //
 // Busy states (#160): while a request runs, the control that started it has
 // aria-busy (setBusy/clearBusy, with a label such as "Saving…") and cannot
-// start it again. An action-bar button (#185) keeps its busy label in
-// data-busy-label, drawn over its hidden idle label in a space sized for the
-// wider of the two, so the bar never reflows; while busy, its accessible name
+// start it again. An action button (#185), in the bar or on a room card,
+// keeps its busy label in data-busy-label, drawn over its hidden idle label
+// in a space sized for the wider of the two, so its row never reflows;
+// while busy, its accessible name
 // is the full busy name, such as "Attacking Goblin Warrior…". A typed
 // message shows at once with a client-only pending "The Dungeon Master is
 // thinking…" entry (data-pending) that renderHistory replaces with the saved
@@ -310,13 +324,15 @@ ${SETTINGS_SOUND(sound)}
 <div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left.</p></details></div>
 </section>
 <div id="session-scene">
-<section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><h3 id="room-title"></h3>
+<section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div></div>
+<div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><p id="leave-warning"></p><div class="controls"><button id="confirm-leave" type="button" class="primary" aria-describedby="leave-question leave-warning">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div>
+<div id="room-actions" class="controls"></div>
 <p id="room-description"></p>
 <p id="room-alarm" class="alarm" role="status" hidden></p>
-<div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
-<div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
-<div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
+<div id="creatures-group"><h4 id="creatures-title">Here</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
+<div id="features-group"><h4 id="features-title">Look at</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
+<div id="exits-group"><h4 id="exits-title">Ways on</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
@@ -327,7 +343,7 @@ ${SETTINGS_SOUND(sound)}
 </div>
 </div>
 <div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div><div id="leave-controls" class="controls"></div></div><div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><p id="leave-warning"></p><div class="controls"><button id="confirm-leave" type="button" class="primary" aria-describedby="leave-question leave-warning">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div></section>
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
@@ -416,7 +432,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);gap:var(--space-3) var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,5fr) minmax(0,6fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -424,12 +440,12 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-dock{grid-area:1/2}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1}#session-scene,#scene-backdrop{grid-area:1/2}#session-dock{grid-area:1/3}}
 #session-dock{display:flex;flex-direction:column;gap:var(--space-2);min-width:0;min-height:0;overflow-y:auto;background:var(--color-paper);border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{order:1;display:flex;flex-direction:column;flex:1;min-height:8rem}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
-button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}:is(#initiative-breakdown,#rest-rules) summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}.thing-actions[data-creature] .action{width:auto;min-width:8.5em}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
+.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}:is(#initiative-breakdown,#rest-rules) summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#session-actions .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.action-row[data-row=flee]{grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--space-3)}.action-row[data-row=flee] .row-controls{align-items:center}.action-row[data-row=end]{border-top:1px solid var(--color-line);padding-top:var(--space-3)}.action-row[data-row=end] .row-controls{justify-content:flex-end}.end-line{justify-content:flex-end}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
-.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,.thing-name,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
+.icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(#initiative,.things,.carry-list,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
 #shop{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);padding-top:var(--space-2);font-family:var(--font-sans)}.shop-sign{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);background:var(--color-ink);color:var(--color-on-dark);border-bottom:3px solid var(--color-gold);border-radius:var(--radius-md) var(--radius-md) 0 0;padding:var(--space-2) var(--space-4)}.shop-sign p{margin:0}.shop-bell{flex:none;width:30px;height:30px;fill:var(--color-gold)}.shop-heading{flex:1 1 0;min-width:12rem}#shop-title{margin:0;font-family:var(--font-serif);color:var(--color-on-ink)}.shop-open{margin-left:var(--space-2);font:600 var(--text-xs) var(--font-sans);color:var(--color-gold);white-space:nowrap}#shop-greeting{font:italic var(--text-sm) var(--font-serif)}.shop-status{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);font-size:var(--text-sm)}.shop-sign #leave-shop{color:var(--color-on-dark);border-color:var(--color-gold)}.shop-sign #leave-shop:hover:not(:disabled){background:var(--color-night-light)}.shop-sign .icon{color:var(--color-gold)}#shop-terms{margin:0}
 .shop-floor{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}.shop-scene{position:absolute;inset:0;width:100%;height:100%;color:var(--color-line);opacity:.5;pointer-events:none}#shop-columns{position:relative}
 #shop-columns{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"wares pack" "details details";align-content:start;gap:var(--space-3) var(--space-5);overflow-y:auto;padding-right:var(--space-2)}#shop-wares{grid-area:wares;min-width:0}#shop-details{grid-area:details;min-width:0}#shop-pack{grid-area:pack;min-width:0}#shop-columns h4{margin-top:0}
@@ -1912,13 +1928,15 @@ function showPending(message) {
   followNewest();
 }
 
-// Each list's entries; their actions are in the action bar. An empty list is
-// left out, and a room with no exits, features or items says so in one line.
+// Each list's entries, a card each (#520), in the room panel's order: Here,
+// Items here, Look at, Ways on. renderActions puts each card's actions on
+// it. An empty list is left out, and a room with no exits, features or items
+// says so in one line.
 const ROOM_LISTS = [
-  { id: "exits", key: "exits" },
-  { id: "features", key: "features" },
   { id: "creatures", key: "creatures" },
   { id: "room-items", key: "items" },
+  { id: "features", key: "features" },
+  { id: "exits", key: "exits" },
 ];
 
 const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
@@ -2372,13 +2390,25 @@ function renderRoom(room) {
     const entries = room[list.key];
     element(list.id + "-group").hidden = entries.length === 0;
     element(list.id).replaceChildren(...entries.map((entry) => {
-      const item = make("li");
+      const item = make("li", undefined, "thing");
       item.dataset.id = entry.id;
-      const text = make("p");
+      // The card's head (#520): its name and description, and its buttons
+      // on the right, which renderActions fills.
+      const head = make("div", undefined, "thing-head");
+      const text = make("p", undefined, "thing-text");
       // An item's icon before its name (#377); an exit's way (#458).
       text.append(...iconned(entry.icon, make("strong", wayName(entry.direction, entry.name))), document.createTextNode(" — " + entry.description));
-      item.append(text);
+      head.append(text, make("div", undefined, "controls thing-controls"));
+      item.append(head);
       if (entry.stats) item.append(statsToggle(list.id + "/" + entry.id, entry.name, entry.stats));
+      // A creature's topics, under "Ask about" (#520), filled by renderActions.
+      if (list.key === "creatures") {
+        const ask = make("div", undefined, "ask-row");
+        ask.setAttribute("role", "group");
+        ask.setAttribute("aria-label", "Ask " + entry.name + " about");
+        ask.hidden = true;
+        item.append(ask);
+      }
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), a way a check opened or closed
       // (#282) or a flag opened or closed (#397), and what each topic drew
@@ -2389,8 +2419,6 @@ function renderRoom(room) {
       for (const topic of entry.topics || []) {
         if (topic.said) item.append(make("p", "About " + topic.name + ": " + topic.said, "discovery"));
       }
-      // A merchant (#210) is traded with in the shop (#515), opened by Trade.
-      if (entry.wares) item.append(tradeControl(entry));
       return item;
     }));
   }
@@ -2497,17 +2525,15 @@ async function act(path, body, control, busyLabel, pendingMessage) {
   }
 }
 
-// The action bar (#156): every action the session view projects, in its
-// order. In a fight that is the character's whole toolkit; exploring, each
-// move, examination, take and drink. An action the engine would refuse stays
+// The action bar (#156) and the room's cards (#520): every action the
+// session view projects, in its order. In a fight the bar holds the
+// character's whole toolkit; exploring, each move, examination and take is on
+// the card of the thing it acts on. An action the engine would refuse stays
 // in place, disabled, with the engine's reason beside it.
 // Each action's words. A label or busy name is followed by its target's name.
-// Exploring, each target's name is shown once beside its short verbs (#157);
-// each button's accessible name is still the full "Examine Iron-Bound Chest".
-// Each target takes its own row (#214): names share a column and the verbs,
-// all one width, start at the same x on every row. A name lines up with its
-// first button's label: 11px is the button's border and top padding. 8.5em
-// fits the widest busy label ("Examining…") even in CI's wider fonts.
+// Exploring, the card names its thing and its buttons show short verbs
+// (#157); each button's accessible name is still the full "Examine Iron-Bound
+// Chest". Each thing has its own card (#214), its verbs at its right.
 // While its request runs (#185) a button shows its busy label ("Attacking…")
 // and is named in full ("Attacking Goblin Warrior…"). Each button is sized for
 // the wider of its labels, so a fight button's busy label must be no wider
@@ -2658,6 +2684,22 @@ const topicAndCreature = (target) => {
   return undefined;
 };
 const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "use-on", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+// The way-out room's Leave (#520), on its heading.
+const WAY_OUT = "Way out · Leave";
+/**
+ * The room's card an action's target is on (#520), as its list and id: an
+ * exit by the room it leads to or by its door or found trap, else the
+ * creature, item or feature (a body among them) of that id. None for the
+ * room itself, a reaction's option or no target.
+ */
+const cardOf = (target) => {
+  if (!target) return undefined;
+  const { room } = session;
+  const exit = room.exits.find(({ id, door, trap }) => id === target.id || door?.id === target.id || trap?.id === target.id);
+  if (exit) return "exits/" + exit.id;
+  const list = ROOM_LISTS.find(({ key }) => room[key].some(({ id }) => id === target.id));
+  return list ? list.id + "/" + target.id : undefined;
+};
 
 /**
  * The attacks a flight would draw (#396), as its row says them: by name for
@@ -2678,7 +2720,11 @@ function renderActions() {
   const attacks = session.actions.filter(({ action, cunningStrike: effect }) => action === "attack" && !effect).length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [], leave: [], carried: [] };
+  const groups = { attack: [], feature: [], leave: [], carried: [] };
+  // What is done in the room (#520): each card's buttons by
+  // its list and id, and the row under the room's heading.
+  const cards = new Map();
+  const roomWide = [];
   // In a fight each control goes in its row (#392) instead of a group.
   const rows = Object.fromEntries(FIGHT_ROWS.map(([key]) => [key, []]));
   const carried = new Set(session.room.inventory.map(({ id }) => id));
@@ -2753,12 +2799,15 @@ function renderActions() {
     const foeWords = byFoe ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : "";
     // A topic sits in its creature's row (#490), by the topic's name.
     const asking = action === "talk" && short ? topicAndCreature(target) : undefined;
-    button.append(make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe ? foeWords : label));
+    // Leave sits on the way-out room's heading (#520), named in full.
+    const leaving = action === "leave";
+    button.append(make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe ? foeWords : leaving ? WAY_OUT : label));
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
     if (short || parley || byFoe || fleeing) button.setAttribute("aria-label", label + (examined ? " (examined)" : ""));
+    if (leaving) button.setAttribute("aria-label", WAY_OUT + " the adventure");
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
+    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + (action === "move" ? " primary" : " secondary");
     // "act" marks an action control, in the bar or on a carried item.
     button.classList.add("act");
     if (examined) button.classList.add("examined");
@@ -2860,23 +2909,21 @@ function renderActions() {
       rows[(lastStand ? "last-stand" : FIGHT_ROW[action]) || "other"].push(wrap);
       return;
     }
-    if (!short) {
+    if (group === "attack" || group === "leave") {
       groups[group].push(wrap);
       return;
     }
-    // A creature's topics share one row (#490), named once.
-    const [key, id] = asking ? ["creature", asking.creature.id] : ["target", target.id];
-    let thing = groups[group].find((node) => node.dataset[key] === id);
-    if (!thing) {
-      thing = make("span", undefined, "thing-actions");
-      thing.dataset[key] = id;
-      // An item to take shows its icon, as in the room's list (#377).
-      const name = unspoken(make("span", undefined, "thing-name"));
-      name.append(...(asking ? ["Ask " + asking.creature.name + " about"] : iconned(session.room.items.find(({ id }) => id === target.id)?.icon, wayName(direction, target.name))));
-      thing.append(name, make("span", undefined, "thing-verbs"));
-      groups[group].push(thing);
+    // The rest is done in the room (#520): on the card of the thing it acts
+    // on, a creature's topics in its "Ask about" row (#490), and what acts
+    // on no thing (a search of the room, an ambush, a reaction's options,
+    // Tactical Mind) in the row under the room's heading.
+    const card = asking ? "creatures/" + asking.creature.id : cardOf(target);
+    if (!card) {
+      roomWide.push(wrap);
+      return;
     }
-    thing.lastChild.append(wrap);
+    if (!cards.has(card)) cards.set(card, { verbs: [], topics: [] });
+    cards.get(card)[asking ? "topics" : "verbs"].push(wrap);
   });
   // In a fight the Attack row heads the bar and the others follow it.
   const fightRows = FIGHT_ROWS.filter(([key]) => rows[key].length).map(([key, name]) => actionRow(key, name, rows[key]));
@@ -2884,7 +2931,21 @@ function renderActions() {
   element("feature-controls").classList.toggle("rows", fighting);
   element("attack-controls").replaceChildren(...(fighting ? fightRows.filter(({ dataset }) => dataset.row === "attack") : groups.attack));
   element("feature-controls").replaceChildren(...(fighting ? fightRows.filter(({ dataset }) => dataset.row !== "attack") : groups.feature));
-  element("explore-controls").replaceChildren(...groups.explore);
+  // Each card's buttons (#520): its verbs on the right, then a merchant's
+  // Trade (#515); a creature's topics under "Ask about".
+  for (const list of ROOM_LISTS) {
+    for (const card of element(list.id).children) {
+      const placed = cards.get(list.id + "/" + card.dataset.id) ?? { verbs: [], topics: [] };
+      const merchant = list.key === "creatures" ? session.room.creatures.find(({ id, wares }) => id === card.dataset.id && wares) : undefined;
+      card.querySelector(".thing-controls").replaceChildren(...placed.verbs, ...(merchant ? [tradeControl(merchant)] : []));
+      const ask = card.querySelector(".ask-row");
+      if (ask) {
+        ask.replaceChildren(...(placed.topics.length ? [unspoken(make("span", "Ask about", "ask-label")), ...placed.topics] : []));
+        ask.hidden = placed.topics.length === 0;
+      }
+    }
+  }
+  element("room-actions").replaceChildren(...roomWide);
   element("leave-controls").replaceChildren(...groups.leave);
   // A carried item's verbs go on its entry in "You carry" (#198).
   for (const entry of document.querySelectorAll("#inventory li[data-id]")) {
@@ -3102,7 +3163,6 @@ const SHELVES = [["treasure", "Treasure"], ["gear", "Gear"], ["ammunition", "Amm
 
 /** The merchant's Trade, on its card in the room: disabled in a fight. */
 function tradeControl(merchant) {
-  const controls = make("div", undefined, "controls");
   const button = make("button", "Trade", "secondary");
   button.id = "open-shop";
   button.type = "button";
@@ -3117,8 +3177,7 @@ function tradeControl(merchant) {
     button.setAttribute("aria-describedby", reason.id);
     wrap.append(reason);
   }
-  controls.append(wrap);
-  return controls;
+  return wrap;
 }
 
 /**

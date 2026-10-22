@@ -1,7 +1,7 @@
-// #490, browser → API → storage: a creature's talk topics share one row.
-// Its name shows once, as "Ask Gate Guard about", with a button per topic
-// (one per approach, its skill under it) that keeps its full
-// accessible name. A topic asked stays in its row, greyed out, with
+// #490, browser → API → storage: a creature's talk topics share one row,
+// on its card (#520) under "Ask about", a group named "Ask Gate Guard
+// about", with a button per topic (one per approach, its skill under it)
+// that keeps its full accessible name. A topic asked stays in its row, greyed out, with
 // "Already asked" as its description and title but no caption; a topic the
 // module offers again says "Try again" beside it, with its reason. The
 // rows are the same after a reload.
@@ -68,13 +68,16 @@ const talkingYard = (() => {
   return validateModule(file);
 })();
 
-/** Each talk row: its shown name and each button's name, label and state. */
+/**
+ * Each creature card's talk row (#520): its name and each button's name,
+ * label and state.
+ */
 const talkRows = (page) =>
   page
-    .locator("#explore-controls .thing-actions:has(button[data-action=talk])")
+    .locator("#creatures .ask-row:has(button[data-action=talk])")
     .evaluateAll((rows) =>
       rows.map((row) => ({
-        name: row.querySelector(".thing-name").textContent,
+        name: row.getAttribute("aria-label"),
         buttons: [...row.querySelectorAll("button")].map((button) => {
           const wrap = button.parentElement;
           const described = (button.getAttribute("aria-describedby") ?? "")

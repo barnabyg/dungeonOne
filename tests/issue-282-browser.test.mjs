@@ -81,7 +81,8 @@ test(
       screen = await shown(page);
       assert.match(
         screen.exits,
-        /South: Side Crypt — A low door\.\n+The way is closed\.$/,
+        // Its card (#520): Go, greyed with its reason, then the way's state.
+        /South: Side Crypt — A low door\.\n+Go\nWay closed\n+The way is closed\.$/,
       );
       assert.ok(screen.go.includes("Go south to Side Crypt Way closed"));
       assert.equal(

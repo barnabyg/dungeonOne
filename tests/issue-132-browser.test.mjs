@@ -97,7 +97,9 @@ const screen = (page) =>
   page.evaluate(() => ({
     status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
-    actions: [...document.querySelectorAll("#action-bar button")]
+    actions: [
+      ...document.querySelectorAll("#room button.act, #action-bar button"),
+    ]
       .map((button) => {
         const reason = button.getAttribute("aria-describedby");
         return (
@@ -109,13 +111,11 @@ const screen = (page) =>
     log: document.getElementById("log").textContent,
   }));
 
-/** Clicks an action-bar button and waits for its settled history entry. */
+/** Clicks a room card's button (#520) and waits for its settled history entry. */
 const click = (page, action, target) =>
   settled(page, () =>
     page
-      .locator(
-        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-      )
+      .locator(`#room button[data-action="${action}"][data-target="${target}"]`)
       .click(),
   );
 

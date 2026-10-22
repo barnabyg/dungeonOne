@@ -71,11 +71,16 @@ test("monsters and items show their icons beside the text that names them", asyn
       "#icon-two-coins",
       "#icon-plain-dagger",
     ]);
-    // The action bar's row for each shows it too.
-    const purseRow = page
-      .locator('#explore-controls .thing-actions[data-target="lost-purse"]')
-      .locator("svg.icon");
-    assert.equal(await purseRow.isVisible(), true);
+    // Its card, which carries its Take (#520), shows it beside its name.
+    const purseCard = page.locator('#room-items li[data-id="lost-purse"]');
+    assert.equal(
+      await purseCard.locator(".thing-text svg.icon").isVisible(),
+      true,
+    );
+    assert.equal(
+      await purseCard.locator('button.act[data-action="take"]').count(),
+      1,
+    );
 
     // Taken: the coin line starts with the purse; the purse shows it too.
     await clickAction(page, "take", "lost-purse");

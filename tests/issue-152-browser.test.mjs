@@ -18,12 +18,17 @@ import {
 } from "./fixtures/browser-journey.mjs";
 
 const VARIANTS = ["primary", "secondary", "quiet", "danger"];
-// The regions that may each show at most one primary button.
+// The regions that may each show at most one primary button: in the room
+// (#520), its heading and row, the leave question and each card, whose Go
+// is primary.
 const REGIONS = [
   "#library",
   "#creation",
   "#sheet",
-  "#room",
+  "#room-heading",
+  "#room-actions",
+  "#leave-confirm",
+  "#room li",
   "#encounter",
   "#message-form",
   "#delete-dialog",
@@ -187,7 +192,12 @@ const audit = (page) =>
         )
         .map(describe);
       const crowded = regions
-        .map((selector) => [selector, document.querySelector(selector)])
+        .flatMap((selector) =>
+          [...document.querySelectorAll(selector)].map((region) => [
+            selector,
+            region,
+          ]),
+        )
         .filter(([, region]) => region && region.checkVisibility())
         .map(([selector, region]) => [
           selector,
@@ -295,7 +305,7 @@ test(
       await page.locator("#cancel-delete").click();
 
       await startAdventure(page, "quiet-tunnels");
-      await page.locator("#action-bar button.explore").first().waitFor();
+      await page.locator("#room button.explore").first().waitFor();
       await check(page, "room");
       await page.locator('#breadcrumb a[data-view="sheet"]').click();
       await page.locator("#continue-adventure").waitFor();

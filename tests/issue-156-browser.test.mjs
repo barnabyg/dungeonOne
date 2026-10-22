@@ -109,7 +109,7 @@ async function enterAction(page) {
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log > li").length > seen &&
-      !document.querySelector("#action-bar [aria-busy=true]"),
+      !document.querySelector("button.act[aria-busy=true]"),
     count,
   );
   // The page moves focus once the action settles.
@@ -121,7 +121,7 @@ async function enterAction(page) {
   );
 }
 
-/** Tabs to an action (in the bar or the inventory) from the adventure title and presses Enter. */
+/** Tabs to an action (on a room card, in the bar or the inventory) from the adventure title and presses Enter. */
 async function keyboardAction(page, action, target) {
   await page.locator("#adventure-title").focus();
   await tabTo(
@@ -176,11 +176,11 @@ test(
     try {
       await createAndStart(page, server.url, "rat-tunnels");
 
-      // Exploring actions live in the action region, not the room panel;
-      // only the character's own gear is acted on, from "You carry" in the
+      // Exploring actions live on the room's cards (#520), not the action
+      // bar; the character's own gear is acted on from "You carry" in the
       // character column (#198, #209, #432), beside its Rest section's
       // Short rest, greyed with nothing to recover (#521).
-      assert.equal(await page.locator("#room button").count(), 0);
+      assert.equal(await page.locator("#action-bar button").count(), 0);
       assert.deepEqual(
         await page
           .locator("#session-character button")
@@ -195,15 +195,15 @@ test(
       );
       assert.deepEqual(
         await page
-          .locator("#explore-controls button")
+          .locator("#room button.act")
           .evaluateAll((buttons) =>
             buttons.map((button) => button.getAttribute("aria-label")),
           ),
         [
+          "Examine Rusted Lantern",
           "Go west to Alcove",
           "Go south to Rat-Gnawed Cellar",
           "Sneak south into Rat-Gnawed Cellar",
-          "Examine Rusted Lantern",
         ],
       );
 
@@ -254,7 +254,7 @@ test(
         "end-turn",
       ];
       assert.deepEqual(await bar(), toolkit);
-      assert.equal(await page.locator("#explore-controls button").count(), 0);
+      assert.equal(await page.locator("#room button.act").count(), 0);
       // The potion's Drink sits in the Items row (#392).
       assert.equal(
         await page

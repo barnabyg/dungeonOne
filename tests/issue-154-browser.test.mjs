@@ -146,8 +146,9 @@ test(
       await createAndStart(page, server.url, "rat-tunnels");
       await assertTogether(page, "start");
 
+      // Exploring, the actions are on the room's cards (#520).
       assertTabOrder(await tabRegions(page), [
-        "session-actions",
+        "session-scene",
         "session-history",
         "session-composer",
       ]);
@@ -202,7 +203,7 @@ test(
       const count = await page.locator("#log li").count();
       await page
         .locator(
-          '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
+          '#room button[data-action="examine"][data-target="gnawed-sacks"]',
         )
         .click();
       await page.waitForFunction(

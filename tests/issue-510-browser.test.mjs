@@ -120,11 +120,11 @@ test(
         assert.equal(await mute.getAttribute("aria-pressed"), "false");
         await soundOn.uncheck();
         await page.goBack();
-        await page.locator("#action-bar").waitFor();
+        await page.locator("#room button.act").first().waitFor();
         await settled(page, () =>
           page
             .locator(
-              '#action-bar button[data-target="crumbling-wall"][data-approach="athletics"]',
+              '#room button[data-target="crumbling-wall"][data-approach="athletics"]',
             )
             .click(),
         );

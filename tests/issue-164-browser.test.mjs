@@ -111,7 +111,7 @@ test(
       await createFighter(page, "Ada");
       await startAdventure(page, "quiet-tunnels");
       // Act once so there is progress to resume.
-      await page.locator("#explore-controls button:enabled").first().click();
+      await page.locator("#room button.act:enabled").first().click();
       await page.waitForFunction(
         () => document.querySelectorAll("#log > li").length > 1,
       );

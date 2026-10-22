@@ -75,11 +75,11 @@ test(
         ["Mace — In hand", []],
         ["Longsword — Stowed", ["Wield Longsword", "Drop Longsword"]],
       ]);
-      // No gear verb is in the action bar outside a fight.
+      // No gear verb is in the action bar or the room outside a fight.
       assert.equal(
         await page
           .locator(
-            "#action-bar button:is([data-action=equip], [data-action=unequip], [data-action=swap], [data-action=drop])",
+            ":is(#action-bar, #room) button:is([data-action=equip], [data-action=unequip], [data-action=swap], [data-action=drop])",
           )
           .count(),
         0,
@@ -110,7 +110,7 @@ test(
         ["Mace — Stowed", ["Wield Mace", "Drop Mace"]],
       ]);
 
-      // The mace dropped lies here, with Take to pick it back up.
+      // The mace dropped lies here, with Take on its card to pick it back up.
       await explore(page, "drop", "mace");
       assert.equal(await newest(page), "You drop the mace. It stays here.");
       assert.match(
@@ -120,7 +120,7 @@ test(
       assert.equal(
         await page
           .locator(
-            '#action-bar button[data-action="take"][data-target="dropped:mace"]',
+            '#room-items li[data-id="dropped:mace"] button[data-action="take"][data-target="dropped:mace"]',
           )
           .isEnabled(),
         true,

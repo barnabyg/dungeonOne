@@ -43,24 +43,26 @@ async function holdRequests(page, path) {
 /** Every action button: its place, state and what it shows and is named. */
 const bar = (page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll("#action-bar button")].map((button) => {
-      const { x, y, width, height } = button.getBoundingClientRect();
-      const label = button.querySelector("span");
-      const busy = getComputedStyle(button, "::after");
-      return {
-        key: button.dataset.action + ":" + (button.dataset.target || ""),
-        box: [x, y, width, height].map(Math.round),
-        disabled: button.disabled,
-        busy: button.getAttribute("aria-busy"),
-        name: button.getAttribute("aria-label") || label.textContent,
-        shows:
-          getComputedStyle(label).visibility === "visible"
-            ? label.textContent
-            : busy.visibility === "visible"
-              ? JSON.parse(busy.content)
-              : "",
-      };
-    }),
+    [...document.querySelectorAll("#room button.act, #action-bar button")].map(
+      (button) => {
+        const { x, y, width, height } = button.getBoundingClientRect();
+        const label = button.querySelector("span");
+        const busy = getComputedStyle(button, "::after");
+        return {
+          key: button.dataset.action + ":" + (button.dataset.target || ""),
+          box: [x, y, width, height].map(Math.round),
+          disabled: button.disabled,
+          busy: button.getAttribute("aria-busy"),
+          name: button.getAttribute("aria-label") || label.textContent,
+          shows:
+            getComputedStyle(label).visibility === "visible"
+              ? label.textContent
+              : busy.visibility === "visible"
+                ? JSON.parse(busy.content)
+                : "",
+        };
+      },
+    ),
   );
 
 /**
@@ -177,7 +179,7 @@ test(
       // Exploring: a short verb shows its own busy verb.
       await holdAction(
         page,
-        '#explore-controls button[data-action="examine"][data-target="rusted-lantern"]',
+        '#room button[data-action="examine"][data-target="rusted-lantern"]',
         "/api/5e/session/explore",
         "Examining…",
         "Examining Rusted Lantern…",
@@ -187,7 +189,7 @@ test(
       );
       await holdAction(
         page,
-        '#explore-controls button[data-action="move"][data-target="rat-cellar"]',
+        '#room button[data-action="move"][data-target="rat-cellar"]',
         "/api/5e/session/explore",
         "Going…",
         "Going to Rat-Gnawed Cellar…",
