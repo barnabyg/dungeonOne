@@ -143,8 +143,8 @@
 //   toll names its price, and while the band offers trade the card has
 //   Trade as above.
 //   After an action, focus stays on the clicked control if it is still
-//   enabled, and otherwise moves to the latest turn's first history entry. When the
-//   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
+//   enabled, and otherwise moves to the latest turn's first history entry.
+//   When the adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
 //   escape-with-loot, escape-without-loot or defeat (in words, #ending-kind,
 //   and colour), the title and text, a defeat's permanence, #ending-rewards
 //   (the XP, treasure and coin a surviving ending earned, #ending-coin, and a
@@ -156,8 +156,8 @@
 //   its first entry at the top of the view, while the reader is on the
 //   latest turn. Each entry (#159) has a data-kind (narration, message or
 //   action); the newest has class "newest" and tabindex -1, as the latest
-//   turn's first entry does, and focusTurnEntry() moves focus to that. A card arriving in a room (#524)
-//   has data-arrival, the room's name, which its first line starts with in
+//   turn's first entry does, and focusTurnEntry() moves focus to that. A
+//   card arriving in a room (#524) has data-arrival, the room's name, which its first line starts with in
 //   bold; #room-history-link scrolls to and focuses the newest one for the
 //   character's room.
 // - #session-composer: #message-form, and #dm-notice when typing to the AI DM
@@ -1437,7 +1437,7 @@ function showAdventure(value) {
   element(session.ending ? "ending-title" : "adventure-title").focus();
   // The latest turn shows from its top (#529).
   followHistory = true;
-  followNewest();
+  followTurn();
 }
 
 function renderAdventure() {
@@ -2008,7 +2008,7 @@ function focusTurnEntry() {
   if (!turnStart) return;
   if (!followHistory) {
     followHistory = true;
-    followNewest();
+    followTurn();
   }
   turnStart.focus({ preventScroll: true });
 }
@@ -2032,7 +2032,7 @@ const entryTop = (log, entry) => log.scrollTop + entry.getBoundingClientRect().t
  * Sizes the space under the newest entry so the latest turn can reach the
  * top of the view, and scrolls there while the reader follows it.
  */
-function followNewest() {
+function followTurn() {
   const log = element("log");
   if (!turnStart) return;
   // A view's height of space overfills the log, so its scroll height is
@@ -2069,7 +2069,7 @@ function renderHistory() {
   else if (added.length) turnStart = added[0];
   else if (!turnStart?.isConnected) turnStart = log.lastElementChild ?? undefined;
   markNewest(log);
-  followNewest();
+  followTurn();
   element("room-history-link").hidden = !arrivalEntry();
 }
 
@@ -2106,7 +2106,7 @@ function showPending(message) {
   log.append(item);
   turnStart = item;
   markNewest(log);
-  followNewest();
+  followTurn();
 }
 
 // Each list's entries, a card each (#520), in the room panel's order: Here,
@@ -2553,7 +2553,8 @@ function renderRoom(room) {
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
   // The encounter waiting here (#530) heads Here; its opponents trading
-  // while their band offers it (#305) are that card, not one of their own.
+  // while their band offers it (#305), a creature with the encounter's id,
+  // are that card, not one of their own.
   const { waiting } = room;
   for (const list of ROOM_LISTS) {
     const head = list.key === "creatures" && waiting ? [waitingCard(waiting)] : [];
@@ -2602,14 +2603,15 @@ function renderRoom(room) {
 // icon, name and description, and the buttons that act on them all, which
 // renderActions puts on it: Ambush while unseen, the reaction's options
 // while they react (and Trade while their band offers it). The fight
-// panel's enemy cards take over once the fight begins.
-const WAITING_TAGS = { unseen: ["Hasn't seen you", "Haven't seen you"] };
+// panel's foe cards take over once the fight begins.
+// Unseen, by one opponent or several.
+const UNSEEN_TAGS = ["Hasn't seen you", "Haven't seen you"];
 function waitingCard(waiting) {
   const item = make("li", undefined, "thing opponents-card");
   item.dataset.id = waiting.id;
   item.dataset.state = waiting.state;
   const several = waiting.opponents.length > 1;
-  const state = WAITING_TAGS[waiting.state]?.[several ? 1 : 0] ?? REACTION_TAGS[waiting.state];
+  const state = waiting.state === "unseen" ? UNSEEN_TAGS[several ? 1 : 0] : REACTION_TAGS[waiting.state];
   item.append(make("p", state, "tag opponents-state"));
   for (const opponent of waiting.opponents) {
     const line = make("p", undefined, "opponent");
@@ -3251,7 +3253,8 @@ function renderActions() {
     // on no thing (a search of the room, Tactical Mind) in the row under the
     // room's heading.
     // Ambush and a reaction's options act on the whole encounter waiting
-    // here (#530), so they go on its card.
+    // here (#530), so they go on its card, which has the encounter's id and
+    // so gets the reacting opponents' Trade as a merchant card would.
     const waiting = (action === "ambush" || action === "react") && session.room.waiting;
     const card = asking ? "creatures/" + asking.creature.id : waiting ? "creatures/" + waiting.id : cardOf(target);
     if (!card) {
@@ -5560,7 +5563,7 @@ element("log").addEventListener("scroll", () => {
 });
 // When the column around the log changes, as the window is resized, the log
 // changes size: a following reader stays on the latest turn (#221, #529).
-new ResizeObserver(followNewest).observe(element("log"));
+new ResizeObserver(followTurn).observe(element("log"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
   library = value;
