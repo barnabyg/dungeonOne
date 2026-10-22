@@ -2029,9 +2029,12 @@ const entryTop = (log, entry) => log.scrollTop + entry.getBoundingClientRect().t
 function followNewest() {
   const log = element("log");
   if (!turnStart) return;
-  log.style.setProperty("--turn-room", "0px");
+  // A view's height of space overfills the log, so its scroll height is
+  // exact (never just the view's): the space shrinks by what is spare.
+  log.style.setProperty("--turn-room", log.clientHeight + "px");
   const top = entryTop(log, turnStart);
-  log.style.setProperty("--turn-room", Math.max(0, Math.ceil(top - (log.scrollHeight - log.clientHeight))) + "px");
+  const spare = log.scrollHeight - log.clientHeight - top;
+  log.style.setProperty("--turn-room", Math.max(0, Math.ceil(log.clientHeight - spare)) + "px");
   if (followHistory) log.scrollTop = top;
 }
 

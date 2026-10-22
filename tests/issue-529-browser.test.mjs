@@ -96,6 +96,13 @@ test(
       assert.equal(opening.top, 0);
       assert.ok(opening.firstLine.startsWith(stair.name), opening.firstLine);
 
+      // In a history shorter than the column, the turn still rests at the
+      // top, the opening scrolled out of sight above it.
+      await say(page, "I wait and listen");
+      const short = await turnView(page);
+      assert.ok(Math.abs(short.top) <= 2, `short history: ${short.top}`);
+      assert.equal(short.olderHidden, true, "short history: older hidden");
+
       // A history long enough to scroll at every width.
       for (let turn = 0; turn < 8; turn += 1) {
         await say(page, `I wait and listen, turn ${turn + 1}`);
