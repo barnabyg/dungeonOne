@@ -49,14 +49,25 @@
 //   .hp-bar, .card-tags (its conditions, Hidden, Surprised), then
 //   #heal-controls, the ways to heal (Second Wind, Drink each potion, each
 //   healing spell as data-action=heal-spell at its lowest slot, Preserve
-//   Life) with what each restores and its action in .act-detail;
-//   #fight-foes with #strike-control (Cunning Strike's choice, #308, for
-//   the attacks under it) and #foe-cards, an li.foe-card[data-combatant]
+//   Life) with what each restores and its action in .act-detail; under it
+//   #attack-chooser (#526, hidden with one way to attack): #chooser-chips,
+//   a radiogroup of every way to attack a foe, a .chooser-group[data-group]
+//   per kind (Weapon, Ongoing, Cantrips, 1st, 2nd… with .chooser-pips for
+//   the slots left, Items, Channel Divinity) of label.chip[data-choice]
+//   radios, .on when chosen, .off with .chip-reason when the engine would
+//   refuse it; and #chooser-detail, the chosen one's name, #chooser-slot
+//   (slot level, or a wand's charges) and #chooser-variant (damage type,
+//   curse or Divine Spark's damage), then what it does; then
+//   #strike-control (Cunning Strike's choice, #308, for the chosen weapon
+//   attack); #fight-foes with #foe-cards, an li.foe-card[data-combatant]
 //   per foe in initiative order: head, HP and bar, .card-tags (conditions,
-//   effects, Sapped, Hidden, Fleeing, Surrendering, Surprised) and either
-//   .foe-controls, holding its one attack (the weapon attack the engine
-//   offers on it, else its first attack: "Attack with Mace +6 · 1d6 + 4"),
-//   or .card-state, Fallen, Fled, Surrendered or Turned), then #fight-foot:
+//   effects, Sapped, Hidden, Fleeing, Surrendering, Surprised), .card-state
+//   (Fallen, Fled, Surrendered or Turned) and, while it can be attacked,
+//   .foe-controls, holding the chosen attack's one button (data-action,
+//   data-target, a spell's data-spell and data-slot, a scroll's or wand's
+//   data-item: "Attack with Mace +6 · 1d6 + 4", "Fire Bolt +7 · 2d10") or,
+//   for an area spell or Scorching Ray, its .blast-tick box; then
+//   #area-cast, that spell's one Cast button; then #fight-foot:
 //   #flee-control (#flee-toggle "Flee ▾", a disclosure of #flee-menu:
 //   #flee-attacks, whom a flight draws attacks from, over #flee-ways, a
 //   button per way out; Escape or a click elsewhere closes it; disabled
@@ -82,12 +93,11 @@
 //   #attack-controls and #feature-controls (out of a fight, a spell's or
 //   Divine Spark's choice) and, in a fight, inside the fight panel, the
 //   turn's other options in labelled rows (#392), .action-row with data-row
-//   and a role=group named by its .row-label: #attack-controls holds Attack
-//   (the attacks not on a foe's card, each naming its weapon; against
-//   several foes each foe's by its name) and
-//   #feature-controls the rest, in FIGHT_ROWS order: Cast a spell, Channel
-//   Divinity (its shared uses once, in .row-uses), Fighter features, Rogue
-//   features, Items (a scroll's or wand's Use), Weapons, Last Stand (#499:
+//   and a role=group named by its .row-label, the attacks being the attack
+//   chooser's (#526): #feature-controls in FIGHT_ROWS order: Cast a spell
+//   (the spells on the character), Channel Divinity (its shared uses once,
+//   in .row-uses), Fighter features, Rogue features, Items (a scroll's or
+//   wand's Use on the character), Weapons, Last Stand (#499:
 //   Drink each potion or Fall, alone while the character's fall waits),
 //   Answer the hit, Use the room and Other actions. Healing, Flee and End
 //   turn (only Wait, with why, while paralysed, #234) are on the panel's
@@ -364,7 +374,7 @@ ${SETTINGS_SOUND(sound)}
 <div id="session-scene">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
 <section id="encounter" class="fight-panel" aria-labelledby="encounter-title" hidden><div id="fight-top"><h3 id="encounter-title">Fight</h3><p id="turn-order"></p></div>
-<div id="fight-sides"><section id="fight-you" class="fight-side" aria-labelledby="fight-you-title"><h4 id="fight-you-title">You</h4><div id="you-card" class="fight-card"></div></section><section id="fight-foes" class="fight-side" aria-labelledby="fight-foes-title"><h4 id="fight-foes-title">Enemies</h4><div id="strike-control" class="controls"></div><ul id="foe-cards" aria-labelledby="fight-foes-title"></ul></section></div>
+<div id="fight-sides"><section id="fight-you" class="fight-side" aria-labelledby="fight-you-title"><h4 id="fight-you-title">You</h4><div id="you-card" class="fight-card"></div><div id="attack-chooser" hidden><div id="chooser-chips" role="radiogroup" aria-label="Attack with"></div><p id="chooser-detail"></p></div><div id="strike-control" class="controls"></div></section><section id="fight-foes" class="fight-side" aria-labelledby="fight-foes-title"><h4 id="fight-foes-title">Enemies</h4><ul id="foe-cards" aria-labelledby="fight-foes-title"></ul><div id="area-cast" class="controls"></div></section></div>
 <div id="fight-foot"><div id="flee-control" hidden><button id="flee-toggle" type="button" class="danger" aria-expanded="false" aria-controls="flee-menu" aria-label="Flee"><span>Flee ▾</span></button><div id="flee-menu" hidden><p id="flee-attacks"></p><div id="flee-ways" role="group" aria-labelledby="flee-attacks"></div></div><span id="flee-reason" class="reason"></span></div><ul id="turn-resources" class="resources" aria-label="This turn"></ul><div id="end-controls"></div></div>
 </section>
 <section id="room" aria-labelledby="room-title"><p id="room-region" class="eyebrow dark" hidden></p><div id="room-heading"><h3 id="room-title"></h3><div id="leave-controls" class="controls"></div><button id="room-history-link" type="button" class="quiet" hidden>Description in history</button></div>
@@ -476,7 +486,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>#session-actions+section h3{margin-top:0}#session-layout{isolation:isolate}#session-main,#scene-backdrop{grid-area:1/1}#session-composer{grid-area:2/1}#session-history{grid-area:1/2/3/3}#scene-backdrop{position:relative;z-index:-1;min-width:0;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@media(min-width:1500px){#session-character{grid-area:1/1/3/2}#session-scene,#scene-backdrop{grid-area:1/2}#session-composer{grid-area:2/2}#session-history{grid-area:1/3/3/4}}
 #session-history{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--color-line);padding-left:var(--space-5)}#session-actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-actions:has(.error:not(:empty),#ending:not([hidden]),.controls:not(:empty)){margin-bottom:var(--space-4)}#session-composer{min-width:0;border-top:1px solid var(--color-line);padding:var(--space-2) var(--space-2) 0 0;margin-top:var(--space-2)}
 .controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
-button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.end-line{justify-content:flex-end;flex-wrap:nowrap}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}.foe-actions{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:var(--space-2);flex-basis:100%;align-items:start}.foe-name{font:600 var(--text-sm) var(--font-sans);color:var(--color-text);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.foe-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.end-line{justify-content:flex-end;flex-wrap:nowrap}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}
 body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
@@ -492,8 +502,8 @@ body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;f
 #fight-sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-3);margin:var(--space-2) 0}.fight-side{min-width:0}.fight-side h4{margin:0 0 var(--space-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em}#foe-cards{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}.fight-card{min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);--hp-color:var(--color-danger)}.foe-card[aria-current=true]{border-color:var(--color-danger)}.foe-card[data-state]{color:var(--color-text-muted);--hp-color:var(--color-hp-down)}#you-card{--hp-color:var(--color-hp-healthy)}#you-card[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}#you-card[data-health=critical]{--hp-color:var(--color-hp-critical)}#you-card[data-health=down]{--hp-color:var(--color-hp-down)}
 .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}.card-name{min-width:0;overflow-wrap:anywhere}.card-ac{flex:none;font-size:var(--text-xs);color:var(--color-text-muted)}.card-hp{margin:2px 0 0;line-height:1.2}.hp-now{font-size:1.3rem;font-weight:700}.hp-max{font-size:var(--text-xs);font-weight:600;color:var(--color-text-muted)}.fight-card .hp-bar{height:8px;margin:var(--space-1) 0 var(--space-2)}.card-tags{margin:0 0 var(--space-1);font-size:var(--text-xs);line-height:1.7}.card-state{margin:0;font-weight:600}#encounter .card-controls{gap:var(--space-1)}#heal-controls{flex-direction:column;align-items:stretch}#heal-controls .action{display:flex}#heal-controls button{text-align:left}.act-detail{font-size:var(--text-xs);font-weight:400;white-space:nowrap}
 #fight-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);border-top:1px solid var(--color-line);padding-top:var(--space-2)}#fight-foot:not(:has(#flee-control:not([hidden]),li,button:not(#flee-toggle))){display:none}#flee-control{position:relative;display:flex;align-items:center;gap:var(--space-2)}#flee-control[hidden]{display:none}#flee-reason:empty{display:none}#turn-resources{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);list-style:none;margin:0 0 0 auto;padding:0}#end-controls{display:flex;min-width:0}#end-controls:empty{display:none}#end-controls .end-note{text-align:right}
-button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}#flee-menu{position:absolute;left:0;bottom:calc(100% + var(--space-1));z-index:3;width:max-content;min-width:14rem;max-width:min(24rem,60vw);background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);box-shadow:0 6px 18px rgb(0 0 0/.2);padding:var(--space-1)}#flee-attacks{margin:0;padding:2px var(--space-2) var(--space-1);font-size:var(--text-xs);color:var(--color-danger)}#flee-ways{display:grid;gap:2px}#flee-ways .action{display:flex}#flee-ways button{text-align:left;border-color:transparent}#flee-ways button:hover:not(:disabled){background:var(--color-highlight)}#encounter #action-bar{margin:var(--space-2) 0 0}#fight-foot+#action-bar:has(.action-row){border-top:1px solid var(--color-line);padding-top:var(--space-2)}#strike-control{margin:0 0 var(--space-1)}
-#room #room-fold{display:block;margin:0 0 var(--space-2);padding:2px 0;text-decoration:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left;font-size:var(--text-sm);color:var(--color-text-label)}@media(max-width:1499px){#fight-sides{gap:var(--space-2);margin:6px 0}.fight-side h4{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.fight-card{padding:6px var(--space-2)}#encounter .fight-card button{padding:6px 10px}.hp-now{font-size:1.15rem}}
+button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}#flee-menu{position:absolute;left:0;bottom:calc(100% + var(--space-1));z-index:3;width:max-content;min-width:14rem;max-width:min(24rem,60vw);background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);box-shadow:0 6px 18px rgb(0 0 0/.2);padding:var(--space-1)}#flee-attacks{margin:0;padding:2px var(--space-2) var(--space-1);font-size:var(--text-xs);color:var(--color-danger)}#flee-ways{display:grid;gap:2px}#flee-ways .action{display:flex}#flee-ways button{text-align:left;border-color:transparent}#flee-ways button:hover:not(:disabled){background:var(--color-highlight)}#encounter #action-bar{margin:var(--space-2) 0 0}#fight-foot+#action-bar:has(.action-row){border-top:1px solid var(--color-line);padding-top:var(--space-2)}#strike-control{margin:var(--space-1) 0 0}#strike-control:empty,#area-cast:empty{display:none}#fight-sides:has(#attack-chooser:not([hidden])){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}#attack-chooser{display:grid;gap:var(--space-1);margin-top:var(--space-2);padding:var(--space-2);background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);font-size:var(--text-sm)}#attack-chooser[hidden]{display:none}#chooser-chips{display:grid;gap:var(--space-1)}.chooser-group{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:var(--space-1) var(--space-2);align-items:start}.chooser-label{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-label);padding-top:3px;line-height:1.2;overflow-wrap:anywhere}.chooser-pips{display:block;letter-spacing:1px;color:var(--color-ink)}.chips{display:flex;flex-wrap:wrap;gap:var(--space-1);min-width:0}.chip{position:relative;display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:3px;max-width:100%;border:1px solid var(--color-control-border);border-radius:999px;padding:2px 9px;font-size:var(--text-xs);line-height:1.4;background:var(--color-paper);color:var(--color-ink);cursor:pointer}.chip-name{overflow-wrap:anywhere}.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}.chip:hover:not(.on,.off){background:var(--color-surface-hover)}.chip.on{background:var(--color-ink);color:var(--color-on-ink);border-color:var(--color-ink)}.chip.off{color:var(--color-text-muted);border-color:var(--color-line);background:transparent;cursor:default}.chip-tag,.chip-reason{font-size:.9em;opacity:.85;white-space:nowrap}.chip-reason{font-style:italic}#chooser-detail{margin:0;border-top:1px solid var(--color-line);padding-top:var(--space-1);font-size:var(--text-xs);line-height:1.5;color:var(--color-text)}#chooser-detail select{width:auto;max-width:100%;margin:0 0 0 var(--space-1);padding:2px var(--space-1);font-size:var(--text-xs);line-height:1.4}.blast-tick{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);color:var(--color-text);cursor:pointer}.blast-tick input{width:auto;margin:0}#area-cast{margin-top:var(--space-2)}
+#room #room-fold{display:block;margin:0 0 var(--space-2);padding:2px 0;text-decoration:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left;font-size:var(--text-sm);color:var(--color-text-label)}@media(max-width:1499px){#fight-sides{gap:var(--space-2);margin:6px 0}.chooser-group{grid-template-columns:3.75rem minmax(0,1fr)}.fight-side h4{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.fight-card{padding:6px var(--space-2)}#encounter .fight-card button{padding:6px 10px}.hp-now{font-size:1.15rem}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -2639,7 +2649,8 @@ function renderFight(encounter) {
     }
     if (foe.initiative.mode?.disadvantage.includes("surprised")) tag(make("span", "Surprised", "tag surprised"));
     const controls = make("div", undefined, "controls card-controls foe-controls");
-    card.append(cardHead(foe), ...hpNodes(foe), ...(tags.childNodes.length ? [tags] : []), state ? make("p", state, "card-state") : controls);
+    // A turned foe (#341) may still be attacked, which ends its turning.
+    card.append(cardHead(foe), ...hpNodes(foe), ...(tags.childNodes.length ? [tags] : []), ...(state ? [make("p", state, "card-state")] : []), ...(!state || state === "Turned" ? [controls] : []));
     return card;
   }));
 }
@@ -2925,25 +2936,14 @@ function renderActions() {
   const strikes = session.actions.filter((option) => option.cunningStrike);
   const effects = [...new Map(strikes.map(({ cunningStrike: effect }) => [effect.id, effect])).values()];
   if (!effects.some(({ id }) => id === cunningStrike)) cunningStrike = "";
-  // In a fight it heads the foes' cards (#525), whose attacks it goes with.
+  // In a fight it sits under the attack chooser (#526), and goes with the
+  // weapon attack chosen there.
   if (effects.length && !fighting) groups.feature.push(strikeChoice(effects));
   element("strike-control").replaceChildren(...(effects.length && fighting ? [strikeChoice(effects)] : []));
-  // The foes the character could attack now (#392).
-  const foes = new Set(session.actions.filter(({ action, cunningStrike: effect }) => FOE_WORDS[action] !== undefined && !effect).map(({ target }) => target.id));
+  // In a fight every way to attack a foe is a chip in the attack chooser
+  // (#526), and each foe's card carries the chosen one.
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
-  // Each foe's card (#525) carries one attack: the weapon attack the engine
-  // offers on it, else its first attack; the rest stay in the Attack row. A
-  // foe out of the fight, or turned, has no place for one.
-  const foeControls = new Map(fighting ? [...element("foe-cards").querySelectorAll(".foe-controls")].map((controls) => {
-    controls.replaceChildren();
-    return [controls.parentElement.dataset.combatant, controls];
-  }) : []);
-  const onCard = new Map();
-  session.actions.forEach((option, index) => {
-    if (option.cunningStrike || FOE_WORDS[option.action] === undefined || !foeControls.has(option.target.id)) return;
-    const known = onCard.get(option.target.id);
-    if (known === undefined || (option.action === "attack" && session.actions[known].action !== "attack")) onCard.set(option.target.id, index);
-  });
+  renderChooser(fighting ? attackChoices() : [], struck, effects);
   // The ways to heal on the character's card (#525), with what each
   // restores and the action it takes; not while a fall waits for Last
   // Stand, whose row has its potions.
@@ -2963,11 +2963,14 @@ function renderActions() {
   renderLongRest(session.actions.find(({ action }) => action === "long-rest"), fighting);
   // Spells (#337) go in one choice of spell and target, with Cast. A
   // scroll's or wand's (#346) go in a choice of their own in a fight's Items
-  // row (#392), and outside a fight on its "You carry" entry.
+  // row (#392), and outside a fight on its "You carry" entry. In a fight a
+  // cast at a foe is the attack chooser's (#526): the rows keep the casts
+  // on the character, its buffs and its healing at every slot.
   const casts = session.actions.filter(({ action, spell }) => action === "cast" && !spell.item);
   // While a hit waits, a reaction spell is one of its answers.
   const answering = session.actions.some(({ action }) => action === "take-hit");
-  if (casts.length) (fighting ? rows[answering ? "answer" : "cast"] : groups.feature).push(castPanel(casts));
+  const own = (option) => !fighting || !atFoe(option);
+  if (casts.some(own)) (fighting ? rows[answering ? "answer" : "cast"] : groups.feature).push(castPanel(casts.filter(own)));
   // A healing spell on the character (#525) is a button of its own on its
   // card, at the lowest slot it could spend now; Cast still offers it at
   // every slot.
@@ -2981,17 +2984,20 @@ function renderActions() {
     }
   }
   const itemCasts = session.actions.filter(({ action, spell }) => action === "cast" && spell.item);
-  if (fighting && itemCasts.length) rows.items.push(castPanel(itemCasts, "item"));
+  if (fighting && itemCasts.some(own)) rows.items.push(castPanel(itemCasts.filter(own), "item"));
   session.actions.forEach((option, index) => {
     if (option.action === "cast" && option.spell.item && !fighting) groups.carried.push(itemRead(option, index));
   });
-  // Divine Spark (#341): one choice of target and mode, with its button.
+  // Divine Spark (#341): one choice of target and mode, with its button; in
+  // a fight, where it is only ever at a foe, the attack chooser's (#526).
   const sparks = session.actions.filter(({ action }) => action === "divine-spark");
-  if (sparks.length) (fighting ? rows["channel-divinity"] : groups.feature).push(sparkPanel(sparks));
+  if (sparks.length && !fighting) groups.feature.push(sparkPanel(sparks));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
     // Trades are made in the shop (#515).
     if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast" || action === "divine-spark" || TRADES.includes(action)) return;
+    // In a fight the attacks are the chooser's (#526).
+    if (fighting && FOE_WORDS[action] !== undefined) return;
     // A weapon verb that can't work with what is held is left out (#392).
     // So is swapping a weapon for another of the same kind.
     if (fighting && GEAR.includes(action) && !option.available && HELD_REFUSALS.includes(option.reason)) return;
@@ -3023,21 +3029,14 @@ function renderActions() {
     const parley = action === "react" && option.approach;
     // A flight (#396) sits in the Flee row by the name of the room it leads to.
     const fleeing = fighting && action === "flee";
-    // A foe's card (#525) carries one attack, by its weapon, then its
-    // to-hit and damage as the sheet gives them (#504).
-    const carded = fighting && target !== undefined && onCard.get(target.id) === index;
-    const profile = action === "attack" ? gear.attack : action === "light-attack" ? gear.lightAttack : undefined;
     // A way to heal (#525) on the character's card, with what it restores.
     const heal = healOf(option);
-    const detail = carded && profile ? signed(profile.bonus) + " · " + damageText(profile.damage) : heal ? heal.amount + " · " + heal.cost : "";
-    // Against several foes each one's other attacks sit by its name (#392).
-    const byFoe = !carded && fighting && foes.size > 1 && FOE_WORDS[action] !== undefined;
-    const foeWords = byFoe || carded ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : "";
+    const detail = heal ? heal.amount + " · " + heal.cost : "";
     // A topic sits in its creature's row (#490), by the topic's name.
     const asking = action === "talk" && short ? topicAndCreature(target) : undefined;
     // Leave sits on the way-out room's heading (#520), named in full.
     const leaving = action === "leave";
-    const face = make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : byFoe || carded ? foeWords : leaving ? WAY_OUT : label);
+    const face = make("span", option.retry ? (short ? "Try again" : label) : asking ? asking.topic.name : examined ? "✓ Examined" : short ? (option.item ? "Use " + option.item.name : ACTIONS[action].short) : parley ? target.name : fleeing ? wayName(direction, target.name) : leaving ? WAY_OUT : label);
     if (detail) {
       const small = make("small", detail, "act-detail");
       small.id = "action-detail-" + index;
@@ -3046,10 +3045,10 @@ function renderActions() {
     button.append(face);
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
-    if (short || parley || byFoe || carded || fleeing) button.setAttribute("aria-label", label + (examined ? " (examined)" : ""));
+    if (short || parley || fleeing) button.setAttribute("aria-label", label + (examined ? " (examined)" : ""));
     if (leaving) button.setAttribute("aria-label", WAY_OUT + " the adventure");
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = carded ? "attack primary" : heal ? "heal secondary" : action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + (action === "move" ? " primary" : " secondary");
+    button.className = heal ? "heal secondary" : action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" || action === "drain-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + (action === "move" ? " primary" : " secondary");
     // "act" marks an action control, in the bar or on a carried item.
     button.classList.add("act");
     if (examined) button.classList.add("examined");
@@ -3059,10 +3058,8 @@ function renderActions() {
     if (option.feature) button.dataset.feature = option.feature.id;
     if (option.approach) button.dataset.approach = option.approach.id;
     if (option.retry) button.dataset.retry = "true";
-    // An attack the chosen Cunning Strike can't go with (#308).
-    const unstruck = cunningStrike && ATTACKS.includes(action) && option.available && !struck(action, target);
-    button.disabled = acting || !option.available || unstruck;
-    button.addEventListener("click", () => action === "leave" ? openLeave() : perform(ATTACKS.includes(action) && cunningStrike ? { ...option, cunningStrike } : option));
+    button.disabled = acting || !option.available;
+    button.addEventListener("click", () => action === "leave" ? openLeave() : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
@@ -3076,7 +3073,7 @@ function renderActions() {
     }
     // Waiting says why it is all the character can do.
     // A flight's reason is its row's, said once (#396).
-    const why = fleeing ? "" : !option.available ? option.reason : unstruck ? "Not with " + effects.find(({ id }) => id === cunningStrike).name : words === WAIT ? "You are paralysed, so you can only wait." : "";
+    const why = fleeing ? "" : !option.available ? option.reason : words === WAIT ? "You are paralysed, so you can only wait." : "";
     if (why) {
       const reason = make("span", why, "reason");
       reason.id = "action-reason-" + index;
@@ -3088,13 +3085,6 @@ function renderActions() {
       }
       wrap.append(reason);
     }
-    // A card's attack is named in full; its to-hit and damage describe it,
-    // unless the reason it is refused does.
-    if (carded) {
-      if (detail && !button.hasAttribute("aria-describedby")) button.setAttribute("aria-describedby", "action-detail-" + index);
-      foeControls.get(target.id).append(wrap);
-      return;
-    }
     if (heal) {
       wrap.dataset.heal = action;
       healWraps.push(wrap);
@@ -3104,17 +3094,6 @@ function renderActions() {
       wrap.dataset.target = target.id;
       if (GEAR.includes(action)) wrap.dataset.slot = action === "unequip" ? "equipped" : "stowed";
       groups.carried.push(wrap);
-      return;
-    }
-    if (byFoe) {
-      let foe = rows.attack.find((node) => node.dataset.foe === target.id);
-      if (!foe) {
-        foe = make("div", undefined, "foe-actions");
-        foe.dataset.foe = target.id;
-        foe.append(unspoken(make("span", target.name, "foe-name")), make("span", undefined, "foe-verbs"));
-        rows.attack.push(foe);
-      }
-      foe.lastChild.append(wrap);
       return;
     }
     // End turn says what it gives up (#392): what the engine would still
@@ -4060,11 +4039,373 @@ function areaTargets(area, state, prefix) {
   return group;
 }
 
-// A cast from the Items row (#392) is named by its scroll or wand.
-async function castSpell(spell, targetIds, control = "button.act[data-action=cast]", verb = "cast") {
+// A cast from the Items row (#392) is named by its scroll or wand. One at a
+// foe's card (#526) keeps focus on that card's button.
+async function castSpell(spell, targetIds, control = "button.act[data-action=cast]", verb = "cast", focusTarget = "") {
   // A scroll or wand (#346) names its item.
   await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}), ...(spell.curse ? { curse: spell.curse } : {}), ...(spell.item ? { itemId: spell.item.id } : {}) }, control, ACTIONS[verb].busy + " " + (verb === "cast-item" ? spell.item.name : spell.name) + "…");
-  keepFocus(verb, "");
+  keepFocus(verb, focusTarget);
+}
+
+// The attack chooser (#526): pick what on your side, then who on theirs.
+// The player's pick, a chip's key, is kept across turns while the page is
+// open (never saved); so are each chip's slot level and its damage type,
+// curse or Divine Spark's damage, by its key; and an area spell's ticked
+// foes, in the order ticked, with the chip they were ticked for.
+const chooser = { pick: "", slots: {}, variants: {}, targets: [], targetsOf: "" };
+// Its groups, in order: the weapon attacks, the attacks an ongoing spell
+// gives (Spiritual Weapon's, Vampiric Touch's again), cantrips, each spell
+// level with its slots left, the scrolls and wands, and Divine Spark.
+const CHOOSER_GROUPS = [["weapon", "Weapon"], ["ongoing", "Ongoing"], ["cantrips", "Cantrips"], ["level-1", "1st"], ["level-2", "2nd"], ["level-3", "3rd"], ["level-4", "4th"], ["level-5", "5th"], ["items", "Items"], ["channel", "Channel Divinity"]];
+const WEAPON_CHOICES = ["attack", "light-attack"];
+/** Whether a cast is at a foe: an area spell's, or one with a foe as its target. */
+const atFoe = (option) => Boolean(option.targets) || (option.target !== undefined && option.target.id !== session.encounter?.playerId);
+/** A cast's chip: its spell, and the scroll or wand it is cast from. */
+const castChoice = ({ spell }) => "cast:" + spell.id + (spell.item ? ":" + spell.item.id : "");
+/** What a chip varies by besides its slot: Chromatic Orb's damage type, Bestow Curse's curse, Divine Spark's damage. */
+const variantOf = (option) => (option.action === "divine-spark" ? option.mode : option.spell ? option.spell.damageType || option.spell.curse || "" : "");
+const slotOf = (option) => (option.spell && option.spell.slotLevel ? String(option.spell.slotLevel) : "");
+const usable = (options) => options.some(({ available }) => available);
+/** The value of values kept: the remembered one while it is usable, else the first usable, else the remembered one, else the first. */
+const kept = (values, remembered, works) => (values.includes(remembered) && works(remembered) ? remembered : values.find(works) ?? (values.includes(remembered) ? remembered : values[0]));
+
+/**
+ * Every way to attack a foe the engine offers this turn (#526), each a
+ * chip with its options, in the chooser's groups' order: the weapon's
+ * attack and the off-hand light attack, the attacks an ongoing spell
+ * gives, each spell cast at a foe by its level (a scroll's or wand's among
+ * the items), and Divine Spark. Cunning Strike's attacks are its choice's.
+ */
+function attackChoices() {
+  const choices = new Map();
+  for (const option of session.actions) {
+    const { action, spell } = option;
+    if (option.cunningStrike) continue;
+    let key = action;
+    let group;
+    if (WEAPON_CHOICES.includes(action)) group = "weapon";
+    else if (action === "spectral-attack" || action === "drain-attack") group = "ongoing";
+    else if (action === "divine-spark") group = "channel";
+    else if (action === "cast" && atFoe(option)) {
+      key = castChoice(option);
+      group = spell.item ? "items" : spell.level === 0 ? "cantrips" : "level-" + spell.level;
+    } else continue;
+    if (!choices.has(key)) choices.set(key, { key, group, options: [] });
+    choices.get(key).options.push(option);
+  }
+  const order = CHOOSER_GROUPS.map(([key]) => key);
+  return [...choices.values()].sort((one, other) => order.indexOf(one.group) - order.indexOf(other.group));
+}
+
+/** A chip's name: the weapon, the scroll or wand, or the spell or feature. */
+function choiceName({ options: [option] }) {
+  const { gear } = session.room;
+  if (option.action === "attack") return gear.attack.weapon;
+  if (option.action === "light-attack") return gear.lightAttack ? gear.lightAttack.weapon : FOE_WORDS["light-attack"];
+  if (option.action === "cast") return option.spell.item ? option.spell.item.name : option.spell.name;
+  return FOE_WORDS[option.action] ?? ACTIONS[option.action].label;
+}
+
+/**
+ * What an option does (#526): a weapon's to-hit and damage as the sheet
+ * gives them (#504), or the fight view's for a spell, Divine Spark or an
+ * ongoing spell's attack; "+7" or "DC 15", "2d10", and the sheet's words.
+ */
+function shownStats(option) {
+  const { gear } = session.room;
+  const profile = option.action === "attack" ? gear.attack : option.action === "light-attack" ? gear.lightAttack : undefined;
+  if (profile) return { hit: signed(profile.bonus), damage: damageText(profile.damage), text: attackText(profile) };
+  const { spell } = option;
+  const dealt = spell && spell.damageTypeUse === "dealt" ? spell.damageType : "";
+  const stats = (session.attackStats || []).find((entry) =>
+    entry.action === option.action &&
+    (!spell || (entry.spellId === spell.id && (entry.slotLevel || 0) === (spell.slotLevel || 0) && (entry.itemId || "") === (spell.item ? spell.item.id : "") && (entry.damageType || "") === dealt)) &&
+    (option.action !== "divine-spark" || entry.mode === option.mode));
+  return stats || { text: spell ? spellInfo(spell.id).summary : "" };
+}
+
+/** The chip chosen now, with its slot and variant, and its options at them. */
+function chosenAttack(choices) {
+  const picked = choices.find(({ key }) => key === chooser.pick);
+  const choice = picked && usable(picked.options) ? picked : choices.find(({ options }) => usable(options)) || picked || choices[0];
+  const at = (slot) => choice.options.filter((option) => slotOf(option) === slot);
+  const slots = [...new Set(choice.options.map(slotOf))];
+  const slot = kept(slots, chooser.slots[choice.key], (value) => usable(at(value)));
+  const variants = [...new Set(at(slot).map(variantOf))];
+  const variant = kept(variants, chooser.variants[choice.key], (value) => usable(at(slot).filter((option) => variantOf(option) === value)));
+  return { choice, slots, slot, variants, variant, options: at(slot).filter((option) => variantOf(option) === variant) };
+}
+
+/** The spell slots or Channel Divinity uses a group's pips show, if any. */
+function groupUses(group) {
+  if (group === "channel") return session.channelDivinity;
+  return group.startsWith("level-") && session.spellSlots ? session.spellSlots[Number(group.slice(6)) - 1] : undefined;
+}
+
+/** A chip (#526): a radio styled as one, greyed with the engine's reason while it would be refused. */
+function chooserChip(choice, chosen) {
+  const label = make("label", undefined, "chip");
+  label.dataset.choice = choice.key;
+  const input = make("input");
+  input.type = "radio";
+  input.name = "attack-choice";
+  input.value = choice.key;
+  input.checked = choice === chosen.choice;
+  const works = usable(choice.options);
+  input.disabled = acting || (!works && !input.checked);
+  input.setAttribute("aria-describedby", "chooser-group-" + choice.group);
+  input.addEventListener("change", () => {
+    chooser.pick = choice.key;
+    renderActions();
+    document.querySelector("#chooser-chips input[value=" + JSON.stringify(choice.key) + "]")?.focus();
+  });
+  label.append(input, make("span", choiceName(choice), "chip-name"));
+  // An area spell says so; the off-hand weapon's is the extra attack.
+  const [first] = choice.options;
+  const tag = first.action === "light-attack" ? "extra" : first.targets && shownStats(first).area ? "area" : "";
+  if (tag) label.append(make("span", tag, "chip-tag"));
+  if (!works) {
+    label.classList.add("off");
+    label.append(make("small", first.reason, "chip-reason"));
+  }
+  if (input.checked) label.classList.add("on");
+  return label;
+}
+
+/**
+ * The chosen chip's line (#526): its name, a levelled spell's slot level
+ * (a wand's charges), a damage type, curse or Divine Spark's damage to
+ * choose, then what it does in the sheet's words and whom it needs.
+ */
+function chooserDetail(chosen) {
+  const { choice, slots, slot, variants, variant, options } = chosen;
+  const [option] = options;
+  const { spell } = option;
+  const nodes = [make("strong", choiceName(choice))];
+  // A levelled spell names its slot even when it has only the one.
+  if (slots.length > 1 || (spell && spell.slotLevel)) {
+    const select = make("select");
+    select.id = "chooser-slot";
+    select.setAttribute("aria-label", spell.item ? "Charges" : "Slot level");
+    select.disabled = acting;
+    for (const value of slots) {
+      const at = choice.options.filter((each) => slotOf(each) === value);
+      const level = Number(value);
+      const spent = spell.item ? level - spell.level + 1 : 0;
+      const why = usable(at) ? "" : at[0].reason;
+      const entry = make("option", ORDINALS[level] + (spell.item ? " level, " + spent + (spent === 1 ? " charge" : " charges") : "-level slot") + (why ? " — " + why : ""));
+      entry.value = value;
+      entry.selected = value === slot;
+      entry.disabled = Boolean(why) && usable(choice.options);
+      select.append(entry);
+    }
+    select.addEventListener("change", () => {
+      chooser.slots[choice.key] = select.value;
+      renderActions();
+      element("chooser-slot")?.focus();
+    });
+    nodes.push(select);
+  }
+  if (variants.length > 1) {
+    const select = make("select");
+    select.id = "chooser-variant";
+    select.setAttribute("aria-label", option.action === "divine-spark" ? "Damage" : spell.curse ? "Curse" : "Damage type");
+    select.disabled = acting;
+    for (const value of variants) {
+      const each = choice.options.find((other) => slotOf(other) === slot && variantOf(other) === value);
+      const entry = make("option", each.spell && each.spell.curseName ? each.spell.curseName : option.action === "divine-spark" ? value + " damage" : value);
+      entry.value = value;
+      entry.selected = value === variant;
+      select.append(entry);
+    }
+    select.addEventListener("change", () => {
+      chooser.variants[choice.key] = select.value;
+      renderActions();
+      element("chooser-variant")?.focus();
+    });
+    nodes.push(select);
+  }
+  const stats = shownStats(option);
+  const most = option.targets ? option.spell.maxTargets : 1;
+  const whom = option.targets ? (stats.area ? "Catches up to " + most + ": tick who's in the blast." : "Up to " + most + " targets: tick them.") : "Choose an enemy.";
+  // A scroll's or wand's line names its spell.
+  const what = (spell && spell.item ? spell.name + ": " : "") + stats.text;
+  nodes.push(make("span", " · " + (what ? what + ". " : "") + whom, "chooser-text"));
+  return nodes;
+}
+
+/**
+ * The attack chooser (#526) under the character's card, and the chosen
+ * attack on each foe's card: one button with its to-hit and damage, or, for
+ * an area spell or Scorching Ray's rays, a tick box with one Cast button
+ * under the foes. With one way to attack, the chooser hides and each
+ * foe's button names it. struck says whether an attack takes the
+ * Cunning Strike chosen among effects.
+ */
+function renderChooser(choices, struck, effects) {
+  const box = element("attack-chooser");
+  const area = element("area-cast");
+  box.hidden = choices.length < 2;
+  area.replaceChildren();
+  const foeControls = [...element("foe-cards").querySelectorAll(".foe-controls")];
+  for (const controls of foeControls) controls.replaceChildren();
+  if (!choices.length) {
+    element("chooser-chips").replaceChildren();
+    element("chooser-detail").replaceChildren();
+    return;
+  }
+  const chosen = chosenAttack(choices);
+  // A hidden chooser holds no chips.
+  element("chooser-chips").replaceChildren(...(box.hidden ? [] : CHOOSER_GROUPS).filter(([key]) => choices.some(({ group }) => group === key)).map(([key, name]) => {
+    const row = make("div", undefined, "chooser-group");
+    row.dataset.group = key;
+    const label = make("span", undefined, "chooser-label");
+    label.id = "chooser-group-" + key;
+    label.append(name);
+    const uses = groupUses(key);
+    if (uses) label.append(unspoken(make("span", "●".repeat(uses.uses) + "○".repeat(Math.max(0, uses.max - uses.uses)), "chooser-pips")), spoken(", " + uses.uses + " of " + uses.max + " left"));
+    const chips = make("span", undefined, "chips");
+    chips.append(...choices.filter(({ group }) => group === key).map((choice) => chooserChip(choice, chosen)));
+    row.append(label, chips);
+    return row;
+  }));
+  element("chooser-detail").replaceChildren(...(box.hidden ? [] : chooserDetail(chosen)));
+  const [first] = chosen.options;
+  if (first.targets) {
+    areaControls(chosen, first, foeControls);
+    return;
+  }
+  for (const controls of foeControls) {
+    const option = chosen.options.find(({ target }) => target.id === controls.parentElement.dataset.combatant);
+    if (option) controls.append(foeAttack(option, struck, effects));
+  }
+}
+
+/**
+ * The chosen attack on one foe's card (#526): its name ("Attack with
+ * Mace", "Fire Bolt"), then its to-hit and damage; disabled with the
+ * engine's reason for this foe, or Cunning Strike's.
+ */
+function foeAttack(option, struck, effects) {
+  const { action, target, spell } = option;
+  const verb = action === "cast" && spell.item ? "cast-item" : action;
+  const stats = shownStats(option);
+  // Extra Attack's second attack (#287) says so.
+  const second = action === "attack" && session.turn && session.turn.attacks > 0;
+  const name = action === "cast" ? spell.name : WEAPON_CHOICES.includes(action) ? (second ? "Second attack" : FOE_WORDS[action]) + withWeapon(action) : choiceName({ options: [option] });
+  const slot = spell && spell.slotLevel && !spell.item ? " with a " + ORDINALS[spell.slotLevel] + "-level slot" : "";
+  const typed = spell && spell.damageType ? " (" + spell.damageType + ")" : spell && spell.curseName ? " (" + spell.curseName + ")" : "";
+  const full = action === "cast" ? (spell.item ? "Use " + spell.item.name + " on " + target.name + typed : "Cast " + spell.name + " at " + target.name + slot + typed) : action === "divine-spark" ? ACTIONS[action].label + " on " + target.name + ": " + option.mode + " damage" : (second ? "Second attack on " : ACTIONS[action].label) + target.name + withWeapon(action);
+  const button = make("button");
+  const face = make("span", name);
+  const detail = [stats.hit, stats.damage].filter(Boolean).join(" · ");
+  const id = "foe-attack-" + target.id;
+  if (detail) {
+    const small = make("small", detail, "act-detail");
+    small.id = id + "-detail";
+    face.append(" ", small);
+  }
+  button.append(face);
+  button.type = "button";
+  // An attack is .attack, as the fight's attacks have been; a spell or
+  // Divine Spark is .cast.
+  button.className = (FOE_WORDS[action] !== undefined ? "attack" : "cast") + " primary act";
+  button.dataset.action = verb;
+  button.dataset.target = target.id;
+  if (spell) {
+    button.dataset.spell = spell.id;
+    if (spell.slotLevel) button.dataset.slot = String(spell.slotLevel);
+    if (spell.item) button.dataset.item = spell.item.id;
+  }
+  button.dataset.busyLabel = ACTIONS[verb].busyLabel;
+  button.setAttribute("aria-label", full);
+  // An attack the chosen Cunning Strike can't go with (#308).
+  const strike = WEAPON_CHOICES.includes(action) && cunningStrike ? effects.find(({ id: effect }) => effect === cunningStrike) : undefined;
+  const unstruck = Boolean(strike) && option.available && !struck(action, target);
+  button.disabled = acting || !option.available || unstruck;
+  const control = "#foe-cards li[data-combatant=" + JSON.stringify(target.id) + "] button.act";
+  button.addEventListener("click", async () => {
+    if (action === "cast") await castSpell(spell, [target.id], control, verb, target.id);
+    else if (action === "divine-spark") {
+      await act("/api/5e/session/divine-spark", { targetId: target.id, mode: option.mode }, control, ACTIONS[action].busy + " on " + target.name + "…");
+      keepFocus(action, target.id);
+    } else perform(strike ? { ...option, cunningStrike } : option);
+  });
+  const wrap = make("span", undefined, "action");
+  wrap.append(button);
+  const why = !option.available ? option.reason : unstruck ? "Not with " + strike.name : "";
+  if (why) {
+    const reason = make("span", why, "reason");
+    reason.id = id + "-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  } else if (detail) button.setAttribute("aria-describedby", id + "-detail");
+  return wrap;
+}
+
+/**
+ * An area spell or Scorching Ray's rays chosen (#526, #338): a tick box on
+ * each foe's card it may catch, the first ones ticked, up to its most (the
+ * rest disabled once that many are), and one Cast button under the foes
+ * naming how many, disabled with the engine's reason or until one is
+ * ticked. The rays are split among the ticked foes as the engine splits
+ * them, the first ticked taking any more.
+ */
+function areaControls(chosen, option, foeControls) {
+  const { spell } = option;
+  const most = spell.maxTargets;
+  const ids = option.targets.map(({ id }) => id);
+  const area = shownStats(option).area;
+  // A newly chosen spell starts with the first foes ticked.
+  if (chooser.targetsOf !== chosen.choice.key) {
+    chooser.targets = ids.slice(0, most);
+    chooser.targetsOf = chosen.choice.key;
+  }
+  chooser.targets = chooser.targets.filter((id) => ids.includes(id)).slice(0, most);
+  for (const controls of foeControls) {
+    const id = controls.parentElement.dataset.combatant;
+    if (!ids.includes(id)) continue;
+    const label = make("label", undefined, "blast-tick");
+    const box = make("input");
+    box.type = "checkbox";
+    box.id = "blast-" + id;
+    box.value = id;
+    box.checked = chooser.targets.includes(id);
+    box.disabled = acting || (!box.checked && chooser.targets.length >= most);
+    box.addEventListener("change", () => {
+      chooser.targets = box.checked ? [...chooser.targets, id] : chooser.targets.filter((other) => other !== id);
+      renderActions();
+      element("blast-" + id)?.focus();
+    });
+    // Each box is named by its foe for screen readers.
+    box.setAttribute("aria-label", option.targets.find((target) => target.id === id).name + (area ? " in the blast" : " targeted"));
+    label.append(box, area ? "In the blast" : "Targeted");
+    controls.append(label);
+  }
+  const verb = spell.item ? "cast-item" : "cast";
+  const button = make("button");
+  const count = chooser.targets.length;
+  button.append(make("span", "Cast " + spell.name + " on " + count));
+  button.type = "button";
+  button.className = "cast primary act";
+  button.dataset.action = verb;
+  button.dataset.spell = spell.id;
+  if (spell.slotLevel) button.dataset.slot = String(spell.slotLevel);
+  if (spell.item) button.dataset.item = spell.item.id;
+  button.dataset.busyLabel = ACTIONS[verb].busyLabel;
+  if (spell.item) button.setAttribute("aria-label", "Use " + spell.item.name + " on " + count);
+  const why = !option.available ? option.reason : count === 0 ? "Choose a target" : "";
+  button.disabled = acting || Boolean(why);
+  button.addEventListener("click", () => castSpell(spell, chooser.targets, "#area-cast button.act", verb));
+  const wrap = make("span", undefined, "action");
+  wrap.append(button);
+  if (why) {
+    const reason = make("span", why, "reason");
+    reason.id = "area-cast-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  element("area-cast").append(wrap);
 }
 
 /**

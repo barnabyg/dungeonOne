@@ -1,5 +1,6 @@
 // #392, browser → API: the fight's actions in labelled rows. A level-2
-// Cleric facing a zombie sees Cast a spell, Channel Divinity and Weapons, in
+// Cleric facing a zombie sees Cast a spell (its spells on itself; those at
+// a foe are the attack chooser's, #526), Channel Divinity and Weapons, in
 // that order and in tab order, under the fight panel's cards and footer
 // (#525), whose zombie card's attack names the mace and whose End turn says
 // what it leaves unused; Channel Divinity's uses show once; and holding the
@@ -24,7 +25,11 @@ import { currentCombatant } from "../dist/encounter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { settled, startAdventure } from "./fixtures/browser-journey.mjs";
+import {
+  chooseSpell,
+  settled,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { rogueAt5, veteran } from "./fixtures/playthroughs.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
@@ -218,27 +223,28 @@ test(
         { row: "weapons", label: "Weapons", uses: "" },
       ]);
       assert.equal(await cardAttack(page, "zombie"), "Attack Zombie with Mace");
+      // Divine Spark, at a foe, is the attack chooser's (#526).
       assert.deepEqual(await buttons(page, "channel-divinity"), [
-        "Divine Spark",
         "Turn Undead",
       ]);
+      assert.equal(
+        await page
+          .locator('#chooser-chips [data-group="channel"] .chip-name')
+          .innerText(),
+        "Divine Spark",
+      );
       // The pool's uses show once, on its row.
       const bar = await page.locator("#action-bar").innerText();
       assert.equal(bar.match(/of 2 left/gu)?.length, 1, bar);
-      // A dropdown follows words that name it.
-      assert.match(await readRow(page, "cast"), /^\S.* on Zombie Cast$/u);
+      // A dropdown follows words that name it; the spells cast at the
+      // zombie are the attack chooser's (#526), so the row's are Mira's own.
+      assert.match(await readRow(page, "cast"), /^\S.* on Yourself Cast$/u);
       assert.equal(
         await readRow(page, "channel-divinity"),
-        "Divine Spark on Zombie: radiant damage Turn Undead every undead foe",
+        "Turn Undead every undead foe",
       );
-      // Each Channel Divinity action has a line of its own, so Turn Undead
-      // isn't read as part of Divine Spark's choice; its words say whom it
-      // reaches, for a screen reader too.
-      const spark = await page
-        .locator('button[data-action="divine-spark"]')
-        .boundingBox();
+      // Turn Undead's words say whom it reaches, for a screen reader too.
       const turn = page.locator('button[data-action="turn-undead"]');
-      assert.ok((await turn.boundingBox()).y > spark.y + spark.height);
       assert.equal(
         await turn.evaluate(
           (button) =>
@@ -333,18 +339,19 @@ test(
 );
 
 test(
-  "a Rogue's Hide and Steady Aim share a row, and Cunning Strike heads the foes' cards",
+  "a Rogue's Hide and Steady Aim share a row, and Cunning Strike sits under the attack chooser",
   { timeout: 120000 },
   () =>
     fightWith(rogueAt5(), yard, async (page) => {
       const shown = (await rows(page)).map(({ row, label }) => [row, label]);
-      // The dagger's extra attack stays in the Attack row (#525).
+      // The dagger's extra attack is the attack chooser's (#526).
       assert.deepEqual(
         shown.filter(([row]) => row !== "weapons"),
-        [
-          ["attack", "Attack"],
-          ["rogue", "Rogue features"],
-        ],
+        [["rogue", "Rogue features"]],
+      );
+      assert.deepEqual(
+        await page.locator("#chooser-chips .chip-name").allTextContents(),
+        ["Shortsword", "Dagger"],
       );
       // Cunning Action's Disengage (#396) joins them, refused here: the
       // yard has no way out to flee by.
@@ -371,12 +378,14 @@ test(
         ["rogue"],
       );
       // Steady Aim's advantage makes Sneak Attack, and so Cunning Strike,
-      // possible: its choice heads the foes' cards (#525), named by its
-      // words.
+      // possible: its choice sits under the attack chooser (#526), named by
+      // its words.
       await settled(page, () =>
         page.locator('#action-bar button[data-action="steady-aim"]').click(),
       );
-      const strike = page.locator("#strike-control #cunning-strike");
+      const strike = page.locator(
+        "#fight-you #attack-chooser + #strike-control #cunning-strike",
+      );
       await strike.waitFor();
       assert.equal(
         await page
@@ -437,17 +446,15 @@ test(
       MIRA,
       crypt,
       async (page) => {
-        const spell = page.locator("#cast-spell");
-        assert.equal(
-          await spell.locator("option:checked").textContent(),
-          "Sacred Flame",
-        );
+        // Sacred Flame from the attack chooser (#526).
+        await chooseSpell(page, "sacred-flame");
         await settled(page, () =>
-          page.locator('#action-bar button[data-action="cast"]').click(),
+          page.locator('#foe-cards button[data-action="cast"]').click(),
         );
         // Sacred Flame took the action: Healing Word, a bonus action, is
-        // what is left, so the choice moves to it and the others say why
-        // they can't be cast now.
+        // what is left, so the Cast choice moves to it, and the chooser's
+        // chips say why they can't be used now.
+        const spell = page.locator("#cast-spell");
         assert.match(
           await spell.locator("option:checked").textContent(),
           /^Healing Word /u,
@@ -458,9 +465,14 @@ test(
             .isEnabled(),
           true,
         );
-        const sacred = spell.locator("option", { hasText: "Sacred Flame" });
-        assert.equal(await sacred.isDisabled(), true);
-        assert.equal(await sacred.textContent(), "Sacred Flame — Action used");
+        const sacred = page.locator(
+          '#chooser-chips label[data-choice="cast:sacred-flame"]',
+        );
+        assert.equal(await sacred.getAttribute("class"), "chip off on");
+        assert.equal(
+          await sacred.locator(".chip-reason").textContent(),
+          "Action used",
+        );
         assert.equal(
           await page.locator(".end-note").textContent(),
           "Left unused: Cast a spell: Healing Word",

@@ -21,6 +21,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import {
+  chooseSpell,
   clickAction,
   fight,
   settled,
@@ -296,18 +297,21 @@ test(
       );
 
       await clickAction(page, "move", "rat-cellar");
-      // The fight bar offers the prepared spells and cantrips; never
-      // Thaumaturgy.
-      const spell = page.locator("#cast-spell");
-      await spell.waitFor();
-      const offered = await spell.locator("option").allTextContents();
-      assert.ok(offered.includes("Guiding Bolt (1st-level slot)"), offered);
+      // The attack chooser (#526) offers the spells cast at the rat, the
+      // Cast choice those on Mira; never Thaumaturgy.
+      const chips = page.locator("#chooser-chips .chip-name");
+      await chips.first().waitFor();
+      const offered = [
+        ...(await chips.allTextContents()),
+        ...(await page.locator("#cast-spell option").allTextContents()),
+      ];
+      assert.ok(offered.includes("Guiding Bolt"), offered);
       assert.ok(offered.includes("Sacred Flame"), offered);
       assert.ok(offered.includes("Resistance against piercing"), offered);
       assert.ok(!offered.some((name) => /Thaumaturgy/u.test(name)), offered);
-      await spell.selectOption({ label: "Guiding Bolt (1st-level slot)" });
+      await chooseSpell(page, "guiding-bolt");
       await settled(page, () =>
-        page.locator("button.act[data-action=cast]").click(),
+        page.locator("#foe-cards button.act[data-action=cast]").click(),
       );
       assert.match(
         await text(page.locator("#log")),

@@ -11,6 +11,7 @@ import { defaultPlacement } from "../dist/character-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { WIZARD } from "../dist/wizard-5e.js";
 import {
+  chooseSpell,
   clickAction,
   settled,
   startAdventure,
@@ -94,8 +95,14 @@ test(
         "spell-buff",
       ]);
       await clickAction(page, "move", "rat-cellar");
-      await page.locator("#cast-spell").waitFor();
-      const bolt = await castNamed(page, "Fire Bolt");
+      // Fire Bolt at the rat, from the attack chooser (#526).
+      await page.locator("#foe-cards button.act").first().waitFor();
+      const before = (await requested(page)).length;
+      await chooseSpell(page, "fire-bolt");
+      await settled(page, () =>
+        page.locator("#foe-cards button.act[data-action=cast]").click(),
+      );
+      const bolt = (await requested(page)).slice(before);
       assert.equal(bolt[0], "spell-fire-cantrip");
       assert.ok(
         ["hit-fire", "critical", "miss"].includes(bolt[1]),

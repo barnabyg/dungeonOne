@@ -8,6 +8,7 @@ import {
   defaultPlacement,
   prepareSpells,
   settleCharacter,
+  validateCharacter,
   withOwedChoices,
 } from "../../dist/character-5e.js";
 import { WIZARD } from "../../dist/wizard-5e.js";
@@ -84,3 +85,37 @@ export const vela = (written) => {
   const sheet = addToSpellbook(earn(velaAt4(), 3800, "tomb"), written);
   return prepareSpells(sheet, [...KEPT, ...written]);
 };
+
+export const ARMED_WAND = "old-tomb/wand";
+export const ARMED_SCROLL = "old-tomb/scroll";
+
+/**
+ * Vela for the attack chooser (#526): level 5 (spell attack +7, DC 15),
+ * with Fireball and Lightning Bolt written, eight attack spells and Mage
+ * Armor prepared but not Shield, so no hit waits for a reaction; with a
+ * Wand of Magic Missiles and a scroll of Shatter.
+ */
+export const armedVela = () =>
+  validateCharacter({
+    ...prepareSpells(
+      addToSpellbook(earn(velaAt4(), 3800, "tomb"), [
+        "fireball",
+        "lightning-bolt",
+      ]),
+      [
+        "magic-missile",
+        "ice-knife",
+        "chromatic-orb",
+        "scorching-ray",
+        "shatter",
+        "mind-spike",
+        "fireball",
+        "lightning-bolt",
+        "mage-armor",
+      ],
+    ),
+    magicItems: [
+      { id: ARMED_WAND, wand: "wand-of-magic-missiles", charges: 7 },
+      { id: ARMED_SCROLL, scroll: "shatter" },
+    ],
+  });

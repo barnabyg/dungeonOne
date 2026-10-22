@@ -9,13 +9,14 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FifthSession, sessionSeed } from "../dist/session-5e.js";
 import { TEST_CASTER_CLASS } from "../dist/test-caster-class-5e.js";
 import { goblinTrio } from "./fixtures/modules.mjs";
-import { settled, text } from "./fixtures/browser-journey.mjs";
+import { chooseSpell, settled, text } from "./fixtures/browser-journey.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 
 // #338: choosing several targets for an area spell in the browser, with the
 // test-only caster, Sage, from a fixture library: Burning Hands catches at
-// most two of the goblin trio. Through the API to the saved session.
+// most two of the goblin trio, ticked on their cards (#526). Through the API
+// to the saved session.
 
 /** A library holding Sage, preparing Burning Hands; Sage's sheet. */
 async function sageLibrary(path) {
@@ -81,14 +82,14 @@ test(
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await page.locator("#log li").first().waitFor();
-      await page
-        .locator("#cast-spell")
-        .selectOption({ label: "Burning Hands (1st-level slot)" });
-      const boxes = page.locator("#cast-targets input[type=checkbox]");
+      // Burning Hands in the attack chooser (#526): a box on each goblin's
+      // card, and one Cast button under them.
+      await chooseSpell(page, "burning-hands");
+      const boxes = page.locator("#foe-cards .blast-tick input[type=checkbox]");
       assert.equal(await boxes.count(), 3);
-      assert.equal(
-        await page.locator("#cast-targets").getAttribute("aria-label"),
-        "Targets, up to 2",
+      assert.match(
+        await page.locator("#chooser-detail").innerText(),
+        /Catches up to 2: tick who's in the blast\.$/u,
       );
       // The first two are ticked; the third can't be until one is not.
       const ticked = async () =>
@@ -101,26 +102,25 @@ test(
       const ids = await boxes.evaluateAll((inputs) =>
         inputs.map(({ value }) => value),
       );
-      await boxes.nth(0).uncheck();
+      const cast = page.locator("#area-cast button.act[data-action=cast]");
+      assert.equal(await cast.innerText(), "Cast Burning Hands on 2");
+      // Each tick redraws the boxes, so each is clicked.
+      await boxes.nth(0).click();
       assert.deepEqual(await ticked(), ["off", "on", "off"]);
-      await boxes.nth(2).check();
+      assert.equal(await cast.innerText(), "Cast Burning Hands on 1");
+      await boxes.nth(2).click();
       assert.deepEqual(await ticked(), ["off, disabled", "on", "on"]);
       // With none ticked, Cast waits for a target.
-      await boxes.nth(1).uncheck();
-      await boxes.nth(2).uncheck();
+      await boxes.nth(1).click();
+      await boxes.nth(2).click();
+      assert.equal(await cast.isDisabled(), true);
       assert.equal(
-        await page.locator("button.act[data-action=cast]").isDisabled(),
-        true,
-      );
-      assert.equal(
-        await page.locator("#cast-reason").textContent(),
+        await page.locator("#area-cast-reason").textContent(),
         "Choose a target",
       );
-      await boxes.nth(1).check();
-      await boxes.nth(2).check();
-      await settled(page, () =>
-        page.locator("button.act[data-action=cast]").click(),
-      );
+      await boxes.nth(1).click();
+      await boxes.nth(2).click();
+      await settled(page, () => cast.click());
       const card = await text(
         page.locator("#log li").filter({ hasText: "You cast Burning Hands" }),
       );
@@ -129,10 +129,10 @@ test(
         /You cast Burning Hands at Goblin [^\n]+ and Goblin [^\n]+ with a 1st-level spell slot \(1 of 2 left\)\.\nBurning Hands: damage \d+ \+ \d+ \+ \d+ = \d+ fire, and each of its 2 targets saves against it\./u,
       );
       const file = await sessionFile(directory);
-      const cast = file.transitions.find(
+      const made = file.transitions.find(
         ({ action }) => action.type === "cast",
       );
-      assert.deepEqual(cast.action.targetIds, [ids[1], ids[2]]);
+      assert.deepEqual(made.action.targetIds, [ids[1], ids[2]]);
     } finally {
       await browser.close();
       await server.close();

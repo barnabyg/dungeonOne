@@ -169,14 +169,21 @@ test(
         const extra = page.locator(
           '#encounter button[data-action="light-attack"]',
         );
+        // The extra attack is the attack chooser's greyed chip (#526) until
+        // the attack is made; then the chooser moves to it.
+        const chip = page.locator(
+          '#chooser-chips label[data-choice="light-attack"]',
+        );
         if (profile.lightAttack === undefined) {
-          assert.equal(await extra.count(), 0, kit);
+          assert.equal(await chip.count(), 0, kit);
+          assert.equal(await page.locator("#attack-chooser").isHidden(), true);
         } else {
-          assert.equal(await extra.isDisabled(), true);
-          assert.match(
-            await page.locator("#action-bar").innerText(),
-            /Extra attack on Goblin Warrior with Dagger\s+Attack first/,
-          );
+          assert.equal(await chip.getAttribute("class"), "chip off");
+          assert.deepEqual((await chip.innerText()).split("\n"), [
+            "Dagger",
+            "extra",
+            "Attack first",
+          ]);
         }
         await attack.click();
         await page
