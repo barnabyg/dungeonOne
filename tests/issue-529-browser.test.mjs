@@ -142,6 +142,9 @@ test(
       for (const viewport of WIDTHS) {
         await page.setViewportSize(viewport);
         const label = `${viewport.width}×${viewport.height}`;
+        // Resized narrower, its entries re-wrapped, the last turn rests
+        // again: the window resizing is not the reader scrolling away.
+        assertRests(await turnView(page), `${label} resized`);
         // Moving: the arrival, its first line the room's name, rests with
         // focus on it.
         here = here === stair ? alcove : stair;

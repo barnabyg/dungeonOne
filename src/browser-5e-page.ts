@@ -2028,8 +2028,11 @@ function focusTurnEntry() {
 const TURN_MARGIN = 8;
 let followHistory = true;
 let turnStart;
-// How far below the top of the view the latest turn rests.
+// How far below the top of the view the latest turn rests, and the log's
+// size it was worked out for.
 let turnRest = 0;
+let restSize = "";
+const logSize = (log) => log.clientWidth + "x" + log.clientHeight;
 
 /** Where an entry starts in the log's scrolled content. */
 const entryTop = (log, entry) => log.scrollTop + entry.getBoundingClientRect().top - log.getBoundingClientRect().top;
@@ -2050,6 +2053,7 @@ function followTurn() {
   const target = Math.max(0, Math.round(top - turnRest));
   const spare = log.scrollHeight - log.clientHeight - target;
   log.style.setProperty("--turn-room", Math.max(0, Math.ceil(log.clientHeight - spare)) + "px");
+  restSize = logSize(log);
   if (followHistory) log.scrollTop = target;
 }
 
@@ -5568,8 +5572,10 @@ document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();
   element("content").focus();
 });
+// A resized log re-wraps its entries and may scroll before the observer
+// below places the turn again: that scroll is not the reader's.
 element("log").addEventListener("scroll", () => {
-  followHistory = onLatestTurn();
+  if (logSize(element("log")) === restSize) followHistory = onLatestTurn();
 });
 // When the column around the log changes, as the window is resized, the log
 // changes size: a following reader stays on the latest turn (#221, #529).
