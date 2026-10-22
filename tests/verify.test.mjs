@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   GATES,
+  gatesFor,
   launchBrowserProcess,
   runVerification,
 } from "../scripts/verify.mjs";
@@ -20,6 +21,23 @@ test("verification gates have the required order", () => {
       "build/packaging validation",
     ],
   );
+});
+
+test("verification passes its arguments on to the automated tests only", () => {
+  assert.equal(gatesFor([]), GATES);
+  const gates = gatesFor(["--ci-part", "checks"]);
+  assert.deepEqual(
+    gates.map((gate) => gate.name),
+    GATES.map((gate) => gate.name),
+  );
+  for (const [index, gate] of gates.entries()) {
+    assert.deepEqual(
+      gate.args,
+      gate.name === "automated tests"
+        ? [...GATES[index].args, "--", "--ci-part", "checks"]
+        : GATES[index].args,
+    );
+  }
 });
 
 test("verification runs gates in order and preserves a gate failure", async () => {

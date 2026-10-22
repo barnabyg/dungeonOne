@@ -81,6 +81,29 @@ function runJob({ adventureId, classId }, timeoutMs, active) {
   });
 }
 
+/** How much gating a module takes: its fights at each of its levels. */
+const weight = ({ encounters, recommendedLevels: { min, max } }) =>
+  encounters.length * (max - min + 1);
+
+/**
+ * The ids of `adventures` (shipped modules) dealt into `count` shares of
+ * about equal gating, heaviest first onto the lightest share, for CI to gate
+ * each share on its own runner (scripts/run-tests.mjs --ci-part).
+ */
+export function gateShares(adventures, count) {
+  const shares = Array.from({ length: count }, () => ({ ids: [], load: 0 }));
+  for (const adventure of [...adventures].sort(
+    (a, b) => weight(b) - weight(a) || a.id.localeCompare(b.id),
+  )) {
+    const lightest = shares.reduce((least, share) =>
+      share.load < least.load ? share : least,
+    );
+    lightest.ids.push(adventure.id);
+    lightest.load += weight(adventure);
+  }
+  return shares.map(({ ids }) => ids.sort());
+}
+
 /**
  * Each of `adventures`' (shipped modules) gate results, by id, as
  * `gateModule` gives them with the default options. The modules with the
@@ -91,8 +114,6 @@ export async function gateInWorkers(
   adventures,
   { workers = GATE_WORKERS, timeoutMs = JOB_TIMEOUT_MS } = {},
 ) {
-  const weight = ({ encounters, recommendedLevels: { min, max } }) =>
-    encounters.length * (max - min + 1);
   const jobs = [...adventures]
     .sort((a, b) => weight(b) - weight(a))
     .flatMap(({ id }) =>
