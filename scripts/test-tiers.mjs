@@ -82,7 +82,8 @@ export function selectForChanges(paths) {
       reasons.push(`${path}: the server and browser tests`);
     } else if (
       path === "scripts/run-tests.mjs" ||
-      path === "scripts/test-tiers.mjs"
+      path === "scripts/test-tiers.mjs" ||
+      path === ".github/workflows/verify.yml"
     ) {
       files.add("tests/test-tiers.test.mjs");
       reasons.push(`${path}: its tests`);

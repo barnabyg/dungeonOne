@@ -1,11 +1,18 @@
 // The test tiers (scripts/test-tiers.mjs) and the runner's choice of files
 // (scripts/run-tests.mjs): which tier each test file falls in, what a
-// change calls for, and what each command line runs.
+// change calls for, what each command line runs, and how CI splits the files.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { parseArguments, plan, testFiles } from "../scripts/run-tests.mjs";
+import {
+  CI_PARTS,
+  parseArguments,
+  plan,
+  testFiles,
+} from "../scripts/run-tests.mjs";
 import { selectForChanges, tiersOf } from "../scripts/test-tiers.mjs";
 import { CONTENT_TESTS } from "./fixtures/content-tests.mjs";
+import { gateShares } from "./fixtures/gate-workers.mjs";
 
 const NONE = new Map();
 
@@ -84,8 +91,12 @@ test("a change picks the tiers it can break, and anything else runs every test",
   assert.deepEqual(selectForChanges(["scripts/test-tiers.mjs"]).files, [
     "tests/test-tiers.test.mjs",
   ]);
-  const docs = selectForChanges([".github/workflows/verify.yml", "AGENTS.md"]);
+  const docs = selectForChanges([".github/README.md", "AGENTS.md"]);
   assert.deepEqual([docs.full, docs.tiers, docs.files], [false, [], []]);
+  // The workflow's CI parts are checked against the runner's.
+  assert.deepEqual(selectForChanges([".github/workflows/verify.yml"]).files, [
+    "tests/test-tiers.test.mjs",
+  ]);
   for (const path of [
     "src/runtime-5e.ts",
     "package.json",
@@ -108,6 +119,7 @@ test("the command line names tiers, modules, files or a base to compare with", (
     modules: [],
     files: [],
     changed: undefined,
+    ciPart: undefined,
     nodeArgs: [],
   });
   assert.deepEqual(
@@ -117,6 +129,7 @@ test("the command line names tiers, modules, files or a base to compare with", (
       modules: [],
       files: ["tests/random.test.mjs"],
       changed: undefined,
+      ciPart: undefined,
       nodeArgs: [],
     },
   );
@@ -133,11 +146,13 @@ test("the command line names tiers, modules, files or a base to compare with", (
       modules: [],
       files: ["tests/random.test.mjs"],
       changed: undefined,
+      ciPart: undefined,
       nodeArgs: ["--test-name-pattern", "seeded", "--test-name-pattern=dice"],
     },
   );
   // Modules alone ask for their content tests.
   assert.deepEqual(parseArguments(["--modules", "a,b"]).tiers, ["content"]);
+  assert.equal(parseArguments(["--ci-part", "gate-2"]).ciPart, "gate-2");
   assert.equal(parseArguments(["--changed"]).changed, "origin/main");
   assert.equal(parseArguments(["--changed", "main"]).changed, "main");
   for (const args of [
@@ -146,6 +161,11 @@ test("the command line names tiers, modules, files or a base to compare with", (
     ["--test-name-pattern"],
     ["--changed", "--tier", "quick"],
     ["--changed", "main", "tests/random.test.mjs"],
+    ["--ci-part"],
+    ["--ci-part", "gate-3"],
+    ["--ci-part", "checks", "--tier", "quick"],
+    ["--ci-part", "checks", "--changed"],
+    ["tests/random.test.mjs", "--ci-part", "browser-1"],
     ["random.test.mjs"],
     ["--watch"],
   ]) {
@@ -227,5 +247,104 @@ test("the runner runs every file by default, or the tiers, files and modules ask
         "No test file covers these changes.",
       ],
     },
+  );
+});
+
+test("a CI part runs the files that start no browser, every other browser file, or a gate share", () => {
+  const files = [
+    { path: "tests/a.test.mjs", tiers: ["quick"] },
+    { path: "tests/b-browser.test.mjs", tiers: ["browser"] },
+    { path: "tests/c-browser.test.mjs", tiers: ["browser", "content"] },
+    { path: "tests/d.test.mjs", tiers: ["content"] },
+    { path: "tests/e-browser.test.mjs", tiers: ["browser"] },
+    { path: "tests/shipped-modules.test.mjs", tiers: ["content"] },
+  ];
+  const shares = [["x", "z"], ["y"]];
+  const part = (name) =>
+    plan(parseArguments(["--ci-part", name]), files, undefined, shares);
+  assert.deepEqual(part("checks"), {
+    files: ["tests/a.test.mjs", "tests/d.test.mjs"],
+    modules: [],
+    lines: ["Running CI part checks: 2 files."],
+  });
+  assert.deepEqual(part("browser-1").files, [
+    "tests/b-browser.test.mjs",
+    "tests/e-browser.test.mjs",
+  ]);
+  assert.deepEqual(part("browser-2").files, ["tests/c-browser.test.mjs"]);
+  assert.deepEqual(part("gate-2"), {
+    files: ["tests/shipped-modules.test.mjs"],
+    modules: ["y"],
+    lines: ["Running CI part gate-2, gating y: 1 files."],
+  });
+  // A gate part with no share would gate every module, so it fails.
+  assert.throws(
+    () =>
+      plan(parseArguments(["--ci-part", "gate-2"]), files, undefined, [["x"]]),
+    /^Error: CI part gate-2 has no shipped modules to gate\.$/u,
+  );
+});
+
+test("CI's parts run every test file once, but the gate's, which gates a share of the modules in each", () => {
+  const files = testFiles();
+  const shares = [["a"], ["b"]];
+  const runs = new Map();
+  for (const name of CI_PARTS) {
+    for (const path of plan(
+      parseArguments(["--ci-part", name]),
+      files,
+      undefined,
+      shares,
+    ).files) {
+      runs.set(path, [...(runs.get(path) ?? []), name]);
+    }
+  }
+  assert.deepEqual(
+    [...runs.keys()].sort(),
+    files.map(({ path }) => path),
+  );
+  for (const [path, parts] of runs) {
+    assert.deepEqual(
+      parts,
+      path === "tests/shipped-modules.test.mjs"
+        ? ["gate-1", "gate-2"]
+        : [parts[0]],
+      path,
+    );
+  }
+});
+
+test("the gate's shares split the modules by gating, heaviest first onto the lightest share", () => {
+  const module = (id, fights, min, max) => ({
+    id,
+    encounters: Array.from({ length: fights }),
+    recommendedLevels: { min, max },
+  });
+  // Weights 22, 20, 7 and 6, as the shipped modules were.
+  const modules = [
+    module("delve", 7, 2, 2),
+    module("cider", 6, 1, 1),
+    module("weir", 11, 3, 4),
+    module("lodge", 10, 4, 5),
+  ];
+  assert.deepEqual(gateShares(modules, 2), [
+    ["cider", "weir"],
+    ["delve", "lodge"],
+  ]);
+  assert.deepEqual(gateShares(modules.slice(0, 1), 2), [["delve"], []]);
+});
+
+test("the workflow runs every CI part, and its verify check passes only when all of them pass", () => {
+  const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+  const parts = /^ {8}part: \[([^\]]*)\]$/mu.exec(workflow)?.[1];
+  assert.deepEqual(parts?.split(", "), [...CI_PARTS]);
+  assert.match(workflow, /run: npm run verify -- --ci-part checks\n/u);
+  assert.match(
+    workflow,
+    /run: npm test -- --ci-part \$\{\{ matrix\.part \}\}\n/u,
+  );
+  assert.match(
+    workflow,
+    /\n {2}verify:\n {4}needs: part\n {4}if: always\(\)\n[^]*test "\$RESULT" = success\n[^]*RESULT: \$\{\{ needs\.part\.result \}\}\n/u,
   );
 });

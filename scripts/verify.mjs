@@ -25,6 +25,21 @@ export const GATES = Object.freeze([
   npmGate("build/packaging validation", ["run", "check:package"]),
 ]);
 
+/**
+ * GATES with `testArgs` passed on to the automated tests, as
+ * `npm run verify -- --ci-part checks` runs CI's checks part.
+ */
+export function gatesFor(testArgs) {
+  if (testArgs.length === 0) {
+    return GATES;
+  }
+  return GATES.map((gate) =>
+    gate.name === "automated tests"
+      ? { ...gate, args: [...gate.args, "--", ...testArgs] }
+      : gate,
+  );
+}
+
 function write(output, message) {
   output.write(`${message}\n`);
 }
@@ -237,5 +252,7 @@ export async function runVerification(options = {}) {
 
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
 if (import.meta.url === invokedPath) {
-  process.exitCode = await runVerification();
+  process.exitCode = await runVerification({
+    gates: gatesFor(process.argv.slice(2)),
+  });
 }
