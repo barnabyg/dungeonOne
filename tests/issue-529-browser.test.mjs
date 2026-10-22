@@ -75,7 +75,9 @@ const scrollLog = (page, top) =>
         const was = log.scrollTop;
         log.addEventListener("scroll", resolve, { once: true });
         log.scrollTop = top === "end" ? log.scrollHeight : top;
-        if (log.scrollTop === was) resolve();
+        if (log.scrollTop === was) {
+          resolve();
+        }
       }),
     top,
   );
