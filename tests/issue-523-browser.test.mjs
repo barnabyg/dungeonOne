@@ -114,18 +114,23 @@ async function assertColumns(page, when) {
     await assertNoSideScroll(page, `${at}: no horizontal scroll`);
     const shown = await geometry(page);
     const where = JSON.stringify(shown);
-    // Right: the history, alone and full height, the last region.
-    assert.deepEqual(shown.historyHolds, ["history-title", "log"], at);
+    // Right: the history, alone and full height, the last region; its
+    // "What happened" panel (#529) holds the title and the log.
+    assert.deepEqual(shown.historyHolds, ["history-panel"], at);
     assert.equal(shown.historyNext, undefined, `${at}: history is last`);
     assert.ok(
       Math.abs(shown.history.top - shown.layout.top) <= 1 &&
         Math.abs(shown.history.bottom - shown.layout.bottom) <= 1,
       `${at}: history at full height ${where}`,
     );
+    // The log fills the panel, the top half of the column; the bottom
+    // half is kept for later use (owner feedback on #529).
+    const half = shown.history.top + shown.history.height / 2;
     assert.ok(
-      shown.log.bottom >= shown.layout.bottom - 2 &&
-        shown.log.height > shown.layout.height / 2,
-      `${at}: the log fills the history ${where}`,
+      shown.log.bottom <= half + 1 &&
+        shown.log.bottom >= half - 4 &&
+        shown.log.height > shown.layout.height / 4,
+      `${at}: the log fills the top half ${where}`,
     );
     assert.ok(
       shown.history.left >= shown.scene.right &&

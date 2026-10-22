@@ -83,6 +83,30 @@ function assertRests(view, label) {
 }
 
 /**
+ * The "What happened" panel (owner feedback on #529): framed, in the top
+ * half of the history column, with the title and the log inside it and
+ * nothing under it.
+ */
+const panel = (page) =>
+  page.evaluate(() => {
+    const column = document.getElementById("session-history");
+    const frame = document.getElementById("history-panel");
+    const outer = column.getBoundingClientRect();
+    const box = frame.getBoundingClientRect();
+    const style = getComputedStyle(frame);
+    return {
+      half: Math.abs(box.height - outer.height / 2) <= 2,
+      atTop: Math.abs(box.top - outer.top) <= 2,
+      border:
+        style.borderTopStyle + " " + Number.parseFloat(style.borderTopWidth),
+      holds: ["history-title", "log"].every((id) =>
+        frame.contains(document.getElementById(id)),
+      ),
+      alone: column.children.length === 1,
+    };
+  });
+
+/**
  * Scrolls the log to `top`, as a reader would, and waits for its event; a
  * log already there fires none.
  */
@@ -145,6 +169,17 @@ test(
         // Resized narrower, its entries re-wrapped, the last turn rests
         // again: the window resizing is not the reader scrolling away.
         assertRests(await turnView(page), `${label} resized`);
+        assert.deepEqual(
+          await panel(page),
+          {
+            half: true,
+            atTop: true,
+            border: "solid 1",
+            holds: true,
+            alone: true,
+          },
+          `${label}: the panel`,
+        );
         // Moving: the arrival, its first line the room's name, rests with
         // focus on it.
         here = here === stair ? alcove : stair;
