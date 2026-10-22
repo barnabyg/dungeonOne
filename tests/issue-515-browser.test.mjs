@@ -431,9 +431,12 @@ test(
       // Trading ended nothing: the reaction's options are back with Trade.
       await leaveShop(page);
       assert.equal(await focusedId(page), "open-shop");
+      // Trade is on the reacting opponents' card (#530), not a card of its own.
+      assert.equal(await page.locator(".opponents-card #open-shop").count(), 1);
+      assert.equal(await page.locator("#creatures > li").count(), 1);
       assert.ok(
         (await page
-          .locator('#room-actions button[data-action="react"]')
+          .locator('.opponents-card button[data-action="react"]')
           .count()) > 0,
       );
     } finally {

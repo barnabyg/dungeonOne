@@ -20,11 +20,17 @@
 //   · Leave"), and #room-history-link ("Description in history", #524),
 //   shown while the history has an arrival in the room; the description
 //   itself is only in the history. Then #leave-confirm, #room-actions (the
-//   row for what acts on no one thing: a search of the room, an ambush, a
-//   reaction's options, Tactical Mind) and #room-alarm. Then the room's
-//   things, one card each (li.thing[data-id]), in the order Here
-//   (#creatures), Items here (#room-items), Look at (#features) and Ways on
-//   (#exits); an empty list is left out (#157). A card's .thing-head has its
+//   row for what acts on no one thing: a search of the room, Tactical
+//   Mind) and #room-alarm. Then the room's things, one card each
+//   (li.thing[data-id]), in the order Here (#creatures), Items here
+//   (#room-items), Look at (#features) and Ways on (#exits); an empty list
+//   is left out (#157). While the character is unseen in a fight's room or
+//   its opponents react, Here opens with the encounter's card (#530),
+//   li.opponents-card[data-id] (the encounter's id) with data-state
+//   (unseen or the band): .opponents-state ("Hasn't seen you", or the band
+//   in words), an .opponent line each (icon, .opponent-name, description)
+//   and .opponents-controls with Ambush, or the reaction's options and
+//   Trade. It goes when the fight begins. A card's .thing-head has its
 //   name and description (.thing-text) and, on the right, its buttons
 //   (.thing-controls): an exit's Go (primary) and Sneak and its door's and
 //   trap's Force, Pick, Break, Unlock and Disarm; a feature's (or body's)
@@ -132,10 +138,10 @@
 //   Trade (#open-shop), which opens the shop, described below. Gems and art
 //   objects (#239) show their value on their "You carry" entry. Arrows and
 //   bolts (#230) have an entry each with their count. Facing a
-//   reaction (#304), #room-actions holds only its options: a parley (#305)
-//   has a button per skill with the skill and DC under it, and a toll names
-//   its price; while the band offers trade, the reacting opponents are a
-//   merchant in #creatures, with Trade as above.
+//   reaction (#304), its options are on the opponents' card (#530): a
+//   parley (#305) has a button per skill with the skill and DC under it, a
+//   toll names its price, and while the band offers trade the card has
+//   Trade as above.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the latest turn's first history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -479,7 +485,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log li>:first-child{margin-top:0}.arrival-room{font-weight:700}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card,.log .player,.log .reply,.log .narration{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.initiative-how{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted);margin-top:2px}.initiative-how summary{cursor:pointer;width:max-content;color:var(--color-text-label)}.initiative-how p{margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room #room-history-link{display:inline-block;padding:1px 6px;font-size:var(--text-xs)}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#sale-confirm,#sell-all-confirm{margin:var(--space-2) 0 0}#room-alarm{color:var(--color-danger);font-weight:600}#room-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#room .controls:empty{display:none}#room #leave-controls,#room-actions{margin:0}#room #room-history-link{display:inline-block;padding:1px 6px;font-size:var(--text-xs)}#room-actions{margin-bottom:var(--space-2)}#leave-controls button{padding:1px 10px;border-radius:999px;border-color:var(--color-gold);color:var(--color-gold-text);font-size:var(--text-xs);font-weight:600}#room #leave-confirm{margin:0 0 var(--space-2)}.thing-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-3)}.thing-text{flex:1 1 14em;min-width:0;overflow-wrap:anywhere;padding-top:3px}.things .thing-controls{flex:0 1 auto;justify-content:flex-end;gap:var(--space-1) var(--space-2);margin:0 0 0 auto;min-width:0}.thing-controls .action{align-items:flex-end;max-width:16em}.ask-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-1) var(--space-2);margin-top:6px}.ask-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-label);padding-top:7px}#purse,#carrying{font:var(--text-sm) var(--font-sans);margin:6px 0 0}.things button{padding:6px 10px}.things li.opponents-card{display:grid;gap:var(--space-2);border:2px solid var(--color-danger);border-left-width:6px;background:linear-gradient(var(--color-danger-soft),var(--color-surface));padding:var(--space-2) var(--space-3)}.opponents-state{justify-self:start;margin:0;color:var(--color-on-ink);background:var(--color-danger);border-color:var(--color-danger)}.opponent{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--space-2);overflow-wrap:anywhere}.opponent-name{font:700 var(--text-lg)/1.3 var(--font-sans);color:var(--color-danger)}.things .opponent>.icon{width:1.9em;height:1.9em;margin:0;align-self:center;color:var(--color-danger)}.opponent-text{flex:1 1 14em;min-width:0}.things .opponents-controls{justify-content:flex-start;margin:0}.opponents-controls .action{align-items:flex-start}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#leave-warning{margin-top:var(--space-1);font-weight:600;color:var(--color-danger)}#leave-warning:empty{display:none}#leave-confirm:has(#leave-warning:not(:empty)){border-left-color:var(--color-danger)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr) auto;gap:0 var(--space-5)}#session-status p{margin:0}#session-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:contents}#inventory-group,#rest-group{order:1}#session-status{order:-1;position:sticky;top:0;z-index:1;background:var(--color-paper);padding-bottom:var(--space-3)}
 @media(min-width:1500px){#session-layout{grid-template-columns:minmax(0,4fr) minmax(0,6fr) minmax(0,5fr)}#session-main{display:contents}#session-scene{min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-character{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;padding-right:var(--space-2)}}
@@ -2534,10 +2540,14 @@ function renderRoom(room) {
   // Once raised, the module's alarm (#401) shows in its own words.
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
+  // The encounter waiting here (#530) heads Here; its opponents trading
+  // while their band offers it (#305) are that card, not one of their own.
+  const { waiting } = room;
   for (const list of ROOM_LISTS) {
-    const entries = room[list.key];
-    element(list.id + "-group").hidden = entries.length === 0;
-    element(list.id).replaceChildren(...entries.map((entry) => {
+    const head = list.key === "creatures" && waiting ? [waitingCard(waiting)] : [];
+    const entries = room[list.key].filter(({ id }) => !head.length || id !== waiting.id);
+    element(list.id + "-group").hidden = entries.length + head.length === 0;
+    element(list.id).replaceChildren(...head, ...entries.map((entry) => {
       const item = make("li", undefined, "thing");
       item.dataset.id = entry.id;
       // The card's head (#520): its name and description, and its buttons
@@ -2571,7 +2581,32 @@ function renderRoom(room) {
     }));
   }
   renderInventory(room);
-  element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
+  element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0 || Boolean(waiting);
+}
+
+// The opponents waiting in the room while their fight has not begun (#530):
+// one card for the encounter, at the top of Here and stronger than the
+// rest, as the centre of events there. Its state in words, each opponent's
+// icon, name and description, and the buttons that act on them all, which
+// renderActions puts on it: Ambush while unseen, the reaction's options
+// while they react (and Trade while their band offers it). The fight
+// panel's enemy cards take over once the fight begins.
+const WAITING_TAGS = { unseen: ["Hasn't seen you", "Haven't seen you"] };
+function waitingCard(waiting) {
+  const item = make("li", undefined, "thing opponents-card");
+  item.dataset.id = waiting.id;
+  item.dataset.state = waiting.state;
+  const several = waiting.opponents.length > 1;
+  const state = WAITING_TAGS[waiting.state]?.[several ? 1 : 0] ?? REACTION_TAGS[waiting.state];
+  item.append(make("p", state, "tag opponents-state"));
+  for (const opponent of waiting.opponents) {
+    const line = make("p", undefined, "opponent");
+    line.append(...iconned(opponent.icon, make("strong", opponent.name, "opponent-name")));
+    if (opponent.description) line.append(make("span", opponent.description, "opponent-text"));
+    item.append(line);
+  }
+  item.append(make("div", undefined, "controls thing-controls opponents-controls"));
+  return item;
 }
 
 // In a fight (#525) the room folds to its heading and one line naming its
@@ -3201,9 +3236,12 @@ function renderActions() {
     }
     // The rest is done in the room (#520): on the card of the thing it acts
     // on, a creature's topics in its "Ask about" row (#490), and what acts
-    // on no thing (a search of the room, an ambush, a reaction's options,
-    // Tactical Mind) in the row under the room's heading.
-    const card = asking ? "creatures/" + asking.creature.id : cardOf(target);
+    // on no thing (a search of the room, Tactical Mind) in the row under the
+    // room's heading.
+    // Ambush and a reaction's options act on the whole encounter waiting
+    // here (#530), so they go on its card.
+    const waiting = (action === "ambush" || action === "react") && session.room.waiting;
+    const card = asking ? "creatures/" + asking.creature.id : waiting ? "creatures/" + waiting.id : cardOf(target);
     if (!card) {
       roomWide.push(wrap);
       return;

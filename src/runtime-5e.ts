@@ -5002,6 +5002,17 @@ export type RoomView = Readonly<{
     }>)[];
   features: readonly (Named & Readonly<{ discovery?: string }>)[];
   /**
+   * The encounter waiting here before its fight begins (#530): the
+   * character unseen by it, or its opponents reacting, by the reaction's
+   * band as a parley left it. Its standing opponents, each with its icon. A
+   * lurking encounter's opponents stay hidden until they spring.
+   */
+  waiting?: Readonly<{
+    id: string;
+    state: "unseen" | ReactionBand;
+    opponents: readonly (Named & Readonly<{ icon: GameIconId }>)[];
+  }>;
+  /**
    * Creatures to talk to, with what each topic drew from them so far, and
    * for a merchant its wares at their prices and the minutes a trade takes.
    */
@@ -12888,6 +12899,28 @@ export function createFifthRuntime(
     return `${roll.total}, ${roll.band}${now === roll.band ? "" : `, and a parley has made it ${now}`}`;
   };
 
+  /** The room's encounter while unseen by it or reacting (#530). */
+  const waitingOf = (state: FifthState): Pick<RoomView, "waiting"> => {
+    const fight = encounterOf(state);
+    const unseen = fight !== undefined && state.unseenBy === fight.id;
+    const band =
+      fight !== undefined && state.reactingTo === fight.id
+        ? reactionBandOf(state, fight)
+        : undefined;
+    return !unseen && band === undefined
+      ? {}
+      : {
+          waiting: {
+            id: fight!.id,
+            state: unseen ? "unseen" : band!,
+            opponents: standing(state).map((opponent) => ({
+              ...named(opponent),
+              icon: opponent.icon,
+            })),
+          },
+        };
+  };
+
   const projectDmScene = (state: FifthState): DmScene => {
     const current = room(state);
     const encounter = state.encounter;
@@ -13549,6 +13582,7 @@ export function createFifthRuntime(
         }),
       ),
       features: describedFeatures(state),
+      ...waitingOf(state),
       // A topic withdrawn (#399) still shows what the creature said.
       creatures: creaturesHere(state, true).map((creature) => ({
         ...named(creature),
