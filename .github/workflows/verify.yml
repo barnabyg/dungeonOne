@@ -35,9 +35,24 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Chromium is cached by Playwright version, so a run downloads it only
+      # when the version changes; its system packages still install each run.
       - if: startsWith(matrix.part, 'browser-')
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - if: startsWith(matrix.part, 'browser-')
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # These steps have hung on the runner (PR #265, #549); fail fast so a
+      # re-run can start.
+      - if: startsWith(matrix.part, 'browser-') && steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
-        # This step has hung on the runner (PR #265); fail fast so a re-run can start.
+        timeout-minutes: 10
+      - if: startsWith(matrix.part, 'browser-') && steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         timeout-minutes: 10
       - if: matrix.part == 'checks'
         run: npm run verify -- --ci-part checks
