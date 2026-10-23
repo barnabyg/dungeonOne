@@ -18,6 +18,8 @@ any content is written. The proposal on the ticket has:
       ticket, and attach the SVG;
 - [ ] each fight with its estimator figures (`npm.cmd run estimate`), the
       mechanics used, the treasure against the budget, and the XP;
+- [ ] each obstacle on the way to the main prize, with its ways past and their
+      families (see [Ways past an obstacle](#ways-past-an-obstacle));
 - [ ] a list of the decisions the owner must make.
 
 Record the owner's approval and any changes on the ticket. Build the module in a
@@ -32,6 +34,39 @@ separate ticket from the approved sketch.
   repeat it with a twist, using features, checks, hidden passages and traps.
 - **Loops and a second route.** Give the way to the objective more than one
   route, and a loop or secret shortcut, rather than a tree of dead ends.
+
+## Ways past an obstacle
+
+Breaking a door and fighting for its key both test the same thing. If they are
+the only ways to the main prize, a Fighter has two and a Wizard none. The **main
+prize** is the module's victory fight, or else the hoard the module is built
+around, such as a strongroom or a vault.
+
+- **Way families.** Every way past an obstacle (a shut door, a gap, a guard) is
+  one of:
+  - _might_: force or break, climb or lift, or win a fight for the key;
+  - _skill_: pick or disarm with thieves' tools, or sneak past;
+  - _mind_: an Intelligence or Wisdom check that finds a spare key or a hidden
+    way, reads a mechanism or a ward, or works out a safe path;
+  - _voice_: talk someone into handing over the key or opening the way.
+- **Every obstacle on the way to the main prize offers a way that isn't
+  might:** a mind or voice way, or one open to everyone, such as a key or a tool
+  that no fight or check guards. A key on an opponent is a might way, even one
+  who may surrender, since the fight comes first. A second route round the
+  obstacle counts by the ways past its own obstacles: the Weirgate's grate has a
+  key on a bandit, a pick and a break, but the culvert round it opens with a
+  crank lying in the keeper's office.
+- **Let the mind win sometimes.** Give mind checks things worth having that
+  might can't get as well: a quieter way, a hidden hoard, advantage on a later
+  check. Offer a mind check as two approaches, an Intelligence skill for the
+  Wizard and a Wisdom skill for the Cleric. Prefer Arcana, Religion, Medicine
+  and Nature, which neither a Fighter nor a Rogue can take; Investigation and
+  Perception are a Rogue's too.
+- **Might is loud.** Mark every band of a break or force `"noisy": true`,
+  success included. A noisy band needs the module to have an alarm, so give it
+  one whose effects make the noise cost something. The quiet ways then stay worth finding.
+- **The gate doesn't check this.** It never talks, and its objective is the
+  nearest loot, not the main prize. The design ticket lists the ways instead.
 
 ## The map
 
