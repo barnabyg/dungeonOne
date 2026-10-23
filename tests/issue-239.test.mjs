@@ -1,8 +1,9 @@
 // #239: treasure has a value, and every adventure's treasure fits its level.
 // Gems and art objects come from a catalogue with a value; merchants buy them
-// at full value. Each module's findable treasure (coin, gems, art objects,
-// potions and gear) is held to a budget for its maximum recommended level,
-// and an item's tier must be allowed at that level.
+// at full value. Each module's findable coin, gems and art objects are held
+// to a budget for its maximum recommended level, its gems and art objects to
+// a count at levels 1 and 2, and an item's tier must be allowed at that
+// level.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { findableValue } from "../dist/adventure-5e.js";
@@ -13,6 +14,7 @@ import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
   POTIONS,
+  TRADE_GOOD_LIMITS,
   TRADE_GOODS,
   TREASURE_BUDGETS,
   tierAllowed,
@@ -84,25 +86,75 @@ test("tiers have a minimum level: common always, uncommon from 3, no rare", () =
   assert.throws(() => treasureBudget(6), /No treasure budget for level 6/);
 });
 
-test("a module's findable value counts coin, gems, art objects, potions and gear", () => {
+test("the budget rises 50, 100, 300, 450 and 600 gp from level 1 to 5", () => {
+  assert.deepEqual(TREASURE_BUDGETS, {
+    1: 5000,
+    2: 10000,
+    3: 30000,
+    4: 45000,
+    5: 60000,
+  });
+  assert.deepEqual(TRADE_GOOD_LIMITS, { 1: 1, 2: 2 });
+});
+
+test("a module's findable value counts coin, gems and art objects, not potions or gear", () => {
+  const draughts = [1, 2].map((n) =>
+    hidden({ id: `draught-${n}`, name: "Draught", kind: "potion-of-healing" }),
+  );
+  const mace = hidden({
+    id: "old-mace",
+    name: "Old Mace",
+    kind: "gear",
+    gear: "mace",
+  });
   const module = validateModule(
-    barrowWith([
-      hidden({
-        id: "opal",
-        name: "Opal",
-        kind: "treasure",
-        treasure: "gem-50gp",
-      }),
-      hidden({ id: "draught", name: "Draught", kind: "potion-of-healing" }),
-      hidden({ id: "old-mace", name: "Old Mace", kind: "gear", gear: "mace" }),
-    ]),
+    barrowWith(
+      [
+        hidden({
+          id: "opal",
+          name: "Opal",
+          kind: "treasure",
+          treasure: "gem-50gp",
+        }),
+        ...draughts,
+        mace,
+      ],
+      { min: 1, max: 2 },
+    ),
+  );
+  assert.equal(findableValue(module), BARROW_VALUE + 5000);
+  // The potions and the mace are worth more than level 1's 50 gp, and a
+  // level-1 barrow still takes them.
+  assert.ok(
+    2 * POTIONS["potion-of-healing"].value + itemPrice("mace") >
+      TREASURE_BUDGETS[1],
   );
   assert.equal(
-    findableValue(module),
-    BARROW_VALUE +
-      5000 +
-      POTIONS["potion-of-healing"].value +
-      itemPrice("mace"),
+    findableValue(validateModule(barrowWith([...draughts, mace]))),
+    BARROW_VALUE,
+  );
+});
+
+test("a level-1 module hides one gem or art object and a level-2 one two; from level 3 any number", () => {
+  const agate = (n) =>
+    hidden({
+      id: `agate-${n}`,
+      name: "Agate",
+      kind: "treasure",
+      treasure: "gem-10gp",
+    });
+  // The barrow's torc is its one.
+  assert.throws(() => validateModule(barrowWith([agate(1)])), {
+    message:
+      "Invalid adventure module: module lintel-barrow: it hides 2 gems and art objects (silver-torc, agate-1), but a module for level 1 hides at most 1.",
+  });
+  validateModule(barrowWith([agate(1)], { min: 1, max: 2 }));
+  assert.throws(
+    () => validateModule(barrowWith([agate(1), agate(2)], { min: 1, max: 2 })),
+    /it hides 3 gems and art objects \(silver-torc, agate-1, agate-2\), but a module for level 2 hides at most 2\./,
+  );
+  validateModule(
+    barrowWith([agate(1), agate(2), agate(3)], { min: 1, max: 3 }),
   );
 });
 
@@ -121,7 +173,7 @@ test("the validator rejects a module over its budget, naming the module and the 
       ),
     {
       message:
-        "Invalid adventure module: module lintel-barrow: its findable treasure is worth 150 gp 1 cp, 1 cp over the 150 gp budget for level 1.",
+        "Invalid adventure module: module lintel-barrow: its findable treasure is worth 50 gp 1 cp, 1 cp over the 50 gp budget for level 1.",
     },
   );
 });
@@ -130,7 +182,7 @@ test("the budget follows the maximum recommended level", () => {
   const value = TREASURE_BUDGETS[2] - BARROW_VALUE;
   assert.throws(
     () => validateModule(barrowWith([coin(value)])),
-    /over the 150 gp budget for level 1/,
+    /over the 50 gp budget for level 1/,
   );
   assert.equal(
     findableValue(

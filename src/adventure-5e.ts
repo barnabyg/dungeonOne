@@ -22,9 +22,10 @@
  * opponent's body once its fight is won. Coin is authored in gold, silver and
  * copper pieces; gear names a catalogue weapon, armour or shield; treasure
  * names a catalogue gem or art object (`treasure-5e.ts`), which sets its
- * value. Everything findable (coin, gems, art objects, potions and gear) is
- * held to the treasure budget for the module's maximum recommended level,
- * and each item's tier must be allowed at that level (#239). What a bestiary
+ * value. Its coin, gems and art objects are held to the treasure budget for
+ * the module's maximum recommended level, its gems and art objects to a
+ * count at low levels, and each item's tier must be allowed at that level
+ * (#239). What a bestiary
  * opponent carries must be loot its monster's treasure type could produce
  * (#240): an authoring-time roll (`npm run loot`) writes it in, and an
  * author may lower or remove it. A key is never loot, and an inline
@@ -177,7 +178,6 @@ import {
   formatCoins,
   isCatalogueId,
   itemName,
-  itemPrice,
   itemTier,
   magicOf,
   TREASURE_WEIGHT,
@@ -196,6 +196,7 @@ import {
   magicItemProblems,
   tierAllowed,
   TRADE_GOOD_TIER,
+  tradeGoodProblem,
   tradeGoodValue,
   treasureBudget,
   TIER_MIN_LEVEL,
@@ -210,7 +211,6 @@ import {
   scrollName,
   scrollSpellProblem,
   scrollTier,
-  scrollValue,
   WANDS,
   type CasterItemId,
   type WandId,
@@ -1287,25 +1287,14 @@ export type WanderingEncounter = Readonly<{
 
 /**
  * What a placed item is worth toward the treasure budget, in copper: coin's
- * amount, a gem or art object's value, a potion's or spell scroll's value
- * (#346) and gear's price. A key is worth nothing, and a magic item (a +1
- * item, a wand or a caster item) is outside the budget (#345, #346, #537,
- * D10).
+ * amount and a gem or art object's value. Potions, spell scrolls, gear, keys
+ * and magic items are outside the budget; their tiers limit them.
  */
 export function itemValue(item: FifthItem): number {
   if (item.coins !== undefined) {
     return coinsInCopper(item.coins);
   }
-  if (item.treasure !== undefined) {
-    return tradeGoodValue(item.treasure);
-  }
-  if (item.gear !== undefined) {
-    return magicOf(item.gear) === undefined ? itemPrice(item.gear) : 0;
-  }
-  if (item.spell !== undefined) {
-    return scrollValue(item.spell);
-  }
-  return isPotionKind(item.kind) ? POTIONS[item.kind].value : 0;
+  return item.treasure === undefined ? 0 : tradeGoodValue(item.treasure);
 }
 
 /** Whether an item kind is one of the catalogue's potions. */
@@ -1349,9 +1338,9 @@ function findableTier(item: FifthItem): Tier | undefined {
 }
 
 /**
- * Everything a module hides to find, in copper (#239): its coin, gems, art
- * objects, potions and gear. The validator holds it to the budget for the
- * module's maximum recommended level.
+ * The treasure a module hides to find, in copper (#239): its coin, gems and
+ * art objects. The validator holds it to the budget for the module's maximum
+ * recommended level.
  */
 export function findableValue(
   adventure: Pick<FifthAdventure, "rooms">,
@@ -3119,6 +3108,17 @@ function validateModule(
   );
   if (magicProblem !== undefined) {
     fail(`module ${moduleId}: ${magicProblem}`);
+  }
+  const tradeProblem = tradeGoodProblem(
+    rooms.flatMap(({ items }) =>
+      items.flatMap(({ id: itemId, kind }) =>
+        kind === "treasure" ? [itemId] : [],
+      ),
+    ),
+    max,
+  );
+  if (tradeProblem !== undefined) {
+    fail(`module ${moduleId}: ${tradeProblem}`);
   }
   const worth = findableValue({ rooms });
   const budget = treasureBudget(max, long);

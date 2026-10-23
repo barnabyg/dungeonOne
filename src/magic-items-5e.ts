@@ -9,8 +9,8 @@
  * spell's level): on a failure the scroll is used up with no effect. A
  * Wizard may copy a scroll's spell into its spellbook between adventures,
  * for 50 gp a spell level, using up the scroll (`copyScroll` in
- * `character-5e.ts`). Scrolls are priced at fixed values inside a module's
- * treasure budget (D10): a 1st-level scroll is common, a 2nd- or 3rd-level
+ * `character-5e.ts`). Scrolls are priced at fixed values (D10), outside a
+ * module's treasure budget: a 1st-level scroll is common, a 2nd- or 3rd-level
  * one uncommon, and each is worth half its rarity's value, as potions are.
  *
  * A Wand of Magic Missiles (SRD 5.2) is an uncommon permanent magic item

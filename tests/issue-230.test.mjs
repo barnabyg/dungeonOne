@@ -569,7 +569,8 @@ test("taking found arrows over capacity is refused like other gear", () => {
 });
 
 test("modules place and stock ranged weapons and ammunition within their tiers", () => {
-  assert.equal(itemValue(QUIVER), 100);
+  // Ammunition is gear, outside the treasure budget.
+  assert.equal(itemValue(QUIVER), 0);
   const stocking = (stock, levels) => {
     const module = structuredClone(archeryFile);
     room(module, "barrow-mouth").creatures[0].merchant.stock = stock;
