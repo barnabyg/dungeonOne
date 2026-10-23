@@ -1152,7 +1152,7 @@ test("a failed search of the lair still finds the purse and the bell, but not th
   assert.ok(!levelFourExits(state).includes("guardroom"));
 });
 
-test("forcing the portcullis rouses the Wolfstone, rolling its wandering table, and wakes the gaoler at his dice", () => {
+test("forcing the portcullis rouses the Wolfstone, rolling its wandering table, and scatters the gaoler's dice", () => {
   const { bands } = lodge.passages.find(({ id }) => id === "ditch-to-gatehouse")
     .door.force;
   assert.deepEqual(
@@ -1168,6 +1168,6 @@ test("forcing the portcullis rouses the Wolfstone, rolling its wandering table, 
   assert.deepEqual(feature("guardroom", "dice-table").changed, {
     when: "wolfstone-roused",
     description:
-      "A barrel-head table, its cups knocked over and its dice scattered: the gaoler is awake and listening.",
+      "A barrel-head table strewn with cups, two of them knocked over and their dice scattered by the racket at the gate.",
   });
 });
