@@ -43,7 +43,7 @@ import {
 import { TURN_UNDEAD_ID } from "../dist/encounter-5e.js";
 import { MONSTER_ICONS, OPPONENT_ICON } from "../dist/icons-5e.js";
 import { createFifthRuntime, creatureTypeOf } from "../dist/runtime-5e.js";
-import { treasureBudget } from "../dist/treasure-5e.js";
+import { TRADE_GOOD_LIMITS, treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { ada } from "./fixtures/playthroughs.mjs";
 import { gateInWorkers, JOB_TIMEOUT_MS } from "./fixtures/gate-workers.mjs";
@@ -761,9 +761,9 @@ test("every shipped module's treasure fits its budget (#239)", () => {
   }
 });
 
-test("every shipped module holds 75–100% of its budget as a mixed hoard (#252, #446)", () => {
-  // Each was designed against the budget with more than one class of gem or
-  // art object, the Delve since its expansion (#442).
+test("every shipped module holds 75–100% of its budget, a mixed hoard from level 3 (#252, #446)", () => {
+  // Each was designed against the budget; from level 3, where gems and art
+  // objects aren't counted, with more than one class of them.
   for (const module of shipped) {
     const { id } = module;
     const budget = treasureBudget(module.recommendedLevels.max, module.long);
@@ -779,7 +779,9 @@ test("every shipped module holds 75–100% of its budget as a mixed hoard (#252,
         ),
       ),
     );
-    assert.ok(classes.size >= 2, `${id} holds ${[...classes].join(", ")}`);
+    if (TRADE_GOOD_LIMITS[module.recommendedLevels.max] === undefined) {
+      assert.ok(classes.size >= 2, `${id} holds ${[...classes].join(", ")}`);
+    }
   }
 });
 

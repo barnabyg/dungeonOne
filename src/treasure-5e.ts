@@ -5,16 +5,17 @@
  *
  * Pure rules over data. Values are in copper pieces, like gear prices.
  * Gems and art objects are trade goods: they do nothing but sell, and a
- * merchant pays their full value (SRD 5.2 trade goods). A potion's value
- * counts toward a module's budget, but no merchant buys one.
+ * merchant pays their full value (SRD 5.2 trade goods). Only coin, gems and
+ * art objects count toward a module's budget; no merchant buys a potion.
  *
  * Each item has an availability tier, and a module may hide an item only if
  * its tier is allowed at the module's maximum recommended level: common
  * always, uncommon from level 3, and no rare treasure yet. A module hides
  * magic items (#345, D10) only for level 3 and up, outside its budget: one
  * any class may use and one that only a spellcaster may attune (#537, D1),
- * each from its own minimum level (D3). The budgets, the tier levels and
- * the magic item limits are parameter tables; tune them here. `docs/rules/gear.md` states the rules they serve.
+ * each from its own minimum level (D3). The budgets, the gem and art
+ * limits, the tier levels and the magic item limits are parameter tables;
+ * tune them here. `docs/rules/gear.md` states the rules they serve.
  */
 import {
   POTION_WEIGHT,
@@ -25,14 +26,41 @@ import {
 import type { Attunement, CasterItemId, WandId } from "./magic-items-5e.js";
 import type { RandomSource } from "./random.js";
 
-/** What a module's treasure may be worth, by its maximum recommended level, in copper. */
+/**
+ * What a module's treasure may be worth, by its maximum recommended level, in
+ * copper. Low levels are lean, mostly small coin.
+ */
 export const TREASURE_BUDGETS: Readonly<Record<number, number>> = {
-  1: 15000,
-  2: 30000,
-  3: 45000,
-  4: 60000,
-  5: 75000,
+  1: 5000,
+  2: 10000,
+  3: 30000,
+  4: 45000,
+  5: 60000,
 };
+
+/**
+ * The most gems and art objects a module may hide, carried ones included, by
+ * its maximum recommended level; a long module gets no more. A level left
+ * out has no limit.
+ */
+export const TRADE_GOOD_LIMITS: Readonly<Partial<Record<number, number>>> = {
+  1: 1,
+  2: 2,
+};
+
+/**
+ * What is wrong with the gems and art objects (`ids`) a module whose maximum
+ * recommended level is `level` hides, or undefined when they may be hidden.
+ */
+export function tradeGoodProblem(
+  ids: readonly string[],
+  level: number,
+): string | undefined {
+  const limit = TRADE_GOOD_LIMITS[level];
+  return limit === undefined || ids.length <= limit
+    ? undefined
+    : `it hides ${ids.length} gems and art objects (${ids.join(", ")}), but a module for level ${level} hides at most ${limit}.`;
+}
 
 /**
  * The lowest maximum recommended level at which a module may hide an item of

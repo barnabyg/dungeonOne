@@ -171,15 +171,15 @@ test("the catalogue: scroll values and tiers by spell level, and the wand", () =
   );
 });
 
-test("the validator: scrolls inside the budget at their tier; the wand fills the module's open magic item slot, from level 3", () => {
+test("the validator: scrolls outside the budget at their tier; the wand fills the module's open magic item slot, from level 3", () => {
   const plain = validateModule({
     ...structuredClone(barrowFile),
     recommendedLevels: { min: 1, max: 3 },
   });
   assert.equal(
     findableValue(scrollBarrow),
-    findableValue(plain) + 3 * 5000,
-    "three 1st-level scrolls at 50 gp each; the wand outside the budget",
+    findableValue(plain),
+    "the three 1st-level scrolls and the wand are outside the budget",
   );
   // A 1st-level scroll is common: any level.
   validateModule(scrollBarrowFile([scroll("s", "mage-armor")], 1));

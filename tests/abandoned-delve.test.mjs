@@ -198,7 +198,6 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
           "flooded-cistern",
           "ossuary",
           "shaft-bottom",
-          "shrine",
         ],
       ],
     ],
@@ -286,7 +285,7 @@ test("the sarcophagus opens two ways, the goblin's directions help, and failing 
       check.bands[band].effects
         .filter(({ type }) => type === "item")
         .map(({ item }) => item),
-      ["death-mask", "tomb-peridot"],
+      ["death-mask", "grave-coins"],
       band,
     );
   }
@@ -329,21 +328,13 @@ test("its treasure is 98% of the long level-2 budget, with two potions and a scr
       .filter(({ kind }) => kind === "treasure")
       .map(({ id, treasure }) => [id, treasure]),
     [
-      ["dagger-hilt", "art-25gp"],
-      ["moss-agate", "gem-10gp"],
-      ["candlesticks", "art-25gp"],
-      ["gold-ring", "art-25gp"],
-      ["jewelled-goblet", "art-25gp"],
       ["vault-garnet", "gem-50gp"],
-      ["delvers-jasper", "gem-50gp"],
-      ["satchel-turquoise", "gem-10gp"],
       ["death-mask", "art-25gp"],
-      ["tomb-peridot", "gem-50gp"],
     ],
   );
   assert.ok(items.every(({ hiddenIn }) => hiddenIn !== undefined));
-  assert.equal(findableValue(delve), 59070);
-  assert.equal(treasureBudget(2, true), 60000);
+  assert.equal(findableValue(delve), 16230);
+  assert.equal(treasureBudget(2, true), 20000);
   // The rooms reachable from the gate without entering a fight hold no
   // treasure or coin, so a cautious run can't take loot and leave unfought.
   const fightless = new Set();
@@ -377,7 +368,7 @@ test("its treasure is 98% of the long level-2 budget, with two potions and a scr
 
 // #512: before the Delve, no merchant was sure to be met until Thornwood
 // Lodge, so a career had nowhere to sell its finds.
-test("Hedda the Pedlar trades in the porter's lodge: she buys the kitchen's moss agate at full value, enough for a shield", () => {
+test("Hedda the Pedlar trades in the porter's lodge: the kitchen's purse buys a shield", () => {
   assert.deepEqual(
     room("porters-lodge").creatures.map(({ id, name, merchant }) => [
       id,
@@ -399,15 +390,13 @@ test("Hedda the Pedlar trades in the porter's lodge: she buys the kitchen's moss
       ["move", "gate-hall"],
       ["move", "fallen-kitchen"],
       ["examine", "bone-heap"],
-      ["take", "moss-agate"],
+      ["take", "travellers-purse"],
       ["move", "gate-hall"],
       ["move", "porters-lodge"],
-      ["sell-treasure", "moss-agate"],
       ["buy", "shield"],
     ],
     ({ status }) => status === "playing",
   );
-  assert.equal(state.inventory.includes("moss-agate"), false);
   assert.deepEqual(state.possessions.stowed, ["shield"]);
   assert.equal(state.possessions.purse, 0);
 });
@@ -454,11 +443,10 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
       ["take", "wishing-coins"],
       ["move", "flooded-cistern"],
       ["examine", "drowned-delver"],
-      ["take", "delvers-jasper"],
+      ["take", "delvers-savings"],
       ["move", "ossuary"],
       ["examine", "mags-satchel"],
       ["take", "satchel-gold"],
-      ["take", "satchel-turquoise"],
       ["move", "shaft-bottom"],
       ["leave", "shaft-bottom"],
     ],
@@ -478,7 +466,7 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
   ]);
 });
 
-test("with the goblin's directions, the sarcophagus gives up the death mask and the peridot", () => {
+test("with the goblin's directions, the sarcophagus gives up the death mask and the grave coins", () => {
   const { state } = firstJourney(
     delve,
     level2,
@@ -489,10 +477,10 @@ test("with the goblin's directions, the sarcophagus gives up the death mask and 
       ["move", "lords-tomb"],
       ["examine", "sarcophagus-lid", "investigation"],
       ["take", "death-mask"],
-      ["take", "tomb-peridot"],
+      ["take", "grave-coins"],
     ],
-    ({ status, inventory }) =>
-      status === "playing" && inventory.includes("tomb-peridot"),
+    ({ status, possessions }) =>
+      status === "playing" && possessions.purse === 700,
   );
   assert.ok(state.inventory.includes("death-mask"));
 });
@@ -592,12 +580,11 @@ const PUSH_DEEPER = [
   ["move", { destination: "shrine" }],
   ["examine", { target: "altar" }],
   ["take", { item: "bronze-key" }],
-  ["take", { item: "candlesticks" }],
   ["move", { destination: "shaft-bottom" }],
   ["unlock", { door: "vault-door" }],
   ["move", { destination: "vault" }],
   ["examine", { target: "iron-chest" }],
-  ["take", { item: "jewelled-goblet" }],
+  ["take", { item: "vault-garnet" }],
   ["take", { item: "coin-chest" }],
   ["move", { destination: "shaft-bottom" }],
   ["leave", "shaft-bottom"],
@@ -632,10 +619,10 @@ test("scripted DM: pushing on to the vault and climbing the shaft escapes with a
         delve.rooms.flatMap(({ items }) => items).find((item) => item.id === id)
           .kind === "treasure",
     ),
-    ["candlesticks", "jewelled-goblet"],
+    ["vault-garnet"],
   );
-  // The guard's purse and the chest's gold went into the purse.
-  assert.equal(state.possessions.purse, 180 + 9000);
+  // The guard's purse and the chest's coin went into the purse.
+  assert.equal(state.possessions.purse, 180 + 4500);
   assert.deepEqual(state.clearedEncounterIds, ["guard-zombie", "vault-ghoul"]);
   // The fights' XP and the ending's.
   assert.equal(

@@ -112,7 +112,7 @@ test("the validator refuses a long module without two regions or a rest site in 
 
 test("a long module's treasure budget is twice its maximum level's, and its excess is named", () => {
   assert.equal(treasureBudget(3, true), 2 * treasureBudget(3));
-  assert.equal(treasureBudget(3, true), 90000);
+  assert.equal(treasureBudget(3, true), 60000);
   const purse = (gp) =>
     changed((module) => {
       room(module, "cistern").features.push({
@@ -137,18 +137,18 @@ test("a long module's treasure budget is twice its maximum level's, and its exce
         text: "You climb out into the daylight, the sodden purse in hand.",
       });
     });
-  // With the alcove's 50 gp potion, 600 gp is over a level-3 module's
-  // 450 gp, but within a long one's.
+  // 550 gp is over a level-3 module's 300 gp, but within a long one's; the
+  // alcove's potion is outside the budget.
   validateModule(purse(550));
   const short = purse(550);
   delete short.long;
   assert.throws(
     () => validateModule(short),
-    /module long-tunnels: its findable treasure is worth 600 gp, 150 gp over the 450 gp budget for level 3\./u,
+    /module long-tunnels: its findable treasure is worth 550 gp, 250 gp over the 300 gp budget for level 3\./u,
   );
   assert.throws(
-    () => validateModule(purse(851)),
-    /module long-tunnels: its findable treasure is worth 901 gp, 1 gp over the 900 gp budget for a long module at level 3\./u,
+    () => validateModule(purse(601)),
+    /module long-tunnels: its findable treasure is worth 601 gp, 1 gp over the 600 gp budget for a long module at level 3\./u,
   );
 });
 
@@ -166,7 +166,7 @@ test("npm run loot names a long module's budget", async () => {
     assert.equal(run.status, 0, run.stderr);
     assert.match(
       run.stdout,
-      /Findable treasure: 50 gp of the 900 gp budget for a long module at level 3\.\n$/u,
+      /Findable treasure: 0 cp of the 600 gp budget for a long module at level 3\.\n$/u,
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

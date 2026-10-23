@@ -119,16 +119,16 @@
           "id": "footlocker",
           "name": "Footlocker",
           "description": "An iron-bound footlocker, its lid rusted half open.",
-          "discovery": "Wrapped in a mouldy cloak is a dagger hilt chased with silver."
+          "discovery": "Wrapped in a mouldy cloak is a soldier's last pay: a little silver."
         }
       ],
       "items": [
         {
-          "id": "dagger-hilt",
-          "name": "Dagger Hilt",
-          "description": "A dagger hilt chased with silver, its blade long gone.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
+          "id": "soldiers-pay",
+          "name": "Soldier's Pay",
+          "description": "A little silver, wrapped in a mouldy cloak.",
+          "kind": "coin",
+          "coins": { "sp": 25 },
           "hiddenIn": "footlocker"
         }
       ]
@@ -317,7 +317,7 @@
           "id": "bone-heap",
           "name": "Bone Heap",
           "description": "Gnawed bones heaped against the wall, sheep's and deer's and one that might be a man's.",
-          "discovery": "Among the bones is a traveller's rotted belt, its purse still full of gold, and a green stone with moss-like threads inside it."
+          "discovery": "Among the bones is a traveller's rotted belt, its purse still full of coin."
         },
         {
           "id": "roof-hole",
@@ -329,17 +329,9 @@
         {
           "id": "travellers-purse",
           "name": "Traveller's Purse",
-          "description": "A rotted leather purse of gold coins.",
+          "description": "A rotted leather purse of gold and silver coins.",
           "kind": "coin",
-          "coins": { "gp": 12 },
-          "hiddenIn": "bone-heap"
-        },
-        {
-          "id": "moss-agate",
-          "name": "Moss Agate",
-          "description": "A pale green agate threaded with dark green, like moss under ice.",
-          "kind": "treasure",
-          "treasure": "gem-10gp",
+          "coins": { "gp": 6, "sp": 40 },
           "hiddenIn": "bone-heap"
         }
       ]
@@ -349,14 +341,14 @@
       "name": "Shrine",
       "at": [4, 4],
       "floor": -1,
-      "description": "A small, quiet shrine at the foot of the stair. Silver candlesticks stand on a stone altar beside an offering box, and a lamp still hangs over them. A passage runs on to a shaft of daylight.",
+      "description": "A small, quiet shrine at the foot of the stair. Iron candlesticks stand on a stone altar beside an offering box, and a lamp still hangs over them. A passage runs on to a shaft of daylight.",
       "region": "crypts",
       "restSite": true,
       "features": [
         {
           "id": "altar",
           "name": "Altar",
-          "description": "A stone altar with two tarnished silver candlesticks.",
+          "description": "A stone altar with two rusted iron candlesticks.",
           "discovery": "Behind the candlesticks lies a heavy bronze key."
         },
         {
@@ -377,14 +369,6 @@
           "name": "Bronze Key",
           "description": "A heavy bronze key stamped with a lord's crest.",
           "kind": "key",
-          "hiddenIn": "altar"
-        },
-        {
-          "id": "candlesticks",
-          "name": "Candlesticks",
-          "description": "A pair of tarnished silver candlesticks.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
           "hiddenIn": "altar"
         },
         {
@@ -411,16 +395,16 @@
           "id": "cocoon",
           "name": "Cocoon",
           "description": "A body wrapped in web, hanging from the ceiling.",
-          "discovery": "On the dead treasure-hunter's hand is a gold ring."
+          "discovery": "On the dead treasure-hunter's belt is a purse of coin."
         }
       ],
       "items": [
         {
-          "id": "gold-ring",
-          "name": "Gold Ring",
-          "description": "A heavy gold ring set with a red stone.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
+          "id": "hunters-purse",
+          "name": "Treasure-Hunter's Purse",
+          "description": "A purse of mixed coin.",
+          "kind": "coin",
+          "coins": { "gp": 3, "sp": 20 },
           "hiddenIn": "cocoon"
         }
       ]
@@ -457,7 +441,7 @@
           "id": "iron-chest",
           "name": "Iron Chest",
           "description": "A great iron chest, its lid broken open.",
-          "discovery": "The chest is still half full of old gold coins. A jewelled goblet lies on top of them, and a dark red stone has rolled into one corner."
+          "discovery": "Old gold and silver coins lie scattered across the bottom of the chest, and a dark red stone has rolled into one corner."
         },
         {
           "id": "coffer-stack",
@@ -505,18 +489,10 @@
       "items": [
         {
           "id": "coin-chest",
-          "name": "Gold Coins",
-          "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
+          "name": "Old Coins",
+          "description": "Old gold and silver coins stamped with a forgotten lord's face.",
           "kind": "coin",
-          "coins": { "gp": 90 },
-          "hiddenIn": "iron-chest"
-        },
-        {
-          "id": "jewelled-goblet",
-          "name": "Goblet",
-          "description": "A jewelled gold goblet, its rim gnawed by something's teeth.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
+          "coins": { "gp": 30, "sp": 150 },
           "hiddenIn": "iron-chest"
         },
         {
@@ -560,7 +536,7 @@
           "name": "Wishing Coins",
           "description": "A scatter of old coins, worn smooth.",
           "kind": "coin",
-          "coins": { "gp": 6 },
+          "coins": { "sp": 15, "cp": 60 },
           "hiddenIn": "silted-floor"
         }
       ]
@@ -583,7 +559,7 @@
           "id": "drowned-delver",
           "name": "Drowned Delver",
           "description": "A body in a delver's coat lies face down on the walkway, a pack still on its back.",
-          "discovery": "In the pack, wrapped in a wet stocking, is a red-brown jasper."
+          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver."
         },
         {
           "id": "cistern-steps",
@@ -593,11 +569,11 @@
       ],
       "items": [
         {
-          "id": "delvers-jasper",
-          "name": "Jasper",
-          "description": "A polished red-brown jasper, cold from the water.",
-          "kind": "treasure",
-          "treasure": "gem-50gp",
+          "id": "delvers-savings",
+          "name": "Delver's Savings",
+          "description": "A little hoard of silver, wrapped in a wet stocking.",
+          "kind": "coin",
+          "coins": { "sp": 30 },
           "hiddenIn": "drowned-delver"
         }
       ]
@@ -620,7 +596,7 @@
           "id": "mags-satchel",
           "name": "Mags's Satchel",
           "description": "A battered leather satchel, heavy and rattling.",
-          "discovery": "Inside are a handful of gold teeth and coins, and a blue-green stone wrapped in a rag."
+          "discovery": "Inside are a handful of gold teeth and coins."
         },
         {
           "id": "bone-passage",
@@ -632,17 +608,9 @@
         {
           "id": "satchel-gold",
           "name": "Mags's Takings",
-          "description": "Gold teeth and old coins, worth a fair few gold pieces.",
+          "description": "Gold teeth and old coins, worth a few gold pieces.",
           "kind": "coin",
-          "coins": { "gp": 15 },
-          "hiddenIn": "mags-satchel"
-        },
-        {
-          "id": "satchel-turquoise",
-          "name": "Turquoise",
-          "description": "A blue-green turquoise, veined with brown.",
-          "kind": "treasure",
-          "treasure": "gem-10gp",
+          "coins": { "gp": 8, "sp": 20 },
           "hiddenIn": "mags-satchel"
         },
         {
@@ -667,7 +635,7 @@
           "id": "sarcophagus-lid",
           "name": "Sarcophagus Lid",
           "description": "A heavy stone lid, carved with the old lord's arms. A carved hand on its side is worn smooth.",
-          "discovery": "Inside, the old lord's bones wear a silver death mask, and a green stone rests on his breastbone.",
+          "discovery": "Inside, the old lord's bones wear a silver death mask, and a handful of old coins rests on his breastbone.",
           "check": {
             "approaches": [
               { "skill": "athletics", "dc": 14 },
@@ -694,7 +662,7 @@
                 "effects": [
                   { "type": "discovery", "feature": "sarcophagus-lid" },
                   { "type": "item", "item": "death-mask" },
-                  { "type": "item", "item": "tomb-peridot" }
+                  { "type": "item", "item": "grave-coins" }
                 ]
               },
               "success-by-5": {
@@ -702,7 +670,7 @@
                 "effects": [
                   { "type": "discovery", "feature": "sarcophagus-lid" },
                   { "type": "item", "item": "death-mask" },
-                  { "type": "item", "item": "tomb-peridot" }
+                  { "type": "item", "item": "grave-coins" }
                 ]
               }
             }
@@ -729,11 +697,11 @@
           "hiddenIn": "sarcophagus-lid"
         },
         {
-          "id": "tomb-peridot",
-          "name": "Peridot",
-          "description": "A clear olive-green peridot.",
-          "kind": "treasure",
-          "treasure": "gem-50gp",
+          "id": "grave-coins",
+          "name": "Grave Coins",
+          "description": "A handful of old coins, laid on the lord's breastbone.",
+          "kind": "coin",
+          "coins": { "gp": 5, "sp": 20 },
           "hiddenIn": "sarcophagus-lid"
         }
       ]
@@ -960,7 +928,7 @@
         {
           "id": "ghoul",
           "monster": "ghoul",
-          "description": "The ghoul looks up from the chest, a jewelled goblet in its claws, and springs.",
+          "description": "The ghoul looks up from the chest, a fistful of old coins in its claws, and springs.",
           "boss": true
         }
       ],

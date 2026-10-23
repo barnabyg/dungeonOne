@@ -431,9 +431,8 @@ test("scripted DM: two attacks at two targets, then a third attack is refused", 
   assert.deepEqual(random.drawn, []);
 });
 
-test("modules may recommend level 5, with a 750 gp budget", () => {
-  assert.equal(treasureBudget(5), 75000);
-  assert.equal(treasureBudget(5), 5 * treasureBudget(1));
+test("modules may recommend level 5, with a 600 gp budget", () => {
+  assert.equal(treasureBudget(5), 60000);
   assert.equal(tierAllowed("uncommon", 5), true);
   assert.equal(tierAllowed("rare", 5), false);
   const module = moduleFile("lintel-barrow");

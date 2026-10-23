@@ -146,6 +146,15 @@ function barrowCarrying(items, monster = "goblin-warrior") {
 const coin = (coins) => ({ kind: "coin", coins });
 const trinket = (treasure) => ({ kind: "treasure", treasure });
 
+/**
+ * `module` for levels 1 to 2, where a carried trinket may join the torc: a
+ * level-1 module hides one gem or art object.
+ */
+const toLevel2 = (module) => ({
+  ...module,
+  recommendedLevels: { min: 1, max: 2 },
+});
+
 test("the validator accepts carried loot its treasure type could produce, and a key", () => {
   for (const items of [
     [],
@@ -157,9 +166,19 @@ test("the validator accepts carried loot its treasure type could produce, and a 
     validateModule(barrowCarrying(items));
   }
   validateModule(
-    barrowCarrying([coin({ sp: 18 }), trinket("art-25gp")], "goblin-boss"),
+    toLevel2(
+      barrowCarrying([coin({ sp: 18 }), trinket("art-25gp")], "goblin-boss"),
+    ),
   );
-  validateModule(barrowCarrying([trinket("gem-10gp")], "bugbear-warrior"));
+  validateModule(
+    toLevel2(barrowCarrying([trinket("gem-10gp")], "bugbear-warrior")),
+  );
+  // A carried trinket counts toward a level-1 module's one.
+  assert.throws(
+    () =>
+      validateModule(barrowCarrying([trinket("gem-10gp")], "bugbear-warrior")),
+    /it hides 2 gems and art objects \(silver-torc, carried-1\), but a module for level 1 hides at most 1\./,
+  );
 });
 
 test("the validator rejects carried loot outside the opponent's treasure type", () => {
@@ -230,7 +249,7 @@ test("carried loot counts toward the treasure budget", () => {
   });
   assert.throws(() => validateModule(module), {
     message:
-      /module lintel-barrow: its findable treasure is worth 150 gp 8 cp, 8 cp over the 150 gp budget for level 1\./,
+      /module lintel-barrow: its findable treasure is worth 50 gp 8 cp, 8 cp over the 50 gp budget for level 1\./,
   });
   room(module, "burial-hall").items.at(-2).coins = { cp: 10 };
   validateModule(module);
@@ -280,7 +299,7 @@ test("rolling a module writes each bestiary opponent's loot into its room, the s
 
 test("a goblin boss's roll gives silver and one trinket", () => {
   const { module } = rollModuleLoot(
-    barrowCarrying([], "goblin-boss"),
+    toLevel2(barrowCarrying([], "goblin-boss")),
     bestiary,
     3,
   );
@@ -342,7 +361,7 @@ test("the roll refuses a module it would push over budget, or whose item ids cla
   });
   assert.throws(
     () => rollModuleLoot(rich, bestiary, 1),
-    /Invalid adventure module: module lintel-barrow: its findable treasure is worth 150 gp \d+ cp, \d+ cp over the 150 gp budget for level 1\./,
+    /Invalid adventure module: module lintel-barrow: its findable treasure is worth 50 gp \d+ cp, \d+ cp over the 50 gp budget for level 1\./,
   );
   const clash = barrowCarrying([]);
   room(clash, "burial-hall").items[0].id = "barrow-goblin-coins";
@@ -376,7 +395,7 @@ test("npm run loot rolls a module file in place with a seed, and says what it ro
       [
         "Rolled loot for lintel-barrow with seed 7:",
         "  barrow-goblin (copper): Goblin Warrior's Coins",
-        `Findable treasure: ${formatCoins(TRADE_GOODS["art-25gp"].value + pouch.coins.cp)} of the 150 gp budget for level 1.`,
+        `Findable treasure: ${formatCoins(TRADE_GOODS["art-25gp"].value + pouch.coins.cp)} of the 50 gp budget for level 1.`,
         "",
       ].join("\n"),
     );

@@ -246,7 +246,7 @@ test("two ways lead down, the stair past the Toll Hall's fight and the culvert p
   );
 });
 
-test("its treasure is 83% of the long module's 1,200 gp budget at level 4, with five potions inside it and the wand outside", () => {
+test("its treasure is 82% of the long module's 900 gp budget at level 4, with its five potions and the wand outside it", () => {
   const items = weirgate.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
     items
@@ -265,8 +265,8 @@ test("its treasure is 83% of the long module's 1,200 gp budget at level 4, with 
   assert.deepEqual(room("outfall").items, []);
   // The Day's Takings rose from 20 to 45 gp, and the River Pearl joined the
   // spillway's bones (#443).
-  assert.equal(findableValue(weirgate), 99230);
-  assert.equal(treasureBudget(4, true), 120000);
+  assert.equal(findableValue(weirgate), 74230);
+  assert.equal(treasureBudget(4, true), 90000);
 });
 
 const DOWN_THE_STAIR = [

@@ -279,8 +279,8 @@ test(
       const record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
       assert.deepEqual([record.sheet.level, record.sheet.xp], [3, 900 + 575]);
-      // 20 gp, less the 5 gp toll, with the till's 6 gp and the coffer's 150.
-      assert.equal(record.sheet.purse, 2000 - 500 + 600 + 15000);
+      // 20 gp, less the 5 gp toll, with the till's 6 gp and the coffer's 140.
+      assert.equal(record.sheet.purse, 2000 - 500 + 600 + 14000);
       assert.deepEqual(
         record.sheet.treasure.map(({ name }) => name),
         TREASURE,
