@@ -3472,6 +3472,15 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
 export const CASTER_JUDGED_LEVEL = 3;
 
 /**
+ * The lowest level class parity is reported at (#536, owner's D4): from it
+ * a weak caster's cautious survival should be within `PARITY_POINTS` of a
+ * weak Fighter's. Fighters keep their edge below it.
+ */
+export const PARITY_LEVEL = 4;
+/** How many points of survival a caster may trail the Fighter by (#536). */
+export const PARITY_POINTS = 5;
+
+/**
  * The seeds a caster plays both casting policies on (#348, owner's choice
  * for D12): each kit and level then plays the rest by the one that
  * survived more of them, and the spend-early report covers these alone.
@@ -3538,6 +3547,56 @@ export type SurvivalCheck = Readonly<{
   reported?: true;
   required: number;
 }>;
+
+/** One branch's weakest kit at a level (#536), with a caster's policy. */
+export type ParityFigure = Readonly<{
+  kit: KitId;
+  rate: number;
+  casting?: CastingPolicy;
+}>;
+
+/**
+ * The weakest character's cautious survival at one level from
+ * `PARITY_LEVEL` (#536): its weakest kit on seeded checks and with every
+ * check failing.
+ */
+export type ParityLevel = Readonly<{
+  level: number;
+  seeded: ParityFigure;
+  alwaysFail: ParityFigure;
+}>;
+
+/**
+ * Each level's parity figures from `PARITY_LEVEL` (#536), in level order:
+ * the kit `survival` and `alwaysFail` survive least with at that level.
+ * Empty for a module whose levels are all below.
+ */
+export function parityLevels(
+  survival: Pick<SurvivalCheck, "kits">,
+  alwaysFail: Pick<SurvivalCheck, "kits">,
+): readonly ParityLevel[] {
+  const weakestAt = (
+    { kits }: Pick<SurvivalCheck, "kits">,
+    level: number,
+  ): ParityFigure => {
+    const { kit, rate, casting } = kits
+      .filter((entry) => entry.level === level)
+      .reduce((worst, entry) => (entry.rate < worst.rate ? entry : worst));
+    return { kit, rate, ...(casting === undefined ? {} : { casting }) };
+  };
+  const levels = [
+    ...new Set(
+      survival.kits
+        .map(({ level }) => level)
+        .filter((level) => level >= PARITY_LEVEL),
+    ),
+  ].sort((a, b) => a - b);
+  return levels.map((level) => ({
+    level,
+    seeded: weakestAt(survival, level),
+    alwaysFail: weakestAt(alwaysFail, level),
+  }));
+}
 
 /**
  * The weakest character's stealth-first runs (#302) with each kit at each
@@ -3810,6 +3869,12 @@ export type GateVerdict = Readonly<{
    * reaction-eligible encounter; absent otherwise, or when not asked for.
    */
   reactions?: readonly ReactionPolicyReport[];
+  /**
+   * Reported, not judged (#536): each level's figures from `PARITY_LEVEL`,
+   * which `moduleGateResult` sets beside the Fighter's; absent for a
+   * module whose levels are all below.
+   */
+  parity?: readonly ParityLevel[];
 }>;
 
 /**
@@ -3851,6 +3916,7 @@ export type GateMeasures = Readonly<{
   alarm?: AlarmReport;
   wandering?: WanderingReport;
   reactions?: readonly ReactionPolicyReport[];
+  parity?: readonly ParityLevel[];
 }>;
 
 /**
@@ -4688,6 +4754,8 @@ export function gateAdventure(
       endLevel,
       levelLimit,
     };
+    // Class parity (#536), from the judged runs' figures.
+    const parity = parityLevels(survival, alwaysFail);
 
     return {
       ok: true,
@@ -4710,6 +4778,7 @@ export function gateAdventure(
           ...(wandering === undefined ? {} : { wandering }),
           ...(reactions === undefined ? {} : { reactions }),
           ...(spendEarly === undefined ? {} : { spendEarly }),
+          ...(parity.length === 0 ? {} : { parity }),
         },
         adventure.difficulty,
       ),
@@ -4855,6 +4924,7 @@ export function gateVerdictAt(
     ...(measures.spendEarly === undefined
       ? {}
       : { spendEarly: measures.spendEarly }),
+    ...(measures.parity === undefined ? {} : { parity: measures.parity }),
   };
 }
 
@@ -4872,7 +4942,72 @@ export type ModuleGateResult = Readonly<{
   qualified: boolean;
   /** Each class's result, in `GATE_CLASSES` order. */
   classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
+  /**
+   * Reported, not judged (#536): each caster against the Fighter at each
+   * level from `PARITY_LEVEL`; absent when there is none.
+   */
+  parity?: readonly ParityLine[];
 }>;
+
+/** A caster's figure on one branch beside the Fighter's (#536). */
+export type ParityComparison = Readonly<{
+  caster: ParityFigure;
+  fighter: ParityFigure;
+  /** The Fighter's survival less the caster's, in points to one decimal. */
+  gap: number;
+  /** Whether the gap is at most `PARITY_POINTS`. */
+  within: boolean;
+}>;
+
+/** One caster at one level against the Fighter (#536). */
+export type ParityLine = Readonly<{
+  classId: ClassId;
+  level: number;
+  seeded: ParityComparison;
+  alwaysFail: ParityComparison;
+}>;
+
+/**
+ * Each caster class's parity figures (#536) set beside the Fighter's at
+ * each level both report, in `classes` order: none when the Fighter
+ * failed, and none for a caster that failed.
+ */
+function parityLines(classes: ModuleGateResult["classes"]): ParityLine[] {
+  const parityOf = (classId: ClassId) => {
+    const found = classes.find((entry) => entry.classId === classId)?.result;
+    return found?.ok === true ? (found.verdict.parity ?? []) : [];
+  };
+  const fighter = parityOf("fighter");
+  const compare = (
+    caster: ParityFigure,
+    against: ParityFigure,
+  ): ParityComparison => {
+    const gap = Math.round((against.rate - caster.rate) * 1000) / 10;
+    return {
+      caster,
+      fighter: against,
+      gap,
+      within: gap <= PARITY_POINTS,
+    };
+  };
+  return classes
+    .filter(({ classId }) => CLASSES[classId].spellcasting !== undefined)
+    .flatMap(({ classId }) =>
+      parityOf(classId).flatMap(({ level, seeded, alwaysFail }) => {
+        const matched = fighter.find((entry) => entry.level === level);
+        return matched === undefined
+          ? []
+          : [
+              {
+                classId,
+                level,
+                seeded: compare(seeded, matched.seeded),
+                alwaysFail: compare(alwaysFail, matched.alwaysFail),
+              },
+            ];
+      }),
+    );
+}
 
 /**
  * Gates `adventure` for every class in `GATE_CLASSES` (`gateAdventure` for
@@ -4894,18 +5029,21 @@ export function gateModule(
 /**
  * The module verdict for `adventureId` from each class's result, in
  * `GATE_CLASSES` order: as `gateModule` gives it, for results gated apart
- * (on worker threads, say).
+ * (on worker threads, say). Class parity (#536) is reported beside it and
+ * never judged.
  */
 export function moduleGateResult(
   adventureId: string,
   classes: ModuleGateResult["classes"],
 ): ModuleGateResult {
+  const parity = parityLines(classes);
   return {
     adventureId,
     qualified: classes.every(
       ({ result }) => result.ok && result.verdict.qualified,
     ),
     classes,
+    ...(parity.length === 0 ? {} : { parity }),
   };
 }
 
@@ -5133,15 +5271,42 @@ function alarmLine(report: AlarmReport, who: string): string {
 
 /**
  * The gate's verdict on a module for every class as plain text: each
- * class's `renderGateResult`, in `GATE_CLASSES` order.
+ * class's `renderGateResult`, in `GATE_CLASSES` order, then a class-parity
+ * line (#536) for each caster at each level from `PARITY_LEVEL`.
  */
 export function renderModuleGateResult(
   adventure: Pick<FifthAdventure, "id" | "title">,
   result: ModuleGateResult,
 ): string {
-  return result.classes
-    .map(({ classId, result: gate }) =>
+  return [
+    ...result.classes.map(({ classId, result: gate }) =>
       renderGateResult(adventure, gate, classId),
-    )
-    .join("\n");
+    ),
+    ...(result.parity ?? []).map(parityLine),
+  ].join("\n");
+}
+
+/**
+ * A caster's class parity at one level (#536) as a line: on each branch its
+ * weakest kit's survival against the Fighter's, and how far behind it is.
+ */
+function parityLine({
+  classId,
+  level,
+  seeded,
+  alwaysFail,
+}: ParityLine): string {
+  const figure = ({ kit, rate, casting }: ParityFigure) =>
+    `${percent(rate)} (${kit}${casting === undefined ? "" : `, ${casting}`})`;
+  const gap = ({ gap: points, within }: ParityComparison) =>
+    points > 0
+      ? `${decimal(points)} points behind (${within ? "within" : "more than"} ${PARITY_POINTS})`
+      : points < 0
+        ? `${decimal(-points)} points ahead`
+        : "level with it";
+  return (
+    `Class parity, reported (not judged): the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile, ` +
+    `survived ${figure(seeded.caster)} on seeded checks against the Fighter's ${figure(seeded.fighter)}, ${gap(seeded)}; ` +
+    `when every check fails ${figure(alwaysFail.caster)} against ${figure(alwaysFail.fighter)}, ${gap(alwaysFail)}.`
+  );
 }
