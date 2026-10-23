@@ -1299,6 +1299,14 @@
             "failure-by-5": {
               "text": "The grate clangs against its frame, and the noise rings up through the keep.",
               "noisy": true
+            },
+            "failure": {
+              "text": "The padlock holds, and the grate rattles in its frame.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The padlock snaps, and the grate crashes back against the wall.",
+              "noisy": true
             }
           }
         }

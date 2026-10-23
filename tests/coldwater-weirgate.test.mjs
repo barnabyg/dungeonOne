@@ -180,7 +180,15 @@ test("two ways lead down, the stair past the Toll Hall's fight and the culvert p
       { ability: "dexterity", tool: "thieves-tools", dc: 13 },
     ],
   );
-  assert.equal(grate.break.bands["failure-by-5"].noisy, true);
+  // Might is loud (#545): every band of the grate's break rings the bell.
+  assert.deepEqual(
+    Object.entries(grate.break.bands).map(([band, { noisy }]) => [band, noisy]),
+    [
+      ["failure-by-5", true],
+      ["failure", true],
+      ["success", true],
+    ],
+  );
   // The culvert is hidden until the keeper's crank drains it.
   assert.equal(passage("drained-culvert").hidden, true);
   assert.deepEqual(feature("sluice-house", "drain-gear").uses, [
@@ -613,4 +621,26 @@ test("a level-3 Fighter slips past the sleeping bandits, sneaks up on them again
     xpOf(runtime, state).filter(([name]) => /^Slipped past/u.test(name)),
     [["Slipped past Sleepy Bandit and Bleary Bandit", 50]],
   );
+});
+
+test("a grate broken open rings the weir bell too (#545)", () => {
+  const { state } = firstJourney(
+    weirgate,
+    level3,
+    [
+      ["move", "toll-hall"],
+      ["react", "attack"],
+      ["move", "stair-head"],
+      ["break", "iron-grate"],
+    ],
+    ({ status, flags, checks }) =>
+      status === "playing" &&
+      flags.includes("bell-rung") &&
+      checks.some(
+        ({ id, band }) =>
+          id === "break:iron-grate" && band.startsWith("success"),
+      ),
+    { limit: 200 },
+  );
+  assert.ok(state.openedDoorIds.includes("iron-grate"));
 });

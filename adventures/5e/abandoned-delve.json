@@ -764,7 +764,24 @@
         "name": "Swollen Door",
         "description": "The damp wood has swollen tight in its frame.",
         "state": "stuck",
-        "force": { "skill": "athletics", "dc": 12 }
+        "force": {
+          "skill": "athletics",
+          "dc": 12,
+          "bands": {
+            "failure-by-5": {
+              "text": "You slam into the door, and it shudders without giving. The thud booms down the stair.",
+              "noisy": true
+            },
+            "failure": {
+              "text": "The door groans in its frame and holds.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The door bursts open with a crack that echoes through the cellars.",
+              "noisy": true
+            }
+          }
+        }
       }
     },
     {
@@ -849,6 +866,14 @@
           "bands": {
             "failure-by-5": {
               "text": "The bronze rings like a bell, and the echo rolls away through the crypts.",
+              "noisy": true
+            },
+            "failure": {
+              "text": "The bronze door booms under the blow and holds.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The door gives with a crash that echoes through the crypts.",
               "noisy": true
             }
           }

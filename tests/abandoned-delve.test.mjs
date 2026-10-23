@@ -255,7 +255,13 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
   const vault = passage("shaft-bottom", "vault").door;
   assert.equal(vault.state, "locked");
   assert.deepEqual(vault.keyItemIds, ["bronze-key"]);
-  assert.equal(vault.break.bands["failure-by-5"].noisy, true);
+  // Might is loud (#545): every band of the vault's break and the
+  // storeroom's force rouses the crypts.
+  assert.deepEqual(noisyBands(vault.break), ALL_NOISY);
+  assert.deepEqual(
+    noisyBands(passage("gate-hall", "storeroom").door.force),
+    ALL_NOISY,
+  );
 });
 
 test("the sarcophagus opens two ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe", () => {
@@ -824,3 +830,57 @@ test("the live qualification runs only with --live and a key, and its dry run fl
       [true, true, true, true, true, false, false, false, false, false],
     );
   }));
+
+/** Each band of a door's check, and whether it is noisy. */
+const noisyBands = (check) =>
+  Object.entries(check.bands).map(([band, { noisy }]) => [band, noisy]);
+const ALL_NOISY = [
+  ["failure-by-5", true],
+  ["failure", true],
+  ["success", true],
+];
+
+// #545: a door broken or forced open rouses the crypts, success included.
+const forcedOpen = (doorId) => (state) =>
+  state.status === "playing" &&
+  state.flags.includes("delve-roused") &&
+  state.checks.some(
+    ({ id, band }) => id.endsWith(doorId) && band.startsWith("success"),
+  );
+
+test("forcing the swollen storeroom door open rouses the crypts", () => {
+  const { state } = firstJourney(
+    delve,
+    testFighterAt(2),
+    [
+      ["move", "gate-hall"],
+      ["force", "swollen-door"],
+    ],
+    forcedOpen("swollen-door"),
+  );
+  assert.ok(state.openedDoorIds.includes("swollen-door"));
+});
+
+test("breaking the vault door open rouses the crypts, which brings Mags to the shaft bottom", () => {
+  const { state } = firstJourney(
+    delve,
+    testFighterAt(2),
+    [
+      ["move", "gate-hall"],
+      ["move", "guard-post"],
+      ["move", "dry-well"],
+      ["search", "dry-well"],
+      ["move", "shrine"],
+      ["move", "shaft-bottom"],
+      ["break", "vault-door"],
+    ],
+    forcedOpen("vault-door"),
+    { limit: 200 },
+  );
+  assert.ok(state.openedDoorIds.includes("vault-door"));
+  assert.equal(
+    delve.encounters.find(({ movesTo }) => movesTo?.when === "delve-roused")
+      .movesTo.roomId,
+    "shaft-bottom",
+  );
+});
