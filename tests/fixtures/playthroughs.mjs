@@ -29,6 +29,7 @@ import {
   FIXTURE_MODULES,
   goblinBand,
   goblinTrio,
+  lintelBarrow,
   sealedCrypt,
   snakeDoor,
   statueCellar,
@@ -188,6 +189,8 @@ function madeAction({
     case "fall":
       return { type: action, actorId: PLAYER };
     case "use":
+    // A Pearl of Power (#538) is used as a potion is drunk.
+    case "regain-slot":
       return { type: "use-item", itemId: target.id };
     case "move":
     case "sneak":
@@ -284,6 +287,13 @@ function madeAction({
 /** A level-5 Evoker (#344) with Vampiric Touch and Slow prepared. */
 const evoker = () => vela(["vampiric-touch", "slow"]);
 
+/** The level-3 test caster holding a Pearl of Power (#538). */
+const pearlCaster = () =>
+  validateCharacter({
+    ...testCasterAt(3),
+    magicItems: [{ id: "a/pearl", casterItem: "pearl-of-power" }],
+  });
+
 /** The test caster with buffs and Shield prepared (#337). */
 const BUFFED = {
   cantrips: ["fire-bolt", "sacred-flame"],
@@ -311,7 +321,8 @@ const AREAS = {
  * whose stone snake fits a door (#400); then the statue cellar, whose
  * statue may be toppled onto a rat (#402); then the alarmed tunnels, whose
  * noise raises an alarm (#401); then the wandering tunnels, whose regions
- * roll wandering encounter tables (#403).
+ * roll wandering encounter tables (#403); then the level-3 test caster
+ * holding a Pearl of Power (#538).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -338,6 +349,7 @@ const PLAYTHROUGHS = [
   { adventure: statueCellar, fighters: [ada] },
   { adventure: alarmTunnels, fighters: [ada] },
   { adventure: wanderingTunnels, fighters: [ada] },
+  { adventure: lintelBarrow, fighters: [pearlCaster()] },
 ];
 
 /**

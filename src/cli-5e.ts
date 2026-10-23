@@ -115,6 +115,7 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   rest: "Short rest",
   "long-rest": "Long rest",
   cast: "Cast ",
+  "regain-slot": "Regain a spell slot with ",
 };
 
 type Options = Readonly<

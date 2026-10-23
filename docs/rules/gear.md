@@ -62,8 +62,9 @@ The catalogue holds SRD 5.2's **+1 Weapon**, **+1 Armor** and **+1 Shield** for 
 
 - **Attunement (SRD 5.2, D2).** Allowed only for an item restricted to spellcasters (a class with spells: Cleric, Wizard) or named classes; the validator refuses one any class may attune. A character attunes as it picks the item up, to at most 3 at once (`ATTUNEMENT_LIMIT`): the first 3 it holds that its class may attune, in the order found. Attunement is worked out from what it holds, never stored. An item it can't attune does nothing, and its text says why.
 - **Wand of the War Mage +1** (uncommon, attunement by a spellcaster): +1 to the holder's spell attack rolls, cantrips and levelled spells alike, a spiritual weapon's and a draining touch's too; a scroll keeps its own bonus. Ignoring half cover is omitted: there are no positions.
-- **Shown** in "You carry" and on the sheet with its effect and whether it is attuned; the spell attack bonus includes it. The AI DM sees it as any carried item, and no tool changes the bonus.
-- **Kept or lost** like gear. No merchant sells or buys one. The harness plays it as the bonus it gives: it is passive.
+- **Pearl of Power** (uncommon wondrous item, attunement by a spellcaster): outside a fight, using it (**Regain a slot** on its "You carry" entry, or the AI DM's `use_item`) regains one spent spell slot of 3rd level or lower, the highest spent (the engine picks it, a simplification), once per long rest; a long rest or the rest between adventures makes it work again. SRD 5.2's Magic action in a fight is omitted (owner's choice). It is refused with no slot spent, in a fight, once used, and for a holder not attuned; the AI DM's status says whether it is used.
+- **Shown** in "You carry" and on the sheet with its effect and whether it is attuned; the spell attack bonus includes the wand's. The AI DM sees each as any carried item, and no tool changes a bonus.
+- **Kept or lost** like gear. No merchant sells or buys one. The harness plays the wand as the bonus it gives (it is passive) and uses a Pearl of Power as soon as a slot is spent outside a fight (see [balance.md](balance.md)).
 
 ## Spell scrolls and wands
 

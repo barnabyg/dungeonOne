@@ -1036,6 +1036,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   rest: "rest",
   "long-rest": "long_rest",
   cast: "cast",
+  "regain-slot": "use_item",
 };
 const READ_TOOLS = ["look", "get_character_status"];
 /** The actions whose tools take no argument. */

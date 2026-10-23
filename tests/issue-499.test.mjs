@@ -151,7 +151,7 @@ test("falling instead ends the adventure in its defeat ending", () => {
 });
 
 test("the DM prompt tells the AI DM how Last Stand is answered", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /death saving throw \(Last Stand\); on a success its fall waits for the player's answer: only use_item is offered/u,
@@ -200,14 +200,14 @@ test("a saved session waiting for Last Stand reloads it, a trace replays it, and
     const replayed = await verifyFifthTraceFile(tracePath, [potionCellar]);
     assert.deepEqual(replayed.state, run.session.state);
     // Older formats are refused, naming the file.
-    assert.equal(FIFTH_SESSION_FORMAT, 66);
+    assert.equal(FIFTH_SESSION_FORMAT, 67);
     assert.equal(FIFTH_TRACE_FORMAT, 61);
     const saved = JSON.parse(await readFile(path, "utf8"));
     await writeFile(path, JSON.stringify({ ...saved, formatVersion: 64 }));
     await assert.rejects(
       FifthSession.load(path, [potionCellar]),
       new RegExp(
-        String.raw`session\.json is an adventure session in format version 64, not 66\. This build cannot continue it\. Move it aside; the file has not been changed\.`,
+        String.raw`session\.json is an adventure session in format version 64, not 67\. This build cannot continue it\. Move it aside; the file has not been changed\.`,
         "u",
       ),
     );

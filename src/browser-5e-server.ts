@@ -679,6 +679,8 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),
+  // A Pearl of Power (#538), by its held id.
+  "regain-slot": (itemId) => ({ type: "use-item", itemId }),
   // Using a carried item on a feature (#400): `featureId:itemId`.
   "use-on": (target) => {
     const [featureId = "", itemId = ""] = target.split(":", 2);

@@ -2745,7 +2745,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
               proficiency +
               modifiers[casting.ability] +
               attunedItems(sheet).reduce(
-                (sum, id) => sum + CASTER_ITEMS[id].spellAttack,
+                (sum, id) => sum + (CASTER_ITEMS[id].spellAttack ?? 0),
                 0,
               ),
             saveDc: 8 + proficiency + modifiers[casting.ability],

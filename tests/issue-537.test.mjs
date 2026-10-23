@@ -212,7 +212,7 @@ test("the validator: the wand in a module's caster slot beside a +1 shortsword; 
       validateModule(
         warMageBarrowFile([{ ...WAR_WAND, casterItem: "wand-of-wishes" }]),
       ),
-    /is a caster item, so it needs casterItem: one of wand-of-the-war-mage-plus-1\./u,
+    /is a caster item, so it needs casterItem: one of wand-of-the-war-mage-plus-1, pearl-of-power\./u,
   );
   assert.throws(
     () =>

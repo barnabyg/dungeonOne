@@ -92,9 +92,9 @@ const at = (roomId, more = {}) => ({
 
 test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
-  assert.equal(FIFTH_SESSION_FORMAT, 66);
+  assert.equal(FIFTH_SESSION_FORMAT, 67);
   assert.equal(FIFTH_TRACE_FORMAT, 61);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool summons, rolls for, delays or keeps away a wandering encounter\./u,

@@ -28,7 +28,9 @@
  * caster items it holds that its class may attune, as it picks each up;
  * attunement is worked out from what it holds, never stored
  * (`attunedItems` in `character-5e.ts`). An item it can't attune does
- * nothing. A module may hide one in its caster slot (D1).
+ * nothing. A module may hide one in its caster slot (D1). SRD 5.2's Pearl
+ * of Power (#538) is used rather than worn: outside a fight it regains one
+ * spent spell slot of 3rd level or lower, the highest, once per long rest.
  *
  * A character keeps the scrolls, wands and caster items it holds at the end
  * of a surviving adventure; each is a `HeldMagicItem`, named by the find it
@@ -107,18 +109,23 @@ export const ATTUNEMENT_LIMIT = 3;
 export type CasterItemData = Readonly<{
   name: string;
   /** Its SRD 5.2 category. */
-  category: "wand";
+  category: "wand" | "wondrous item";
   rarity: "uncommon";
   attunement: Attunement;
   /** What it adds to its holder's spell attack rolls while attuned. */
-  spellAttack: number;
+  spellAttack?: number;
+  /**
+   * The highest level of spell slot it regains (#538), once per long rest,
+   * when its holder uses it outside a fight.
+   */
+  regainsSlot?: number;
 }>;
 
 /**
- * SRD 5.2 caster items (#537): magic items that need attunement by a
+ * SRD 5.2 caster items (#537, #538): magic items that need attunement by a
  * spellcaster or a named class, found in a module's caster slot (D1).
  */
-export const CASTER_ITEMS = {
+const CASTER_ITEM_DATA = {
   "wand-of-the-war-mage-plus-1": {
     name: "Wand of the War Mage +1",
     category: "wand",
@@ -126,8 +133,17 @@ export const CASTER_ITEMS = {
     attunement: { by: "spellcaster" },
     spellAttack: 1,
   },
+  "pearl-of-power": {
+    name: "Pearl of Power",
+    category: "wondrous item",
+    rarity: "uncommon",
+    attunement: { by: "spellcaster" },
+    regainsSlot: 3,
+  },
 } as const satisfies Record<string, CasterItemData>;
-export type CasterItemId = keyof typeof CASTER_ITEMS;
+export type CasterItemId = keyof typeof CASTER_ITEM_DATA;
+export const CASTER_ITEMS: Readonly<Record<CasterItemId, CasterItemData>> =
+  CASTER_ITEM_DATA;
 
 export function isCasterItemId(value: unknown): value is CasterItemId {
   return typeof value === "string" && Object.hasOwn(CASTER_ITEMS, value);
@@ -260,6 +276,16 @@ export function chargesText(item: HeldMagicItem): string | undefined {
     : `${item.charges} of ${WANDS[item.wand].charges} charges`;
 }
 
+/** What a caster item does while attuned, as its text says it. */
+function casterItemEffect({
+  spellAttack,
+  regainsSlot,
+}: CasterItemData): string {
+  return regainsSlot !== undefined
+    ? `use it outside a fight to regain one spent spell slot of ${ordinal(regainsSlot)} level or lower, the highest spent; once per long rest.`
+    : `+${spellAttack ?? 0} to your spell attack rolls (a scroll keeps its own bonus).`;
+}
+
 /**
  * Whether a character is attuned to a caster item it holds (#537), and if
  * not, why not.
@@ -279,7 +305,7 @@ export function heldItemText(
 ): string {
   if (item.casterItem !== undefined) {
     const data = CASTER_ITEMS[item.casterItem];
-    const effect = `An ${data.rarity} ${data.category} that requires attunement by ${attunementText(data.attunement)}: while attuned, +${data.spellAttack} to your spell attack rolls (a scroll keeps its own bonus).`;
+    const effect = `An ${data.rarity} ${data.category} that requires attunement by ${attunementText(data.attunement)}: while attuned, ${casterItemEffect(data)}`;
     return attunement === undefined
       ? effect
       : attunement.attuned

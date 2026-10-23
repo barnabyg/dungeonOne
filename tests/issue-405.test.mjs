@@ -46,7 +46,7 @@ const knownRoom = (runtime, state, id) =>
     .find((entry) => entry.id === id);
 
 test("the formats bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 66);
+  assert.equal(FIFTH_SESSION_FORMAT, 67);
   assert.equal(FIFTH_TRACE_FORMAT, 61);
 });
 

@@ -1743,6 +1743,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // with Shield; a caster attacks with a cantrip, and casts levelled damage
   // and control spells by its casting policy (#348).
   cast: true,
+  // A Pearl of Power, outside a fight, as soon as a slot is spent (#538).
+  "regain-slot": true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,
@@ -1910,6 +1912,7 @@ const EXPLORE_HEALS: ReadonlySet<ActionKind> = new Set([
   "use",
 ]);
 const EXPLORE_SEARCHES: ReadonlySet<ActionKind> = new Set(["search", "disarm"]);
+const EXPLORE_REGAINS: ReadonlySet<ActionKind> = new Set(["regain-slot"]);
 const EXPLORE_WAYS: ReadonlySet<ActionKind> = new Set(["move", "ambush"]);
 const EXPLORE_WAYS_SNEAKING: ReadonlySet<ActionKind> = new Set([
   ...EXPLORE_WAYS,
@@ -2021,6 +2024,8 @@ export type RunRecord = Readonly<{
   }>;
   /** Spells the character cast, of any kind (#340). */
   spellsCast: number;
+  /** Spell slots a Pearl of Power regained (#538). */
+  slotsRegained: number;
   /**
    * Channel Divinity uses spent (#341): Turn Undead, Divine Spark and
    * Preserve Life.
@@ -2221,6 +2226,7 @@ export function playAdventure(
   let reactionChoices = 0;
   let retreatChances = 0;
   let fightActions = 0;
+  let slotsRegained = 0;
   /** The fights the run fled (#396), each fled once, and whether it is heading out. */
   const fledFrom: string[] = [];
   let retreating = false;
@@ -2939,6 +2945,23 @@ export function playAdventure(
         return ward;
       }
     }
+    // A Pearl of Power (#538), as soon as a slot is spent outside a fight.
+    if (
+      state.possessions.magicItems.some(
+        ({ casterItem }) =>
+          casterItem !== undefined &&
+          CASTER_ITEMS[casterItem].regainsSlot !== undefined,
+      )
+    ) {
+      const regain = offered(
+        project(EXPLORE_REGAINS, NO_SPELLS),
+        "regain-slot",
+      )[0];
+      if (regain !== undefined) {
+        slotsRegained += 1;
+        return regain;
+      }
+    }
     // Only what is here and not yet examined is projected (#410): once
     // everything is, nothing.
     const unexamined = new Set(
@@ -3138,6 +3161,7 @@ export function playAdventure(
     encounters: fights,
     healing,
     spellsCast,
+    slotsRegained,
     channelDivinity,
     trapDamage,
     xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
