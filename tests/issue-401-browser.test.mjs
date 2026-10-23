@@ -18,8 +18,8 @@ import { alarmTunnels, ratTunnels } from "./fixtures/modules.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
-const WORDS =
-  "A gong booms below, and goblin voices shout. The tunnels are roused.";
+/** The room panel's standing line once the alarm is raised (#547). */
+const WORDS = "The alarm is raised.";
 
 test("Ada raises the alarm at the crates, and it stays raised after a reload", async () => {
   const directory = await mkdtemp(join(tmpdir(), "issue-401-browser-"));
@@ -61,7 +61,7 @@ test("Ada raises the alarm at the crates, and it stays raised after a reload", a
     });
     assert.ok(saved.flags.includes("alarm"));
 
-    // A reload keeps the alarm raised, in the module's words.
+    // A reload keeps the alarm raised.
     await page.reload();
     await page.locator("#adventure").waitFor({ state: "visible" });
     assert.deepEqual((await sessionFile(directory)).state.alarm, saved.alarm);

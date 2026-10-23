@@ -409,20 +409,19 @@ test("the alarm drops the grate and brings the lookout to the landing", () => {
 
 // What the player and the AI DM see.
 
-test("the room panel says the alarm is raised, in the module's words", () => {
+// The module's words are the moment it is raised, told once in the result
+// that raised it; the room panel then only says it is raised (#547).
+test("the room panel says the alarm is raised, in every room from then on", () => {
   const start = runtime.createSession();
   assert.equal(runtime.projectRoom(start).alarm, undefined);
-  const raised = crashed().state;
-  assert.equal(
-    runtime.projectRoom(raised).alarm,
-    "A gong booms below, and goblin voices shout. The tunnels are roused.",
+  const result = crashed();
+  assert.deepEqual(
+    alarmEvents(result).map(({ text }) => text),
+    ["A gong booms below, and goblin voices shout. The tunnels are roused."],
   );
-  // In every room from then on.
-  const alcove = accepted(runtime, raised, MOVE("alcove")).state;
-  assert.equal(
-    runtime.projectRoom(alcove).alarm,
-    "A gong booms below, and goblin voices shout. The tunnels are roused.",
-  );
+  assert.equal(runtime.projectRoom(result.state).alarm, "The alarm is raised.");
+  const alcove = accepted(runtime, result.state, MOVE("alcove")).state;
+  assert.equal(runtime.projectRoom(alcove).alarm, "The alarm is raised.");
 });
 
 test("the AI DM's scene says the alarm is raised, and no tool raises or lowers it", () => {

@@ -47,7 +47,7 @@ A module may declare an **alarm** (`alarm`: `{ "flag", "text", "fights"? }`): on
 
 - **Noise** is: a sneak into a fight that fails by 5 or more; a fight in one of the alarm's `fights` regions (each `{ "region", "round" }`, round 1–10) that goes on past that round, the wandering encounter's included; a check that lands in a band marked `"noisy": true`; or an opponent that flees a fight and survives it, counted when the fight is won or the character leaves it.
 - The engine raises the alarm once, at the first noise, and records what raised it (`alarm` in the session's state); later noise changes nothing, and noise from the action that ends the adventure raises nothing. The result's `alarm` event is what a rule answering the alarm reads.
-- What the alarm changes is authored with flag conditions, as for any flag. Once raised, the module's `text` shows in every room.
+- What the alarm changes is authored with flag conditions, as for any flag. The module's `text` is told once, in the result that raises the alarm; from then on the room panel shows "The alarm is raised." in every room, and the AI DM's scene keeps the module's words.
 - Reachability never counts the alarm as set: a way only it opens is never counted on, and a passage it closes can't be the only way to an essential room or every exit.
 
 ### Features and topics that change with flags

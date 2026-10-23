@@ -2565,7 +2565,7 @@ function renderRoom(room) {
   element("room-region").textContent = room.region ?? "";
   element("room-region").hidden = room.region === undefined;
   element("room-title").textContent = room.name;
-  // Once raised, the module's alarm (#401) shows in its own words.
+  // Once raised, the alarm (#401) stays shown, as a standing line.
   element("room-alarm").textContent = room.alarm ?? "";
   element("room-alarm").hidden = room.alarm === undefined;
   // The encounter waiting here (#530) heads Here; its opponents trading
