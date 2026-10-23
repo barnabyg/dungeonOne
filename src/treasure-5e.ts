@@ -22,6 +22,7 @@ import {
   type Coins,
   type Tier,
 } from "./equipment-5e.js";
+import type { Attunement, CasterItemId, WandId } from "./magic-items-5e.js";
 import type { RandomSource } from "./random.js";
 
 /** What a module's treasure may be worth, by its maximum recommended level, in copper. */
@@ -57,13 +58,17 @@ export const MAGIC_ITEM_LIMITS = {
 
 /**
  * The lowest maximum recommended level of a module that may hide each wand
- * and caster item, by catalogue id (#537, D3), on top of its tier's. A +1
- * weapon, armour or shield, and any item left out, needs only
- * `MAGIC_ITEM_LIMITS.minLevel`. Tune it here.
+ * and caster item, by catalogue id (#537, D3), on top of its tier's; a
+ * new wand or caster item fails to compile until it has a row. A +1
+ * weapon, armour or shield needs only `MAGIC_ITEM_LIMITS.minLevel`. Tune it
+ * here.
  */
-export const MAGIC_ITEM_MIN_LEVEL: Readonly<Record<string, number>> = {
+export const MAGIC_ITEM_MIN_LEVEL: Readonly<
+  Record<WandId | CasterItemId, number>
+> = {
   "wand-of-magic-missiles": 3,
   "wand-of-the-war-mage-plus-1": 3,
+  "pearl-of-power": 3,
 };
 
 /** A magic item a module hides, as `magicItemProblems` judges it. */
@@ -75,7 +80,7 @@ export type HiddenMagicItem = Readonly<{
   /** Its catalogue name: "+1 Shortsword". */
   name: string;
   /** Who may attune it (#537, D2), or false when it needs no attunement. */
-  attunement: false | Readonly<{ by: string }>;
+  attunement: false | Attunement;
   /** Whether only a spellcaster may attune it, so it may fill the caster slot. */
   casterOnly: boolean;
 }>;
@@ -96,7 +101,9 @@ export function magicItemProblems(
   let caster = MAGIC_ITEM_LIMITS.casterSlot;
   return items.flatMap(
     ({ id, catalogue, name, attunement, casterOnly }, index) => {
-      const minimum = MAGIC_ITEM_MIN_LEVEL[catalogue];
+      const minimum = Object.hasOwn(MAGIC_ITEM_MIN_LEVEL, catalogue)
+        ? MAGIC_ITEM_MIN_LEVEL[catalogue as WandId | CasterItemId]
+        : undefined;
       const problems = [
         ...(level < MAGIC_ITEM_LIMITS.minLevel
           ? [
