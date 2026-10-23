@@ -311,12 +311,10 @@ const QUOTED_FIGURES = {
     },
   },
   // Long and level 1 (#440): Medium, as the Rogue's 94.5% is 6.5 points
-  // over the 88% Medium needs with its slack and under Easy's 98% (97.5%
-  // before #543: a broken strongroom door now sends Corran Vey to the river
-  // door, and the gate's runs find the clock's spare key). Brack, Nib and
-  // Wick of seven ordinary foes are over the cap, no more than half. Every
-  // fight's XP, Wick's 25 for sparing him counted as the greater (#238), and
-  // the ending's 300.
+  // over the 88% Medium needs with its slack and under Easy's 98%. Brack,
+  // Nib and Wick of seven ordinary foes are over the cap, no more than half.
+  // Every fight's XP, Wick's 25 for sparing him counted as the greater
+  // (#238), and the ending's 300.
   "bramblecote-cider-house": {
     fighter: {
       survival: [1, "two-daggers", 0.985],
@@ -336,8 +334,6 @@ const QUOTED_FIGURES = {
   // level 3 when every check fails is 10.0 points over the 85% Medium needs
   // (the Cleric's 91.5% was, before its chain shirt and shield, #541), and
   // it and the Fighter's 97.0% are under the 98% Easy needs with its slack.
-  // A grate broken open rings the bell since #545, moving the sleepers to
-  // the loft: the Fighter's rose from 94.5% and the casters' fell 0.5–1 point.
   // Three kobolds of 15 ordinary foes are over the cap at level 4, the level
   // too easy judges; the survival figures are level 3's. Every fight's XP,
   // the wandering ones' included, and the ending's 1,800 (500 before).
