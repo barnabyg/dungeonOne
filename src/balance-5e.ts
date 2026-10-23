@@ -4340,6 +4340,43 @@ export function gateAdventure(
     const rateOf = (runs: readonly RunRecord[]) =>
       runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length;
     /**
+     * `sheet`'s cautious runs on the seeds, each on seeded checks and with
+     * every check failing (`failed`), a seeded run that made no check
+     * standing in for its always-fail run. A caster (#348) plays its first
+     * `POLICY_SEED_COUNT` seeds by both casting policies (`tried`), and
+     * every other run by the one that survived more (`casting`), as a
+     * player keeps to one way of playing.
+     */
+    const kitRuns = (sheet: CharacterSheet) => {
+      const seeded = createFifthRuntime(adventure, sheet);
+      const failing = createFifthRuntime(adventure, sheet, {
+        checks: "always-fail",
+      });
+      const play = (seed: number, casting: CastingPolicy) =>
+        playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
+      const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
+      const tried = {
+        conserve: trial.map((seed) => play(seed, "conserve")),
+        "spend-early": trial.map((seed) => play(seed, "spend-early")),
+      };
+      const casting: CastingPolicy =
+        spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
+          ? "spend-early"
+          : "conserve";
+      const runs = seeds.map(
+        (seed, index) => tried[casting][index] ?? play(seed, casting),
+      );
+      const failed = runs.map((run, index) =>
+        run.checks === 0
+          ? run
+          : playAdventure(failing, GATE_STYLE, seeds[index]!, {
+              ...limit,
+              casting,
+            }),
+      );
+      return { seeded, failing, tried, casting, runs, failed };
+    };
+    /**
      * The weakest character's cautious runs with each kit at each level, on
      * seeded checks and with every check failing. A seeded run that made no
      * check is the always-fail run on its seed too, so only runs that made
@@ -4352,39 +4389,22 @@ export function gateAdventure(
      */
     const played = levels.flatMap((level) =>
       classKits.map((kit) => {
-        const sheet = characterAtLevel(
-          weakest!.dice,
-          level,
-          kit,
-          false,
-          undefined,
-          classId,
+        const { seeded, failing, tried, casting, ...judged } = kitRuns(
+          characterAtLevel(
+            weakest!.dice,
+            level,
+            kit,
+            false,
+            undefined,
+            classId,
+          ),
         );
-        const seeded = createFifthRuntime(adventure, sheet);
-        const failing = createFifthRuntime(adventure, sheet, {
-          checks: "always-fail",
-        });
-        const play = (seed: number, casting: CastingPolicy) =>
-          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
-        // A caster tries both policies on the first seeds (#348).
-        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
-        const tried = {
-          conserve: trial.map((seed) => play(seed, "conserve")),
-          "spend-early": trial.map((seed) => play(seed, "spend-early")),
-        };
-        const casting: CastingPolicy =
-          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
-            ? "spend-early"
-            : "conserve";
         const policy = { ...limit, casting };
         const runs = seeds.map((seed, index) => {
-          const run = tried[casting][index] ?? play(seed, casting);
+          const run = judged.runs[index]!;
           return {
             seeded: run,
-            failing:
-              run.checks === 0
-                ? run
-                : playAdventure(failing, GATE_STYLE, seed, policy),
+            failing: judged.failed[index]!,
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, policy)
               : undefined,
@@ -4906,41 +4926,17 @@ export function gateAdventure(
         return figures;
       }
       const kits = classKits.map((kit) => {
-        const sheet = carrying(
-          characterAtLevel(
-            weakest!.dice,
-            figures.level as Level,
-            kit,
-            false,
-            undefined,
-            classId,
+        const { casting, runs, failed } = kitRuns(
+          carrying(
+            characterAtLevel(
+              weakest!.dice,
+              figures.level as Level,
+              kit,
+              false,
+              undefined,
+              classId,
+            ),
           ),
-        );
-        const seeded = createFifthRuntime(adventure, sheet);
-        const failing = createFifthRuntime(adventure, sheet, {
-          checks: "always-fail",
-        });
-        const play = (seed: number, casting: CastingPolicy) =>
-          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
-        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
-        const tried = {
-          conserve: trial.map((seed) => play(seed, "conserve")),
-          "spend-early": trial.map((seed) => play(seed, "spend-early")),
-        };
-        const casting: CastingPolicy =
-          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
-            ? "spend-early"
-            : "conserve";
-        const runs = seeds.map(
-          (seed, index) => tried[casting][index] ?? play(seed, casting),
-        );
-        const failed = runs.map((run, index) =>
-          run.checks === 0
-            ? run
-            : playAdventure(failing, GATE_STYLE, seeds[index]!, {
-                ...limit,
-                casting,
-              }),
         );
         const shown = spending ? { casting } : {};
         return {
