@@ -348,3 +348,26 @@ test("the workflow runs every CI part, and its verify check passes only when all
     /\n {2}verify:\n {4}needs: part\n {4}if: always\(\)\n[^]*test "\$RESULT" = success\n[^]*RESULT: \$\{\{ needs\.part\.result \}\}\n/u,
   );
 });
+
+test("the browser parts, and only they, run in the Playwright image of the version package.json pins", () => {
+  const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+  const { devDependencies, dependencies } = JSON.parse(
+    readFileSync("package.json", "utf8"),
+  );
+  const version = { ...dependencies, ...devDependencies }.playwright;
+  assert.match(version, /^\d+\.\d+\.\d+$/u, "playwright is pinned exactly");
+  const images = [
+    ...workflow.matchAll(/^ {10}- part: (\S+)\n {12}image: (\S+)$/gmu),
+  ].map(([, part, image]) => [part, image]);
+  assert.deepEqual(
+    images,
+    CI_PARTS.filter((part) => part.startsWith("browser-")).map((part) => [
+      part,
+      `mcr.microsoft.com/playwright:v${version}-noble`,
+    ]),
+  );
+  assert.match(
+    workflow,
+    /\n {4}container:\n {6}image: \$\{\{ matrix\.image \}\}\n/u,
+  );
+});

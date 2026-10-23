@@ -28,6 +28,20 @@ jobs:
       fail-fast: false
       matrix:
         part: [checks, browser-1, browser-2, gate-1, gate-2]
+        # The browser parts run in Playwright's image, which has Chromium and
+        # its system packages: installing them from the Ubuntu mirror timed
+        # out on #265 and #549. The tag is package.json's playwright version,
+        # which tests/test-tiers.test.mjs checks.
+        include:
+          - part: browser-1
+            image: mcr.microsoft.com/playwright:v1.63.0-noble
+          - part: browser-2
+            image: mcr.microsoft.com/playwright:v1.63.0-noble
+    # No image, no container: the other parts run on the runner itself.
+    container:
+      image: ${{ matrix.image }}
+      # Chromium needs more shared memory than Docker's default.
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -35,25 +49,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Chromium is cached by Playwright version, so a run downloads it only
-      # when the version changes; its system packages still install each run.
-      - if: startsWith(matrix.part, 'browser-')
-        id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
-      - if: startsWith(matrix.part, 'browser-')
-        id: playwright-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # These steps have hung on the runner (PR #265, #549); fail fast so a
-      # re-run can start.
-      - if: startsWith(matrix.part, 'browser-') && steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-        timeout-minutes: 10
-      - if: startsWith(matrix.part, 'browser-') && steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-        timeout-minutes: 10
       - if: matrix.part == 'checks'
         run: npm run verify -- --ci-part checks
         env:
