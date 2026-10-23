@@ -342,6 +342,29 @@ test("in a seeded fight a Wizard's Fire Bolt one short of the goblin's AC hits o
   assert.equal(stats.hit, `+${bonus + 1}`);
 });
 
+test("in a seeded fight a Cleric's Guiding Bolt one short of the goblin's AC hits only with the wand", () => {
+  const bonus = characterProfile(mira).spellcasting.attackBonus;
+  const d20 = 15 - bonus - 1;
+  const guidingBolt = { ...fireBolt, spellId: "guiding-bolt", slotLevel: 1 };
+  const plain = inFight(mira);
+  const missed = accepted(
+    plain.runtime,
+    plain.state,
+    guidingBolt,
+    dice([20, d20], [20, 1]),
+  ).events[1];
+  assert.deepEqual([missed.total, missed.hit], [14, false]);
+  // With it the same roll hits for 4d6 radiant.
+  const armed = inFight(holding(mira, [WAND]));
+  const hit = accepted(
+    armed.runtime,
+    armed.state,
+    guidingBolt,
+    dice([20, d20], [6, 1], [6, 1], [6, 1], [6, 1], [20, 1]),
+  ).events[1];
+  assert.deepEqual([hit.total, hit.hit], [15, true]);
+});
+
 test("found behind the lintel, the wand is carried, attuned for a Wizard and not for a Fighter, and kept on leaving", () => {
   for (const [sheet, attuned] of [
     [vela, /Attuned\.$/u],
