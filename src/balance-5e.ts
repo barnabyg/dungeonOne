@@ -72,6 +72,7 @@ import {
 import {
   ATTUNEMENT_LIMIT,
   CASTER_ITEMS,
+  slotRegain,
   type HeldMagicItem,
 } from "./magic-items-5e.js";
 import { createSeededRandom } from "./random.js";
@@ -2949,9 +2950,7 @@ export function playAdventure(
     // A Pearl of Power (#538), as soon as a slot is spent outside a fight.
     if (
       state.possessions.magicItems.some(
-        ({ casterItem }) =>
-          casterItem !== undefined &&
-          CASTER_ITEMS[casterItem].regainsSlot !== undefined,
+        (item) => slotRegain(item) !== undefined,
       )
     ) {
       const regain = offered(

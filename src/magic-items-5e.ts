@@ -264,6 +264,16 @@ export function heldItemName(item: HeldMagicItem): string {
       : CASTER_ITEMS[item.casterItem].name;
 }
 
+/**
+ * The highest level of spell slot a held item regains (#538): a Pearl of
+ * Power's, or undefined for an item that regains none.
+ */
+export function slotRegain(item: HeldMagicItem): number | undefined {
+  return item.casterItem === undefined
+    ? undefined
+    : CASTER_ITEMS[item.casterItem].regainsSlot;
+}
+
 /** The spell a held scroll or wand casts. */
 export function heldItemSpell(item: HeldCastingItem): SpellId {
   return item.scroll ?? WANDS[item.wand].spell;

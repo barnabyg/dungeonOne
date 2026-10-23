@@ -275,8 +275,8 @@ import {
   WAND_MAX_LEVEL,
   WANDS,
   wandsSpent,
-  CASTER_ITEMS,
   castsSpell,
+  slotRegain,
   type HeldCastingItem,
   type HeldMagicItem,
 } from "./magic-items-5e.js";
@@ -7275,16 +7275,10 @@ export function createFifthRuntime(
     ammunition: ammunitionOf(state),
     magicItems: state.possessions.magicItems,
   });
-  /** The Pearl of Power the character holds as `itemId` (#538), if any. */
-  const pearlHeld = (
-    state: FifthState,
-    itemId: string,
-  ): HeldMagicItem | undefined =>
-    state.possessions.magicItems.find(
-      ({ id, casterItem }) =>
-        id === itemId &&
-        casterItem !== undefined &&
-        CASTER_ITEMS[casterItem].regainsSlot !== undefined,
+  /** The Pearls of Power the character holds (#538). */
+  const pearlsHeld = (state: FifthState): readonly HeldMagicItem[] =>
+    state.possessions.magicItems.filter(
+      (item) => slotRegain(item) !== undefined,
     );
   /**
    * The highest level of spell slot up to `most` the character has spent
@@ -11733,7 +11727,7 @@ export function createFifthRuntime(
         );
       }
       case "use-item": {
-        const pearl = pearlHeld(state, action.itemId);
+        const pearl = pearlsHeld(state).find(({ id }) => id === action.itemId);
         if (pearl !== undefined) {
           // A Pearl of Power (#538): outside a fight, once per long rest,
           // the highest spent slot it can regain.
@@ -11757,7 +11751,7 @@ export function createFifthRuntime(
               `The ${name}'s power is spent until your next long rest.`,
             );
           }
-          const most = CASTER_ITEMS[pearl.casterItem!].regainsSlot!;
+          const most = slotRegain(pearl)!;
           const level = spentSlotUpTo(state, most);
           if (level === undefined) {
             return reject(
@@ -12899,17 +12893,12 @@ export function createFifthRuntime(
           : [use(item), ...examine(item)],
       ),
       // Each Pearl of Power the character holds (#538).
-      ...(!asked("regain-slot") ? [] : state.possessions.magicItems).flatMap(
-        (item) =>
-          pearlHeld(state, item.id) === undefined
-            ? []
-            : [
-                view(
-                  "regain-slot",
-                  { type: "use-item", itemId: item.id },
-                  { id: item.id, name: heldItemName(item) },
-                ),
-              ],
+      ...(!asked("regain-slot") ? [] : pearlsHeld(state)).map((item) =>
+        view(
+          "regain-slot",
+          { type: "use-item", itemId: item.id },
+          { id: item.id, name: heldItemName(item) },
+        ),
       ),
       ...(!asked("take") ? [] : droppedHere(state)).map((item) =>
         view("take", { type: "take", itemId: item.id }, item),
@@ -13327,12 +13316,9 @@ export function createFifthRuntime(
             ]),
         hitDiceText(projectHitDice(state)),
         // Each Pearl of Power held (#538).
-        ...state.possessions.magicItems.flatMap((item) =>
-          pearlHeld(state, item.id) === undefined
-            ? []
-            : [
-                `${heldItemName(item)}: ${state.pearlsUsed?.includes(item.id) === true ? "used; it works again after a long rest" : "ready to regain a spell slot outside a fight"}`,
-              ],
+        ...pearlsHeld(state).map(
+          (item) =>
+            `${heldItemName(item)}: ${state.pearlsUsed?.includes(item.id) === true ? "used; it works again after a long rest" : "ready to regain a spell slot outside a fight"}`,
         ),
         restsText("short", projectRests(state, "short")),
         // Only a module with a rest site offers a long rest (#335).
