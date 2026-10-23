@@ -5009,7 +5009,11 @@ export type RoomView = Readonly<{
    * region's, if either names one. The AI DM's scene leaves it out.
    */
   backdrop?: Backdrop;
-  /** The module's words for its alarm (#401), once it has been raised. */
+  /**
+   * Once the alarm is raised (#401), a standing line saying so. The
+   * module's own words are the moment it was raised, told once in that
+   * result (#547).
+   */
   alarm?: string;
   /**
    * Each exit, with its door (if any) and its trap once found or sprung. A
@@ -13682,7 +13686,9 @@ export function createFifthRuntime(
       ...(isRestSite(current) ? { restSite: true as const } : {}),
       ...regionOf(current),
       ...backdropOf(current),
-      ...alarmOf(state),
+      ...(alarmOf(state).alarm === undefined
+        ? {}
+        : { alarm: "The alarm is raised." }),
       exits: ways(state).map(
         ({
           passage,

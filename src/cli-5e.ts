@@ -280,8 +280,8 @@ function renderView(session: FifthSession): string {
   const actions = runtime.projectActions(state);
   return [
     `== ${room.name} == ${session.character.name} HP ${room.character.hp}/${room.character.maxHp} (${room.character.health})`,
-    // Once raised, the module's alarm (#401).
-    ...(room.alarm === undefined ? [] : [`Alarm: ${room.alarm}`]),
+    // Once raised, the alarm (#401).
+    ...(room.alarm === undefined ? [] : [room.alarm]),
     ...(fight === undefined
       ? []
       : [

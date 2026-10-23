@@ -267,10 +267,11 @@ test(
         await page.locator("#room-title").textContent(),
         "Pump Room",
       );
-      // The alarm's words show in every room once the bell has rung.
+      // Once the bell has rung, every room says the alarm is raised; its
+      // words were told once, in the break's result.
       assert.equal(
         await page.locator("#room-alarm").textContent(),
-        "The weir bell is clanging; boots drum on the wall-walk above.",
+        "The alarm is raised.",
       );
       const log = await play(page, FIGHTER_ROUTE.slice(-1), ends, true);
       // The HP Ada ends each fight at: the Toll Hall, the Gear Hall.
