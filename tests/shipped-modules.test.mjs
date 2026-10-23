@@ -381,18 +381,19 @@ const QUOTED_FIGURES = {
         ["culverts", 3, "mace-and-shield", 0.98],
       ],
     },
+    // The Wizard finds the keeper's wand on its way (#540).
     wizard: {
-      survival: [3, "quarterstaff-and-dagger", 0.965],
-      alwaysFail: [3, 0.94],
+      survival: [3, "quarterstaff-and-dagger", 0.97],
+      alwaysFail: [3, 0.95],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.965],
-        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.955],
+        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.97],
+        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.965],
       ],
       sweeps: [
-        ["keep", 3, "quarterstaff-and-dagger", 0.95],
-        ["culverts", 3, "quarterstaff-and-dagger", 0.965],
+        ["keep", 3, "quarterstaff-and-dagger", 0.935],
+        ["culverts", 3, "quarterstaff-and-dagger", 0.97],
       ],
     },
   },
@@ -456,11 +457,11 @@ const QUOTED_FIGURES = {
       xp: 6750,
       routes: [
         ["lodge-hall", 4, "quarterstaff-and-dagger", 0.94],
-        ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.95],
+        ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.955],
       ],
       sweeps: [
         ["lodge", 4, "quarterstaff-and-dagger", 0.94],
-        ["wolfstone", 4, "quarterstaff-and-dagger", 0.95],
+        ["wolfstone", 4, "quarterstaff-and-dagger", 0.955],
       ],
     },
   },

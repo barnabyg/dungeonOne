@@ -300,9 +300,11 @@ test("Brann sells the weapons at the gate and Wenna the armour at the camp", () 
 });
 
 test("no loot lies in an exit or a rest site: the first loot is behind the kennel fight", () => {
+  // The Pearl of Power (#540) is a caster item, not loot.
   assert.deepEqual(itemsIn("forest-gate"), [
     ["woodpile-potion", "potion-of-healing", "woodpile"],
     ["hooded-lantern", "tool", "woodpile"],
+    ["oilskin-pearl", "caster-item", "woodpile"],
   ]);
   assert.deepEqual(itemsIn("drovers-camp"), [
     ["cart-potion", "potion-of-healing", "drovers-cart"],

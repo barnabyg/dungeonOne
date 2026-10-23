@@ -707,7 +707,7 @@
           "id": "dry-shelf",
           "name": "Dry Shelf",
           "description": "A shelf above the waterline, stacked with oilcloth bundles.",
-          "discovery": "Wrapped in oilcloth is a stoppered vial of red liquid."
+          "discovery": "Wrapped in oilcloth are a stoppered vial of red liquid and a slender wand of pale ashwood, its grip worn smooth."
         },
         {
           "id": "gallery-arch",
@@ -721,6 +721,14 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
+          "hiddenIn": "dry-shelf"
+        },
+        {
+          "id": "keepers-wand",
+          "name": "Keeper's Ashwood Wand",
+          "description": "A slender wand of pale ashwood banded with tarnished silver; it hums faintly in a spellcaster's hand.",
+          "kind": "caster-item",
+          "casterItem": "wand-of-the-war-mage-plus-1",
           "hiddenIn": "dry-shelf"
         }
       ],
