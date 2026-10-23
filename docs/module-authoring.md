@@ -49,15 +49,19 @@ around, such as a strongroom or a vault.
   - _mind_: an Intelligence or Wisdom check that finds a spare key or a hidden
     way, reads a mechanism or a ward, or works out a safe path;
   - _voice_: talk someone into handing over the key or opening the way.
-- **Every obstacle on the way to the main prize offers a mind or voice way.**
-  A key on an opponent is a might way, even one who may surrender, since the
-  fight comes first. A second route round the obstacle counts by the ways past
-  its own obstacles: the Weirgate's grate has a key on a bandit, a pick and a
-  break, but the silt tunnel round it opens by talking or by Investigation.
-- **Give each caster its own mind check.** Offer two approaches, an
-  Intelligence skill for the Wizard and a Wisdom skill for the Cleric. Prefer
-  Arcana, Religion, Medicine and Nature, which neither a Fighter nor a Rogue can
-  take. Investigation and Perception are a Rogue's too.
+- **Every obstacle on the way to the main prize offers a way that isn't
+  might:** a mind or voice way, or one open to everyone, such as a key or a tool
+  that no fight or check guards. A key on an opponent is a might way, even one
+  who may surrender, since the fight comes first. A second route round the
+  obstacle counts by the ways past its own obstacles: the Weirgate's grate has a
+  key on a bandit, a pick and a break, but the culvert round it opens with a
+  crank lying in the keeper's office.
+- **Let the mind win sometimes.** Give mind checks things worth having that
+  might can't get as well: a quieter way, a hidden hoard, advantage on a later
+  check. Offer a mind check as two approaches, an Intelligence skill for the
+  Wizard and a Wisdom skill for the Cleric. Prefer Arcana, Religion, Medicine
+  and Nature, which neither a Fighter nor a Rogue can take; Investigation and
+  Perception are a Rogue's too.
 - **Might is loud.** Mark every band of a break or force `"noisy": true`,
   success included. A noisy band needs the module to have an alarm, so give it
   one whose effects make the noise cost something. The quiet ways then stay worth finding.
