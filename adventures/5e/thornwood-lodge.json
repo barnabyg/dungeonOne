@@ -43,7 +43,11 @@
       }
     }
   ],
-  "flags": ["bear-fed"],
+  "flags": ["bear-fed", "wolfstone-roused"],
+  "alarm": {
+    "flag": "wolfstone-roused",
+    "text": "Your noise has carried across the Thornwood, and something out in the dark is coming to see what made it."
+  },
   "routes": [
     {
       "id": "lodge-hall",
@@ -640,7 +644,32 @@
           "id": "wolf-lair",
           "name": "Wolf's Lair",
           "description": "A hollow under the rampart, matted with fur.",
-          "discovery": "Among the bones lie a drover's purse and a silver sheep bell."
+          "discovery": "Among the bones lie a drover's purse and a silver sheep bell.",
+          "check": {
+            "approaches": [
+              { "skill": "nature", "dc": 14 },
+              { "skill": "survival", "dc": 14 }
+            ],
+            "bands": {
+              "failure": {
+                "text": "Fur and old bones.",
+                "effects": [
+                  { "type": "discovery", "feature": "wolf-lair" },
+                  { "type": "item", "item": "drovers-purse" },
+                  { "type": "item", "item": "silver-bell" }
+                ]
+              },
+              "success": {
+                "text": "The run goes on under the rampart, worn smooth by the wolf's belly.",
+                "effects": [
+                  { "type": "discovery", "feature": "wolf-lair" },
+                  { "type": "item", "item": "drovers-purse" },
+                  { "type": "item", "item": "silver-bell" },
+                  { "type": "open", "passage": "wolfs-run" }
+                ]
+              }
+            }
+          }
         },
         {
           "id": "rampart-stones",
@@ -789,6 +818,10 @@
           "id": "dice-table",
           "name": "Dice Table",
           "description": "A barrel-head table strewn with cups.",
+          "changed": {
+            "when": "wolfstone-roused",
+            "description": "A barrel-head table, its cups knocked over and its dice scattered: the gaoler is awake and listening."
+          },
           "discovery": "Among the cups are a pot of winnings and a pair of ivory dice."
         }
       ],
@@ -1038,9 +1071,29 @@
               "damageType": "bludgeoning",
               "defeatEndingId": "fallen-in-the-thornwood"
             }
+          },
+          "bands": {
+            "failure-by-5": {
+              "text": "The portcullis lurches up and slams back down, and the clang rolls round the ruin.",
+              "noisy": true
+            },
+            "failure": {
+              "text": "The portcullis grinds up a hand's breadth and drops with a clang.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The portcullis shrieks up its rusted grooves, loud enough to wake the whole Wolfstone.",
+              "noisy": true
+            }
           }
         }
       }
+    },
+    {
+      "id": "wolfs-run",
+      "between": ["outer-ditch", "guardroom"],
+      "description": "The wolf's run, a belly-crawl through packed earth under the rampart.",
+      "hidden": true
     },
     {
       "id": "gatehouse-to-guardroom",
