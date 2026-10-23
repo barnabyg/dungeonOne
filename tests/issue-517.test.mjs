@@ -27,7 +27,7 @@ import {
 } from "./fixtures/modules.mjs";
 
 test("the format is bumped, and an older module file is refused by name", async () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
   const directory = await mkdtemp(join(tmpdir(), "dungeon-517-"));
   try {
     const path = join(directory, "old-tunnels.json");
@@ -37,7 +37,7 @@ test("the format is bumped, and an older module file is refused by name", async 
     await assert.rejects(
       loadFifthAdventure(path),
       new RegExp(
-        `^Error: ${path.replace(/[\\.]/gu, "\\$&")} is a 5e adventure module in format version 43, not 44\\. Move it aside; the file has not been changed\\.$`,
+        `^Error: ${path.replace(/[\\.]/gu, "\\$&")} is a 5e adventure module in format version 43, not ${FIFTH_ADVENTURE_FORMAT}\\. Move it aside; the file has not been changed\\.$`,
         "u",
       ),
     );

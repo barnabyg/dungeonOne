@@ -353,6 +353,8 @@ export function itemIcon(item: FifthItem): GameIconId {
     case "scroll":
       return SCROLL_ICON;
     case "wand":
+    case "caster-item":
+      // Every caster item is a wand so far (#537).
       return WAND_ICON;
     case "key":
       return "key";

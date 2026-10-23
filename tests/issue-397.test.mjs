@@ -90,7 +90,7 @@ function nookFile(base, flag, setter, closing = false) {
 const nook = (...args) => validateModule(nookFile(...args));
 
 test("the formats bump; the prompt does not change", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
   assert.equal(FIFTH_SESSION_FORMAT, 66);
   assert.equal(FIFTH_TRACE_FORMAT, 61);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");

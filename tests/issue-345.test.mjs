@@ -1,8 +1,8 @@
 // #345: SRD 5.2 +1 weapons, +1 armour and +1 shields, uncommon magic items.
 // A +1 weapon adds 1 to attack and damage rolls, +1 armour or a +1 shield 1
 // to AC. A module hides at most one, only for level 3 and up, outside its
-// treasure budget (D10), and none needs attunement (D11). Merchants neither
-// sell nor buy them.
+// treasure budget (D10), and none needs attunement (D11); #537 adds a
+// caster slot beside it. Merchants neither sell nor buy them.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -237,23 +237,36 @@ test("a magic item's text explains its bonus", () => {
   assert.equal(magicItemText("shortsword"), undefined);
 });
 
-test("D10 and D11: at most one magic item a module, from level 3, none needing attunement", () => {
-  const sword = { id: "sword", magic: WEAPONS["shortsword-plus-1"].magic };
-  const shield = { id: "shield", magic: ARMOUR["shield-plus-1"].magic };
+test("D10 and #537: one magic item any class may use a module, from level 3, and no attunement by anyone", () => {
+  const sword = {
+    id: "sword",
+    catalogue: "shortsword-plus-1",
+    name: "+1 Shortsword",
+    attunement: WEAPONS["shortsword-plus-1"].magic.attunement,
+    casterOnly: false,
+  };
+  const shield = {
+    ...sword,
+    id: "shield",
+    catalogue: "shield-plus-1",
+    name: "+1 Shield",
+  };
   assert.deepEqual(magicItemProblems([sword], 3), []);
   assert.deepEqual(magicItemProblems([], 1), []);
   assert.deepEqual(magicItemProblems([sword, shield], 5), [
-    "shield is one magic item too many: a module hides at most 1.",
+    "shield is a second magic item that isn't caster-only: the caster slot takes only an item that requires attunement by a spellcaster or a caster class.",
   ]);
   assert.deepEqual(magicItemProblems([sword], 2), [
     "sword is a magic item, but magic items are found only in modules for level 3 and up.",
   ]);
   assert.deepEqual(
     magicItemProblems(
-      [{ id: "ring", magic: { ...sword.magic, attunement: true } }],
+      [{ ...sword, id: "ring", attunement: { by: "anyone" } }],
       3,
     ),
-    ["ring needs attunement, and no item that needs attunement is found yet."],
+    [
+      "ring needs attunement by anyone, but only an item restricted to a spellcaster or named classes may need attunement.",
+    ],
   );
 });
 
@@ -384,7 +397,7 @@ test("the balance gate's one-hit-kill measure counts a placed +1 weapon", () => 
   assert.ok(withMagic.chance > without.chance);
 });
 
-test("the validator: one magic item a module, from level 3, never on sale, outside the budget", () => {
+test("the validator: one magic item any class may use a module, from level 3, never on sale, outside the budget", () => {
   assert.equal(
     findableValue(magicBarrow),
     findableValue(validateModule(barrowFile)),
@@ -399,7 +412,7 @@ test("the validator: one magic item a module, from level 3, never on sale, outsi
   });
   assert.throws(
     () => validateModule(second),
-    /module lintel-barrow: lintel-shield is one magic item too many: a module hides at most 1\./,
+    /module lintel-barrow: lintel-shield is a second magic item that isn't caster-only/,
   );
 
   const low = magicBarrowFile();

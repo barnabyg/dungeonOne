@@ -202,14 +202,17 @@ import {
   type PotionId,
   type TradeGoodId,
 } from "./treasure-5e.js";
-import { MAX_LEVEL, proficiencyBonus } from "./character-5e.js";
+import { casterOnly, MAX_LEVEL, proficiencyBonus } from "./character-5e.js";
 import {
+  CASTER_ITEMS,
+  isCasterItemId,
   isWandId,
   scrollName,
   scrollSpellProblem,
   scrollTier,
   scrollValue,
   WANDS,
+  type CasterItemId,
   type WandId,
 } from "./magic-items-5e.js";
 import type { SpellId } from "./spells-5e.js";
@@ -265,7 +268,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 44;
+export const FIFTH_ADVENTURE_FORMAT = 45;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -932,7 +935,8 @@ export const roomSureFlags = (
  * item weighs its kind's `weight` in pounds (#224); coin and gear weigh what
  * the purse, the gear and the ammunition they become weigh. A spell scroll
  * or a wand (#346) is kept with the character's magic items as it is taken,
- * ready to cast from, and weighs nothing.
+ * ready to cast from, and weighs nothing; so is a caster item (#537), which
+ * its holder attunes to if its class may.
  */
 export const ITEM_KINDS = {
   ...POTIONS,
@@ -943,6 +947,7 @@ export const ITEM_KINDS = {
   tool: { weight: 0 },
   scroll: { weight: 0 },
   wand: { weight: 0 },
+  "caster-item": { weight: 0 },
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 /** The kinds that are found once per character: never there to find again. */
@@ -952,7 +957,13 @@ export const FOUND_ONCE_KINDS: readonly ItemKind[] = [
   "gear",
   "scroll",
   "wand",
+  "caster-item",
 ];
+/**
+ * The kinds kept with the character's magic items (#346, #537): never
+ * carried to use on a feature, nor held.
+ */
+const MAGIC_ITEM_KINDS: readonly ItemKind[] = ["scroll", "wand", "caster-item"];
 /**
  * The kinds that are loot: carrying treasure, or coin found here, out of an
  * exit is escaping with loot. Gear is equipment, not loot.
@@ -983,6 +994,8 @@ export type FifthItem = Readonly<{
   spell?: SpellId;
   /** The catalogue wand it is; present exactly on a wand (#346). */
   wand?: WandId;
+  /** The catalogue caster item it is; present exactly on one (#537). */
+  casterItem?: CasterItemId;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
   /** The flag taking it sets (#397). */
@@ -1272,7 +1285,8 @@ export type WanderingEncounter = Readonly<{
  * What a placed item is worth toward the treasure budget, in copper: coin's
  * amount, a gem or art object's value, a potion's or spell scroll's value
  * (#346) and gear's price. A key is worth nothing, and a magic item (a +1
- * item or a wand) is outside the budget (#345, #346, D10).
+ * item, a wand or a caster item) is outside the budget (#345, #346, #537,
+ * D10).
  */
 export function itemValue(item: FifthItem): number {
   if (item.coins !== undefined) {
@@ -1303,9 +1317,11 @@ function catalogueName(item: FifthItem): string {
       ? scrollName(item.spell)
       : item.wand !== undefined
         ? WANDS[item.wand].name
-        : isPotionKind(item.kind)
-          ? POTIONS[item.kind].name
-          : item.name;
+        : item.casterItem !== undefined
+          ? CASTER_ITEMS[item.casterItem].name
+          : isPotionKind(item.kind)
+            ? POTIONS[item.kind].name
+            : item.name;
 }
 
 /** A placed item's availability tier; a key and coin have none. */
@@ -1321,6 +1337,9 @@ function findableTier(item: FifthItem): Tier | undefined {
   }
   if (item.wand !== undefined) {
     return WANDS[item.wand].rarity;
+  }
+  if (item.casterItem !== undefined) {
+    return CASTER_ITEMS[item.casterItem].rarity;
   }
   return isPotionKind(item.kind) ? POTIONS[item.kind].tier : undefined;
 }
@@ -2793,7 +2812,16 @@ function validateModule(
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["coins", "gear", "treasure", "spell", "wand", "hiddenIn", "sets"],
+          [
+            "coins",
+            "gear",
+            "treasure",
+            "spell",
+            "wand",
+            "casterItem",
+            "hiddenIn",
+            "sets",
+          ],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -2852,6 +2880,15 @@ function validateModule(
         if (item.kind !== "wand" && item.wand !== undefined) {
           fail(`${at} has wand, but only a wand has one.`);
         }
+        // A caster item names its catalogue caster item (#537).
+        if (item.kind === "caster-item" && !isCasterItemId(item.casterItem)) {
+          fail(
+            `${at} is a caster item, so it needs casterItem: one of ${Object.keys(CASTER_ITEMS).join(", ")}.`,
+          );
+        }
+        if (item.kind !== "caster-item" && item.casterItem !== undefined) {
+          fail(`${at} has casterItem, but only a caster item has one.`);
+        }
         // An opponent of this room's fight may carry it: searching its body
         // once the fight is won finds it.
         const fight = encounters.find(
@@ -2898,6 +2935,9 @@ function validateModule(
             : { treasure: item.treasure as TradeGoodId }),
           ...(item.spell === undefined ? {} : { spell: item.spell as SpellId }),
           ...(item.wand === undefined ? {} : { wand: item.wand as WandId }),
+          ...(item.casterItem === undefined
+            ? {}
+            : { casterItem: item.casterItem as CasterItemId }),
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
@@ -3037,18 +3077,38 @@ function validateModule(
       );
     }
   }
-  // D10 and D11 (#345): one magic item, from level 3, none needing
-  // attunement; a wand (#346) is one.
+  // D10 (#345): magic items from level 3, a wand (#346) one; D1–D3 (#537):
+  // one any class may use and one caster-only, each from its own level, none
+  // any class may attune.
   const [magicProblem] = magicItemProblems(
     rooms.flatMap(({ items }) =>
-      items.flatMap(({ id: itemId, gear, wand }) => {
-        const magic =
-          wand !== undefined
-            ? WANDS[wand]
-            : gear === undefined
-              ? undefined
-              : magicOf(gear);
-        return magic === undefined ? [] : [{ id: itemId, magic }];
+      items.flatMap(({ id: itemId, gear, wand, casterItem }) => {
+        const hidden =
+          casterItem !== undefined
+            ? {
+                catalogue: casterItem,
+                ...CASTER_ITEMS[casterItem],
+              }
+            : wand !== undefined
+              ? { catalogue: wand, ...WANDS[wand] }
+              : gear === undefined || magicOf(gear) === undefined
+                ? undefined
+                : {
+                    catalogue: gear,
+                    name: itemName(gear),
+                    attunement: magicOf(gear)!.attunement,
+                  };
+        return hidden === undefined
+          ? []
+          : [
+              {
+                id: itemId,
+                catalogue: hidden.catalogue,
+                name: hidden.name,
+                attunement: hidden.attunement,
+                casterOnly: casterOnly(hidden.attunement),
+              },
+            ];
       }),
     ),
     max,
@@ -3642,8 +3702,7 @@ function validateModule(
       if (
         placed.kind === "coin" ||
         placed.kind === "gear" ||
-        placed.kind === "scroll" ||
-        placed.kind === "wand"
+        MAGIC_ITEM_KINDS.includes(placed.kind)
       ) {
         fail(
           `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : placed.kind === "gear" ? "stowed gear" : "magic items"}, so it is never carried to use.`,
@@ -3745,8 +3804,7 @@ function validateModule(
         if (
           placed.kind === "coin" ||
           placed.kind === "gear" ||
-          placed.kind === "scroll" ||
-          placed.kind === "wand"
+          MAGIC_ITEM_KINDS.includes(placed.kind)
         ) {
           fail(
             `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : placed.kind === "gear" ? "stowed gear" : "magic items"}, so it is never held.`,

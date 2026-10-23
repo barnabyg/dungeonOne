@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 44,
+  "formatVersion": 45,
   "id": "quay-strongroom",
   "title": "The Quay Strongroom",
   "objective": "Get past Snikk's goblins into the burned guildhall on the quay, open the guild's strongroom, and leave by the quay steps.",

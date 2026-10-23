@@ -93,6 +93,7 @@ import {
   projectCreation,
   projectLevelChoice,
   settleCharacter,
+  attunement,
   type CreationChoices,
   type TreasureRecord,
 } from "./character-5e.js";
@@ -344,6 +345,7 @@ function libraryView(
       const levelUp = pendingLevelUp(sheet);
       // The scrolls a Wizard may copy into its spellbook (#346).
       const copyable = copyableScrolls(sheet);
+      const attuned = attunement(sheet);
       return {
         sheet,
         className: classOf(sheet).name,
@@ -387,7 +389,8 @@ function libraryView(
             return {
               id: item.id,
               name: heldItemName(item),
-              text: heldItemText(item),
+              // A caster item says whether it is attuned (#537).
+              text: heldItemText(item, attuned.get(item.id)),
               ...(copy === undefined
                 ? {}
                 : {

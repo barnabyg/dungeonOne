@@ -275,6 +275,8 @@ import {
   WAND_MAX_LEVEL,
   WANDS,
   wandsSpent,
+  castsSpell,
+  type HeldCastingItem,
   type HeldMagicItem,
 } from "./magic-items-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
@@ -304,6 +306,7 @@ import {
   abilityModifier,
   ARCANE_RECOVERY,
   arcaneRecovery,
+  attunement,
   initiativeAdvantages,
   tacticalMindDie,
   hasExpertise,
@@ -2188,11 +2191,13 @@ export function playerCombatant(
     ...(profile.spellcasting === undefined
       ? {}
       : { spellcasting: combatSpellcasting(sheet, resources) }),
-    // Its spell scrolls and wands (#346).
-    ...(sheet.magicItems.length === 0
+    // Its spell scrolls and wands (#346); a caster item (#537) casts none.
+    ...(!sheet.magicItems.some(castsSpell)
       ? {}
       : {
-          magicItems: sheet.magicItems.map((item) => combatItem(sheet, item)),
+          magicItems: sheet.magicItems
+            .filter(castsSpell)
+            .map((item) => combatItem(sheet, item)),
         }),
     // Its ongoing effects (#337), and whether a base-AC one can work.
     ...(resources.effects === undefined ? {} : { effects: resources.effects }),
@@ -2209,7 +2214,7 @@ export function playerCombatant(
  */
 function combatItem(
   sheet: CharacterSheet,
-  item: HeldMagicItem,
+  item: HeldCastingItem,
 ): CombatMagicItem {
   const name = heldItemName(item);
   if (item.scroll !== undefined) {
@@ -2234,14 +2239,18 @@ function combatItem(
 }
 
 /**
- * The scrolls and wands the character holds after a cast (#346): those the
- * combatant still holds, a wand with the charges it has left.
+ * The magic items the character holds after a cast (#346): the scrolls and
+ * wands the combatant still holds, a wand with the charges it has left, and
+ * every caster item (#537).
  */
 function heldAfter(
   held: readonly HeldMagicItem[],
   pc: Combatant,
 ): readonly HeldMagicItem[] {
-  return held.flatMap((item) => {
+  return held.flatMap((item): HeldMagicItem[] => {
+    if (!castsSpell(item)) {
+      return [item];
+    }
     const left = pc.magicItems?.find(({ id }) => id === item.id);
     return left === undefined
       ? []
@@ -6428,6 +6437,7 @@ export function createFifthRuntime(
         return gearSort(item.gear!);
       case "scroll":
       case "wand":
+      case "caster-item":
       case "potion-of-healing":
       case "potion-of-greater-healing":
         return "magic";
@@ -6688,14 +6698,15 @@ export function createFifthRuntime(
       value: formatCoins(value),
       group: "treasure" as const,
     })),
-    // Spell scrolls and wands (#346), a wand with its charges.
+    // Spell scrolls and wands (#346), a wand with its charges; caster
+    // items (#537), each saying whether the character is attuned.
     ...heldItems(state).map((item) => ({
       id: item.id,
       name: heldItemName(item),
-      icon: item.wand === undefined ? SCROLL_ICON : WAND_ICON,
-      description: heldItemText(item),
+      icon: item.scroll === undefined ? WAND_ICON : SCROLL_ICON,
+      description: heldItemText(item, attunement(sheetOf(state)).get(item.id)),
       ...(item.wand === undefined ? {} : { charges: chargesText(item)! }),
-      group: "consumable" as const,
+      group: castsSpell(item) ? ("consumable" as const) : ("other" as const),
     })),
   ];
 
@@ -7218,7 +7229,9 @@ export function createFifthRuntime(
     state: FifthState,
     itemId: string,
   ): NonNullable<NonNullable<ActionView["spell"]>["item"]> => {
-    const item = heldItems(state).find(({ id }) => id === itemId);
+    const item = heldItems(state)
+      .filter(castsSpell)
+      .find(({ id }) => id === itemId);
     if (item === undefined) {
       throw new Error(`No held scroll or wand ${itemId}.`);
     }
@@ -11569,17 +11582,24 @@ export function createFifthRuntime(
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
         }
-        if (item.spell !== undefined || item.wand !== undefined) {
+        if (
+          item.spell !== undefined ||
+          item.wand !== undefined ||
+          item.casterItem !== undefined
+        ) {
           // A spell scroll or wand (#346) joins the magic items, ready to
-          // cast from, and is found once; a wand is found fully charged.
+          // cast from, and is found once; a wand is found fully charged. So
+          // does a caster item (#537), attuned to if the class may.
           const held: HeldMagicItem =
             item.spell !== undefined
               ? { id: treasureId(item), scroll: item.spell }
-              : {
-                  id: treasureId(item),
-                  wand: item.wand!,
-                  charges: WANDS[item.wand!].charges,
-                };
+              : item.wand !== undefined
+                ? {
+                    id: treasureId(item),
+                    wand: item.wand,
+                    charges: WANDS[item.wand].charges,
+                  }
+                : { id: treasureId(item), casterItem: item.casterItem! };
           return taken(
             {
               ...state,

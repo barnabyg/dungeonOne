@@ -108,14 +108,14 @@ export type Rarity = "uncommon";
 /**
  * What makes a catalogue item a magic item (#345): the mundane item it is
  * made from, its bonus (to attack and damage rolls for a weapon, to AC for
- * armour or a shield), its rarity and whether it needs attunement. No item
- * that needs attunement ships (D11), and the module validator refuses one.
+ * armour or a shield), its rarity and whether it needs attunement: none
+ * does, so any class may use it.
  */
 export type MagicItemData = Readonly<{
   base: string;
   bonus: number;
   rarity: Rarity;
-  attunement: boolean;
+  attunement: false;
 }>;
 
 /**
