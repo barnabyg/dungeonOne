@@ -52,7 +52,7 @@ const USAGE =
 // their modules (#446). --generated plays a module with no run of its own,
 // under #409.
 const RUNS = {
-  "abandoned-delve": { issue: 140, seed: "0" },
+  "abandoned-delve": { issue: 140, seed: "2" },
   "thornwood-lodge": {
     issue: 291,
     seed: "1",

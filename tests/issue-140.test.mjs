@@ -26,7 +26,7 @@ import { libraryAt } from "../dist/test-fighter-5e.js";
 import { narratingDm } from "./fixtures/session-layout.mjs";
 
 /** The seed the release run is qualified on: Ada escapes with loot. */
-const RELEASE_SEED = 0;
+const RELEASE_SEED = 2;
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
 );
