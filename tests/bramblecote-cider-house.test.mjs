@@ -599,9 +599,11 @@ test("Mr Pell's spare key hangs in the parlour clock, found by Investigation or 
       ["persuasion", 12],
     ],
   );
-  assert.deepEqual(topic.check.bands.success.effects, [
-    { type: "item", item: "pells-spare-key" },
-  ]);
+  // Her answer makes the clock's discovery as a search would.
+  assert.deepEqual(
+    topic.check.bands.success.effects,
+    check.bands.success.effects,
+  );
   assert.match(topic.reply, /clock/u);
   assert.match(topic.failure, /Wick has it/u);
 });

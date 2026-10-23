@@ -109,7 +109,10 @@
                 ],
                 "bands": {
                   "success": {
-                    "effects": [{ "type": "item", "item": "pells-spare-key" }]
+                    "effects": [
+                      { "type": "discovery", "feature": "long-case-clock" },
+                      { "type": "item", "item": "pells-spare-key" }
+                    ]
                   }
                 }
               },
