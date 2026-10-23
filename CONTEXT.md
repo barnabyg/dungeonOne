@@ -367,6 +367,10 @@ _Avoid_: Route (a declared one), Main path
 A way from a module's entrance to its objective that the module declares, as the rooms it must pass. The gate judges each declared route.
 _Avoid_: Path (the required path), Branch, Track
 
+**Way family**:
+The kind of strength a way past an obstacle tests: might (force, break, a fight for the key), skill (thieves' tools, sneaking), mind (an Intelligence or Wisdom check) or voice (talking). See the authoring guide.
+_Avoid_: Route family (a route is declared), Approach (a check's option)
+
 **Region sweep**:
 The gate's run through one region of a long module, visiting every room not marked avoidable before going on to the objective; it is judged one difficulty lower.
 _Avoid_: Clear, Full run, Exploration
