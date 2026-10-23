@@ -1148,10 +1148,10 @@ function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
       }
       done.add(here);
       for (const { passage, next } of passagesFrom.get(here) ?? []) {
-        const keyId = passage.door?.keyItemId;
+        const keyIds = passage.door?.keyItemIds ?? [];
         const locked =
           keyOnly(passage) &&
-          (keyId === undefined || !position.inventory.includes(keyId));
+          !keyIds.some((keyId) => position.inventory.includes(keyId));
         if (
           done.has(next) ||
           !enterable(next) ||
@@ -1163,7 +1163,7 @@ function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
           (keys === "carried" && unused(position, passage)) ||
           (locked &&
             (keys === "carried" ||
-              (keyId !== undefined && position.lostKeyIds.includes(keyId))))
+              keyIds.every((keyId) => position.lostKeyIds.includes(keyId))))
         ) {
           continue;
         }
@@ -1234,11 +1234,18 @@ function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
           ? undefined
           : route(position, toward, enterable, "carried");
       }
-      const keyId = passage.door?.keyItemId;
-      if (keyOnly(passage) && !position.inventory.includes(keyId!)) {
+      const keyIds = passage.door?.keyItemIds ?? [];
+      if (
+        keyOnly(passage) &&
+        !keyIds.some((keyId) => position.inventory.includes(keyId))
+      ) {
         return route(
           position,
-          new Set([keyRoom.get(keyId!)!]),
+          new Set(
+            keyIds.flatMap((keyId) =>
+              position.lostKeyIds.includes(keyId) ? [] : [keyRoom.get(keyId)!],
+            ),
+          ),
           enterable,
           "carried",
         );
@@ -2830,9 +2837,7 @@ export function playAdventure(
   /** The keys to doors only a key opens. */
   const doorKeyIds = new Set(
     adventure.passages.flatMap((passage) =>
-      keyOnly(passage) && passage.door?.keyItemId !== undefined
-        ? [passage.door.keyItemId]
-        : [],
+      keyOnly(passage) ? (passage.door?.keyItemIds ?? []) : [],
     ),
   );
   /**

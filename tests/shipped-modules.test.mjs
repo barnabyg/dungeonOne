@@ -310,22 +310,24 @@ const QUOTED_FIGURES = {
       xp: 1275,
     },
   },
-  // Long and level 1 (#440): Medium, as the Rogue's 97.5% is 9.5 points
-  // over the 88% Medium needs with its slack and under Easy's 98%. Brack, Nib and Wick
-  // of seven ordinary foes are over the cap, no more than half. Every fight's
-  // XP, Wick's 25 for sparing him counted as the greater (#238), and the
-  // ending's 300.
+  // Long and level 1 (#440): Medium, as the Rogue's 94.5% is 6.5 points
+  // over the 88% Medium needs with its slack and under Easy's 98% (97.5%
+  // before #543: a broken strongroom door now sends Corran Vey to the river
+  // door, and the gate's runs find the clock's spare key). Brack, Nib and
+  // Wick of seven ordinary foes are over the cap, no more than half. Every
+  // fight's XP, Wick's 25 for sparing him counted as the greater (#238), and
+  // the ending's 300.
   "bramblecote-cider-house": {
     fighter: {
-      survival: [1, "mace", 0.98],
-      alwaysFail: [1, 0.98],
+      survival: [1, "two-daggers", 0.985],
+      alwaysFail: [1, 0.985],
       overCap: ["brack", "nib", "wick"],
       enemyCount: 7,
       xp: 25 + 25 + 50 + (12 + 25) + 25 + 25 + 50 + 300,
     },
     rogue: {
-      survival: [1, "shortsword", 0.975],
-      alwaysFail: [1, 0.975],
+      survival: [1, "shortsword", 0.945],
+      alwaysFail: [1, 0.945],
       overCap: ["brack", "nib", "wick"],
       xp: 537,
     },

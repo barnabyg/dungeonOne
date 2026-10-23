@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "coldwater-weirgate",
   "title": "The Coldwater Weirgate",
   "objective": "Break Grisk's hold on the weirgate's gear hall, so the sluices can open and Fennick's fields drain.",
@@ -1286,7 +1286,7 @@
         "name": "Iron Grate",
         "description": "An iron grate across the stair, locked with a heavy padlock.",
         "state": "locked",
-        "keyItemId": "grate-key",
+        "keyItemIds": ["grate-key"],
         "pick": {
           "ability": "dexterity",
           "tool": "thieves-tools",

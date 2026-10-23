@@ -62,7 +62,7 @@ const offeredTalk = (runtime, state) =>
     .map(({ target }) => target.id);
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
 });
 
 // The validator.

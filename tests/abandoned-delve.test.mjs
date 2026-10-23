@@ -254,7 +254,7 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
   assert.equal(passage("gate-hall", "storeroom").door.state, "stuck");
   const vault = passage("shaft-bottom", "vault").door;
   assert.equal(vault.state, "locked");
-  assert.equal(vault.keyItemId, "bronze-key");
+  assert.deepEqual(vault.keyItemIds, ["bronze-key"]);
   assert.equal(vault.break.bands["failure-by-5"].noisy, true);
 });
 

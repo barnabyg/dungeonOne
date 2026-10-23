@@ -173,10 +173,10 @@ test("its fights: nine placed and two wandering, Grisk the boss whose defeat end
 test("two ways lead down, the stair past the Toll Hall's fight and the culvert past none, to Grisk, and every Culverts room off them is avoidable", () => {
   const grate = passage("keepers-stair").door;
   assert.deepEqual(
-    [grate.state, grate.keyItemId, grate.pick],
+    [grate.state, grate.keyItemIds, grate.pick],
     [
       "locked",
-      "grate-key",
+      ["grate-key"],
       { ability: "dexterity", tool: "thieves-tools", dc: 13 },
     ],
   );

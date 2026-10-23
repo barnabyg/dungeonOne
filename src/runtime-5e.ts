@@ -6245,9 +6245,7 @@ export type FifthRuntimeProbe = Readonly<{
  */
 function ruleItemIds(adventure: FifthAdventure): ReadonlySet<string> {
   return new Set([
-    ...adventure.passages.flatMap(({ door }) =>
-      door?.keyItemId === undefined ? [] : [door.keyItemId],
-    ),
+    ...adventure.passages.flatMap(({ door }) => door?.keyItemIds ?? []),
     ...adventure.rooms.flatMap(({ features }) =>
       features.flatMap(({ uses }) => (uses ?? []).map(({ item }) => item)),
     ),
@@ -6444,6 +6442,11 @@ export function createFifthRuntime(
       placed.map((item) => [item.id, item] as const),
     ),
   );
+  /** The first of `door`'s keys the character carries (#543), if any. */
+  const heldKey = (state: FifthState, door: FifthDoor) => {
+    const keyId = door.keyItemIds?.find((id) => state.inventory.includes(id));
+    return keyId === undefined ? undefined : items.get(keyId)!;
+  };
   /** Item icons by name, for the items a result names (#377). */
   const itemIconsByName = new Map(
     [...items.values()].map((item) => [item.name, itemIcon(item)] as const),
@@ -9258,12 +9261,12 @@ export function createFifthRuntime(
           ? [kind === "force" ? "force it" : "break it open"]
           : [],
       ),
-      ...(door.keyItemId === undefined
+      ...(door.keyItemIds === undefined
         ? []
         : [
-            state.inventory.includes(door.keyItemId)
-              ? `unlock it with the ${items.get(door.keyItemId)!.name}`
-              : "find its key",
+            heldKey(state, door) === undefined
+              ? "find its key"
+              : `unlock it with the ${heldKey(state, door)!.name}`,
           ]),
     ];
     return `You carry no thieves' tools, so you can't pick the ${door.name}'s lock. ${
@@ -10946,11 +10949,7 @@ export function createFifthRuntime(
               "There is no check to try that way here.",
             );
           }
-          const key =
-            door.keyItemId === undefined ||
-            !state.inventory.includes(door.keyItemId)
-              ? undefined
-              : items.get(door.keyItemId)!;
+          const key = heldKey(state, door);
           if (key === undefined) {
             return reject("no-key", `You have no key to the ${door.name}.`);
           }
@@ -12831,9 +12830,8 @@ export function createFifthRuntime(
               },
             ),
           ),
-          // Unlock is shown only while the door's key is carried.
-          ...(door.keyItemId !== undefined &&
-          state.inventory.includes(door.keyItemId)
+          // Unlock is shown only while one of the door's keys is carried.
+          ...(heldKey(state, door) !== undefined
             ? [view("unlock", { type: "unlock", doorId: door.id }, door)]
             : []),
         ]),

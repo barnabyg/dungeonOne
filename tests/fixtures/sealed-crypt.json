@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "sealed-crypt",
   "title": "The Sealed Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
@@ -210,7 +210,7 @@
         "name": "Iron Door",
         "description": "A heavy iron door with a keyhole shaped like an eye.",
         "state": "locked",
-        "keyItemId": "iron-key",
+        "keyItemIds": ["iron-key"],
         "pick": {
           "ability": "dexterity",
           "tool": "thieves-tools",

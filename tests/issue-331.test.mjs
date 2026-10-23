@@ -60,7 +60,7 @@ function lockedVault(change = () => {}) {
       name: "Vault Door",
       description: "Locked.",
       state: "locked",
-      keyItemId: "vault-key",
+      keyItemIds: ["vault-key"],
     },
   });
   change(file);
