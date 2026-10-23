@@ -5,9 +5,12 @@
 // past Nib and the old well past Brack, whose climb opens the way in every
 // band; Wick surrenders in the avoidable Hayloft and gives the strongroom
 // key; the goblin tally in the cider press gives advantage on finding the
-// goblins' cut in the cask gallery; leaving with loot pays 300 XP. Journeys
-// reach its endings by both ways; shipped-modules.test.mjs checks it
-// qualifies at its declared difficulty, with its quoted figures.
+// goblins' cut in the cask gallery; leaving with loot pays 300 XP. Since
+// #543 a spare key in the parlour's clock, found by a check or by asking
+// Ressa, opens the strongroom without the Hayloft fight, and breaking its
+// door rouses the vaults and sends Corran Vey to wait at the river door.
+// Journeys reach its endings by both ways; shipped-modules.test.mjs checks
+// it qualifies at its declared difficulty, with its quoted figures.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -89,7 +92,8 @@ test("the cider house is a long level-1 Medium module of seventeen rooms in two 
       ["fallen-at-bramblecote", "defeat", undefined],
     ],
   );
-  // No merchant, no wandering monsters, no flags (#439).
+  // No merchant and no wandering monsters (#439); one flag, the alarm's,
+  // which only noise raises (#543).
   assert.ok(
     cider.rooms.every(({ creatures }) =>
       creatures.every(({ merchant }) => merchant === undefined),
@@ -97,7 +101,9 @@ test("the cider house is a long level-1 Medium module of seventeen rooms in two 
   );
   assert.equal(cider.wanderingEncounter, undefined);
   assert.ok(cider.regions.every(({ wandering }) => wandering === undefined));
-  assert.equal(cider.flags, undefined);
+  assert.deepEqual(cider.flags, ["vaults-roused"]);
+  assert.equal(cider.alarm.flag, "vaults-roused");
+  assert.equal(cider.alarm.fights, undefined);
 });
 
 test("its fights: six single foes or pairs, none a boss, and Wick can surrender with the strongroom key", () => {
@@ -231,20 +237,31 @@ test("two ways lead down, the trapdoor past Nib and the well past Brack, each on
       ["acrobatics", 13, ["coil-of-rope"]],
     ],
   );
-  // The strongroom door: key, pick or break, and the break hurts no one
-  // (#440).
+  // The strongroom door: Wick's key or the spare, pick or break, and the
+  // break hurts no one (#440) but is loud in every band (#543).
   const { door } = passage("gallery-to-strongroom");
   assert.deepEqual(
-    [door.state, door.keyItemId, door.pick, door.break.skill, door.break.dc],
+    [door.state, door.keyItemIds, door.pick, door.break.skill, door.break.dc],
     [
       "locked",
-      "strongroom-key",
+      ["strongroom-key", "pells-spare-key"],
       { ability: "dexterity", tool: "thieves-tools", dc: 13 },
       "athletics",
       14,
     ],
   );
-  assert.equal(door.break.bands["failure-by-5"].effects, undefined);
+  assert.deepEqual(
+    Object.entries(door.break.bands).map(([band, { noisy, effects }]) => [
+      band,
+      noisy,
+      effects,
+    ]),
+    [
+      ["failure-by-5", true, undefined],
+      ["failure", true, undefined],
+      ["success", true, undefined],
+    ],
+  );
 });
 
 test("its treasure is 99.6% of the long level-1 budget, and nothing to carry out is reachable without a fight", () => {
@@ -530,4 +547,153 @@ test("its release run plays a generated route out with the Pells' goods (#409, #
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// #543: a mind or voice way into the strongroom.
+const TO_PARLOUR = [
+  ["move", "kitchen"],
+  ["move", "parlour"],
+];
+const clocked =
+  (band) =>
+  ({ checks }) =>
+    checks.some(
+      ({ id, band: made }) => id === "examine:long-case-clock" && made === band,
+    );
+const asked =
+  (band) =>
+  ({ checks }) =>
+    checks.some(
+      ({ id, band: made }) => id.endsWith("a-spare-key") && made === band,
+    );
+const tryTake = ({ state, runtime }, itemId) =>
+  runtime.handleAction(state, { type: "take", itemId }, createSeededRandom(0));
+
+test("Mr Pell's spare key hangs in the parlour clock, found by Investigation or Perception, and Ressa can tell of it", () => {
+  const { check, discovery } = feature("parlour", "long-case-clock");
+  assert.deepEqual(
+    check.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["investigation", 13],
+      ["perception", 14],
+    ],
+  );
+  assert.equal(check.bands.failure.text, "Weights, a pendulum, dust.");
+  assert.deepEqual(check.bands.success.effects, [
+    { type: "discovery", feature: "long-case-clock" },
+    { type: "item", item: "pells-spare-key" },
+  ]);
+  assert.match(discovery, /key/u);
+  assert.deepEqual(
+    room("parlour").items.map(({ id, kind, hiddenIn }) => [id, kind, hiddenIn]),
+    [["pells-spare-key", "key", "long-case-clock"]],
+  );
+  const ressa = room("lane-gate").creatures.find(
+    ({ id }) => id === "ressa-pell",
+  );
+  const topic = ressa.topics.find(({ id }) => id === "a-spare-key");
+  assert.deepEqual(
+    topic.check.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["insight", 12],
+      ["persuasion", 12],
+    ],
+  );
+  // Her answer makes the clock's discovery as a search would.
+  assert.deepEqual(
+    topic.check.bands.success.effects,
+    check.bands.success.effects,
+  );
+  assert.match(topic.reply, /clock/u);
+  assert.match(topic.failure, /Wick has it/u);
+});
+
+test("a failed search of the clock finds only dust, and the key stays hidden", () => {
+  const played = firstJourney(
+    cider,
+    level1,
+    [...TO_PARLOUR, ["examine", "long-case-clock", "investigation"]],
+    clocked("failure"),
+  );
+  assert.notEqual(tryTake(played, "pells-spare-key").rejection, undefined);
+});
+
+test("Ressa, asked about a spare key, either sends you to the clock, revealing the key, or says Wick has the only one", () => {
+  const told = firstJourney(
+    cider,
+    level1,
+    [["talk", "a-spare-key", "persuasion"], ...TO_PARLOUR],
+    asked("success"),
+  );
+  // The key lies revealed in the parlour: taken without searching the clock.
+  const taken = tryTake(told, "pells-spare-key");
+  assert.equal(taken.rejection, undefined);
+  assert.ok(taken.state.inventory.includes("pells-spare-key"));
+  const refused = firstJourney(
+    cider,
+    level1,
+    [["talk", "a-spare-key", "insight"], ...TO_PARLOUR],
+    asked("failure"),
+  );
+  assert.notEqual(tryTake(refused, "pells-spare-key").rejection, undefined);
+});
+
+test("the spare key opens the Pells' strongroom without the Hayloft fight", () => {
+  const { state } = firstJourney(
+    cider,
+    level1,
+    [
+      ...TO_PARLOUR,
+      ["examine", "long-case-clock", "investigation"],
+      ["take", "pells-spare-key"],
+      ["move", "kitchen"],
+      ["move", "press-house"],
+      ["move", "cellar-stair"],
+      ["move", "cask-gallery"],
+      ["unlock", "strongroom-door"],
+      ["move", "pell-strongroom"],
+      ["examine", "iron-chest"],
+      ["take", "christening-cup"],
+      ["take", "pell-savings"],
+      ["move", "cask-gallery"],
+      ["move", "river-door"],
+      ["leave", "river-door"],
+    ],
+    ({ status }) => status === "escaped",
+  );
+  assert.equal(state.endingId, "out-with-the-pells-goods");
+  assert.ok(state.openedDoorIds.includes("strongroom-door"));
+  assert.ok(!state.clearedEncounterIds.includes("hayloft-fight"));
+  assert.ok(!state.flags.includes("vaults-roused"));
+  assert.ok(state.inventory.includes("christening-cup"));
+});
+
+test("breaking the strongroom door rouses the vaults, and Corran Vey waits for you at the river door", () => {
+  const { state } = firstJourney(
+    cider,
+    level1,
+    [
+      ["move", "kitchen"],
+      ["move", "press-house"],
+      ["move", "cellar-stair"],
+      ["move", "cask-gallery"],
+      ["break", "strongroom-door"],
+      ["move", "pell-strongroom"],
+      ["examine", "iron-chest"],
+      ["take", "christening-cup"],
+      ["move", "cask-gallery"],
+      ["move", "river-door"],
+      ["leave", "river-door"],
+    ],
+    ({ status, flags, checks }) =>
+      status === "escaped" &&
+      flags.includes("vaults-roused") &&
+      checks.some(
+        ({ id, band }) => id === "break:strongroom-door" && band === "success",
+      ),
+  );
+  assert.equal(state.endingId, "out-with-the-pells-goods");
+  // He came to the river door from the cider store, which was never entered.
+  assert.ok(state.clearedEncounterIds.includes("cider-store-fight"));
+  assert.ok(!state.visitedRoomIds.includes("cider-store"));
 });

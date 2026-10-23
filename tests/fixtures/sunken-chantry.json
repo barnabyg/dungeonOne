@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "sunken-chantry",
   "title": "The Sunken Chantry",
   "objective": "Go down under the chantry and put to rest whatever woke its dead. Leave by the porch if it is too much for you.",
@@ -271,7 +271,7 @@
         "name": "Iron Grille",
         "description": "A rusted iron grille, padlocked over the steps.",
         "state": "locked",
-        "keyItemId": "sexton-key",
+        "keyItemIds": ["sexton-key"],
         "pick": { "ability": "dexterity", "tool": "thieves-tools", "dc": 13 },
         "break": { "skill": "athletics", "dc": 14 }
       }

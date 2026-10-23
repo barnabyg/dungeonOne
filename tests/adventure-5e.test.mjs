@@ -340,7 +340,7 @@ test("the crypt fixture has a stuck door, a locked door with a key, a trap and a
   });
   const iron = passage(adventure, "hall-to-strongroom").door;
   assert.equal(iron.state, "locked");
-  assert.equal(iron.keyItemId, "iron-key");
+  assert.deepEqual(iron.keyItemIds, ["iron-key"]);
   assert.deepEqual(iron.pick, {
     ability: "dexterity",
     tool: "thieves-tools",
@@ -389,7 +389,7 @@ test("the validator rejects a check or trap that guards the only route to an ess
           name: "Tomb Door",
           description: "Locked.",
           state: "locked",
-          keyItemId: "iron-key",
+          keyItemIds: ["iron-key"],
         }),
       /room tomb is essential.*\(tomb-door\)/,
     ],
@@ -403,7 +403,7 @@ test("the validator rejects a check or trap that guards the only route to an ess
       name: "Tomb Door",
       description: "Locked.",
       state: "locked",
-      keyItemId: "stair-key",
+      keyItemIds: ["stair-key"],
     };
     room(m, "crypt-stair").items.push({
       id: "stair-key",
@@ -413,7 +413,31 @@ test("the validator rejects a check or trap that guards the only route to an ess
       hiddenIn: "carved-warning",
     });
   });
-  assert.equal(validateModule(freeKey).passages[2].door.keyItemId, "stair-key");
+  assert.deepEqual(validateModule(freeKey).passages[2].door.keyItemIds, [
+    "stair-key",
+  ]);
+  // #543: a door may have a spare key. One free key is enough, though the
+  // other lies past the dart trap.
+  const spareKey = crypted((m) => {
+    passage(m, "hall-to-tomb").door = {
+      id: "tomb-door",
+      name: "Tomb Door",
+      description: "Locked.",
+      state: "locked",
+      keyItemIds: ["iron-key", "stair-key"],
+    };
+    room(m, "crypt-stair").items.push({
+      id: "stair-key",
+      name: "Stair Key",
+      description: "A small key.",
+      kind: "key",
+      hiddenIn: "carved-warning",
+    });
+  });
+  assert.deepEqual(validateModule(spareKey).passages[2].door.keyItemIds, [
+    "iron-key",
+    "stair-key",
+  ]);
 });
 
 test("the validator rejects malformed doors, traps and creatures", () => {
@@ -436,7 +460,7 @@ test("the validator rejects malformed doors, traps and creatures", () => {
         const door = passage(m, "hall-to-strongroom").door;
         delete door.pick;
         delete door.break;
-        delete door.keyItemId;
+        delete door.keyItemIds;
       },
       /a locked door needs a key, pick or break/,
     ],
@@ -449,12 +473,33 @@ test("the validator rejects malformed doors, traps and creatures", () => {
       /a locked door is not forced/,
     ],
     [
-      (m) => (passage(m, "hall-to-strongroom").door.keyItemId = "cell-potion"),
+      (m) =>
+        (passage(m, "hall-to-strongroom").door.keyItemIds = ["cell-potion"]),
       /key cell-potion is not a key/,
     ],
     [
-      (m) => (passage(m, "hall-to-strongroom").door.keyItemId = "skeleton"),
+      (m) =>
+        (passage(m, "hall-to-strongroom").door.keyItemIds = [
+          "iron-key",
+          "skeleton",
+        ]),
       /unknown key skeleton/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-strongroom").door.keyItemIds = []),
+      /keyItemIds must list/,
+    ],
+    [
+      (m) =>
+        (passage(m, "hall-to-strongroom").door.keyItemIds = [
+          "iron-key",
+          "iron-key",
+        ]),
+      /names key iron-key twice/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-strongroom").door.keyItemId = "iron-key"),
+      /keyItemId/,
     ],
     [
       (m) =>

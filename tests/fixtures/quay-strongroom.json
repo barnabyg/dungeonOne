@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "quay-strongroom",
   "title": "The Quay Strongroom",
   "objective": "Get past Snikk's goblins into the burned guildhall on the quay, open the guild's strongroom, and leave by the quay steps.",
@@ -282,7 +282,7 @@
         "name": "Strongroom Door",
         "description": "A squat iron door with a lock the size of a fist.",
         "state": "locked",
-        "keyItemId": "strongroom-key",
+        "keyItemIds": ["strongroom-key"],
         "pick": {
           "ability": "dexterity",
           "tool": "thieves-tools",

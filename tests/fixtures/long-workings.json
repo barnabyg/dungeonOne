@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "long-workings",
   "title": "The Long Workings",
   "objective": "Clear whatever has taken the old workings, down to the deep hall.",
@@ -467,7 +467,7 @@
         "name": "Shaft Gate",
         "description": "An iron gate, locked.",
         "state": "locked",
-        "keyItemId": "winch-key",
+        "keyItemIds": ["winch-key"],
         "pick": {
           "ability": "dexterity",
           "tool": "thieves-tools",

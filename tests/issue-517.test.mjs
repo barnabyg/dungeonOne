@@ -27,7 +27,7 @@ import {
 } from "./fixtures/modules.mjs";
 
 test("the format is bumped, and an older module file is refused by name", async () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
   const directory = await mkdtemp(join(tmpdir(), "dungeon-517-"));
   try {
     const path = join(directory, "old-tunnels.json");

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 45,
+  "formatVersion": 46,
   "id": "bramblecote-cider-house",
   "title": "The Bramblecote Cider House",
   "objective": "Get back what you can of the Pell family's goods from the goblins in the cider house, and come out alive.",
@@ -22,6 +22,11 @@
       "backdrop": "cellar"
     }
   ],
+  "flags": ["vaults-roused"],
+  "alarm": {
+    "flag": "vaults-roused",
+    "text": "Your noise has carried through the cider house. Down in the vaults a man swears, and boots hurry toward the river door."
+  },
   "routes": [
     {
       "id": "press-house",
@@ -92,6 +97,26 @@
               "id": "the-sump",
               "name": "the sump",
               "reply": "\"Nobody goes in the low cellar. It floods when the river's high, and things wash in. Leave it be.\""
+            },
+            {
+              "id": "a-spare-key",
+              "name": "a spare key",
+              "reply": "She looks back at the farmhouse. \"My husband never trusted one key. He hung a spare inside the long-case clock in the parlour, behind the pendulum. I'd near forgotten it.\"",
+              "check": {
+                "approaches": [
+                  { "skill": "insight", "dc": 12 },
+                  { "skill": "persuasion", "dc": 12 }
+                ],
+                "bands": {
+                  "success": {
+                    "effects": [
+                      { "type": "discovery", "feature": "long-case-clock" },
+                      { "type": "item", "item": "pells-spare-key" }
+                    ]
+                  }
+                }
+              },
+              "failure": "\"There's only the one key, and Wick has it round his neck.\""
             }
           ]
         }
@@ -183,11 +208,34 @@
         {
           "id": "long-case-clock",
           "name": "Long-Case Clock",
-          "description": "A tall clock painted with apple blossom, its pendulum still.",
-          "discovery": "It stopped at a quarter past two: the hour the goblins came, and nobody has wound it since."
+          "description": "A tall clock painted with apple blossom, its pendulum still. It stopped at a quarter past two: the hour the goblins came, and nobody has wound it since.",
+          "discovery": "On a nail behind the pendulum hangs an iron key.",
+          "check": {
+            "approaches": [
+              { "skill": "investigation", "dc": 13 },
+              { "skill": "perception", "dc": 14 }
+            ],
+            "bands": {
+              "failure": { "text": "Weights, a pendulum, dust." },
+              "success": {
+                "effects": [
+                  { "type": "discovery", "feature": "long-case-clock" },
+                  { "type": "item", "item": "pells-spare-key" }
+                ]
+              }
+            }
+          }
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "pells-spare-key",
+          "name": "Mr Pell's Spare Key",
+          "description": "An iron key on a loop of faded ribbon, the twin of the strongroom key.",
+          "kind": "key",
+          "hiddenIn": "long-case-clock"
+        }
+      ],
       "creatures": []
     },
     {
@@ -954,7 +1002,7 @@
         "name": "Strongroom Door",
         "description": "A heavy oak door strapped with iron, locked fast.",
         "state": "locked",
-        "keyItemId": "strongroom-key",
+        "keyItemIds": ["strongroom-key", "pells-spare-key"],
         "pick": {
           "ability": "dexterity",
           "tool": "thieves-tools",
@@ -965,7 +1013,16 @@
           "dc": 14,
           "bands": {
             "failure-by-5": {
-              "text": "The door doesn't budge, and you jar your shoulder against the iron."
+              "text": "The door doesn't budge, and you jar your shoulder against the iron. The crash rolls down the gallery.",
+              "noisy": true
+            },
+            "failure": {
+              "text": "The door shudders in its frame, and the iron rings through the vaults.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The lock bursts with a crack that echoes down the gallery.",
+              "noisy": true
             }
           }
         }
@@ -1084,7 +1141,8 @@
           "description": "A lean man in a river-boatman's coat puts down his chalk, takes the pipe from his mouth and draws a scimitar."
         }
       ],
-      "defeatEndingId": "fallen-at-bramblecote"
+      "defeatEndingId": "fallen-at-bramblecote",
+      "movesTo": { "roomId": "river-door", "when": "vaults-roused" }
     },
     {
       "id": "sump-fight",

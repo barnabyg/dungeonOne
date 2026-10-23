@@ -268,7 +268,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 45;
+export const FIFTH_ADVENTURE_FORMAT = 46;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -1115,7 +1115,8 @@ export type WanderingEntry = Readonly<
 
 /**
  * A shut door in a passage. A stuck door is forced open; a locked one opens
- * with its key, or is picked or broken open. Each check is tried once.
+ * with any of its keys (a spare, #543), or is picked or broken open. Each
+ * check is tried once.
  */
 export type FifthDoor = Readonly<{
   id: string;
@@ -1125,8 +1126,11 @@ export type FifthDoor = Readonly<{
   force?: AuthoredCheck;
   pick?: AuthoredCheck;
   break?: AuthoredCheck;
-  keyItemId?: string;
+  keyItemIds?: readonly string[];
 }>;
+
+/** The most keys one door may have (#543): its own and a spare. */
+const MAX_DOOR_KEYS = 2;
 
 /**
  * A hidden trap in a passage: found by a check (searching either room, with
@@ -3229,10 +3233,23 @@ function validateModule(
     const raw = knownKeys(
       value,
       ["id", "name", "description", "state"],
-      ["force", "pick", "break", "keyItemId"],
+      ["force", "pick", "break", "keyItemIds"],
       where,
     );
     const doorId = id(raw.id, `${where} id`);
+    const keyItemIds =
+      raw.keyItemIds === undefined
+        ? undefined
+        : list(raw.keyItemIds, `${where} keyItemIds`, MAX_DOOR_KEYS).map(
+            (key, index) => id(key, `${where} key ${index + 1}`),
+          );
+    if (keyItemIds !== undefined) {
+      distinct(
+        keyItemIds,
+        (key) => key,
+        (key) => `door ${doorId} names key ${key} twice.`,
+      );
+    }
     const checks = {
       ...(raw.force === undefined
         ? {}
@@ -3257,7 +3274,7 @@ function validateModule(
       if (
         checks.pick !== undefined ||
         checks.break !== undefined ||
-        raw.keyItemId !== undefined
+        keyItemIds !== undefined
       ) {
         fail(`door ${doorId}: a stuck door is opened only by force.`);
       }
@@ -3271,7 +3288,7 @@ function validateModule(
       if (
         checks.pick === undefined &&
         checks.break === undefined &&
-        raw.keyItemId === undefined
+        keyItemIds === undefined
       ) {
         fail(`door ${doorId}: a locked door needs a key, pick or break.`);
       }
@@ -3284,9 +3301,7 @@ function validateModule(
       description: text(raw.description, `${where} description`),
       state: raw.state,
       ...checks,
-      ...(raw.keyItemId === undefined
-        ? {}
-        : { keyItemId: id(raw.keyItemId, `${where} keyItemId`) }),
+      ...(keyItemIds === undefined ? {} : { keyItemIds }),
     };
   };
   const trap = (value: unknown, where: string): FifthTrap => {
@@ -3468,10 +3483,13 @@ function validateModule(
     }
   }
   for (const { door: shut } of passages) {
-    if (shut?.keyItemId !== undefined) {
-      const key = itemRooms.get(shut.keyItemId)?.item;
+    if (shut === undefined) {
+      continue;
+    }
+    for (const keyId of shut.keyItemIds ?? []) {
+      const key = itemRooms.get(keyId)?.item;
       if (key === undefined) {
-        fail(`door ${shut.id} names unknown key ${shut.keyItemId}.`);
+        fail(`door ${shut.id} names unknown key ${keyId}.`);
       }
       if (key.kind !== "key") {
         fail(`door ${shut.id}'s key ${key.id} is not a key.`);
@@ -3729,9 +3747,11 @@ function validateModule(
   // a use needs (#331, #400). Its other loot is lost with it.
   const neededFor = new Map<string, string>([
     ...passages.flatMap(({ door: shut }) =>
-      shut?.keyItemId === undefined
+      shut === undefined
         ? []
-        : [[shut.keyItemId, `opens door ${shut.id}`] as const],
+        : (shut.keyItemIds ?? []).map(
+            (keyId) => [keyId, `opens door ${shut.id}`] as const,
+          ),
     ),
     ...[...featureById.values()].flatMap(({ id: featureId, uses }) =>
       (uses ?? []).map(
@@ -4109,10 +4129,12 @@ function validateModule(
       const flagged = new Set(set);
       // A key in a feature with a check is found only on some bands.
       const keyed = (shut: FifthDoor) =>
-        shut.keyItemId !== undefined &&
-        reached.has(itemRooms.get(shut.keyItemId)!.roomId) &&
-        featureById.get(itemRooms.get(shut.keyItemId)!.item.hiddenIn ?? "")
-          ?.check === undefined;
+        (shut.keyItemIds ?? []).some(
+          (keyId) =>
+            reached.has(itemRooms.get(keyId)!.roomId) &&
+            featureById.get(itemRooms.get(keyId)!.item.hiddenIn ?? "")
+              ?.check === undefined,
+        );
       // A use of an item on a feature (#400) is made for sure once its
       // feature's room and its item are reached for sure.
       const used = new Set<string>();
@@ -4266,7 +4288,7 @@ function validateModule(
   /** A door only thieves' tools open (#309): no key, force or break. */
   const toolsOnly = (shut: FifthDoor) =>
     shut.pick !== undefined &&
-    shut.keyItemId === undefined &&
+    shut.keyItemIds === undefined &&
     shut.force === undefined &&
     shut.break === undefined;
   /** What thieves' tools would reach (#309), to name a tools-only route. */

@@ -422,7 +422,7 @@ test("a module whose only route to its goal is a lock only thieves' tools open i
   );
   // A key on the near side gives a way without tools.
   const keyed = moduleFile("picklock-cellar");
-  keyed.passages[0].door.keyItemId = "oak-key";
+  keyed.passages[0].door.keyItemIds = ["oak-key"];
   room(keyed, "cellar-stair").items.push({
     id: "oak-key",
     name: "Oak Key",

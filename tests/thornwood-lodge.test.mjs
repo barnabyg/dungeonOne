@@ -5,9 +5,11 @@
 // the ice house and the captain keeps the solar; and the Wolfstone above it,
 // the Hillfort's six rooms (#289) with a sheepfold and a guardroom added,
 // where a drover trades and the Reaver's wolf, a bear and the Reaver hold the
-// fort. Journeys reach its endings and its checks; shipped-modules.test.mjs
-// checks it qualifies at its declared difficulty, with the gate figures its
-// proposal quotes.
+// fort. Since #544 the wolf's lair hides a run under the rampart into the
+// guardroom, found with Nature or Survival, and forcing the portcullis rouses
+// the Wolfstone, which rolls its wandering table. Journeys reach its
+// endings and its checks; shipped-modules.test.mjs checks it qualifies at
+// its declared difficulty, with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -111,7 +113,10 @@ test("the lodge is a sixteen-room long level 4–5 Hard module in two regions, l
       "keep-hall",
     ],
   );
-  assert.deepEqual(lodge.flags, ["bear-fed"]);
+  assert.deepEqual(lodge.flags, ["bear-fed", "wolfstone-roused"]);
+  // Only noise raises the alarm, and no fight runs long enough to (#544).
+  assert.equal(lodge.alarm.flag, "wolfstone-roused");
+  assert.equal(lodge.alarm.fights, undefined);
   assert.deepEqual(
     lodge.routes.map(({ id, rooms }) => [id, rooms]),
     [
@@ -164,6 +169,7 @@ test("the hunt ride joins the two holds, and the hall door from the kennels is n
         false,
         "rusted-portcullis",
       ],
+      ["wolfs-run", ["outer-ditch", "guardroom"], true, undefined],
       ["gatehouse-to-guardroom", ["gatehouse", "guardroom"], false, undefined],
       [
         "gatehouse-to-undercroft",
@@ -705,9 +711,16 @@ function forced(state, action, random) {
   return result;
 }
 
+// Forcing the portcullis is loud in every band (#544): it rouses the
+// Wolfstone, which rolls the region's wandering table (a d100 of 99 brings
+// nothing).
 test("with the crowbar, Remarkable Athlete forces the portcullis at advantage: the better of two d20s", () => {
   // 4 + 5 = 9 fails; 12 + 5 = 17 beats DC 15.
-  const result = forced(atPortcullis, FORCE, dice([20, 4], [20, 12]));
+  const result = forced(
+    atPortcullis,
+    FORCE,
+    dice([20, 4], [20, 12], [100, 99]),
+  );
   assert.match(
     wolfstone.renderResult(result),
     /^Athletics check, at advantage \(Remarkable Athlete\)/u,
@@ -717,13 +730,16 @@ test("with the crowbar, Remarkable Athlete forces the portcullis at advantage: t
 
 test("without a lever, the portcullis cancels Remarkable Athlete: one d20", () => {
   // 12 + 5 = 17 beats DC 15, on a single die.
-  const result = forced(ditchAfterWolf([]), FORCE, dice([20, 12]));
+  const result = forced(ditchAfterWolf([]), FORCE, dice([20, 12], [100, 99]));
   assert.ok(levelFourExits(result.state).includes("gatehouse"));
 });
 
 test("a portcullis that holds may be tried again for 1d4 bludgeoning damage", () => {
+  // The alarm's wandering roll waits while Tactical Mind is offered for the
+  // failed check (and the retry, taking that offer away, doesn't roll it).
   const held = forced(atPortcullis, FORCE, dice([20, 3], [20, 4])).state;
   assert.ok(!levelFourExits(held).includes("gatehouse"));
+  assert.ok(held.flags.includes("wolfstone-roused"));
   const { state } = forced(
     held,
     { ...FORCE, retry: true },
@@ -781,7 +797,7 @@ test("the rampart's loose stones are a fight action against the wolf, once an ad
 
 /** The same Fighter in the gatehouse, the portcullis forced. */
 const inGatehouse = forced(
-  forced(atPortcullis, FORCE, dice([20, 20], [20, 20])).state,
+  forced(atPortcullis, FORCE, dice([20, 20], [20, 20], [100, 99])).state,
   { type: "move", destinationId: "gatehouse" },
   dice(),
 ).state;
@@ -929,7 +945,7 @@ test("a level-4 Fighter kills the Reaver's wolf, forces the portcullis and leave
       ["take", "cart-potion"],
       ["take", "crowbar"],
       ["move", "outer-ditch"],
-      ["examine", "wolf-lair"],
+      ["examine", "wolf-lair", "survival"],
       ["take", "drovers-purse"],
       ["take", "silver-bell"],
       ["force", "rusted-portcullis"],
@@ -1064,4 +1080,94 @@ test("the live release script plays the lodge's generated route with --adventure
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// #544: a mind way past the portcullis, and the portcullis is loud.
+const examinedLair =
+  (band) =>
+  ({ checks }) =>
+    checks.some(
+      ({ id, band: made }) => id === "examine:wolf-lair" && made === band,
+    );
+const TO_LAIR = [
+  ["move", "drovers-camp"],
+  ["move", "outer-ditch"],
+  ["examine", "wolf-lair", "nature"],
+];
+
+test("the wolf's lair is searched with Nature or Survival: either band finds the purse and the bell, and success finds the run under the rampart", () => {
+  const { check } = feature("outer-ditch", "wolf-lair");
+  assert.deepEqual(
+    check.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["nature", 14],
+      ["survival", 14],
+    ],
+  );
+  const loot = [
+    { type: "discovery", feature: "wolf-lair" },
+    { type: "item", item: "drovers-purse" },
+    { type: "item", item: "silver-bell" },
+  ];
+  assert.equal(check.bands.failure.text, "Fur and old bones.");
+  assert.deepEqual(check.bands.failure.effects, loot);
+  assert.deepEqual(check.bands.success.effects, [
+    ...loot,
+    { type: "open", passage: "wolfs-run" },
+  ]);
+  const run = lodge.passages.find(({ id }) => id === "wolfs-run");
+  assert.deepEqual(
+    [run.between, run.hidden],
+    [["outer-ditch", "guardroom"], true],
+  );
+});
+
+test("finding the wolf's run leads into the guardroom without forcing the portcullis", () => {
+  const { state } = firstJourney(
+    lodge,
+    level4,
+    [...TO_LAIR, ["take", "silver-bell"], ["move", "guardroom"]],
+    (reached) =>
+      reached.status === "playing" &&
+      reached.roomId === "guardroom" &&
+      examinedLair("success")(reached),
+  );
+  assert.ok(state.inventory.includes("silver-bell"));
+  assert.ok(!state.openedDoorIds.includes("rusted-portcullis"));
+  assert.ok(!state.flags.includes("wolfstone-roused"));
+  // The Gaoler was at his post, and the way on is the gatehouse.
+  assert.ok(state.clearedEncounterIds.includes("guardroom-gaoler"));
+  assert.ok(levelFourExits(state).includes("gatehouse"));
+});
+
+test("a failed search of the lair still finds the purse and the bell, but not the run", () => {
+  const { state } = firstJourney(
+    lodge,
+    level4,
+    [...TO_LAIR, ["take", "drovers-purse"], ["take", "silver-bell"]],
+    (reached) =>
+      reached.status === "playing" && examinedLair("failure")(reached),
+  );
+  assert.ok(state.inventory.includes("silver-bell"));
+  assert.ok(!levelFourExits(state).includes("guardroom"));
+});
+
+test("forcing the portcullis rouses the Wolfstone, rolling its wandering table, and scatters the gaoler's dice", () => {
+  const { bands } = lodge.passages.find(({ id }) => id === "ditch-to-gatehouse")
+    .door.force;
+  assert.deepEqual(
+    Object.entries(bands).map(([band, { noisy }]) => [band, noisy]),
+    [
+      ["failure-by-5", true],
+      ["failure", true],
+      ["success", true],
+    ],
+  );
+  // inGatehouse's force rolled the table (a d100 of 99: nothing came).
+  assert.ok(inGatehouse.flags.includes("wolfstone-roused"));
+  assert.deepEqual(feature("guardroom", "dice-table").changed, {
+    when: "wolfstone-roused",
+    description:
+      "A barrel-head table strewn with cups, two of them knocked over and their dice scattered by the racket at the gate.",
+  });
 });

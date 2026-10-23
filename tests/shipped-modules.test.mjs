@@ -310,90 +310,90 @@ const QUOTED_FIGURES = {
       xp: 1275,
     },
   },
-  // Long and level 1 (#440): Medium, as the Rogue's 97.5% is 9.5 points
-  // over the 88% Medium needs with its slack and under Easy's 98%. Brack, Nib and Wick
-  // of seven ordinary foes are over the cap, no more than half. Every fight's
-  // XP, Wick's 25 for sparing him counted as the greater (#238), and the
-  // ending's 300.
+  // Long and level 1 (#440): Medium, as the Rogue's 94.5% is 6.5 points
+  // over the 88% Medium needs with its slack and under Easy's 98%. Brack,
+  // Nib and Wick of seven ordinary foes are over the cap, no more than half.
+  // Every fight's XP, Wick's 25 for sparing him counted as the greater
+  // (#238), and the ending's 300.
   "bramblecote-cider-house": {
     fighter: {
-      survival: [1, "mace", 0.98],
-      alwaysFail: [1, 0.98],
+      survival: [1, "two-daggers", 0.985],
+      alwaysFail: [1, 0.985],
       overCap: ["brack", "nib", "wick"],
       enemyCount: 7,
       xp: 25 + 25 + 50 + (12 + 25) + 25 + 25 + 50 + 300,
     },
     rogue: {
-      survival: [1, "shortsword", 0.975],
-      alwaysFail: [1, 0.975],
+      survival: [1, "shortsword", 0.945],
+      alwaysFail: [1, 0.945],
       overCap: ["brack", "nib", "wick"],
       xp: 537,
     },
   },
-  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 94.0% at
-  // level 3 when every check fails is 9.0 points over the 85% Medium needs
+  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 95.0% at
+  // level 3 when every check fails is 10.0 points over the 85% Medium needs
   // (the Cleric's 91.5% was, before its chain shirt and shield, #541), and
-  // it and the Fighter's 94.5% are under the 98% Easy needs with its slack.
+  // it and the Fighter's 97.0% are under the 98% Easy needs with its slack.
   // Three kobolds of 15 ordinary foes are over the cap at level 4, the level
   // too easy judges; the survival figures are level 3's. Every fight's XP,
   // the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
-      survival: [3, "mace", 0.945],
+      survival: [3, "mace", 0.97],
       alwaysFail: [3, 0.965],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       enemyCount: 15,
       xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 1800,
       routes: [
-        ["keepers-stair", 3, "mace", 0.945],
-        ["drained-culvert", 3, "mace", 0.95],
+        ["keepers-stair", 3, "mace", 0.97],
+        ["drained-culvert", 3, "mace", 0.97],
       ],
       sweeps: [
-        ["keep", 3, "mace", 0.97],
-        ["culverts", 3, "mace", 0.945],
+        ["keep", 3, "mace", 0.99],
+        ["culverts", 3, "mace", 0.97],
       ],
     },
     rogue: {
-      survival: [3, "shortsword", 0.99],
+      survival: [3, "shortsword-and-dagger", 0.995],
       alwaysFail: [3, 0.99],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "shortsword", 0.99],
+        ["keepers-stair", 3, "shortsword-and-dagger", 0.995],
         ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
       ],
       sweeps: [
-        ["keep", 3, "shortsword-and-dagger", 0.98],
-        ["culverts", 3, "shortsword", 0.99],
+        ["keep", 3, "shortsword-and-dagger", 0.985],
+        ["culverts", 3, "shortsword-and-dagger", 0.995],
       ],
     },
     cleric: {
-      survival: [3, "mace-and-shield", 0.98],
+      survival: [3, "mace-and-shield", 0.975],
       alwaysFail: [3, 0.975],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "mace-and-shield", 0.98],
-        ["drained-culvert", 3, "mace-and-shield", 0.985],
+        ["keepers-stair", 3, "mace-and-shield", 0.975],
+        ["drained-culvert", 3, "mace-and-shield", 0.98],
       ],
       sweeps: [
-        ["keep", 3, "mace-and-shield", 0.96],
-        ["culverts", 3, "mace-and-shield", 0.98],
+        ["keep", 3, "mace-and-shield", 0.955],
+        ["culverts", 3, "mace-and-shield", 0.975],
       ],
     },
     // The Wizard finds the keeper's wand on its way (#540).
     wizard: {
-      survival: [3, "quarterstaff-and-dagger", 0.97],
+      survival: [3, "quarterstaff-and-dagger", 0.96],
       alwaysFail: [3, 0.95],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.97],
-        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.965],
+        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.96],
+        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.955],
       ],
       sweeps: [
-        ["keep", 3, "quarterstaff-and-dagger", 0.935],
-        ["culverts", 3, "quarterstaff-and-dagger", 0.97],
+        ["keep", 3, "quarterstaff-and-dagger", 0.94],
+        ["culverts", 3, "quarterstaff-and-dagger", 0.96],
       ],
     },
   },

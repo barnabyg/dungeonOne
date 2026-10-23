@@ -38,9 +38,7 @@ const placed = (adventure) => adventure.rooms.flatMap(({ items }) => items);
 /** The items a door or a feature's use names: what a way on may need. */
 const ruleItems = (adventure) =>
   new Set([
-    ...adventure.passages.flatMap(({ door }) =>
-      door?.keyItemId === undefined ? [] : [door.keyItemId],
-    ),
+    ...adventure.passages.flatMap(({ door }) => door?.keyItemIds ?? []),
     ...adventure.rooms.flatMap(({ features }) =>
       features.flatMap(({ uses }) => (uses ?? []).map(({ item }) => item)),
     ),
