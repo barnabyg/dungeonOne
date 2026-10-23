@@ -275,7 +275,7 @@ test(
       /Wick throws down its arms and surrenders\./u,
       /Wick offers you the Strongroom Key\./u,
       /You unlock the Strongroom Door with the Strongroom Key\./u,
-      /You take the Pell Savings and put 30 gp in your purse\./u,
+      /You take the Pell Savings and put 25 gp in your purse\./u,
     ]);
     assert.match(card, /^Out with the Pells' goods\nEscaped with loot\n/u);
     assert.ok(
@@ -293,7 +293,7 @@ test(
     assert.equal(record.session, undefined);
     assert.deepEqual(
       [record.sheet.level, record.sheet.xp, record.sheet.purse],
-      [2, 400, 3000],
+      [2, 400, 2500],
     );
     assert.deepEqual(
       record.sheet.treasure.map(({ name }) => name),
@@ -331,11 +331,10 @@ test(
         ["take", "wishing-coins"],
         ["move", "flooded-cistern"],
         ["examine", "drowned-delver"],
-        ["take", "delvers-jasper"],
+        ["take", "delvers-savings"],
         ["move", "ossuary"],
         ["examine", "mags-satchel"],
         ["take", "satchel-gold"],
-        ["take", "satchel-turquoise"],
         ["move", "shaft-bottom"],
         ["leave", "shaft-bottom"],
       ],
@@ -366,12 +365,9 @@ test(
     assert.equal(record.session, undefined);
     assert.deepEqual(
       [record.sheet.level, record.sheet.xp, record.sheet.purse],
-      [3, 975, 2100],
+      [3, 975, 1510],
     );
-    assert.deepEqual(
-      record.sheet.treasure.map(({ name }) => name),
-      ["Jasper", "Turquoise"],
-    );
+    assert.deepEqual(record.sheet.treasure, []);
   },
 );
 

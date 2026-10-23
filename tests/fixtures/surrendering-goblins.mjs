@@ -29,6 +29,8 @@ export const surrenderingGoblinsJson = {
   ...barrow,
   id: "surrendering-goblins",
   title: "The Surrendering Goblins",
+  // Three rings are more gems and art objects than level 1 or 2 allows.
+  recommendedLevels: { min: 1, max: 3 },
   rooms: barrow.rooms.map((room) =>
     room.id === "burial-hall"
       ? {

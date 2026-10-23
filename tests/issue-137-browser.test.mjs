@@ -38,7 +38,7 @@ const TO_THE_FIGHT = [
 ];
 const AFTER_THE_FIGHT = [
   ["examine", "footlocker"],
-  ["take", "dagger-hilt"],
+  ["take", "soldiers-pay"],
   ["move", "gate-hall"],
   ["move", "broken-gate"],
 ];
@@ -207,10 +207,9 @@ test(
       assert.equal(record.session, undefined);
       assert.equal(record.sheet.level, 2);
       assert.equal(record.sheet.xp, 700);
-      assert.deepEqual(
-        record.sheet.treasure.map(({ name }) => name),
-        ["Dagger Hilt"],
-      );
+      // The footlocker's 25 sp went into the purse.
+      assert.deepEqual(record.sheet.treasure, []);
+      assert.equal(record.sheet.purse, 250);
       await page.locator("#ending-next").click();
       await page.locator("#sheet").waitFor({ state: "visible" });
       assert.match(

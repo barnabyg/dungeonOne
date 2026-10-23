@@ -210,7 +210,7 @@
           "description": "A sealed canvas bag of gold pieces.",
           "kind": "coin",
           "coins": {
-            "gp": 150
+            "gp": 140
           },
           "hiddenIn": "iron-coffer"
         }

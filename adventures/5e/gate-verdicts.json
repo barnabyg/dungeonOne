@@ -2,11 +2,11 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "bdf31fd24631c2c6be5bf552b9e356d6bdedb1434636a94692104776c6e9fb6a",
+      "hash": "86eb8570fdc86768a9e69776521e71f6d3244b3a61731955197d41a80b7294b1",
       "qualified": true
     },
     "bramblecote-cider-house": {
-      "hash": "a751f3ab589dcc2b31a6386561f5fb8f4d4232e246d6cb8091077fe9ba33e49b",
+      "hash": "18930839cb9c79cd99b17a14eb04e50690d2683b7b24c499578f459cc99b30d2",
       "qualified": true
     },
     "coldwater-weirgate": {

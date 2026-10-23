@@ -341,10 +341,10 @@
         {
           "id": "nibs-hoard",
           "name": "Nib's Hoard",
-          "description": "A sticky handful of gold coins.",
+          "description": "A sticky handful of silver coins.",
           "kind": "coin",
           "coins": {
-            "gp": 8
+            "sp": 30
           },
           "hiddenIn": "pomace-heap"
         },
@@ -375,7 +375,7 @@
           "id": "snagtooths-sack",
           "name": "Snagtooth's Sack",
           "description": "A greasy sack that the goblin chief uses as a pillow.",
-          "discovery": "Inside, among apple cores and a broken pipe, are a few gold coins and a dark green stone flecked with red."
+          "discovery": "Inside, among apple cores and a broken pipe, is a fistful of silver coins."
         },
         {
           "id": "hay-bales",
@@ -390,20 +390,12 @@
       ],
       "items": [
         {
-          "id": "sack-bloodstone",
-          "name": "Bloodstone",
-          "description": "A dark green stone flecked with red, polished smooth.",
-          "kind": "treasure",
-          "treasure": "gem-50gp",
-          "hiddenIn": "snagtooths-sack"
-        },
-        {
           "id": "sack-coins",
-          "name": "Chief's Gold",
-          "description": "A few gold coins.",
+          "name": "Chief's Silver",
+          "description": "A fistful of silver coins.",
           "kind": "coin",
           "coins": {
-            "gp": 5
+            "sp": 40
           },
           "hiddenIn": "snagtooths-sack"
         },
@@ -703,7 +695,8 @@
           "description": "A scatter of old coins, worn smooth.",
           "kind": "coin",
           "coins": {
-            "gp": 5
+            "sp": 10,
+            "cp": 50
           },
           "hiddenIn": "silted-floor"
         }
@@ -747,10 +740,11 @@
         {
           "id": "pell-savings",
           "name": "Pell Savings",
-          "description": "A cloth bundle of gold coins.",
+          "description": "A cloth bundle of gold and silver coins.",
           "kind": "coin",
           "coins": {
-            "gp": 30
+            "gp": 15,
+            "sp": 100
           },
           "hiddenIn": "iron-chest"
         }
@@ -807,7 +801,7 @@
           "id": "fences-strongbox",
           "name": "Fence's Strongbox",
           "description": "A small strongbox on a barrel head, its lid open.",
-          "discovery": "Corran's takings: a few gold coins and a banded agate he took in trade."
+          "discovery": "Corran's takings: a few gold coins and a heap of silver."
         },
         {
           "id": "rolled-barrels",
@@ -823,20 +817,13 @@
       ],
       "items": [
         {
-          "id": "banded-agate",
-          "name": "Banded Agate",
-          "description": "A brown and white striped agate.",
-          "kind": "treasure",
-          "treasure": "gem-10gp",
-          "hiddenIn": "fences-strongbox"
-        },
-        {
           "id": "fence-takings",
           "name": "Fence's Takings",
-          "description": "A few gold coins.",
+          "description": "A few gold coins and a heap of silver.",
           "kind": "coin",
           "coins": {
-            "gp": 10
+            "gp": 4,
+            "sp": 40
           },
           "hiddenIn": "fences-strongbox"
         },
@@ -873,7 +860,7 @@
           "id": "smugglers-purse",
           "name": "Smuggler's Purse",
           "description": "A rotted leather purse caught on the grating, where the river left it.",
-          "discovery": "In the purse is a single red-orange stone."
+          "discovery": "In the purse is a little silver, black with river water."
         },
         {
           "id": "rusted-grating",
@@ -883,11 +870,13 @@
       ],
       "items": [
         {
-          "id": "smugglers-carnelian",
-          "name": "Carnelian",
-          "description": "A red-orange carnelian, smooth and cold.",
-          "kind": "treasure",
-          "treasure": "gem-50gp",
+          "id": "smugglers-silver",
+          "name": "Smuggler's Silver",
+          "description": "A few silver coins, black with river water.",
+          "kind": "coin",
+          "coins": {
+            "sp": 30
+          },
           "hiddenIn": "smugglers-purse"
         }
       ],

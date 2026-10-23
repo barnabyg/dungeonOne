@@ -342,7 +342,7 @@ test("no loot lies in an exit or a rest site: the first loot is behind the kenne
 
 const ROLLED_GAOLER_COINS = { sp: 8 };
 
-test("its treasure is 93% of the long level-5 budget, the Gaoler's silver and gem rolled from its treasure type, and its one magic item the King's Hanger", () => {
+test("its treasure is 87% of the long level-5 budget, the Gaoler's silver and gem rolled from its treasure type, and its one magic item the King's Hanger", () => {
   // Rolled with `npm run loot -- adventures/5e/thornwood-lodge.json --seed 445`;
   // Hesk's and the Reaver's coins came over with their modules (seeds 291
   // and 289).
@@ -362,9 +362,9 @@ test("its treasure is 93% of the long level-5 budget, the Gaoler's silver and ge
   assert.deepEqual(carried("keep-hall", "wolfstone-reaver-coins").coins, {
     gp: 6,
   });
-  // 1,389 gp placed, the Gaoler's 10 gp gem and 8 sp.
-  assert.equal(findableValue(lodge), 138900 + 1000 + 80);
-  assert.equal(treasureBudget(5, true), 150000);
+  // 1,039 gp of coin, gems and art placed, the Gaoler's 10 gp gem and 8 sp.
+  assert.equal(findableValue(lodge), 103900 + 1000 + 80);
+  assert.equal(treasureBudget(5, true), 120000);
   const hanger = carried("lodge-hall", "kings-hanger");
   assert.deepEqual(
     [hanger.name, hanger.gear],

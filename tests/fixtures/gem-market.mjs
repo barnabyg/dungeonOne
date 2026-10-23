@@ -17,6 +17,9 @@ export const OPAL = {
 };
 
 export const gemMarketFile = structuredClone(marketFile);
+// The torc and the opal are two gems or art objects, and the pouch's 10 gp
+// with them is over level 1's budget, so the barrow is for levels 1 to 2.
+gemMarketFile.recommendedLevels = { min: 1, max: 2 };
 room(gemMarketFile, "burial-hall").items.push(structuredClone(OPAL));
 gemMarketFile.rooms.push({
   id: "ogre-den",

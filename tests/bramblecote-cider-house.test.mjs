@@ -276,15 +276,10 @@ test("its treasure is 99.6% of the long level-1 budget, and nothing to carry out
     items
       .filter(({ kind }) => kind === "treasure")
       .map(({ id, treasure }) => [id, treasure]),
-    [
-      ["sack-bloodstone", "gem-50gp"],
-      ["christening-cup", "art-25gp"],
-      ["banded-agate", "gem-10gp"],
-      ["smugglers-carnelian", "gem-50gp"],
-    ],
+    [["christening-cup", "art-25gp"]],
   );
-  assert.equal(findableValue(cider), 29884);
-  assert.equal(treasureBudget(1, true), 30000);
+  assert.equal(findableValue(cider), 7534);
+  assert.equal(treasureBudget(1, true), 10000);
   // The rooms reachable from the gate without entering a fight hold no
   // treasure or coin, so a cautious run can't take loot and leave unfought.
   const fightless = new Set();

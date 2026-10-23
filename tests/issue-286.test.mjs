@@ -457,9 +457,8 @@ test("the library saves the pending choice, refuses an adventure until it is mad
   });
 });
 
-test("modules may recommend level 4, with a 600 gp budget and the same tiers as level 3", () => {
-  assert.equal(treasureBudget(4), 60000);
-  assert.equal(treasureBudget(4), 4 * treasureBudget(1));
+test("modules may recommend level 4, with a 450 gp budget and the same tiers as level 3", () => {
+  assert.equal(treasureBudget(4), 45000);
   assert.equal(tierAllowed("common", 4), true);
   assert.equal(tierAllowed("uncommon", 4), true);
   assert.equal(tierAllowed("rare", 4), false);
