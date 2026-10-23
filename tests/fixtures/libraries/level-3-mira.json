@@ -86,13 +86,11 @@
         "divineOrder": "protector",
         "weaponMasteries": [],
         "equipment": [
-          "leather",
+          "chain-shirt",
+          "shield",
           "mace"
         ],
-        "stowed": [
-          "dagger",
-          "dagger"
-        ],
+        "stowed": [],
         "ammunition": {
           "arrows": 0,
           "bolts": 0

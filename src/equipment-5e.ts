@@ -1183,9 +1183,10 @@ export type KitData = Readonly<{
  * levels are dangerous, so better gear is found, bought or earned. Each
  * class offers its own (`ClassDefinition.kits`): the Fighter the first
  * three, the Rogue (#306) the shortsword kits, each with thieves' tools
- * (#309), the Cleric (#339) the mace kit, its daggers stowed, and the
- * club and shield kit, and the Wizard (#340), with no armour training, a
- * quarterstaff with a dagger stowed or two daggers.
+ * (#309), the Cleric (#339) a chain shirt and shield, as SRD 5.2's option
+ * A (#541), with a mace or with a club and a dagger stowed, and the Wizard
+ * (#340), with no armour training, a quarterstaff with a dagger stowed or
+ * two daggers.
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -1207,14 +1208,14 @@ export const STARTING_KITS = {
     equipment: ["leather", "shortsword", "dagger"],
     stowed: ["thieves-tools"],
   },
-  "mace-and-daggers": {
-    name: "Mace, two daggers and leather",
-    equipment: ["leather", "mace"],
-    stowed: ["dagger", "dagger"],
+  "mace-and-shield": {
+    name: "Mace, chain shirt and shield",
+    equipment: ["chain-shirt", "shield", "mace"],
   },
   "club-and-shield": {
-    name: "Club, shield and leather",
-    equipment: ["leather", "shield", "club"],
+    name: "Club, dagger, chain shirt and shield",
+    equipment: ["chain-shirt", "shield", "club"],
+    stowed: ["dagger"],
   },
   "quarterstaff-and-dagger": {
     name: "Quarterstaff and dagger",

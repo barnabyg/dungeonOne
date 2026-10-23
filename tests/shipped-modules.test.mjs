@@ -330,12 +330,13 @@ const QUOTED_FIGURES = {
       xp: 537,
     },
   },
-  // Long (#412), levels 3–4 since #443: Medium, as the Cleric's 91.5% at
-  // level 3 when every check fails is 6.5 points over the 85% Medium needs,
-  // and the Fighter's 94.5% is under the 98% Easy needs with its slack. Three
-  // kobolds of 15 ordinary foes are over the cap at level 4, the level too
-  // easy judges; the survival figures are level 3's. Every fight's
-  // XP, the wandering ones' included, and the ending's 1,800 (500 before).
+  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 94.0% at
+  // level 3 when every check fails is 9.0 points over the 85% Medium needs
+  // (the Cleric's 91.5% was, before its chain shirt and shield, #541), and
+  // it and the Fighter's 94.5% are under the 98% Easy needs with its slack.
+  // Three kobolds of 15 ordinary foes are over the cap at level 4, the level
+  // too easy judges; the survival figures are level 3's. Every fight's XP,
+  // the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
       survival: [3, "mace", 0.945],
@@ -367,17 +368,17 @@ const QUOTED_FIGURES = {
       ],
     },
     cleric: {
-      survival: [3, "mace-and-daggers", 0.95],
-      alwaysFail: [3, 0.915],
+      survival: [3, "mace-and-shield", 0.98],
+      alwaysFail: [3, 0.975],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "mace-and-daggers", 0.95],
-        ["drained-culvert", 3, "club-and-shield", 0.975],
+        ["keepers-stair", 3, "mace-and-shield", 0.98],
+        ["drained-culvert", 3, "mace-and-shield", 0.985],
       ],
       sweeps: [
-        ["keep", 3, "mace-and-daggers", 0.91],
-        ["culverts", 3, "mace-and-daggers", 0.95],
+        ["keep", 3, "mace-and-shield", 0.96],
+        ["culverts", 3, "mace-and-shield", 0.98],
       ],
     },
     wizard: {
@@ -395,9 +396,10 @@ const QUOTED_FIGURES = {
       ],
     },
   },
-  // Long and levels 4–5 since its expansion (#445): Hard, as the Cleric's
-  // 86.5% on the lodge-hall route is 11.5 points over Hard's 75% and under
-  // the 88% Medium needs with its slack (the Rogue's 87.0% is too). Each
+  // Long and levels 4–5 since its expansion (#445): Hard, as the Rogue's
+  // 87.0% on the lodge-hall route is 12.0 points over Hard's 75% and under
+  // the 88% Medium needs with its slack (the Cleric's 86.5% was too, before
+  // its chain shirt and shield, #541). Each
   // route and sweep holds one fight; the hall's bear is fed. At level 5 the
   // two mastiffs and the crag wolf of nine ordinary foes are over the cap
   // (the mastiffs alone for the Cleric), no more than half. Every fight's
@@ -434,17 +436,17 @@ const QUOTED_FIGURES = {
       ],
     },
     cleric: {
-      survival: [4, "mace-and-daggers", 0.865],
-      alwaysFail: [4, 0.865],
+      survival: [4, "mace-and-shield", 0.93],
+      alwaysFail: [4, 0.93],
       overCap: ["kennel-mastiff", "loose-mastiff"],
       xp: 6750,
       routes: [
-        ["lodge-hall", 4, "mace-and-daggers", 0.865],
-        ["wolfstone-gate", 4, "club-and-shield", 0.97],
+        ["lodge-hall", 4, "mace-and-shield", 0.93],
+        ["wolfstone-gate", 4, "mace-and-shield", 0.975],
       ],
       sweeps: [
-        ["lodge", 4, "mace-and-daggers", 0.865],
-        ["wolfstone", 4, "club-and-shield", 0.97],
+        ["lodge", 4, "mace-and-shield", 0.93],
+        ["wolfstone", 4, "mace-and-shield", 0.975],
       ],
     },
     wizard: {

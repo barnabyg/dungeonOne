@@ -119,8 +119,8 @@ test("the module result sets each caster beside the Fighter at each level, and p
         ),
         at(
           5,
-          { kit: "mace-and-daggers", rate: 0.93 },
-          { kit: "mace-and-daggers", rate: 0.88 },
+          { kit: "mace-and-shield", rate: 0.93 },
+          { kit: "mace-and-shield", rate: 0.88 },
           "spend-early",
         ),
       ]),

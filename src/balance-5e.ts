@@ -77,6 +77,7 @@ import {
 import { createSeededRandom } from "./random.js";
 import { PEACEFUL_OPTIONS, type ReactionOption } from "./reaction-5e.js";
 import {
+  isShieldId,
   isWeaponId,
   STARTING_KITS,
   WEAPONS,
@@ -4145,7 +4146,8 @@ export type Attacker = Readonly<{
 /**
  * The ways the gate arms the `classId` character (the harness's class unless
  * named) rolled with `dice` at `level`: every starting kit of its class, and
- * every weapon in `placed` wielded with the default kit's armour, each with
+ * every weapon in `placed` wielded with the default kit's armour (and its
+ * shield, unless the weapon is two-handed: the Cleric's, #541), each with
  * every Fighting Style, the default first, for a class with one. A placed
  * ranged weapon is wielded by the Dexterity-first build of the same dice
  * (#230).
@@ -4164,7 +4166,9 @@ export function strongestAttackers(
     })),
     ...placed.map((gear) => {
       const kit = definition.defaults.kit;
-      const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
+      const weapon = WEAPONS[gear] as WeaponData;
+      const ranged = weapon.ammunition !== undefined;
+      const twoHanded = weapon.properties.includes("two-handed");
       const sheet = characterAtLevel(dice, level, kit, ranged, gear, classId);
       return {
         kit,
@@ -4172,7 +4176,9 @@ export function strongestAttackers(
         sheet: validateCharacter({
           ...sheet,
           equipment: [
-            ...STARTING_KITS[kit].equipment.filter((item) => !isWeaponId(item)),
+            ...STARTING_KITS[kit].equipment.filter(
+              (item) => !isWeaponId(item) && !(twoHanded && isShieldId(item)),
+            ),
             gear,
           ],
         }),

@@ -50,7 +50,11 @@ const DICE = [
   [1, 3, 3, 4],
   [2, 2, 4, 2],
 ];
-/** Mira, a level-2 Cleric with a mace in hand and daggers stowed. */
+/**
+ * Mira, a level-2 Cleric with a mace in hand and two daggers stowed: her
+ * kit's chain shirt without its shield (#541), so a dagger can go in her
+ * other hand.
+ */
 const MIRA = (() => {
   const sheet = buildCharacter(
     "a".repeat(32),
@@ -62,8 +66,8 @@ const MIRA = (() => {
   return withOwedChoices(
     settleCharacter(sheet, {
       possessions: {
-        equipment: sheet.equipment,
-        stowed: sheet.stowed,
+        equipment: ["chain-shirt", "mace"],
+        stowed: ["dagger", "dagger"],
         ammunition: sheet.ammunition,
         treasure: [],
         purse: 0,
