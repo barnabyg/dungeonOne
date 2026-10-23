@@ -53,6 +53,10 @@ export const CONTENT_TESTS = new Map([
     "the increment 14 handoff runs through the browser",
   ],
   [
+    "tests/issue-540-browser.test.mjs",
+    "the caster items Coldwater Weirgate and Thornwood Lodge hide, and a Wizard finding Thornwood's through the browser (#540)",
+  ],
+  [
     "tests/coldwater-weirgate.test.mjs",
     "the Coldwater Weirgate's content, routes, flags, alarm, bargain, lure, journeys and generated release run",
   ],

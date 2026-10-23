@@ -96,10 +96,10 @@ function longFight(on, turns, from = on.createSession()) {
 }
 
 test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
-  assert.equal(FIFTH_SESSION_FORMAT, 66);
-  assert.equal(FIFTH_TRACE_FORMAT, 61);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
+  assert.equal(FIFTH_SESSION_FORMAT, 67);
+  assert.equal(FIFTH_TRACE_FORMAT, 62);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool raises or lowers the alarm\. Never raise it, quiet it, or say it is raised or quiet in your words/u,

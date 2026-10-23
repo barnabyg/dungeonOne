@@ -2827,6 +2827,7 @@ const ACTIONS = {
   attack: { label: "Attack ", busy: "Attacking ", busyLabel: "Attacking…" },
   "light-attack": { label: "Extra attack on ", busy: "Extra attack on ", busyLabel: "Attacking…" },
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
+  "regain-slot": { label: "Regain a spell slot with ", short: "Regain a slot", busy: "Regaining a spell slot with ", busyLabel: "Regaining…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
   sneak: { label: "Sneak into ", short: "Sneak", busy: "Sneaking into ", busyLabel: "Sneaking…" },
   ambush: { label: "Ambush in ", short: "Ambush", busy: "Ambushing in ", busyLabel: "Ambushing…" },
@@ -2972,7 +2973,7 @@ const topicAndCreature = (target) => {
   }
   return undefined;
 };
-const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "use-on", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "use-on", "force", "pick", "break", "unlock", "search", "disarm", "talk", "regain-slot"];
 // The way-out room's Leave (#520), on its heading.
 const WAY_OUT = "Way out · Leave";
 /**

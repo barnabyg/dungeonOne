@@ -11,7 +11,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { FifthAdventure } from "./adventure-5e.js";
-import { passesGate } from "./balance-5e.js";
+import { earlierModules, passesGate } from "./balance-5e.js";
 
 /** The recorded verdicts file's format; any other is ignored. */
 export const GATE_VERDICTS_FORMAT = 1;
@@ -93,10 +93,12 @@ export async function loadGateVerdicts(
 
 /**
  * Whether a module passes the gate (`passesGate`): its recorded verdict when
- * `verdicts` holds one for exactly this module, or else the gate's.
+ * `verdicts` holds one for exactly this module, or else the gate's, with
+ * the modules of `all` played before it (#539).
  */
 export function recordedOrGated(
   verdicts: GateVerdicts,
+  all: readonly FifthAdventure[] = [],
 ): (adventure: FifthAdventure) => boolean {
   return (adventure) => {
     const recorded = Object.hasOwn(verdicts, adventure.id)
@@ -104,6 +106,6 @@ export function recordedOrGated(
       : undefined;
     return recorded !== undefined && recorded.hash === moduleHash(adventure)
       ? recorded.qualified
-      : passesGate(adventure);
+      : passesGate(adventure, earlierModules(adventure, all));
   };
 }

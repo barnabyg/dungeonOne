@@ -353,6 +353,8 @@ export function itemIcon(item: FifthItem): GameIconId {
     case "scroll":
       return SCROLL_ICON;
     case "wand":
+    case "caster-item":
+      // A caster item (#537, #538) shows as a wand, the Pearl of Power too.
       return WAND_ICON;
     case "key":
       return "key";

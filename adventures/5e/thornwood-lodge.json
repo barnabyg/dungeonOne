@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 44,
+  "formatVersion": 45,
   "id": "thornwood-lodge",
   "title": "The Thornwood Lodge",
   "objective": "Get into Captain Hesk's lodge or the Wolfstone above it, take what you can of the deserters' plunder, and leave the Thornwood alive.",
@@ -69,7 +69,7 @@
           "id": "woodpile",
           "name": "Woodpile",
           "description": "Split logs stacked against the palisade.",
-          "discovery": "Behind the logs are a stoppered vial of red liquid and a shuttered lantern."
+          "discovery": "Behind the logs are a stoppered vial of red liquid, a shuttered lantern and a small oilskin pouch."
         }
       ],
       "items": [
@@ -85,6 +85,14 @@
           "name": "Hooded Lantern",
           "description": "A shuttered lantern with a wire handle.",
           "kind": "tool",
+          "hiddenIn": "woodpile"
+        },
+        {
+          "id": "oilskin-pearl",
+          "name": "Pearl in an Oilskin Pouch",
+          "description": "A pearl the size of a thumbnail, cool and faintly luminous, tied up in a scrap of oilskin.",
+          "kind": "caster-item",
+          "casterItem": "pearl-of-power",
           "hiddenIn": "woodpile"
         }
       ],

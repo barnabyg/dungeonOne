@@ -19,6 +19,7 @@ import {
   isConditional,
   placementsByRoom,
   LOOT_KINDS,
+  orderFifthAdventures,
   statBlockDefenses,
   statBlockSaves,
   unsimulatedTraits,
@@ -52,6 +53,7 @@ import {
   withOwedChoices,
   alwaysPrepared,
   rollAbilitySet,
+  mayAttune,
   validateCharacter,
   type CharacterSheet,
   type LevelChoice,
@@ -67,9 +69,16 @@ import {
   type FightingStyle,
   type Level,
 } from "./class-5e.js";
+import {
+  ATTUNEMENT_LIMIT,
+  CASTER_ITEMS,
+  slotRegain,
+  type HeldMagicItem,
+} from "./magic-items-5e.js";
 import { createSeededRandom } from "./random.js";
 import { PEACEFUL_OPTIONS, type ReactionOption } from "./reaction-5e.js";
 import {
+  isShieldId,
   isWeaponId,
   STARTING_KITS,
   WEAPONS,
@@ -106,6 +115,7 @@ import {
   creatureTypeOf,
   PLAYER_ID,
   playerCombatant,
+  scarceCandidateIds,
   type ActionKind,
   type ActionView,
   type CheckPolicy,
@@ -1735,6 +1745,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // with Shield; a caster attacks with a cantrip, and casts levelled damage
   // and control spells by its casting policy (#348).
   cast: true,
+  // A Pearl of Power, outside a fight, as soon as a slot is spent (#538).
+  "regain-slot": true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,
@@ -1902,6 +1914,7 @@ const EXPLORE_HEALS: ReadonlySet<ActionKind> = new Set([
   "use",
 ]);
 const EXPLORE_SEARCHES: ReadonlySet<ActionKind> = new Set(["search", "disarm"]);
+const EXPLORE_REGAINS: ReadonlySet<ActionKind> = new Set(["regain-slot"]);
 const EXPLORE_WAYS: ReadonlySet<ActionKind> = new Set(["move", "ambush"]);
 const EXPLORE_WAYS_SNEAKING: ReadonlySet<ActionKind> = new Set([
   ...EXPLORE_WAYS,
@@ -2013,6 +2026,8 @@ export type RunRecord = Readonly<{
   }>;
   /** Spells the character cast, of any kind (#340). */
   spellsCast: number;
+  /** Spell slots a Pearl of Power regained (#538). */
+  slotsRegained: number;
   /**
    * Channel Divinity uses spent (#341): Turn Undead, Divine Spark and
    * Preserve Life.
@@ -2213,6 +2228,7 @@ export function playAdventure(
   let reactionChoices = 0;
   let retreatChances = 0;
   let fightActions = 0;
+  let slotsRegained = 0;
   /** The fights the run fled (#396), each fled once, and whether it is heading out. */
   const fledFrom: string[] = [];
   let retreating = false;
@@ -2931,6 +2947,21 @@ export function playAdventure(
         return ward;
       }
     }
+    // A Pearl of Power (#538), as soon as a slot is spent outside a fight.
+    if (
+      state.possessions.magicItems.some(
+        (item) => slotRegain(item) !== undefined,
+      )
+    ) {
+      const regain = offered(
+        project(EXPLORE_REGAINS, NO_SPELLS),
+        "regain-slot",
+      )[0];
+      if (regain !== undefined) {
+        slotsRegained += 1;
+        return regain;
+      }
+    }
     // Only what is here and not yet examined is projected (#410): once
     // everything is, nothing.
     const unexamined = new Set(
@@ -3130,6 +3161,7 @@ export function playAdventure(
     encounters: fights,
     healing,
     spellsCast,
+    slotsRegained,
     channelDivinity,
     trapDamage,
     xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
@@ -3472,6 +3504,15 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
 export const CASTER_JUDGED_LEVEL = 3;
 
 /**
+ * The lowest level class parity is judged at (#536, #541, owner's D4): from
+ * it a weak caster's cautious survival must be within `PARITY_POINTS` of a
+ * weak Fighter's. Fighters keep their edge below it.
+ */
+export const PARITY_LEVEL = 4;
+/** How many points of survival a caster may trail the Fighter by (#536). */
+export const PARITY_POINTS = 5;
+
+/**
  * The seeds a caster plays both casting policies on (#348, owner's choice
  * for D12): each kit and level then plays the rest by the one that
  * survived more of them, and the spend-early report covers these alone.
@@ -3538,6 +3579,58 @@ export type SurvivalCheck = Readonly<{
   reported?: true;
   required: number;
 }>;
+
+/** One branch's weakest kit at a level (#536), with a caster's policy. */
+export type ParityFigure = Readonly<{
+  kit: KitId;
+  rate: number;
+  casting?: CastingPolicy;
+}>;
+
+/**
+ * The weakest character's cautious survival at one level from
+ * `PARITY_LEVEL` (#536): its weakest kit on seeded checks and with every
+ * check failing.
+ */
+export type ParityLevel = Readonly<{
+  level: number;
+  seeded: ParityFigure;
+  alwaysFail: ParityFigure;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
+}>;
+
+/**
+ * Each level's parity figures from `PARITY_LEVEL` (#536), in level order:
+ * the kit `survival` and `alwaysFail` survive least with at that level.
+ * Empty for a module whose levels are all below.
+ */
+export function parityLevels(
+  survival: Pick<SurvivalCheck, "kits">,
+  alwaysFail: Pick<SurvivalCheck, "kits">,
+): readonly ParityLevel[] {
+  const weakestAt = (
+    { kits }: Pick<SurvivalCheck, "kits">,
+    level: number,
+  ): ParityFigure => {
+    const { kit, rate, casting } = kits
+      .filter((entry) => entry.level === level)
+      .reduce((worst, entry) => (entry.rate < worst.rate ? entry : worst));
+    return { kit, rate, ...(casting === undefined ? {} : { casting }) };
+  };
+  const levels = [
+    ...new Set(
+      survival.kits
+        .map(({ level }) => level)
+        .filter((level) => level >= PARITY_LEVEL),
+    ),
+  ].sort((a, b) => a - b);
+  return levels.map((level) => ({
+    level,
+    seeded: weakestAt(survival, level),
+    alwaysFail: weakestAt(alwaysFail, level),
+  }));
+}
 
 /**
  * The weakest character's stealth-first runs (#302) with each kit at each
@@ -3618,6 +3711,8 @@ export type OneHitKillCheck = Readonly<{
   level: number;
   percentile: number;
   cap: number;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
   /**
    * Each ordinary opponent, with its one-hit-kill chance from the kit, or
    * the weapon the module places or a merchant sells (`gear`, wielded with
@@ -3687,6 +3782,8 @@ export type ControlCheck = Readonly<{
   level: number;
   percentile: number;
   cap: number;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
   enemies: readonly Readonly<{
     encounterId: string;
     opponentId: string;
@@ -3810,6 +3907,12 @@ export type GateVerdict = Readonly<{
    * reaction-eligible encounter; absent otherwise, or when not asked for.
    */
   reactions?: readonly ReactionPolicyReport[];
+  /**
+   * Each level's figures from `PARITY_LEVEL` (#536), which
+   * `moduleGateResult` sets beside the Fighter's and judges (#541); absent
+   * for a module whose levels are all below.
+   */
+  parity?: readonly ParityLevel[];
 }>;
 
 /**
@@ -3851,6 +3954,7 @@ export type GateMeasures = Readonly<{
   alarm?: AlarmReport;
   wandering?: WanderingReport;
   reactions?: readonly ReactionPolicyReport[];
+  parity?: readonly ParityLevel[];
 }>;
 
 /**
@@ -3948,7 +4052,85 @@ export type GateOptions = Pick<
      * with a reaction-eligible encounter; true by default. Never judged.
      */
     reportReactions?: boolean;
+    /**
+     * The modules a career plays before this one (#539), in order
+     * (`earlierModules`): the caster items it is sure to hold from them
+     * (`sureHeldItems`) play in the too-easy checks and the parity line.
+     * None unless given.
+     */
+    earlier?: readonly FifthAdventure[];
   }>;
+
+/**
+ * A caster item a career is sure to hold (#539): the module it lies in, the
+ * item as the character holds it, and its name.
+ */
+export type SureHeldItem = Readonly<{
+  adventureId: string;
+  item: HeldMagicItem;
+  name: string;
+}>;
+
+/**
+ * The modules of `all` a career plays before `adventure` (#539): those
+ * ahead of it in the browser's order (`orderFifthAdventures`).
+ */
+export function earlierModules(
+  adventure: FifthAdventure,
+  all: readonly FifthAdventure[],
+): readonly FifthAdventure[] {
+  const ordered = orderFifthAdventures(
+    [...all.filter(({ id }) => id !== adventure.id), adventure],
+    () => true,
+  );
+  return ordered.slice(0, ordered.indexOf(adventure));
+}
+
+/**
+ * The caster items a `classId` character is sure to hold when it plays a
+ * module at `level` (#539, D5), in the order found, at most
+ * `ATTUNEMENT_LIMIT`: each that its class may attune lying in a room on the
+ * required path of a module in `earlier` whose lowest recommended level is
+ * `level` or less (so every career that reaches `level` has played it),
+ * hidden in a feature of that room with no check (a failed check may leave
+ * it hidden), and never missing on Scarce. One an opponent carries is never
+ * sure: it may flee or surrender with it.
+ */
+export function sureHeldItems(
+  earlier: readonly FifthAdventure[],
+  classId: ClassId,
+  level: number,
+): readonly SureHeldItem[] {
+  return earlier
+    .filter(({ recommendedLevels }) => recommendedLevels.min <= level)
+    .flatMap((module) => {
+      const path = new Set(requiredPath(module).roomIds);
+      const scarce = new Set(scarceCandidateIds(module));
+      return module.rooms
+        .filter(({ id }) => path.has(id))
+        .flatMap(({ items, features }) =>
+          items.flatMap(({ id, casterItem, hiddenIn }) => {
+            const feature = features.find(
+              (candidate) => candidate.id === hiddenIn,
+            );
+            return casterItem === undefined ||
+              feature === undefined ||
+              feature.check !== undefined ||
+              scarce.has(id) ||
+              !mayAttune(classId, CASTER_ITEMS[casterItem].attunement)
+              ? []
+              : [
+                  {
+                    adventureId: module.id,
+                    item: { id: `${module.id}/${id}`, casterItem },
+                    name: CASTER_ITEMS[casterItem].name,
+                  },
+                ];
+          }),
+        );
+    })
+    .slice(0, ATTUNEMENT_LIMIT);
+}
 
 /** One way the strongest character may be armed, as the gate tries it. */
 export type Attacker = Readonly<{
@@ -3963,7 +4145,8 @@ export type Attacker = Readonly<{
 /**
  * The ways the gate arms the `classId` character (the harness's class unless
  * named) rolled with `dice` at `level`: every starting kit of its class, and
- * every weapon in `placed` wielded with the default kit's armour, each with
+ * every weapon in `placed` wielded with the default kit's armour (and its
+ * shield, unless the weapon is two-handed: the Cleric's, #541), each with
  * every Fighting Style, the default first, for a class with one. A placed
  * ranged weapon is wielded by the Dexterity-first build of the same dice
  * (#230).
@@ -3982,7 +4165,9 @@ export function strongestAttackers(
     })),
     ...placed.map((gear) => {
       const kit = definition.defaults.kit;
-      const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
+      const weapon = WEAPONS[gear] as WeaponData;
+      const ranged = weapon.ammunition !== undefined;
+      const twoHanded = weapon.properties.includes("two-handed");
       const sheet = characterAtLevel(dice, level, kit, ranged, gear, classId);
       return {
         kit,
@@ -3990,7 +4175,9 @@ export function strongestAttackers(
         sheet: validateCharacter({
           ...sheet,
           equipment: [
-            ...STARTING_KITS[kit].equipment.filter((item) => !isWeaponId(item)),
+            ...STARTING_KITS[kit].equipment.filter(
+              (item) => !isWeaponId(item) && !(twoHanded && isShieldId(item)),
+            ),
             gear,
           ],
         }),
@@ -4071,9 +4258,27 @@ export function gateAdventure(
     reportUseRoom = true,
     reportReactions = true,
     classId = DEFAULT_CLASS,
+    earlier = [],
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
+  /** The caster items it is sure to hold at `level` (#539). */
+  const sureHeld = (level: number) => sureHeldItems(earlier, classId, level);
+  /** `sheet` holding the items it is sure to hold at its level (#539). */
+  const carrying = (sheet: CharacterSheet): CharacterSheet => {
+    const held = sureHeld(sheet.level);
+    return held.length === 0
+      ? sheet
+      : validateCharacter({
+          ...sheet,
+          magicItems: [...sheet.magicItems, ...held.map(({ item }) => item)],
+        });
+  };
+  /** The names of the items it is sure to hold at `level`, if any (#539). */
+  const carriedAt = (level: number) => {
+    const names = sureHeld(level).map(({ name }) => name);
+    return names.length === 0 ? {} : { carried: names };
+  };
   const definition = CLASSES[classId];
   const classKits = definition.kits;
   // A caster plays both casting policies (#348).
@@ -4135,6 +4340,43 @@ export function gateAdventure(
     const rateOf = (runs: readonly RunRecord[]) =>
       runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length;
     /**
+     * `sheet`'s cautious runs on the seeds, each on seeded checks and with
+     * every check failing (`failed`), a seeded run that made no check
+     * standing in for its always-fail run. A caster (#348) plays its first
+     * `POLICY_SEED_COUNT` seeds by both casting policies (`tried`), and
+     * every other run by the one that survived more (`casting`), as a
+     * player keeps to one way of playing.
+     */
+    const kitRuns = (sheet: CharacterSheet) => {
+      const seeded = createFifthRuntime(adventure, sheet);
+      const failing = createFifthRuntime(adventure, sheet, {
+        checks: "always-fail",
+      });
+      const play = (seed: number, casting: CastingPolicy) =>
+        playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
+      const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
+      const tried = {
+        conserve: trial.map((seed) => play(seed, "conserve")),
+        "spend-early": trial.map((seed) => play(seed, "spend-early")),
+      };
+      const casting: CastingPolicy =
+        spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
+          ? "spend-early"
+          : "conserve";
+      const runs = seeds.map(
+        (seed, index) => tried[casting][index] ?? play(seed, casting),
+      );
+      const failed = runs.map((run, index) =>
+        run.checks === 0
+          ? run
+          : playAdventure(failing, GATE_STYLE, seeds[index]!, {
+              ...limit,
+              casting,
+            }),
+      );
+      return { seeded, failing, tried, casting, runs, failed };
+    };
+    /**
      * The weakest character's cautious runs with each kit at each level, on
      * seeded checks and with every check failing. A seeded run that made no
      * check is the always-fail run on its seed too, so only runs that made
@@ -4147,39 +4389,22 @@ export function gateAdventure(
      */
     const played = levels.flatMap((level) =>
       classKits.map((kit) => {
-        const sheet = characterAtLevel(
-          weakest!.dice,
-          level,
-          kit,
-          false,
-          undefined,
-          classId,
+        const { seeded, failing, tried, casting, ...judged } = kitRuns(
+          characterAtLevel(
+            weakest!.dice,
+            level,
+            kit,
+            false,
+            undefined,
+            classId,
+          ),
         );
-        const seeded = createFifthRuntime(adventure, sheet);
-        const failing = createFifthRuntime(adventure, sheet, {
-          checks: "always-fail",
-        });
-        const play = (seed: number, casting: CastingPolicy) =>
-          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
-        // A caster tries both policies on the first seeds (#348).
-        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
-        const tried = {
-          conserve: trial.map((seed) => play(seed, "conserve")),
-          "spend-early": trial.map((seed) => play(seed, "spend-early")),
-        };
-        const casting: CastingPolicy =
-          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
-            ? "spend-early"
-            : "conserve";
         const policy = { ...limit, casting };
         const runs = seeds.map((seed, index) => {
-          const run = tried[casting][index] ?? play(seed, casting);
+          const run = judged.runs[index]!;
           return {
             seeded: run,
-            failing:
-              run.checks === 0
-                ? run
-                : playAdventure(failing, GATE_STYLE, seed, policy),
+            failing: judged.failed[index]!,
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, policy)
               : undefined,
@@ -4488,21 +4713,24 @@ export function gateAdventure(
         ),
       ),
     ];
+    // The too-easy checks play with sure-held items (#539, D5).
     const strong = strongestAttackers(
       strongest!.dice,
       max as Level,
       placed,
       classId,
-    );
+    ).map((attacker) => ({ ...attacker, sheet: carrying(attacker.sheet) }));
     // A caster's spells (#348): every one on its class list it could cast
     // at the maximum level, at its highest slot.
-    const caster = characterAtLevel(
-      strongest!.dice,
-      max as Level,
-      undefined,
-      false,
-      undefined,
-      classId,
+    const caster = carrying(
+      characterAtLevel(
+        strongest!.dice,
+        max as Level,
+        undefined,
+        false,
+        undefined,
+        classId,
+      ),
     );
     const self = playerCombatant(caster);
     const highest = self.spellcasting?.slots.length ?? 0;
@@ -4578,6 +4806,7 @@ export function gateAdventure(
         : {
             level: max,
             percentile: STRONGEST_PERCENTILE,
+            ...carriedAt(max),
             enemies: ordinary.map(({ statBlock, ...enemy }) => {
               const best = bestOf(controls, (id) =>
                 controlChance(caster, id, statBlock),
@@ -4614,6 +4843,7 @@ export function gateAdventure(
     const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
+      ...carriedAt(max),
       enemies,
       ...(prepared ? { bonusAction: { enemies: withBonusAction } } : {}),
       ...(damaging.length === 0 ? {} : { spells: { enemies: spellKills } }),
@@ -4688,6 +4918,43 @@ export function gateAdventure(
       endLevel,
       levelLimit,
     };
+    // Class parity (#536), from the judged runs' figures; at a level where
+    // the character is sure to hold items (#539, D5), from runs carrying
+    // them, its policy chosen as the judged runs choose theirs.
+    const parity = parityLevels(survival, alwaysFail).map((figures) => {
+      if (sureHeld(figures.level).length === 0) {
+        return figures;
+      }
+      const kits = classKits.map((kit) => {
+        const { casting, runs, failed } = kitRuns(
+          carrying(
+            characterAtLevel(
+              weakest!.dice,
+              figures.level as Level,
+              kit,
+              false,
+              undefined,
+              classId,
+            ),
+          ),
+        );
+        const shown = spending ? { casting } : {};
+        return {
+          seeded: { kit, level: figures.level, rate: rateOf(runs), ...shown },
+          failing: {
+            kit,
+            level: figures.level,
+            rate: rateOf(failed),
+            ...shown,
+          },
+        };
+      });
+      const [carried] = parityLevels(
+        { kits: kits.map(({ seeded }) => seeded) },
+        { kits: kits.map(({ failing }) => failing) },
+      );
+      return { ...carried!, ...carriedAt(figures.level) };
+    });
 
     return {
       ok: true,
@@ -4710,6 +4977,7 @@ export function gateAdventure(
           ...(wandering === undefined ? {} : { wandering }),
           ...(reactions === undefined ? {} : { reactions }),
           ...(spendEarly === undefined ? {} : { spendEarly }),
+          ...(parity.length === 0 ? {} : { parity }),
         },
         adventure.difficulty,
       ),
@@ -4801,6 +5069,9 @@ export function gateVerdictAt(
     level: measures.oneHitKill.level,
     percentile: measures.oneHitKill.percentile,
     cap: thresholds.oneHitKillCap,
+    ...(measures.oneHitKill.carried === undefined
+      ? {}
+      : { carried: measures.oneHitKill.carried }),
     enemies,
     overCap,
     ...(prepared === undefined
@@ -4855,6 +5126,7 @@ export function gateVerdictAt(
     ...(measures.spendEarly === undefined
       ? {}
       : { spendEarly: measures.spendEarly }),
+    ...(measures.parity === undefined ? {} : { parity: measures.parity }),
   };
 }
 
@@ -4872,7 +5144,80 @@ export type ModuleGateResult = Readonly<{
   qualified: boolean;
   /** Each class's result, in `GATE_CLASSES` order. */
   classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
+  /**
+   * Each caster against the Fighter at each level from `PARITY_LEVEL`
+   * (#536); absent when there is none. Judged (#541): the module qualifies
+   * only if every line is within `PARITY_POINTS` on both branches.
+   */
+  parity?: readonly ParityLine[];
 }>;
+
+/** A caster's figure on one branch beside the Fighter's (#536). */
+export type ParityComparison = Readonly<{
+  caster: ParityFigure;
+  fighter: ParityFigure;
+  /** The Fighter's survival less the caster's, in points to one decimal. */
+  gap: number;
+  /** Whether the gap is at most `PARITY_POINTS`. */
+  within: boolean;
+}>;
+
+/** One caster at one level against the Fighter (#536). */
+export type ParityLine = Readonly<{
+  classId: ClassId;
+  level: number;
+  seeded: ParityComparison;
+  alwaysFail: ParityComparison;
+  /** The sure-held items the caster played with (#539), if any. */
+  carried?: readonly string[];
+}>;
+
+/** " carrying the Wand of the War Mage +1", for sure-held items (#539). */
+const carryingText = (carried: readonly string[] | undefined) =>
+  carried === undefined ? "" : ` carrying the ${carried.join(" and the ")}`;
+
+/**
+ * Each caster class's parity figures (#536) set beside the Fighter's at
+ * each level both report, in `classes` order: none when the Fighter
+ * failed, and none for a caster that failed.
+ */
+function parityLines(classes: ModuleGateResult["classes"]): ParityLine[] {
+  const parityOf = (classId: ClassId) => {
+    const found = classes.find((entry) => entry.classId === classId)?.result;
+    return found?.ok === true ? (found.verdict.parity ?? []) : [];
+  };
+  const fighter = parityOf("fighter");
+  const compare = (
+    caster: ParityFigure,
+    against: ParityFigure,
+  ): ParityComparison => {
+    const gap = Math.round((against.rate - caster.rate) * 1000) / 10;
+    return {
+      caster,
+      fighter: against,
+      gap,
+      within: gap <= PARITY_POINTS,
+    };
+  };
+  return classes
+    .filter(({ classId }) => CLASSES[classId].spellcasting !== undefined)
+    .flatMap(({ classId }) =>
+      parityOf(classId).flatMap(({ level, seeded, alwaysFail, carried }) => {
+        const matched = fighter.find((entry) => entry.level === level);
+        return matched === undefined
+          ? []
+          : [
+              {
+                classId,
+                level,
+                seeded: compare(seeded, matched.seeded),
+                alwaysFail: compare(alwaysFail, matched.alwaysFail),
+                ...(carried === undefined ? {} : { carried }),
+              },
+            ];
+      }),
+    );
+}
 
 /**
  * Gates `adventure` for every class in `GATE_CLASSES` (`gateAdventure` for
@@ -4894,18 +5239,23 @@ export function gateModule(
 /**
  * The module verdict for `adventureId` from each class's result, in
  * `GATE_CLASSES` order: as `gateModule` gives it, for results gated apart
- * (on worker threads, say).
+ * (on worker threads, say). It qualifies only if every class qualifies and
+ * every caster keeps class parity (#541, D4) on both branches.
  */
 export function moduleGateResult(
   adventureId: string,
   classes: ModuleGateResult["classes"],
 ): ModuleGateResult {
+  const parity = parityLines(classes);
   return {
     adventureId,
-    qualified: classes.every(
-      ({ result }) => result.ok && result.verdict.qualified,
-    ),
+    qualified:
+      classes.every(({ result }) => result.ok && result.verdict.qualified) &&
+      parity.every(
+        ({ seeded, alwaysFail }) => seeded.within && alwaysFail.within,
+      ),
     classes,
+    ...(parity.length === 0 ? {} : { parity }),
   };
 }
 
@@ -4917,8 +5267,11 @@ const gated = new Map<string, boolean>();
  * class with the default options (`gateModule`), as the browser offers
  * modules.
  */
-export function passesGate(adventure: FifthAdventure): boolean {
-  const key = JSON.stringify(adventure);
+export function passesGate(
+  adventure: FifthAdventure,
+  earlier: readonly FifthAdventure[] = [],
+): boolean {
+  const key = JSON.stringify([adventure, earlier]);
   let passed = gated.get(key);
   if (passed === undefined) {
     passed = gateModule(adventure, {
@@ -4926,6 +5279,7 @@ export function passesGate(adventure: FifthAdventure): boolean {
       reportRetreat: false,
       reportUseRoom: false,
       reportReactions: false,
+      earlier,
     }).qualified;
     gated.set(key, passed);
   }
@@ -4993,7 +5347,7 @@ export function renderGateResult(
         sweep.difficulty,
       ),
     ]),
-    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
+    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who}${carryingText(oneHitKill.carried)} kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
@@ -5018,7 +5372,7 @@ export function renderGateResult(
     ...(control === undefined
       ? []
       : [
-          `  Too easy by control, ${mark(control.ok)}: at the opening, the level ${control.level}, ${control.percentile}th percentile ${who} takes ` +
+          `  Too easy by control, ${mark(control.ok)}: at the opening, the level ${control.level}, ${control.percentile}th percentile ${who}${carryingText(control.carried)} takes ` +
             (control.overCap.length === 0
               ? `no ordinary enemy out of the fight with one control more than ${percent(control.cap)} of the time.`
               : `${control.overCap.length} of ${control.enemies.length} ordinary enemies out of the fight with one control more than ${percent(control.cap)} of the time: ${control.overCap
@@ -5133,15 +5487,48 @@ function alarmLine(report: AlarmReport, who: string): string {
 
 /**
  * The gate's verdict on a module for every class as plain text: each
- * class's `renderGateResult`, in `GATE_CLASSES` order.
+ * class's `renderGateResult`, in `GATE_CLASSES` order, then a class-parity
+ * line (#536) for each caster at each level from `PARITY_LEVEL`.
  */
 export function renderModuleGateResult(
   adventure: Pick<FifthAdventure, "id" | "title">,
   result: ModuleGateResult,
 ): string {
-  return result.classes
-    .map(({ classId, result: gate }) =>
+  return [
+    ...result.classes.map(({ classId, result: gate }) =>
       renderGateResult(adventure, gate, classId),
-    )
-    .join("\n");
+    ),
+    ...(result.parity ?? []).map(parityLine),
+  ].join("\n");
+}
+
+/**
+ * A caster's class parity at one level (#536) as a line: whether it passes
+ * (#541), and on each branch its weakest kit's survival against the
+ * Fighter's, and how far behind it is.
+ */
+function parityLine({
+  classId,
+  level,
+  seeded,
+  alwaysFail,
+  carried,
+}: ParityLine): string {
+  const figure = ({ kit, rate, casting }: ParityFigure) =>
+    `${percent(rate)} (${kit}${casting === undefined ? "" : `, ${casting}`})`;
+  const gap = ({ gap: points, within }: ParityComparison) =>
+    points > 0
+      ? `${decimal(points)} points behind (${within ? "within" : "more than"} ${PARITY_POINTS})`
+      : points < 0
+        ? `${decimal(-points)} points ahead`
+        : "level with it";
+  const ok = seeded.within && alwaysFail.within;
+  return (
+    `Class parity, ${ok ? "pass" : "FAIL"}: the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile${carryingText(carried)}, ` +
+    `survived ${figure(seeded.caster)} on seeded checks against the Fighter's ${figure(seeded.fighter)}, ${gap(seeded)}; ` +
+    `when every check fails ${figure(alwaysFail.caster)} against ${figure(alwaysFail.fighter)}, ${gap(alwaysFail)}.` +
+    (ok
+      ? ""
+      : ` A caster may trail the Fighter by no more than ${PARITY_POINTS} points.`)
+  );
 }

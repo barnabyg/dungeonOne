@@ -19,13 +19,24 @@
  * one (to 3rd, the highest level of spell in the game). Spending its last
  * charge rolls a d20: on a 1 it crumbles to ash. It regains 1d6 + 1 charges
  * on a long rest (D9's "dawn"), and every charge between adventures. It
- * follows D10: a module hides at most one magic item, from level 3, outside
- * its budget.
+ * follows D10: a module hides it from level 3, outside its budget, in the
+ * slot open to any class.
  *
- * A character keeps the scrolls and wands it holds at the end of a
- * surviving adventure; each is a `HeldMagicItem`, named by the find it came
- * from (`adventure/item`), so it is found once.
+ * A caster item (#537) needs attunement by a spellcaster or by named
+ * classes (D2): SRD 5.2's Wand of the War Mage +1 adds 1 to its holder's
+ * spell attack rolls. A character attunes to the first `ATTUNEMENT_LIMIT`
+ * caster items it holds that its class may attune, as it picks each up;
+ * attunement is worked out from what it holds, never stored
+ * (`attunedItems` in `character-5e.ts`). An item it can't attune does
+ * nothing. A module may hide one in its caster slot (D1). SRD 5.2's Pearl
+ * of Power (#538) is used rather than worn: outside a fight it regains one
+ * spent spell slot of 3rd level or lower, the highest, once per long rest.
+ *
+ * A character keeps the scrolls, wands and caster items it holds at the end
+ * of a surviving adventure; each is a `HeldMagicItem`, named by the find it
+ * came from (`adventure/item`), so it is found once.
  */
+import type { ClassId } from "./class-5e.js";
 import type { Tier } from "./equipment-5e.js";
 import { isSpellId, ordinal, SPELLS, type SpellId } from "./spells-5e.js";
 
@@ -70,6 +81,73 @@ export type WandData = Readonly<{
   rarity: "uncommon";
   attunement: false;
 }>;
+
+/**
+ * Who may attune an item (#537, D2): any spellcaster, the named classes
+ * (`text` names them in SRD 5.2's words, classes the game lacks included),
+ * or anyone. Only the first two may ship: the validator refuses an item any
+ * class may attune.
+ */
+export type Attunement = Readonly<
+  | { by: "spellcaster" }
+  | { by: "classes"; classes: readonly ClassId[]; text: string }
+  | { by: "anyone" }
+>;
+
+/** "a spellcaster", for "requires attunement by a spellcaster". */
+export function attunementText(attunement: Attunement): string {
+  return attunement.by === "spellcaster"
+    ? "a spellcaster"
+    : attunement.by === "classes"
+      ? attunement.text
+      : "anyone";
+}
+
+/** How many items a character may be attuned to at once (SRD 5.2). */
+export const ATTUNEMENT_LIMIT = 3;
+
+export type CasterItemData = Readonly<{
+  name: string;
+  /** Its SRD 5.2 category. */
+  category: "wand" | "wondrous item";
+  rarity: "uncommon";
+  attunement: Attunement;
+  /** What it adds to its holder's spell attack rolls while attuned. */
+  spellAttack?: number;
+  /**
+   * The highest level of spell slot it regains (#538), once per long rest,
+   * when its holder uses it outside a fight.
+   */
+  regainsSlot?: number;
+}>;
+
+/**
+ * SRD 5.2 caster items (#537, #538): magic items that need attunement by a
+ * spellcaster or a named class, found in a module's caster slot (D1).
+ */
+const CASTER_ITEM_DATA = {
+  "wand-of-the-war-mage-plus-1": {
+    name: "Wand of the War Mage +1",
+    category: "wand",
+    rarity: "uncommon",
+    attunement: { by: "spellcaster" },
+    spellAttack: 1,
+  },
+  "pearl-of-power": {
+    name: "Pearl of Power",
+    category: "wondrous item",
+    rarity: "uncommon",
+    attunement: { by: "spellcaster" },
+    regainsSlot: 3,
+  },
+} as const satisfies Record<string, CasterItemData>;
+export type CasterItemId = keyof typeof CASTER_ITEM_DATA;
+export const CASTER_ITEMS: Readonly<Record<CasterItemId, CasterItemData>> =
+  CASTER_ITEM_DATA;
+
+export function isCasterItemId(value: unknown): value is CasterItemId {
+  return typeof value === "string" && Object.hasOwn(CASTER_ITEMS, value);
+}
 
 /** SRD 5.2 wands. */
 export const WANDS = {
@@ -138,24 +216,66 @@ export function copyCost(spell: SpellId): number {
 }
 
 /**
- * A scroll or wand a character holds (#346), under the id of the find it
- * came from (`adventure/item`): a scroll's spell, or a wand with the charges
- * it has left.
+ * A scroll or wand a character holds (#346), or a caster item (#537), under
+ * the id of the find it came from (`adventure/item`): a scroll's spell, a
+ * wand with the charges it has left, or the caster item it is.
  */
 export type HeldMagicItem = Readonly<
-  | { id: string; scroll: SpellId; wand?: never; charges?: never }
-  | { id: string; wand: WandId; charges: number; scroll?: never }
+  | {
+      id: string;
+      scroll: SpellId;
+      wand?: never;
+      charges?: never;
+      casterItem?: never;
+    }
+  | {
+      id: string;
+      wand: WandId;
+      charges: number;
+      scroll?: never;
+      casterItem?: never;
+    }
+  | {
+      id: string;
+      casterItem: CasterItemId;
+      scroll?: never;
+      wand?: never;
+      charges?: never;
+    }
 >;
+
+/** A held scroll or wand: an item that casts a spell (#346). */
+export type HeldCastingItem = Exclude<
+  HeldMagicItem,
+  Readonly<{ casterItem: CasterItemId }>
+>;
+
+/** Whether a held magic item casts a spell: a scroll or a wand. */
+export function castsSpell(item: HeldMagicItem): item is HeldCastingItem {
+  return item.casterItem === undefined;
+}
 
 /** What a held magic item is called. */
 export function heldItemName(item: HeldMagicItem): string {
   return item.scroll !== undefined
     ? scrollName(item.scroll)
-    : WANDS[item.wand].name;
+    : item.wand !== undefined
+      ? WANDS[item.wand].name
+      : CASTER_ITEMS[item.casterItem].name;
 }
 
-/** The spell a held magic item casts. */
-export function heldItemSpell(item: HeldMagicItem): SpellId {
+/**
+ * The highest level of spell slot a held item regains (#538): a Pearl of
+ * Power's, or undefined for an item that regains none.
+ */
+export function slotRegain(item: HeldMagicItem): number | undefined {
+  return item.casterItem === undefined
+    ? undefined
+    : CASTER_ITEMS[item.casterItem].regainsSlot;
+}
+
+/** The spell a held scroll or wand casts. */
+export function heldItemSpell(item: HeldCastingItem): SpellId {
   return item.scroll ?? WANDS[item.wand].spell;
 }
 
@@ -166,8 +286,42 @@ export function chargesText(item: HeldMagicItem): string | undefined {
     : `${item.charges} of ${WANDS[item.wand].charges} charges`;
 }
 
-/** What "You carry" and the sheet say about a held magic item. */
-export function heldItemText(item: HeldMagicItem): string {
+/** What a caster item does while attuned, as its text says it. */
+function casterItemEffect({
+  spellAttack,
+  regainsSlot,
+}: CasterItemData): string {
+  return regainsSlot !== undefined
+    ? `use it outside a fight to regain one spent spell slot of ${ordinal(regainsSlot)} level or lower, the highest spent; once per long rest.`
+    : `+${spellAttack ?? 0} to your spell attack rolls (a scroll keeps its own bonus).`;
+}
+
+/**
+ * Whether a character is attuned to a caster item it holds (#537), and if
+ * not, why not.
+ */
+export type AttunementState = Readonly<
+  { attuned: true } | { attuned: false; reason: string }
+>;
+
+/**
+ * What "You carry" and the sheet say about a held magic item; a caster
+ * item's text says whether its holder is attuned (`attunement`), and why
+ * not.
+ */
+export function heldItemText(
+  item: HeldMagicItem,
+  attunement?: AttunementState,
+): string {
+  if (item.casterItem !== undefined) {
+    const data = CASTER_ITEMS[item.casterItem];
+    const effect = `An ${data.rarity} ${data.category} that requires attunement by ${attunementText(data.attunement)}: while attuned, ${casterItemEffect(data)}`;
+    return attunement === undefined
+      ? effect
+      : attunement.attuned
+        ? `${effect} Attuned.`
+        : `${effect} Not attuned: ${attunement.reason}`;
+  }
   if (item.scroll !== undefined) {
     const { name, level } = SPELLS[item.scroll];
     const { saveDc, attackBonus } = scrollCasting(item.scroll);
@@ -201,8 +355,9 @@ export function wandsSpent(items: readonly HeldMagicItem[]): boolean {
 
 /**
  * Validates a sheet's or a save's held magic items: each a scroll of a
- * spell a scroll may hold or a catalogue wand with whole charges up to its
- * most, each id unique and matching `idPattern`. Throws on anything else.
+ * spell a scroll may hold, a catalogue wand with whole charges up to its
+ * most, or a catalogue caster item (#537), each id unique and matching
+ * `idPattern`. Throws on anything else.
  */
 export function readHeldMagicItems(
   value: unknown,
@@ -226,6 +381,12 @@ export function readHeldMagicItems(
         throw new Error("Unsupported spell scroll.");
       }
       return { id, scroll: record.scroll as SpellId };
+    }
+    if (keys === "casterItem,id") {
+      if (!isCasterItemId(record.casterItem)) {
+        throw new Error("Unsupported caster item.");
+      }
+      return { id, casterItem: record.casterItem };
     }
     const { wand, charges } = record;
     if (

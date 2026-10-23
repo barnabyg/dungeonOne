@@ -417,8 +417,9 @@ const turnFirst = (views, state) =>
       state.character.featureUses["channel-divinity"] === 2,
   ) ?? casting(views, "sacred-flame");
 // The handoff's seed for scenario 3: Mira is hurt enough after the nave to
-// read the scroll and rest, and wins every fight.
-const CLERIC_SEED = 59;
+// read the scroll and rest, and wins every fight; 10 since her kit's chain
+// shirt and shield (#541).
+const CLERIC_SEED = 10;
 
 test(
   `increment 16 handoff 3: a Cleric turns undead, reads a Cure Wounds scroll and takes a short rest (seed ${CLERIC_SEED})`,
@@ -447,17 +448,17 @@ test(
       const ends = [];
       const log = await play(page, CLERIC_ROUTE, "cleric", ends);
       // Nave, pit, undercroft.
-      assert.deepEqual(ends, ["3/24", "24/24", "15/24"]);
+      assert.deepEqual(ends, ["13/24", "18/24", "15/24"]);
       await keep("cleric", log);
       says(log, [
         /You present a holy symbol: Turn Undead reaches Dead Sexton\. 1 use of Channel Divinity left\./u,
-        /Dead Sexton makes a Wisdom saving throw against Turn Undead: 12 \+ 0 = 12 against DC 13\. Failure\./u,
-        /Turn Undead ends on Dead Sexton: it is attacked\./u,
+        /Dead Sexton makes a Wisdom saving throw against Turn Undead: 8 \+ 0 = 8 against DC 13\. Failure\./u,
+        /Turn Undead ends on Dead Sexton: it shakes the spell off\./u,
         /Dead Sexton is defeated\./u,
         /You cast Cure Wounds on yourself from the Spell Scroll \(Cure Wounds\), which is used up\./u,
-        /Cure Wounds: 6 \+ 2 \+ 3 = 11; you regain 11 HP and have 14\/24 HP\./u,
-        /You keep watch as you rest: d100 74, over 25: nothing disturbs you\./u,
-        /You take a short rest and spend 2 hit dice \(1 of 3 d8 left\)\. Short rests: 1 of 2 left in this adventure\./u,
+        /Cure Wounds: 2 \+ 5 \+ 3 = 10; you regain 10 HP and have 23\/24 HP\./u,
+        /You keep watch as you rest: d100 49, over 25: nothing disturbs you\./u,
+        /You take a short rest and spend 1 hit die \(2 of 3 d8 left\)\. Short rests: 1 of 2 left in this adventure\./u,
         /Channel Divinity regains 1 use \(2 of 2 left\)\./u,
         /You present a holy symbol: Turn Undead reaches Charnel Corpse\./u,
         /Risen Prior is defeated\./u,

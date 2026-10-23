@@ -74,10 +74,16 @@ import {
 import { CLERIC } from "./cleric-5e.js";
 import { FIGHTER } from "./fighter-5e.js";
 import {
+  ATTUNEMENT_LIMIT,
+  attunementText,
+  CASTER_ITEMS,
   copyCost,
   heldItemName,
   readHeldMagicItems,
   rechargedBetweenAdventures,
+  type Attunement,
+  type AttunementState,
+  type CasterItemId,
   type HeldMagicItem,
 } from "./magic-items-5e.js";
 import { isOneOf } from "./json-shape.js";
@@ -120,6 +126,80 @@ export const DEFAULT_CLASS: ClassId = "fighter";
 /** The definition of the class a sheet names. */
 export function classOf(sheet: Pick<CharacterSheet, "class">): ClassDefinition {
   return CLASSES[sheet.class];
+}
+
+/**
+ * Whether a character of `classId` may attune an item that requires
+ * `attunement` (#537, D2): one requiring a spellcaster, if its class casts
+ * spells; one naming classes, if its class is named.
+ */
+export function mayAttune(classId: ClassId, attunement: Attunement): boolean {
+  return attunement.by === "spellcaster"
+    ? CLASSES[classId].spellcasting !== undefined
+    : attunement.by === "classes"
+      ? attunement.classes.includes(classId)
+      : true;
+}
+
+/**
+ * Whether only a spellcaster may attune an item that requires `attunement`
+ * (#537, D1): it requires a spellcaster, or names only classes that cast
+ * spells. Such an item may fill a module's caster slot.
+ */
+export function casterOnly(attunement: Attunement | false): boolean {
+  return attunement === false
+    ? false
+    : attunement.by === "spellcaster" ||
+        (attunement.by === "classes" &&
+          attunement.classes.every(
+            (id) => CLASSES[id].spellcasting !== undefined,
+          ));
+}
+
+/**
+ * Whether `sheet` is attuned to each caster item it holds (#537), by its
+ * id: attuned to the first `ATTUNEMENT_LIMIT` its class may attune, in the
+ * order it found them (SRD 5.2's limit), and to none other, with why not.
+ * Worked out from what it holds, never stored.
+ */
+export function attunement(
+  sheet: Pick<CharacterSheet, "class" | "magicItems">,
+): ReadonlyMap<string, AttunementState> {
+  const states = new Map<string, AttunementState>();
+  let attuned = 0;
+  for (const { id, casterItem } of sheet.magicItems) {
+    if (casterItem === undefined) {
+      continue;
+    }
+    const required = CASTER_ITEMS[casterItem].attunement;
+    if (!mayAttune(sheet.class, required)) {
+      states.set(id, {
+        attuned: false,
+        reason: `a ${CLASSES[sheet.class].name} can't attune to it, as it requires attunement by ${attunementText(required)}.`,
+      });
+    } else if (attuned >= ATTUNEMENT_LIMIT) {
+      states.set(id, {
+        attuned: false,
+        reason: `a character may be attuned to at most ${ATTUNEMENT_LIMIT} items at once.`,
+      });
+    } else {
+      attuned += 1;
+      states.set(id, { attuned: true });
+    }
+  }
+  return states;
+}
+
+/** The caster items `sheet` is attuned to (#537), in the order it found them. */
+export function attunedItems(
+  sheet: Pick<CharacterSheet, "class" | "magicItems">,
+): readonly CasterItemId[] {
+  const states = attunement(sheet);
+  return sheet.magicItems.flatMap(({ id, casterItem }) =>
+    casterItem !== undefined && states.get(id)?.attuned === true
+      ? [casterItem]
+      : [],
+  );
 }
 
 export function isClassId(value: unknown): value is ClassId {
@@ -2416,6 +2496,7 @@ type ProfiledSheet = Pick<
   | "copiedSpells"
   | "equipment"
   | "weaponMasteries"
+  | "magicItems"
 >;
 
 /** Whether `sheet` has Expertise in `skill` (#306). */
@@ -2473,6 +2554,7 @@ const PROFILED_FIELDS = Object.keys({
   copiedSpells: true,
   equipment: true,
   weaponMasteries: true,
+  magicItems: true,
 } satisfies Record<keyof ProfiledSheet, true>) as (keyof ProfiledSheet)[];
 
 /**
@@ -2658,7 +2740,14 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
           spellcasting: {
             ability: casting.ability,
             modifier: modifiers[casting.ability],
-            attackBonus: proficiency + modifiers[casting.ability],
+            // An attuned caster item's bonus (#537).
+            attackBonus:
+              proficiency +
+              modifiers[casting.ability] +
+              attunedItems(sheet).reduce(
+                (sum, id) => sum + (CASTER_ITEMS[id].spellAttack ?? 0),
+                0,
+              ),
             saveDc: 8 + proficiency + modifiers[casting.ability],
             cantrips: sheet.spells.cantrips,
             prepared: sheet.spells.prepared,
@@ -2825,8 +2914,8 @@ export function settleCharacter(
 
 /**
  * A caster's numbers (#336): its spellcasting ability and modifier, spell
- * attack bonus (proficiency + modifier), spell save DC (8 + proficiency +
- * modifier), cantrips known, spells prepared and spell slots by level, 1st
+ * attack bonus (proficiency + modifier + its attuned caster items' bonus,
+ * #537), spell save DC (8 + proficiency + modifier), cantrips known, spells prepared and spell slots by level, 1st
  * first. Its slots are also feature uses, `spell-slots-1` and on, so rests
  * restore them as they restore features.
  */

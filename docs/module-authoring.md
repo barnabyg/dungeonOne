@@ -196,8 +196,10 @@ the design ticket.
 - **Treasure.** The budget is 150 gp × the module's maximum recommended level,
   twice that for a long module (`LONG_MODULE_BUDGET_FACTOR`). A designed module
   holds 75–100% of it, as a mixed hoard with at least two kinds of gem or art
-  object. At most one magic item, from maximum level 3 (`MAGIC_ITEM_LIMITS`); a
-  1st-level scroll is common and counts inside the budget.
+  object. From maximum level 3 (`MAGIC_ITEM_LIMITS`), one magic item any class
+  may use and one caster item in the caster slot, each from its own minimum
+  level (`MAGIC_ITEM_MIN_LEVEL`); a 1st-level scroll is common and counts
+  inside the budget.
 - **Difficulty.** Declare the strictest difficulty whose survival threshold
   every class clears by at least 3 points under the balance gate (a caster's
   survival below level 3 sets nothing). `shipped-modules.test.mjs` checks it.

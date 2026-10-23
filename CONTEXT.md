@@ -387,6 +387,26 @@ _Avoid_: Playthrough (the harness's), Handoff run
 A release run whose steps come from the harness's cautious run on a fixed seed. It proves a module playable through the AI DM, not that particular moments happen.
 _Avoid_: Auto route, Scripted run (the hand-written kind)
 
+**Caster item**:
+A magic item that requires attunement by a spellcaster or by named caster classes, such as the Wand of the War Mage +1 or the Pearl of Power. A module may hide one in its caster slot.
+_Avoid_: Wizard item, Spell item
+
+**Caster slot**:
+A module's second magic item, from level 3, beside the one any class may use; only a caster item fills it.
+_Avoid_: Bonus slot, Second slot
+
+**Attunement**:
+A character's bond with a magic item that requires it. Here it is worked out from what the character holds, never stored: the first 3 items its class may attune, in the order found.
+_Avoid_: Equipped, Activated
+
+**Sure-held item**:
+A caster item every career is sure to hold at a level, because it lies on an earlier module's required path behind no failable check. The gate's too-easy checks and class parity play with it.
+_Avoid_: Expected item, Carried item
+
+**Class parity**:
+The gate's check that, from level 4, a weak caster's cautious survival is within 5 points of a weak Fighter's.
+_Avoid_: Class balance, Fairness
+
 **Format version**:
 The one version number each file format carries. A change bumps it, and until a stable release a loader refuses older files by name, never migrating them.
 _Avoid_: Rules version, Content version, Schema version

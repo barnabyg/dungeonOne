@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 27,
+  "formatVersion": 28,
   "revision": "00000000000000000000000000000000",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -86,13 +86,11 @@
         "divineOrder": "protector",
         "weaponMasteries": [],
         "equipment": [
-          "leather",
+          "chain-shirt",
+          "shield",
           "mace"
         ],
-        "stowed": [
-          "dagger",
-          "dagger"
-        ],
+        "stowed": [],
         "ammunition": {
           "arrows": 0,
           "bolts": 0

@@ -70,7 +70,7 @@ import {
   type GameSettings,
 } from "./settings-5e.js";
 
-export const FIFTH_LIBRARY_FORMAT = 27;
+export const FIFTH_LIBRARY_FORMAT = 28;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 

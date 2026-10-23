@@ -93,6 +93,7 @@ import {
   projectCreation,
   projectLevelChoice,
   settleCharacter,
+  attunement,
   type CreationChoices,
   type TreasureRecord,
 } from "./character-5e.js";
@@ -344,6 +345,7 @@ function libraryView(
       const levelUp = pendingLevelUp(sheet);
       // The scrolls a Wizard may copy into its spellbook (#346).
       const copyable = copyableScrolls(sheet);
+      const attuned = attunement(sheet);
       return {
         sheet,
         className: classOf(sheet).name,
@@ -387,7 +389,8 @@ function libraryView(
             return {
               id: item.id,
               name: heldItemName(item),
-              text: heldItemText(item),
+              // A caster item says whether it is attuned (#537).
+              text: heldItemText(item, attuned.get(item.id)),
               ...(copy === undefined
                 ? {}
                 : {
@@ -676,6 +679,8 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),
+  // A Pearl of Power (#538), by its held id.
+  "regain-slot": (itemId) => ({ type: "use-item", itemId }),
   // Using a carried item on a feature (#400): `featureId:itemId`.
   "use-on": (target) => {
     const [featureId = "", itemId = ""] = target.split(":", 2);
@@ -751,7 +756,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   // modules' verdicts are recorded, so only a changed one is gated here.
   const offered = orderFifthAdventures(
     adventures,
-    options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
+    options.qualifies ?? recordedOrGated(await loadGateVerdicts(), adventures),
   );
   const view = (data: FifthLibraryData) => libraryView(data, offered, settings);
   /**

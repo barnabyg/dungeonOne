@@ -155,8 +155,9 @@ export const DIVINE_ORDERS: Readonly<
  * The choices other than placement that a fresh creation starts with: +2
  * Wisdom and +1 Constitution; Insight and Persuasion; the Protector order;
  * Sacred Flame, Guidance and Resistance, with Bless, Cure Wounds, Guiding
- * Bolt and Healing Word prepared; the mace kit; no weapon mastery. The
- * creation page and the balance harness both start from these.
+ * Bolt and Healing Word prepared; the mace, chain shirt and shield kit; no
+ * weapon mastery. The creation page and the balance harness both start
+ * from these.
  */
 export const CLERIC_DEFAULT_CHOICES = {
   increase: { wisdom: 2, constitution: 1 },
@@ -166,7 +167,7 @@ export const CLERIC_DEFAULT_CHOICES = {
     cantrips: ["sacred-flame", "guidance", "resistance"],
     prepared: ["bless", "cure-wounds", "guiding-bolt", "healing-word"],
   },
-  kit: "mace-and-daggers",
+  kit: "mace-and-shield",
   masteries: [],
 } as const satisfies DefaultChoices;
 
@@ -230,7 +231,7 @@ export const CLERIC: ClassDefinition = {
   ],
   subclasses: [LIFE_DOMAIN],
   defaults: CLERIC_DEFAULT_CHOICES,
-  kits: ["mace-and-daggers", "club-and-shield"],
+  kits: ["mace-and-shield", "club-and-shield"],
   spellcasting: CLERIC_SPELLCASTING,
   divineOrders: DIVINE_ORDERS,
 };

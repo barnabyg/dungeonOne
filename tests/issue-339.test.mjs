@@ -105,17 +105,23 @@ for (const [order, choices] of [
       order === "thaumaturge" ? 4 : 3,
     );
     assert.equal(profile.spellcasting.prepared.length, 4);
-    // Leather 11 + Dexterity 1 with the mace; and +2 with the shield.
-    assert.equal(profile.armorClass, 12);
+    // Each kit wears a chain shirt and a shield, as SRD 5.2's option A
+    // (#541): chain shirt 13 + Dexterity 1 + shield 2, trained with both.
+    assert.deepEqual(mira.equipment, ["chain-shirt", "shield", "mace"]);
+    assert.equal(profile.armorClass, 16);
+    assert.equal(profile.untrainedArmour, undefined);
+    assert.equal(profile.untrainedShield, undefined);
     assert.equal(profile.attack.weapon, "Mace");
     assert.equal(profile.attack.bonus, 3);
-    assert.deepEqual(mira.stowed, ["dagger", "dagger"]);
-    const shielded = characterProfile(
-      cleric({ ...choices, kit: "club-and-shield" }),
-    );
-    assert.equal(shielded.armorClass, 14);
-    assert.equal(shielded.untrainedShield, undefined);
-    assert.equal(shielded.attack.weapon, "Club");
+    assert.deepEqual(mira.stowed, []);
+    const club = cleric({ ...choices, kit: "club-and-shield" });
+    assert.deepEqual(club.equipment, ["chain-shirt", "shield", "club"]);
+    assert.deepEqual(club.stowed, ["dagger"]);
+    const clubbed = characterProfile(club);
+    assert.equal(clubbed.armorClass, 16);
+    assert.equal(clubbed.untrainedArmour, undefined);
+    assert.equal(clubbed.untrainedShield, undefined);
+    assert.equal(clubbed.attack.weapon, "Club");
     assert.equal(
       profile.features.find(({ id }) => id === "divine-order").name,
       `Divine Order: ${order === "protector" ? "Protector" : "Thaumaturge"}`,
@@ -128,10 +134,12 @@ test("creation offers the Fighter, the Rogue, the Cleric and the Wizard", () => 
 });
 
 test("the Cleric's kits are of equal value", () => {
-  assert.equal(kitPrice("mace-and-daggers"), 1900);
-  assert.equal(kitPrice("club-and-shield"), 2010);
+  // Chain shirt 50 gp and shield 10 gp, with a mace (5 gp), or a club
+  // (1 sp) and a dagger (2 gp).
+  assert.equal(kitPrice("mace-and-shield"), 6500);
+  assert.equal(kitPrice("club-and-shield"), 6210);
   assert.ok(
-    Math.abs(kitPrice("mace-and-daggers") - kitPrice("club-and-shield")) <=
+    Math.abs(kitPrice("mace-and-shield") - kitPrice("club-and-shield")) <=
       KIT_VALUE_TOLERANCE,
   );
 });
@@ -342,12 +350,12 @@ test("a format-16 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 27);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 28);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 16, not 27/u.test(error.message),
+        /format version 16, not 28/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

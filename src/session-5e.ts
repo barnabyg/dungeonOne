@@ -55,7 +55,7 @@ import {
   SHOWN_DIE_KEYS,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 66;
+export const FIFTH_SESSION_FORMAT = 67;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;

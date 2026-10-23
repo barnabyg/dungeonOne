@@ -7,6 +7,7 @@ import {
 import {
   CHECK_POLICIES,
   DEFAULT_PERCENTILES,
+  earlierModules,
   DEFAULT_SEED_COUNT,
   GATE_CLASSES,
   gateModule,
@@ -119,7 +120,10 @@ export async function main(args, output = process.stdout) {
       classId,
       result: qualifyAdventure(adventure, { ...qualification, classId }),
     })),
-    gate: gateModule(adventure, { seeds: qualification.seeds }),
+    gate: gateModule(adventure, {
+      seeds: qualification.seeds,
+      earlier: earlierModules(adventure, adventures),
+    }),
   }));
   output.write(
     options.json

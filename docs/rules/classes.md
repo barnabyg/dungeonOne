@@ -42,6 +42,7 @@ Each class's definition in `src/<class>-5e.ts` (`fighter`, `rogue`, `cleric`, `w
 ## Cleric
 
 - **Divine Order**, chosen at creation: _Protector_ (heavy armour and martial weapons) or _Thaumaturge_ (one more cantrip at every level, and its Wisdom modifier, at least +1, added to Arcana and Religion checks).
+- **Kits** (#541) wear a chain shirt and a shield, as SRD 5.2's option A does: _Mace, chain shirt and shield_ (the default) or _Club, dagger, chain shirt and shield_, the dagger stowed. Both orders are trained with them (light and medium armour and shields): AC 13 + Dexterity (at most +2) + 2.
 - **Prepared spells** change only between adventures (house rule); a new level's spells and cantrip are owed on the sheet (see [characters.md](characters.md)). Cantrips are never swapped.
 - **Thaumaturgy and Light** are flavour only: never offered as a cast, and refused if cast. Light is on the list so a Thaumaturge, who knows the other four cantrips, has one to learn at level 4.
 - **Channel Divinity** (level 2): two uses through level 5, a short rest restoring one and a long rest all. Each use is a Magic action against the spell save DC, only in a fight.

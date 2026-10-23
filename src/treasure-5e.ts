@@ -11,18 +11,18 @@
  * Each item has an availability tier, and a module may hide an item only if
  * its tier is allowed at the module's maximum recommended level: common
  * always, uncommon from level 3, and no rare treasure yet. A module hides
- * at most one magic item (#345, D10), for level 3 and up, outside its
- * budget, and none that needs attunement (D11). The budgets, the tier levels
- * and the magic item limits are parameter tables; tune them
- * here. `docs/rules/gear.md` states the rules they serve.
+ * magic items (#345, D10) only for level 3 and up, outside its budget: one
+ * any class may use and one that only a spellcaster may attune (#537, D1),
+ * each from its own minimum level (D3). The budgets, the tier levels and
+ * the magic item limits are parameter tables; tune them here. `docs/rules/gear.md` states the rules they serve.
  */
 import {
   POTION_WEIGHT,
   type Coin,
   type Coins,
-  type MagicItemData,
   type Tier,
 } from "./equipment-5e.js";
+import type { Attunement, CasterItemId, WandId } from "./magic-items-5e.js";
 import type { RandomSource } from "./random.js";
 
 /** What a module's treasure may be worth, by its maximum recommended level, in copper. */
@@ -44,43 +44,100 @@ export const TIER_MIN_LEVEL: Readonly<Partial<Record<Tier, number>>> = {
 };
 
 /**
- * The magic items a module may hide (#345, D10): at most `perModule`, only
- * in a module whose maximum recommended level is `minLevel` or more. They
- * are outside the treasure budget. Potions are priced inside it, and are not
- * counted here.
+ * The magic items a module may hide (#345, D10; #537, D1): only in a module
+ * whose maximum recommended level is `minLevel` or more, `perModule` that
+ * any class may use and `casterSlot` more that only a spellcaster may
+ * attune. They are outside the treasure budget. Potions are priced inside
+ * it, and are not counted here.
  */
-export const MAGIC_ITEM_LIMITS = { perModule: 1, minLevel: 3 } as const;
+export const MAGIC_ITEM_LIMITS = {
+  perModule: 1,
+  casterSlot: 1,
+  minLevel: 3,
+} as const;
 
 /**
- * What is wrong with the magic items a module hides, each `id` with what
- * makes it magic, for a module whose maximum recommended level is `level`:
- * one past `MAGIC_ITEM_LIMITS.perModule`, any below its level, and any that
- * needs attunement (D11). Empty when they may be hidden.
+ * The lowest maximum recommended level of a module that may hide each wand
+ * and caster item, by catalogue id (#537, D3), on top of its tier's; a
+ * new wand or caster item fails to compile until it has a row. A +1
+ * weapon, armour or shield needs only `MAGIC_ITEM_LIMITS.minLevel`. Tune it
+ * here.
+ */
+export const MAGIC_ITEM_MIN_LEVEL: Readonly<
+  Record<WandId | CasterItemId, number>
+> = {
+  "wand-of-magic-missiles": 3,
+  "wand-of-the-war-mage-plus-1": 3,
+  "pearl-of-power": 3,
+};
+
+/** A magic item a module hides, as `magicItemProblems` judges it. */
+export type HiddenMagicItem = Readonly<{
+  /** The placed item's id. */
+  id: string;
+  /** Its catalogue id: "shortsword-plus-1". */
+  catalogue: string;
+  /** Its catalogue name: "+1 Shortsword". */
+  name: string;
+  /** Who may attune it (#537, D2), or false when it needs no attunement. */
+  attunement: false | Attunement;
+  /** Whether only a spellcaster may attune it, so it may fill the caster slot. */
+  casterOnly: boolean;
+}>;
+
+/**
+ * What is wrong with the magic items a module hides, for a module whose
+ * maximum recommended level is `level`: any below `MAGIC_ITEM_LIMITS` or
+ * its own minimum level (`MAGIC_ITEM_MIN_LEVEL`), any any class may attune
+ * (D2), a second that isn't caster-only when the first isn't either, and
+ * any past the two slots (D1). Empty when they may be hidden.
  */
 export function magicItemProblems(
-  items: readonly Readonly<{
-    id: string;
-    magic: Pick<MagicItemData, "attunement">;
-  }>[],
+  items: readonly HiddenMagicItem[],
   level: number,
 ): readonly string[] {
-  return items.flatMap(({ id, magic }, index) => [
-    ...(index >= MAGIC_ITEM_LIMITS.perModule
-      ? [
-          `${id} is one magic item too many: a module hides at most ${MAGIC_ITEM_LIMITS.perModule}.`,
-        ]
-      : []),
-    ...(level < MAGIC_ITEM_LIMITS.minLevel
-      ? [
-          `${id} is a magic item, but magic items are found only in modules for level ${MAGIC_ITEM_LIMITS.minLevel} and up.`,
-        ]
-      : []),
-    ...(magic.attunement
-      ? [
-          `${id} needs attunement, and no item that needs attunement is found yet.`,
-        ]
-      : []),
-  ]);
+  const slots = MAGIC_ITEM_LIMITS.perModule + MAGIC_ITEM_LIMITS.casterSlot;
+  let open = MAGIC_ITEM_LIMITS.perModule;
+  let caster = MAGIC_ITEM_LIMITS.casterSlot;
+  return items.flatMap(
+    ({ id, catalogue, name, attunement, casterOnly }, index) => {
+      const minimum = Object.hasOwn(MAGIC_ITEM_MIN_LEVEL, catalogue)
+        ? MAGIC_ITEM_MIN_LEVEL[catalogue as WandId | CasterItemId]
+        : undefined;
+      const problems = [
+        ...(level < MAGIC_ITEM_LIMITS.minLevel
+          ? [
+              `${id} is a magic item, but magic items are found only in modules for level ${MAGIC_ITEM_LIMITS.minLevel} and up.`,
+            ]
+          : minimum !== undefined && level < minimum
+            ? [
+                `${id} is the ${name}, found only in modules for level ${minimum} and up.`,
+              ]
+            : []),
+        ...(attunement !== false && attunement.by === "anyone"
+          ? [
+              `${id} needs attunement by anyone, but only an item restricted to a spellcaster or named classes may need attunement.`,
+            ]
+          : []),
+      ];
+      // A caster-only item takes the caster slot while it is free, so the
+      // open slot stays for an item any class may use.
+      if (index >= slots) {
+        problems.push(
+          `${id} is one magic item too many: a module hides at most ${slots}, one of them caster-only.`,
+        );
+      } else if (casterOnly && caster > 0) {
+        caster -= 1;
+      } else if (open > 0) {
+        open -= 1;
+      } else {
+        problems.push(
+          `${id} is a second magic item that isn't caster-only: the caster slot takes only an item that requires attunement by a spellcaster or a caster class.`,
+        );
+      }
+      return problems;
+    },
+  );
 }
 
 /** How many times its level's budget a long module (#404, D6) may hold. */

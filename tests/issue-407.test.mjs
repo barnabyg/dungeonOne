@@ -42,7 +42,7 @@ const HALL = {
 const routed = (routes) => validateModule(forkedTunnelsFile(routes));
 
 test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 44);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 45);
 });
 
 test("a module declares its routes, each a list of rooms to pass", () => {

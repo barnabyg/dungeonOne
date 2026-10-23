@@ -10,6 +10,7 @@ import {
   gateModule,
   percentileCharacters,
   playAdventure,
+  strongestAttackers,
 } from "../dist/balance-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
@@ -57,8 +58,22 @@ test("the gate judges the Cleric with both its kits (#348)", () => {
   assert.deepEqual(
     result.verdict.survival.kits.map(({ kit, level }) => [kit, level]),
     [
-      ["mace-and-daggers", 1],
+      ["mace-and-shield", 1],
       ["club-and-shield", 1],
     ],
   );
+});
+
+test("a Cleric wields a placed weapon in its kit's chain shirt, with the shield unless the weapon is two-handed (#541)", () => {
+  const placed = (gear) =>
+    strongestAttackers(weakest.dice, 3, [gear], "cleric").find(
+      (attacker) => attacker.gear === gear,
+    ).sheet.equipment;
+  assert.deepEqual(placed("quarterstaff"), [
+    "chain-shirt",
+    "shield",
+    "quarterstaff",
+  ]);
+  assert.deepEqual(placed("greatsword"), ["chain-shirt", "greatsword"]);
+  assert.deepEqual(placed("shortbow"), ["chain-shirt", "shortbow"]);
 });

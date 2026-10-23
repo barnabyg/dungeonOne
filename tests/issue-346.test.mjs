@@ -171,7 +171,7 @@ test("the catalogue: scroll values and tiers by spell level, and the wand", () =
   );
 });
 
-test("the validator: scrolls inside the budget at their tier; the wand is the module's one magic item, from level 3", () => {
+test("the validator: scrolls inside the budget at their tier; the wand fills the module's open magic item slot, from level 3", () => {
   const plain = validateModule({
     ...structuredClone(barrowFile),
     recommendedLevels: { min: 1, max: 3 },
@@ -222,9 +222,11 @@ test("the validator: scrolls inside the budget at their tier; the wand is the mo
     () => validateModule(scrollBarrowFile([WAND], 2)),
     /level 3 and up/u,
   );
+  // Any class may use the wand, so it isn't caster-only (#537, D1): beside
+  // a +1 shortsword, one of them is a second item outside the caster slot.
   assert.throws(
     () => validateModule(scrollBarrowFile([WAND, PLUS_ONE_SHORTSWORD])),
-    /one magic item too many/u,
+    /a second magic item that isn't caster-only/u,
   );
 });
 

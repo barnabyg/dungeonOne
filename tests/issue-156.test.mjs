@@ -43,11 +43,14 @@ function assertAgrees(runtime, state) {
   );
   const enabled = (kind) =>
     actions
-      .filter(({ action, available }) => action === kind && available)
+      .filter(
+        ({ action, available }) => [kind].flat().includes(action) && available,
+      )
       .map(({ target }) => target.id);
   for (const [tool, kind] of [
     ["attack", "attack"],
-    ["use_item", "use"],
+    // A potion, or a Pearl of Power (#538).
+    ["use_item", ["use", "regain-slot"]],
     ["move", "move"],
     ["examine", "examine"],
     ["take", "take"],

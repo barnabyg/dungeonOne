@@ -85,9 +85,9 @@ const wounded = (state, id, hp) => ({
 });
 
 test("the formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 66);
-  assert.equal(FIFTH_TRACE_FORMAT, 61);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v47");
+  assert.equal(FIFTH_SESSION_FORMAT, 67);
+  assert.equal(FIFTH_TRACE_FORMAT, 62);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
 });
 
 test("each opponent able to act attacks before the character gets away; the fight stays behind", () => {
