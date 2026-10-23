@@ -16,6 +16,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  encounterInRoom,
+  encounterPlacements,
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
@@ -878,9 +880,10 @@ test("breaking the vault door open rouses the crypts, which brings Mags to the s
     { limit: 200 },
   );
   assert.ok(state.openedDoorIds.includes("vault-door"));
-  assert.equal(
-    delve.encounters.find(({ movesTo }) => movesTo?.when === "delve-roused")
-      .movesTo.roomId,
-    "shaft-bottom",
-  );
+  // Mags has left the ossuary for the shaft bottom, where she waits.
+  const placements = encounterPlacements(delve);
+  const at = (roomId) =>
+    encounterInRoom(placements, roomId, state.flags, state.metEncounters);
+  assert.equal(at("shaft-bottom"), "ossuary-rival");
+  assert.equal(at("ossuary"), undefined);
 });
