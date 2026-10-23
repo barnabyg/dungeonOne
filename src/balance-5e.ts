@@ -3505,8 +3505,8 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
 export const CASTER_JUDGED_LEVEL = 3;
 
 /**
- * The lowest level class parity is reported at (#536, owner's D4): from it
- * a weak caster's cautious survival should be within `PARITY_POINTS` of a
+ * The lowest level class parity is judged at (#536, #541, owner's D4): from
+ * it a weak caster's cautious survival must be within `PARITY_POINTS` of a
  * weak Fighter's. Fighters keep their edge below it.
  */
 export const PARITY_LEVEL = 4;
@@ -3909,9 +3909,9 @@ export type GateVerdict = Readonly<{
    */
   reactions?: readonly ReactionPolicyReport[];
   /**
-   * Reported, not judged (#536): each level's figures from `PARITY_LEVEL`,
-   * which `moduleGateResult` sets beside the Fighter's; absent for a
-   * module whose levels are all below.
+   * Each level's figures from `PARITY_LEVEL` (#536), which
+   * `moduleGateResult` sets beside the Fighter's and judges (#541); absent
+   * for a module whose levels are all below.
    */
   parity?: readonly ParityLevel[];
 }>;
@@ -5150,8 +5150,9 @@ export type ModuleGateResult = Readonly<{
   /** Each class's result, in `GATE_CLASSES` order. */
   classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
   /**
-   * Reported, not judged (#536): each caster against the Fighter at each
-   * level from `PARITY_LEVEL`; absent when there is none.
+   * Each caster against the Fighter at each level from `PARITY_LEVEL`
+   * (#536); absent when there is none. Judged (#541): the module qualifies
+   * only if every line is within `PARITY_POINTS` on both branches.
    */
   parity?: readonly ParityLine[];
 }>;
@@ -5243,8 +5244,8 @@ export function gateModule(
 /**
  * The module verdict for `adventureId` from each class's result, in
  * `GATE_CLASSES` order: as `gateModule` gives it, for results gated apart
- * (on worker threads, say). Class parity (#536) is reported beside it and
- * never judged.
+ * (on worker threads, say). It qualifies only if every class qualifies and
+ * every caster keeps class parity (#541, D4) on both branches.
  */
 export function moduleGateResult(
   adventureId: string,
@@ -5253,9 +5254,11 @@ export function moduleGateResult(
   const parity = parityLines(classes);
   return {
     adventureId,
-    qualified: classes.every(
-      ({ result }) => result.ok && result.verdict.qualified,
-    ),
+    qualified:
+      classes.every(({ result }) => result.ok && result.verdict.qualified) &&
+      parity.every(
+        ({ seeded, alwaysFail }) => seeded.within && alwaysFail.within,
+      ),
     classes,
     ...(parity.length === 0 ? {} : { parity }),
   };
@@ -5505,8 +5508,9 @@ export function renderModuleGateResult(
 }
 
 /**
- * A caster's class parity at one level (#536) as a line: on each branch its
- * weakest kit's survival against the Fighter's, and how far behind it is.
+ * A caster's class parity at one level (#536) as a line: whether it passes
+ * (#541), and on each branch its weakest kit's survival against the
+ * Fighter's, and how far behind it is.
  */
 function parityLine({
   classId,
@@ -5523,9 +5527,13 @@ function parityLine({
       : points < 0
         ? `${decimal(-points)} points ahead`
         : "level with it";
+  const ok = seeded.within && alwaysFail.within;
   return (
-    `Class parity, reported (not judged): the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile${carryingText(carried)}, ` +
+    `Class parity, ${ok ? "pass" : "FAIL"}: the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile${carryingText(carried)}, ` +
     `survived ${figure(seeded.caster)} on seeded checks against the Fighter's ${figure(seeded.fighter)}, ${gap(seeded)}; ` +
-    `when every check fails ${figure(alwaysFail.caster)} against ${figure(alwaysFail.fighter)}, ${gap(alwaysFail)}.`
+    `when every check fails ${figure(alwaysFail.caster)} against ${figure(alwaysFail.fighter)}, ${gap(alwaysFail)}.` +
+    (ok
+      ? ""
+      : ` A caster may trail the Fighter by no more than ${PARITY_POINTS} points.`)
   );
 }

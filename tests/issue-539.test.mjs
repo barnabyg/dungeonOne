@@ -193,6 +193,6 @@ test("the parity line plays with sure-held items, and says so", () => {
   assert.deepEqual(line.carried, ["Wand of the War Mage +1"]);
   assert.match(
     renderModuleGateResult(cellar, module),
-    /Class parity, reported \(not judged\): the Wizard at level 4, playing cautious as the 5th percentile carrying the Wand of the War Mage \+1, /u,
+    /Class parity, (pass|FAIL): the Wizard at level 4, playing cautious as the 5th percentile carrying the Wand of the War Mage \+1, /u,
   );
 });

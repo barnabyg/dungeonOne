@@ -1,5 +1,5 @@
 // #536: the gate reports class parity, each caster's weakest survival
-// beside the Fighter's from level 4, without judging it.
+// beside the Fighter's from level 4; #541 judges it.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -89,7 +89,7 @@ test("parity takes each level's weakest kit from level 4 on each branch", () => 
   );
 });
 
-test("the module result sets each caster beside the Fighter at each level, and parity never fails the gate", () => {
+test("the module result sets each caster beside the Fighter at each level, failing the gate on a gap over 5 (#541)", () => {
   const result = moduleGateResult("fixture", [
     {
       classId: "fighter",
@@ -143,8 +143,8 @@ test("the module result sets each caster beside the Fighter at each level, and p
       ]),
     },
   ]);
-  // Parity is reported, not judged.
-  assert.equal(result.qualified, true);
+  // The Wizard trails by more than 5 at level 4 (#541).
+  assert.equal(result.qualified, false);
   const lines = result.parity.map(({ classId, level, seeded, alwaysFail }) => [
     classId,
     level,
@@ -173,11 +173,11 @@ test("the module result sets each caster beside the Fighter at each level, and p
   );
   assert.match(
     text,
-    /^Class parity, reported \(not judged\): the Wizard at level 4, playing cautious as the 5th percentile, survived 84\.5% \(daggers, conserve\) on seeded checks against the Fighter's 97\.5% \(mace\), 13\.0 points behind \(more than 5\); when every check fails 80\.0% \(daggers, conserve\) against 90\.0% \(mace\), 10\.0 points behind \(more than 5\)\.$/mu,
+    /^Class parity, FAIL: the Wizard at level 4, playing cautious as the 5th percentile, survived 84\.5% \(daggers, conserve\) on seeded checks against the Fighter's 97\.5% \(mace\), 13\.0 points behind \(more than 5\); when every check fails 80\.0% \(daggers, conserve\) against 90\.0% \(mace\), 10\.0 points behind \(more than 5\)\. A caster may trail the Fighter by no more than 5 points\.$/mu,
   );
   assert.match(
     text,
-    /^Class parity, reported \(not judged\): the Cleric at level 4, .* when every check fails 95\.0% \(club-and-shield, conserve\) against 90\.0% \(mace\), 5\.0 points ahead\.$/mu,
+    /^Class parity, pass: the Cleric at level 4, .* when every check fails 95\.0% \(club-and-shield, conserve\) against 90\.0% \(mace\), 5\.0 points ahead\.$/mu,
   );
   assert.equal(text.match(/^Class parity/gmu).length, 4);
 });
@@ -243,7 +243,7 @@ test("the gate reports parity from level 4 from the figures it judges", () => {
   );
   assert.match(
     renderModuleGateResult(threeToFour, gate),
-    /^Class parity, reported \(not judged\): the Wizard at level 4, playing cautious as the 5th percentile, survived \d+\.\d% \([a-z-]+, (conserve|spend-early)\) on seeded checks against the Fighter's \d+\.\d% \([a-z-]+\), .*\.$/mu,
+    /^Class parity, (pass|FAIL): the Wizard at level 4, playing cautious as the 5th percentile, survived \d+\.\d% \([a-z-]+, (conserve|spend-early)\) on seeded checks against the Fighter's \d+\.\d% \([a-z-]+\), .*\.$/mu,
   );
   // A module whose levels are all below 4 reports none.
   const low = gateModule(loneGoblin, seeds);
