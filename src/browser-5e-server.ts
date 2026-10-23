@@ -754,7 +754,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   // modules' verdicts are recorded, so only a changed one is gated here.
   const offered = orderFifthAdventures(
     adventures,
-    options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
+    options.qualifies ?? recordedOrGated(await loadGateVerdicts(), adventures),
   );
   const view = (data: FifthLibraryData) => libraryView(data, offered, settings);
   /**

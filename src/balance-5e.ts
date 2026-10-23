@@ -19,6 +19,7 @@ import {
   isConditional,
   placementsByRoom,
   LOOT_KINDS,
+  orderFifthAdventures,
   statBlockDefenses,
   statBlockSaves,
   unsimulatedTraits,
@@ -52,6 +53,7 @@ import {
   withOwedChoices,
   alwaysPrepared,
   rollAbilitySet,
+  mayAttune,
   validateCharacter,
   type CharacterSheet,
   type LevelChoice,
@@ -67,6 +69,11 @@ import {
   type FightingStyle,
   type Level,
 } from "./class-5e.js";
+import {
+  ATTUNEMENT_LIMIT,
+  CASTER_ITEMS,
+  type HeldMagicItem,
+} from "./magic-items-5e.js";
 import { createSeededRandom } from "./random.js";
 import { PEACEFUL_OPTIONS, type ReactionOption } from "./reaction-5e.js";
 import {
@@ -106,6 +113,7 @@ import {
   creatureTypeOf,
   PLAYER_ID,
   playerCombatant,
+  scarceCandidateIds,
   type ActionKind,
   type ActionView,
   type CheckPolicy,
@@ -3564,6 +3572,8 @@ export type ParityLevel = Readonly<{
   level: number;
   seeded: ParityFigure;
   alwaysFail: ParityFigure;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
 }>;
 
 /**
@@ -3677,6 +3687,8 @@ export type OneHitKillCheck = Readonly<{
   level: number;
   percentile: number;
   cap: number;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
   /**
    * Each ordinary opponent, with its one-hit-kill chance from the kit, or
    * the weapon the module places or a merchant sells (`gear`, wielded with
@@ -3746,6 +3758,8 @@ export type ControlCheck = Readonly<{
   level: number;
   percentile: number;
   cap: number;
+  /** The sure-held items it played with (#539), by name, if any. */
+  carried?: readonly string[];
   enemies: readonly Readonly<{
     encounterId: string;
     opponentId: string;
@@ -4014,7 +4028,85 @@ export type GateOptions = Pick<
      * with a reaction-eligible encounter; true by default. Never judged.
      */
     reportReactions?: boolean;
+    /**
+     * The modules a career plays before this one (#539), in order
+     * (`earlierModules`): the caster items it is sure to hold from them
+     * (`sureHeldItems`) play in the too-easy checks and the parity line.
+     * None unless given.
+     */
+    earlier?: readonly FifthAdventure[];
   }>;
+
+/**
+ * A caster item a career is sure to hold (#539): the module it lies in, the
+ * item as the character holds it, and its name.
+ */
+export type SureHeldItem = Readonly<{
+  adventureId: string;
+  item: HeldMagicItem;
+  name: string;
+}>;
+
+/**
+ * The modules of `all` a career plays before `adventure` (#539): those
+ * ahead of it in the browser's order (`orderFifthAdventures`).
+ */
+export function earlierModules(
+  adventure: FifthAdventure,
+  all: readonly FifthAdventure[],
+): readonly FifthAdventure[] {
+  const ordered = orderFifthAdventures(
+    [...all.filter(({ id }) => id !== adventure.id), adventure],
+    () => true,
+  );
+  return ordered.slice(0, ordered.indexOf(adventure));
+}
+
+/**
+ * The caster items a `classId` character is sure to hold when it plays a
+ * module at `level` (#539, D5), in the order found, at most
+ * `ATTUNEMENT_LIMIT`: each that its class may attune lying in a room on the
+ * required path of a module in `earlier` whose lowest recommended level is
+ * `level` or less (so every career that reaches `level` has played it),
+ * hidden in a feature of that room with no check (a failed check may leave
+ * it hidden), and never missing on Scarce. One an opponent carries is never
+ * sure: it may flee or surrender with it.
+ */
+export function sureHeldItems(
+  earlier: readonly FifthAdventure[],
+  classId: ClassId,
+  level: number,
+): readonly SureHeldItem[] {
+  return earlier
+    .filter(({ recommendedLevels }) => recommendedLevels.min <= level)
+    .flatMap((module) => {
+      const path = new Set(requiredPath(module).roomIds);
+      const scarce = new Set(scarceCandidateIds(module));
+      return module.rooms
+        .filter(({ id }) => path.has(id))
+        .flatMap(({ items, features }) =>
+          items.flatMap(({ id, casterItem, hiddenIn }) => {
+            const feature = features.find(
+              (candidate) => candidate.id === hiddenIn,
+            );
+            return casterItem === undefined ||
+              feature === undefined ||
+              feature.check !== undefined ||
+              scarce.has(id) ||
+              !mayAttune(classId, CASTER_ITEMS[casterItem].attunement)
+              ? []
+              : [
+                  {
+                    adventureId: module.id,
+                    item: { id: `${module.id}/${id}`, casterItem },
+                    name: CASTER_ITEMS[casterItem].name,
+                  },
+                ];
+          }),
+        );
+    })
+    .slice(0, ATTUNEMENT_LIMIT);
+}
 
 /** One way the strongest character may be armed, as the gate tries it. */
 export type Attacker = Readonly<{
@@ -4137,9 +4229,27 @@ export function gateAdventure(
     reportUseRoom = true,
     reportReactions = true,
     classId = DEFAULT_CLASS,
+    earlier = [],
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
+  /** The caster items it is sure to hold at `level` (#539). */
+  const sureHeld = (level: number) => sureHeldItems(earlier, classId, level);
+  /** `sheet` holding the items it is sure to hold at its level (#539). */
+  const carrying = (sheet: CharacterSheet): CharacterSheet => {
+    const held = sureHeld(sheet.level);
+    return held.length === 0
+      ? sheet
+      : validateCharacter({
+          ...sheet,
+          magicItems: [...sheet.magicItems, ...held.map(({ item }) => item)],
+        });
+  };
+  /** The names of the items it is sure to hold at `level`, if any (#539). */
+  const carriedAt = (level: number) => {
+    const names = sureHeld(level).map(({ name }) => name);
+    return names.length === 0 ? {} : { carried: names };
+  };
   const definition = CLASSES[classId];
   const classKits = definition.kits;
   // A caster plays both casting policies (#348).
@@ -4554,21 +4664,24 @@ export function gateAdventure(
         ),
       ),
     ];
+    // The too-easy checks play with sure-held items (#539, D5).
     const strong = strongestAttackers(
       strongest!.dice,
       max as Level,
       placed,
       classId,
-    );
+    ).map((attacker) => ({ ...attacker, sheet: carrying(attacker.sheet) }));
     // A caster's spells (#348): every one on its class list it could cast
     // at the maximum level, at its highest slot.
-    const caster = characterAtLevel(
-      strongest!.dice,
-      max as Level,
-      undefined,
-      false,
-      undefined,
-      classId,
+    const caster = carrying(
+      characterAtLevel(
+        strongest!.dice,
+        max as Level,
+        undefined,
+        false,
+        undefined,
+        classId,
+      ),
     );
     const self = playerCombatant(caster);
     const highest = self.spellcasting?.slots.length ?? 0;
@@ -4644,6 +4757,7 @@ export function gateAdventure(
         : {
             level: max,
             percentile: STRONGEST_PERCENTILE,
+            ...carriedAt(max),
             enemies: ordinary.map(({ statBlock, ...enemy }) => {
               const best = bestOf(controls, (id) =>
                 controlChance(caster, id, statBlock),
@@ -4680,6 +4794,7 @@ export function gateAdventure(
     const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
+      ...carriedAt(max),
       enemies,
       ...(prepared ? { bonusAction: { enemies: withBonusAction } } : {}),
       ...(damaging.length === 0 ? {} : { spells: { enemies: spellKills } }),
@@ -4754,8 +4869,67 @@ export function gateAdventure(
       endLevel,
       levelLimit,
     };
-    // Class parity (#536), from the judged runs' figures.
-    const parity = parityLevels(survival, alwaysFail);
+    // Class parity (#536), from the judged runs' figures; at a level where
+    // the character is sure to hold items (#539, D5), from runs carrying
+    // them, its policy chosen as the judged runs choose theirs.
+    const parity = parityLevels(survival, alwaysFail).map((figures) => {
+      if (sureHeld(figures.level).length === 0) {
+        return figures;
+      }
+      const kits = classKits.map((kit) => {
+        const sheet = carrying(
+          characterAtLevel(
+            weakest!.dice,
+            figures.level as Level,
+            kit,
+            false,
+            undefined,
+            classId,
+          ),
+        );
+        const seeded = createFifthRuntime(adventure, sheet);
+        const failing = createFifthRuntime(adventure, sheet, {
+          checks: "always-fail",
+        });
+        const play = (seed: number, casting: CastingPolicy) =>
+          playAdventure(seeded, GATE_STYLE, seed, { ...limit, casting });
+        const trial = spending ? seeds.slice(0, POLICY_SEED_COUNT) : [];
+        const tried = {
+          conserve: trial.map((seed) => play(seed, "conserve")),
+          "spend-early": trial.map((seed) => play(seed, "spend-early")),
+        };
+        const casting: CastingPolicy =
+          spending && rateOf(tried["spend-early"]) > rateOf(tried.conserve)
+            ? "spend-early"
+            : "conserve";
+        const runs = seeds.map(
+          (seed, index) => tried[casting][index] ?? play(seed, casting),
+        );
+        const failed = runs.map((run, index) =>
+          run.checks === 0
+            ? run
+            : playAdventure(failing, GATE_STYLE, seeds[index]!, {
+                ...limit,
+                casting,
+              }),
+        );
+        const shown = spending ? { casting } : {};
+        return {
+          seeded: { kit, level: figures.level, rate: rateOf(runs), ...shown },
+          failing: {
+            kit,
+            level: figures.level,
+            rate: rateOf(failed),
+            ...shown,
+          },
+        };
+      });
+      const [carried] = parityLevels(
+        { kits: kits.map(({ seeded }) => seeded) },
+        { kits: kits.map(({ failing }) => failing) },
+      );
+      return { ...carried!, ...carriedAt(figures.level) };
+    });
 
     return {
       ok: true,
@@ -4870,6 +5044,9 @@ export function gateVerdictAt(
     level: measures.oneHitKill.level,
     percentile: measures.oneHitKill.percentile,
     cap: thresholds.oneHitKillCap,
+    ...(measures.oneHitKill.carried === undefined
+      ? {}
+      : { carried: measures.oneHitKill.carried }),
     enemies,
     overCap,
     ...(prepared === undefined
@@ -4965,7 +5142,13 @@ export type ParityLine = Readonly<{
   level: number;
   seeded: ParityComparison;
   alwaysFail: ParityComparison;
+  /** The sure-held items the caster played with (#539), if any. */
+  carried?: readonly string[];
 }>;
+
+/** " carrying the Wand of the War Mage +1", for sure-held items (#539). */
+const carryingText = (carried: readonly string[] | undefined) =>
+  carried === undefined ? "" : ` carrying the ${carried.join(" and the ")}`;
 
 /**
  * Each caster class's parity figures (#536) set beside the Fighter's at
@@ -4993,7 +5176,7 @@ function parityLines(classes: ModuleGateResult["classes"]): ParityLine[] {
   return classes
     .filter(({ classId }) => CLASSES[classId].spellcasting !== undefined)
     .flatMap(({ classId }) =>
-      parityOf(classId).flatMap(({ level, seeded, alwaysFail }) => {
+      parityOf(classId).flatMap(({ level, seeded, alwaysFail, carried }) => {
         const matched = fighter.find((entry) => entry.level === level);
         return matched === undefined
           ? []
@@ -5003,6 +5186,7 @@ function parityLines(classes: ModuleGateResult["classes"]): ParityLine[] {
                 level,
                 seeded: compare(seeded, matched.seeded),
                 alwaysFail: compare(alwaysFail, matched.alwaysFail),
+                ...(carried === undefined ? {} : { carried }),
               },
             ];
       }),
@@ -5055,8 +5239,11 @@ const gated = new Map<string, boolean>();
  * class with the default options (`gateModule`), as the browser offers
  * modules.
  */
-export function passesGate(adventure: FifthAdventure): boolean {
-  const key = JSON.stringify(adventure);
+export function passesGate(
+  adventure: FifthAdventure,
+  earlier: readonly FifthAdventure[] = [],
+): boolean {
+  const key = JSON.stringify([adventure, earlier]);
   let passed = gated.get(key);
   if (passed === undefined) {
     passed = gateModule(adventure, {
@@ -5064,6 +5251,7 @@ export function passesGate(adventure: FifthAdventure): boolean {
       reportRetreat: false,
       reportUseRoom: false,
       reportReactions: false,
+      earlier,
     }).qualified;
     gated.set(key, passed);
   }
@@ -5131,7 +5319,7 @@ export function renderGateResult(
         sweep.difficulty,
       ),
     ]),
-    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
+    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who}${carryingText(oneHitKill.carried)} kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
@@ -5156,7 +5344,7 @@ export function renderGateResult(
     ...(control === undefined
       ? []
       : [
-          `  Too easy by control, ${mark(control.ok)}: at the opening, the level ${control.level}, ${control.percentile}th percentile ${who} takes ` +
+          `  Too easy by control, ${mark(control.ok)}: at the opening, the level ${control.level}, ${control.percentile}th percentile ${who}${carryingText(control.carried)} takes ` +
             (control.overCap.length === 0
               ? `no ordinary enemy out of the fight with one control more than ${percent(control.cap)} of the time.`
               : `${control.overCap.length} of ${control.enemies.length} ordinary enemies out of the fight with one control more than ${percent(control.cap)} of the time: ${control.overCap
@@ -5295,6 +5483,7 @@ function parityLine({
   level,
   seeded,
   alwaysFail,
+  carried,
 }: ParityLine): string {
   const figure = ({ kit, rate, casting }: ParityFigure) =>
     `${percent(rate)} (${kit}${casting === undefined ? "" : `, ${casting}`})`;
@@ -5305,7 +5494,7 @@ function parityLine({
         ? `${decimal(-points)} points ahead`
         : "level with it";
   return (
-    `Class parity, reported (not judged): the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile, ` +
+    `Class parity, reported (not judged): the ${CLASSES[classId].name} at level ${level}, playing ${GATE_STYLE} as the ${WEAKEST_PERCENTILE}th percentile${carryingText(carried)}, ` +
     `survived ${figure(seeded.caster)} on seeded checks against the Fighter's ${figure(seeded.fighter)}, ${gap(seeded)}; ` +
     `when every check fails ${figure(alwaysFail.caster)} against ${figure(alwaysFail.fighter)}, ${gap(alwaysFail)}.`
   );

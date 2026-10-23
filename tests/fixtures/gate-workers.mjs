@@ -8,6 +8,7 @@ import { parentPort, Worker, workerData } from "node:worker_threads";
 
 import { loadBuiltInFifthAdventures } from "../../dist/adventure-5e.js";
 import {
+  earlierModules,
   GATE_CLASSES,
   gateAdventure,
   moduleGateResult,
@@ -24,10 +25,15 @@ export const JOB_TIMEOUT_MS = 10 * 60_000;
 if (workerData?.gateJob) {
   const { adventureId, classId } = workerData.gateJob;
   try {
-    const adventure = (await loadBuiltInFifthAdventures()).find(
-      ({ id }) => id === adventureId,
-    );
-    parentPort.postMessage({ result: gateAdventure(adventure, { classId }) });
+    const all = await loadBuiltInFifthAdventures();
+    const adventure = all.find(({ id }) => id === adventureId);
+    // Each with the modules played before it (#539).
+    parentPort.postMessage({
+      result: gateAdventure(adventure, {
+        classId,
+        earlier: earlierModules(adventure, all),
+      }),
+    });
   } catch (error) {
     parentPort.postMessage({ error: error.stack ?? String(error) });
   }

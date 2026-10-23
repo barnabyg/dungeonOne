@@ -8,14 +8,21 @@ import { pathToFileURL } from "node:url";
 import * as prettier from "prettier";
 
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
-import { passesGate } from "../dist/balance-5e.js";
+import { earlierModules, passesGate } from "../dist/balance-5e.js";
 import {
   GATE_VERDICTS_PATH,
   recordGateVerdicts,
 } from "../dist/gate-verdicts-5e.js";
 
-/** The verdicts file's text for `adventures`, as Prettier formats it. */
-export async function renderGateVerdicts(adventures, qualifies = passesGate) {
+/**
+ * The verdicts file's text for `adventures`, as Prettier formats it: each
+ * gated with the modules played before it (#539).
+ */
+export async function renderGateVerdicts(
+  adventures,
+  qualifies = (adventure) =>
+    passesGate(adventure, earlierModules(adventure, adventures)),
+) {
   return prettier.format(
     JSON.stringify(recordGateVerdicts(adventures, qualifies)),
     { parser: "json" },
