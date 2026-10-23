@@ -3483,13 +3483,16 @@ function validateModule(
     }
   }
   for (const { door: shut } of passages) {
-    for (const keyId of shut?.keyItemIds ?? []) {
+    if (shut === undefined) {
+      continue;
+    }
+    for (const keyId of shut.keyItemIds ?? []) {
       const key = itemRooms.get(keyId)?.item;
       if (key === undefined) {
-        fail(`door ${shut!.id} names unknown key ${keyId}.`);
+        fail(`door ${shut.id} names unknown key ${keyId}.`);
       }
       if (key.kind !== "key") {
-        fail(`door ${shut!.id}'s key ${key.id} is not a key.`);
+        fail(`door ${shut.id}'s key ${key.id} is not a key.`);
       }
     }
   }
@@ -3744,9 +3747,11 @@ function validateModule(
   // a use needs (#331, #400). Its other loot is lost with it.
   const neededFor = new Map<string, string>([
     ...passages.flatMap(({ door: shut }) =>
-      (shut?.keyItemIds ?? []).map(
-        (keyId) => [keyId, `opens door ${shut!.id}`] as const,
-      ),
+      shut === undefined
+        ? []
+        : (shut.keyItemIds ?? []).map(
+            (keyId) => [keyId, `opens door ${shut.id}`] as const,
+          ),
     ),
     ...[...featureById.values()].flatMap(({ id: featureId, uses }) =>
       (uses ?? []).map(

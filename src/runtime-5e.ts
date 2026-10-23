@@ -9254,6 +9254,7 @@ export function createFifthRuntime(
    * its key.
    */
   const withoutTools = (state: FifthState, door: FifthDoor): string => {
+    const key = heldKey(state, door);
     const ways = [
       ...(["force", "break"] as const).flatMap((kind) =>
         door[kind] !== undefined &&
@@ -9264,9 +9265,9 @@ export function createFifthRuntime(
       ...(door.keyItemIds === undefined
         ? []
         : [
-            heldKey(state, door) === undefined
+            key === undefined
               ? "find its key"
-              : `unlock it with the ${heldKey(state, door)!.name}`,
+              : `unlock it with the ${key.name}`,
           ]),
     ];
     return `You carry no thieves' tools, so you can't pick the ${door.name}'s lock. ${
