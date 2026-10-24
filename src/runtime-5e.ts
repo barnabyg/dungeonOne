@@ -614,6 +614,12 @@ export type FifthState = Readonly<{
    */
   visitedRoomIds: readonly string[];
   /**
+   * The room the character last left to come here, by any way: a move, a
+   * sneak or a flight. Left out before the first move. The browser marks
+   * the way back.
+   */
+  previousRoomId?: string;
+  /**
    * The fights the character has fled (#396, #405), in order. Left out
    * while there is none.
    */
@@ -5027,6 +5033,10 @@ export type RoomView = Readonly<{
       /** The way it leads, from the map's cells (#458). */
       direction: Direction;
       route?: "opened" | "closed" | "open-now";
+      /** The way back to the room the character last came from. */
+      cameFrom?: true;
+      /** A way to a room the character has not been in yet. */
+      unvisited?: true;
       door?: Named & Readonly<{ open: boolean }>;
       trap?: Named & Readonly<{ state: TrapState }>;
     }>)[];
@@ -9934,6 +9944,7 @@ export function createFifthRuntime(
     const arrived: FifthState = {
       ...kept,
       roomId: destination.id,
+      previousRoomId: kept.roomId,
       moves: kept.moves + 1,
       ...(kept.visitedRoomIds.includes(destination.id)
         ? {}
@@ -13699,6 +13710,10 @@ export function createFifthRuntime(
           name: roomById(to).name,
           description,
           direction: directionTo(state, to),
+          ...(to === state.previousRoomId ? { cameFrom: true as const } : {}),
+          ...(state.visitedRoomIds.includes(to)
+            ? {}
+            : { unvisited: true as const }),
           ...(isClosed(state, passage)
             ? { route: "closed" as const }
             : hidden === true

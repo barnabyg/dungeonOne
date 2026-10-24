@@ -46,8 +46,8 @@ const knownRoom = (runtime, state, id) =>
     .find((entry) => entry.id === id);
 
 test("the formats bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 68);
-  assert.equal(FIFTH_TRACE_FORMAT, 63);
+  assert.equal(FIFTH_SESSION_FORMAT, 69);
+  assert.equal(FIFTH_TRACE_FORMAT, 64);
 });
 
 test("the known rooms are those visited and those seen through an exit, by region", () => {

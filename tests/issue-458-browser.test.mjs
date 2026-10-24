@@ -51,10 +51,13 @@ test("the room panel's exits and their buttons give each way's direction", async
       1,
     );
     const go = actionButton(page, "move", "alcove");
-    assert.equal(await go.getAttribute("aria-label"), "Go west to Alcove");
+    assert.equal(
+      await go.getAttribute("aria-label"),
+      "Go west to Alcove (not yet explored)",
+    );
     assert.equal(
       await actionButton(page, "move", "belfry").getAttribute("aria-label"),
-      "Go up to Belfry",
+      "Go up to Belfry (not yet explored)",
     );
     // From the gallery, the ladder leads down.
     await clickAction(page, "move", "gallery");
@@ -68,10 +71,10 @@ test("the room panel's exits and their buttons give each way's direction", async
     await clickAction(page, "move", "rat-cellar");
     await openFlee(page);
     const flee = actionButton(page, "flee", "stair-foot");
-    assert.equal(await flee.textContent(), "North: Foot of the Stair");
+    assert.equal(await flee.textContent(), "↩North: Foot of the Stair");
     assert.equal(
       await flee.getAttribute("aria-label"),
-      "Flee north to Foot of the Stair",
+      "Flee north to Foot of the Stair (the way you came)",
     );
   } finally {
     await browser.close();

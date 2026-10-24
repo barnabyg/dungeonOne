@@ -14,7 +14,7 @@ import { BEA } from "./fixtures/charismatic-fighter.mjs";
 import { findsYard } from "./fixtures/finds-yard.mjs";
 
 test("a trace from before the arrival entry is refused by its format version", async () => {
-  assert.equal(FIFTH_TRACE_FORMAT, 63);
+  assert.equal(FIFTH_TRACE_FORMAT, 64);
   const directory = await mkdtemp(join(tmpdir(), "issue-524-"));
   try {
     const tracePath = join(directory, "trace.json");

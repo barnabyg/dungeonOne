@@ -71,7 +71,11 @@ test(
       await clickAction(page, "move", "bone-hall");
       let screen = await shown(page);
       assert.doesNotMatch(screen.exits, /The way is closed/);
-      assert.ok(screen.go.includes("Go south to Side Crypt Door shut"));
+      assert.ok(
+        screen.go.includes(
+          "Go south to Side Crypt (not yet explored) Door shut",
+        ),
+      );
 
       await clickAction(page, "force", "rotten-door");
       assert.match(
@@ -82,9 +86,13 @@ test(
       assert.match(
         screen.exits,
         // Its card (#520): Go, greyed with its reason, then the way's state.
-        /South: Side Crypt — A low door\.\n+Go\nWay closed\n+The way is closed\.$/,
+        /South: Side Crypt\n\(not yet explored\)\n — A low door\.\n+Go\nWay closed\n+The way is closed\.$/,
       );
-      assert.ok(screen.go.includes("Go south to Side Crypt Way closed"));
+      assert.ok(
+        screen.go.includes(
+          "Go south to Side Crypt (not yet explored) Way closed",
+        ),
+      );
       assert.equal(
         await page.locator('button[data-target="rotten-door"]').count(),
         0,

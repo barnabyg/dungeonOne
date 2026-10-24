@@ -128,7 +128,7 @@ test(
 
       // The alcove after taking the potion: a disabled Drink with its
       // reason, beside rows with different verbs and name lengths.
-      await act("Go west to Alcove");
+      await act("Go west to Alcove (not yet explored)");
       await act("Examine Iron-Bound Chest");
       assert.equal(
         await page
