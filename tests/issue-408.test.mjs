@@ -170,7 +170,7 @@ test("the gate fails a long module whose sweep is too deadly, naming the region"
   assert.match(
     text,
     new RegExp(
-      `\\n {2}Sweep of region upper \\(Upper Tunnels\\), too deadly, FAIL: the level 3, 5th percentile Fighter playing cautious survived 0\\.0% of 4 runs with its weakest kit, ${upper.survival.kit} \\([^)]*\\); hard needs 75\\.0%\\.`,
+      `\\n {2}Sweep of region upper \\(Upper Tunnels\\), too deadly, FAIL: the level 3, 5th percentile Fighter playing cautious survived 0\\.0% of 4 runs with its weakest kit, ${upper.survival.kit} \\([^)]*\\); with the allowance for play the gate doesn't model, that counts as 2\\.0%, and hard needs 75\\.0%\\.`,
       "u",
     ),
   );

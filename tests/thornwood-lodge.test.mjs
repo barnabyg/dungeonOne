@@ -311,8 +311,8 @@ test("Brann sells the weapons at the gate and Wenna the armour at the camp", () 
 
 test("no loot lies in an exit or a rest site: the first loot is behind the kennel fight", () => {
   // The Pearl of Power (#540) is a caster item, not loot.
+  // The woodpile's potion moved to the mews in #556, after the kennel yard.
   assert.deepEqual(itemsIn("forest-gate"), [
-    ["woodpile-potion", "potion-of-healing", "woodpile"],
     ["hooded-lantern", "tool", "woodpile"],
     ["oilskin-pearl", "caster-item", "woodpile"],
   ]);
@@ -320,7 +320,9 @@ test("no loot lies in an exit or a rest site: the first loot is behind the kenne
     ["cart-potion", "potion-of-healing", "drovers-cart"],
     ["crowbar", "tool", "drovers-cart"],
   ]);
-  assert.deepEqual(itemsIn("falconers-mews"), []);
+  assert.deepEqual(itemsIn("falconers-mews"), [
+    ["mews-potion", "potion-of-healing", "falconers-bench"],
+  ]);
   assert.deepEqual(itemsIn("sheepfold"), []);
   assert.deepEqual(requiredPath(lodge).roomIds, ["forest-gate", "kennel-yard"]);
   assert.deepEqual(itemsIn("kennel-yard"), [
@@ -883,7 +885,6 @@ test("a plain failure on the bridge may be tried again for 1d4 bludgeoning damag
 
 const POTION_AND_LANTERN = [
   ["examine", "woodpile"],
-  ["take", "woodpile-potion"],
   ["take", "hooded-lantern"],
 ];
 const KENNEL_LOOT = [
@@ -928,7 +929,7 @@ test("the kennel yard can still win at level 4, potion and all", () => {
   assert.equal(state.endingId, "fallen-in-the-thornwood");
 });
 
-test("taking the potion and leaving is escaping without loot", () => {
+test("taking the lantern and leaving is escaping without loot", () => {
   const { state, runtime: played } = firstJourney(
     lodge,
     level4,

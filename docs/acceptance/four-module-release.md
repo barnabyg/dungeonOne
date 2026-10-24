@@ -144,18 +144,19 @@ Ada is a level-4 Fighter with 4,100 XP (36 HP, AC 14) and a mace.
 ### 4. Level 5: feeding the bear in the Thornwood Lodge
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-448\lodge | Out-Null; Copy-Item .\tests\fixtures\libraries\level-5-ada.json .\.scratch\release-448\lodge\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\lodge\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-448\lodge | Out-Null; Copy-Item .\tests\fixtures\libraries\level-5-ada.json .\.scratch\release-448\lodge\characters.json; npm.cmd run browser -- --seed 0 --characters .\.scratch\release-448\lodge\characters.json
 ```
 
 Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 
 1. Choose Ada and **Start** _The Thornwood Lodge_.
-2. **Examine** Woodpile; **Take** the Potion of Healing and the Hooded
-   Lantern.
-3. **Go** Kennel Yard. Hesk's Hound and a Kennel Mastiff fight. When the
-   hound falls, the mastiff's morale save succeeds ("7 + 1 = 8 against
-   DC 8") and it fights on. Ada wins at 40/44. **Examine** Hound's Kennel;
-   **Take** the Gilt Hunting Cup and the Purse of Gold (30 gp).
+2. **Examine** Woodpile; **Take** the Hooded Lantern.
+3. **Go** Kennel Yard. Hesk's Hound and a Kennel Mastiff lie in wait: the
+   mastiff's Stealth beats Ada's passive Perception ("14 against your
+   passive Perception 13") and she is surprised. When the mastiff falls,
+   the hound's morale save succeeds ("18 + 1 = 19 against DC 6") and it
+   fights on. Ada wins at 36/44. **Examine** Hound's Kennel; **Take** the
+   Gilt Hunting Cup and the Purse of Gold (30 gp).
 4. **Go** Lodge Kitchen. **Examine** Larder Hooks; **Take** the Haunch of
    Venison. Press **Use Haunch of Venison** on the Serving Hatch: "The bear
    falls on it with a roar." **Take** the Cook's Purse (15 gp).

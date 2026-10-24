@@ -441,7 +441,8 @@ test(
   },
 );
 
-const LODGE_SEED = 190;
+// 190 before the kennel yard's beasts lay in wait (#556).
+const LODGE_SEED = 0;
 
 test(
   `four-module handoff 4: a level-5 Fighter feeds the Thornwood Lodge's bear and walks out with the King's Hanger (seed ${LODGE_SEED})`,
@@ -456,7 +457,6 @@ test(
       start: [44, 14],
       route: [
         ["examine", "woodpile"],
-        ["take", "woodpile-potion"],
         ["take", "hooded-lantern"],
         ["move", "kennel-yard"],
         ["examine", "hounds-kennel"],
@@ -478,11 +478,13 @@ test(
       endingId: "out-with-the-spoils",
     });
     // The kennel yard; the fed bear doesn't fight.
-    assert.deepEqual(ends, ["40/44"]);
+    assert.deepEqual(ends, ["36/44"]);
     says(log, [
-      /Hesk's Hound is defeated\./u,
-      /Kennel Mastiff checks morale as the first of its side falls: a Wisdom saving throw, 7 \+ 1 = 8 against DC 8\. Success: it stands its ground\./u,
+      // The beasts lie in wait (#556): Ada is surprised.
+      /Kennel Mastiff's Stealth check: d20 12 \+ 2 = 14 against your passive Perception 13 \(10 \+ 0 Wisdom \+ 3 proficiency\)\. Success: you did not notice them, and you are surprised/u,
       /Kennel Mastiff is defeated\./u,
+      /Hesk's Hound checks morale as the first of its side falls: a Wisdom saving throw, 18 \+ 1 = 19 against DC 6\. Success: it stands its ground\./u,
+      /Hesk's Hound is defeated\./u,
       /You use the Haunch of Venison on the Serving Hatch\. You heave the haunch through the hatch\. The bear falls on it with a roar\./u,
       /Lodge Hall — /u,
       /King's Hanger and stow it\./u,

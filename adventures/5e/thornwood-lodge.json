@@ -73,17 +73,10 @@
           "id": "woodpile",
           "name": "Woodpile",
           "description": "Split logs stacked against the palisade.",
-          "discovery": "Behind the logs are a stoppered vial of red liquid, a shuttered lantern and a small oilskin pouch."
+          "discovery": "Behind the logs are a shuttered lantern and a small oilskin pouch."
         }
       ],
       "items": [
-        {
-          "id": "woodpile-potion",
-          "name": "Potion of Healing",
-          "description": "A stoppered vial of red liquid that glimmers when shaken.",
-          "kind": "potion-of-healing",
-          "hiddenIn": "woodpile"
-        },
         {
           "id": "hooded-lantern",
           "name": "Hooded Lantern",
@@ -222,10 +215,18 @@
           "id": "falconers-bench",
           "name": "Falconer's Bench",
           "description": "A bench of hoods and jesses.",
-          "discovery": "A note in a careful hand: \"The bear will let anyone by while it has meat. Hesk feeds it through the kitchen hatch.\""
+          "discovery": "A note in a careful hand: \"The bear will let anyone by while it has meat. Hesk feeds it through the kitchen hatch.\" Under it, wrapped in a hawk's hood, is a stoppered vial of red liquid."
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "mews-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "falconers-bench"
+        }
+      ],
       "creatures": []
     },
     {
@@ -1122,6 +1123,7 @@
   "encounters": [
     {
       "id": "yard-hound",
+      "lurking": true,
       "opponents": [
         {
           "id": "hesks-hound",

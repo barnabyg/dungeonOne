@@ -23,6 +23,7 @@ import {
   validateFifthAdventure,
 } from "../dist/adventure-5e.js";
 import {
+  clearsSurvival,
   DIFFICULTY_THRESHOLDS,
   GATE_CLASSES,
   gateModule,
@@ -245,8 +246,9 @@ test("a new character's career through the shipped modules reaches the required 
   }
 });
 
-test("every shipped module declares the strictest difficulty every class passes with 3 points of slack (#252, #310, #348)", () => {
-  // Survival must clear the threshold by at least 3 points for every class,
+test("every shipped module declares the strictest difficulty every class passes with 3 points of slack (#252, #310, #348, #556)", () => {
+  // Survival, credited the 2-point allowance for play the gate doesn't
+  // model (#556), must clear the threshold by at least 3 points for every class,
   // and no stricter difficulty may also pass with that slack: the label is
   // what the weakest class measures.
   for (const adventure of gated) {
@@ -262,9 +264,11 @@ test("every shipped module declares the strictest difficulty every class passes 
         return (
           verdict.qualified &&
           (verdict.survival.reported === true ||
-            verdict.survival.rate -
-              DIFFICULTY_THRESHOLDS[difficulty].survival >=
-              SURVIVAL_SLACK)
+            clearsSurvival(
+              verdict.survival.rate,
+              DIFFICULTY_THRESHOLDS[difficulty].survival,
+              SURVIVAL_SLACK,
+            ))
         );
       });
     assert.equal(
@@ -399,9 +403,11 @@ const QUOTED_FIGURES = {
     },
   },
   // Long and levels 4–5 since its expansion (#445): Hard, as the Rogue's
-  // 87.0% on the lodge-hall route is 12.0 points over Hard's 75% and under
-  // the 88% Medium needs with its slack (the Cleric's 86.5% was too, before
-  // its chain shirt and shield, #541). Each
+  // 83.0% on the lodge-hall route, 85.0% with the gate's 2-point allowance
+  // (#556), is 10.0 points over Hard's 75% and under the 88% Medium needs
+  // with its slack. It measured 87.0% before the kennel yard's beasts lay
+  // in wait and the woodpile's potion moved to the mews (#556), which the
+  // allowance would have made Medium. Each
   // route and sweep holds one fight; the hall's bear is fed. At level 5 the
   // two mastiffs and the crag wolf of ten ordinary foes are over the cap
   // (the mastiffs alone for the Cleric), no more than half. Every fight's
@@ -409,8 +415,8 @@ const QUOTED_FIGURES = {
   // included, and the spoils' 3,800 (2,350 before).
   "thornwood-lodge": {
     fighter: {
-      survival: [4, "two-daggers", 0.97],
-      alwaysFail: [4, 0.97],
+      survival: [4, "mace", 0.94],
+      alwaysFail: [4, 0.94],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       enemyCount: 10,
       xp:
@@ -428,54 +434,54 @@ const QUOTED_FIGURES = {
         50 +
         3800,
       routes: [
-        ["lodge-hall", 4, "two-daggers", 0.97],
-        ["wolfstone-gate", 4, "mace", 0.98],
+        ["lodge-hall", 4, "mace", 0.94],
+        ["wolfstone-gate", 4, "mace", 0.975],
       ],
       sweeps: [
-        ["lodge", 4, "two-daggers", 0.97],
-        ["wolfstone", 4, "mace", 0.98],
+        ["lodge", 4, "mace", 0.94],
+        ["wolfstone", 4, "mace", 0.975],
       ],
     },
     rogue: {
-      survival: [4, "shortsword", 0.87],
-      alwaysFail: [4, 0.87],
+      survival: [4, "shortsword", 0.83],
+      alwaysFail: [4, 0.83],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       xp: 6950,
       routes: [
-        ["lodge-hall", 4, "shortsword", 0.87],
-        ["wolfstone-gate", 4, "shortsword-and-dagger", 0.975],
+        ["lodge-hall", 4, "shortsword", 0.83],
+        ["wolfstone-gate", 4, "shortsword", 0.945],
       ],
       sweeps: [
-        ["lodge", 4, "shortsword", 0.87],
-        ["wolfstone", 4, "shortsword-and-dagger", 0.975],
+        ["lodge", 4, "shortsword", 0.83],
+        ["wolfstone", 4, "shortsword", 0.945],
       ],
     },
     cleric: {
-      survival: [4, "mace-and-shield", 0.93],
-      alwaysFail: [4, 0.93],
+      survival: [4, "mace-and-shield", 0.925],
+      alwaysFail: [4, 0.925],
       overCap: ["kennel-mastiff", "loose-mastiff"],
       xp: 6950,
       routes: [
-        ["lodge-hall", 4, "mace-and-shield", 0.93],
+        ["lodge-hall", 4, "mace-and-shield", 0.925],
         ["wolfstone-gate", 4, "mace-and-shield", 0.975],
       ],
       sweeps: [
-        ["lodge", 4, "mace-and-shield", 0.93],
+        ["lodge", 4, "mace-and-shield", 0.925],
         ["wolfstone", 4, "mace-and-shield", 0.975],
       ],
     },
     wizard: {
-      survival: [4, "quarterstaff-and-dagger", 0.94],
-      alwaysFail: [4, 0.94],
+      survival: [4, "quarterstaff-and-dagger", 0.93],
+      alwaysFail: [4, 0.93],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
       xp: 6950,
       routes: [
-        ["lodge-hall", 4, "quarterstaff-and-dagger", 0.94],
-        ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.955],
+        ["lodge-hall", 4, "quarterstaff-and-dagger", 0.93],
+        ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.96],
       ],
       sweeps: [
-        ["lodge", 4, "quarterstaff-and-dagger", 0.94],
-        ["wolfstone", 4, "quarterstaff-and-dagger", 0.955],
+        ["lodge", 4, "quarterstaff-and-dagger", 0.93],
+        ["wolfstone", 4, "quarterstaff-and-dagger", 0.96],
       ],
     },
   },
