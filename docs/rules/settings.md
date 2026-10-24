@@ -1,6 +1,6 @@
 # Settings
 
-The Settings page (the gear button, **Settings**, at the end of the header) changes how the game plays. Its choices are kept in `settings.json` beside the character library; with no file every setting is at its default. The defaults are the game as balanced: the balance gate, the harness, the career simulation, the DM evaluations and the CLI always play at them, so a player who changes a setting makes the game easier or harder on purpose. There are no presets, only each setting and **Reset to defaults**. Characters are not marked for having played on other settings.
+The Settings page (the gear button, **Settings**, at the end of the header) changes how the game plays; its **Back to …** button returns to the adventure, sheet or character list it was opened from. Its choices are kept in `settings.json` beside the character library; with no file every setting is at its default. The defaults are the game as balanced: the balance gate, the harness, the career simulation, the DM evaluations and the CLI always play at them, so a player who changes a setting makes the game easier or harder on purpose. There are no presets, only each setting and **Reset to defaults**. Characters are not marked for having played on other settings.
 
 **Each adventure keeps its settings.** Starting an adventure copies every setting into its session, and it plays by that copy to the end, through reloads and restarts. A change made during an adventure applies from the next one. Between adventures the character sheet shows the settings of the moment.
 

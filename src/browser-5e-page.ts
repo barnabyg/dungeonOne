@@ -225,6 +225,10 @@
 // the next adventure. Above them #settings-sound (#510) has this browser's
 // sound, #settings-sound-on and #settings-sound-volume, in step with the
 // header's; with sound off for the launch it says so and has no controls.
+// Settings remembers the view it was opened from in its history entry, so
+// a reload keeps it: the breadcrumb runs through that view, and
+// #settings-back ("Back to <view>") returns to it as Back does; a Settings
+// URL opened on its own goes back to the characters.
 //
 // Creation's ability scores (#509) follow the pending creation's method:
 // #method-hint and #placing-hint say how; each #place-<ability> places a
@@ -321,6 +325,7 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <section id="settings" class="panel" aria-labelledby="settings-title" hidden>
 <h2 id="settings-title" tabindex="-1">Settings</h2>
 <p class="hint">The defaults are the game as it is balanced. Each adventure keeps the settings it started with.</p>
+<div class="controls"><button id="settings-back" type="button" class="primary">Back to your characters</button></div>
 ${SETTINGS_SOUND(sound)}
 <p id="settings-in-progress" class="notice" hidden>An adventure is in progress: changes apply from the next adventure.</p>
 <div id="settings-list"></div>
@@ -688,9 +693,12 @@ ${parseCoins}
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
 // or Back and Forward return to the view without the server routing them.
 let routeTicket = 0;
+// The breadcrumb under Characters of the view on show, for Settings to run through.
+let shownTrail = [];
 
 /** Shows one view, titles the page and draws its breadcrumb under Characters. */
 function show(id, title, trail) {
+  shownTrail = trail;
   for (const panel of ["library", "settings", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
   // The adventure's levels, difficulty and room share the header bar (#430).
   element("adventure-meta").hidden = id !== "adventure";
@@ -710,7 +718,7 @@ function show(id, title, trail) {
     }
     const link = make("a", item.label);
     link.href = item.hash || location.pathname;
-    link.dataset.view = item.hash ? "sheet" : "library";
+    link.dataset.view = !item.hash ? "library" : item.hash.startsWith("#adventure-") ? "adventure" : item.hash === "#create" ? "creation" : "sheet";
     link.addEventListener("click", (event) => {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
@@ -721,11 +729,11 @@ function show(id, title, trail) {
   }));
 }
 
-/** Opens a view as a new history entry, or in place of the current one. */
-function go(hash, replace) {
+/** Opens a view as a new history entry, with its state, or in place of the current one. */
+function go(hash, replace, state = null) {
   const url = hash || location.pathname;
   if (replace) history.replaceState(null, "", url);
-  else if (url !== location.pathname + location.hash) history.pushState(null, "", url);
+  else if (url !== location.pathname + location.hash) history.pushState(state, "", url);
   route(true);
 }
 
@@ -5189,8 +5197,22 @@ async function openSettings(ticket) {
   }
   if (ticket !== routeTicket) return;
   renderSettings(value);
-  show("settings", "Settings", [{ label: "Settings" }]);
+  // The view Settings was opened from, if this entry remembers one.
+  const from = history.state && history.state.settingsFrom;
+  const trail = from ? from.trail.map((item, index) => index === from.trail.length - 1 ? { label: item.label, hash: from.hash } : item) : [];
+  element("settings-back").textContent = "Back to " + (trail.length ? trail[trail.length - 1].label : "your characters");
+  show("settings", "Settings", [...trail, { label: "Settings" }]);
   element("settings-title").focus();
+}
+
+// The entry before a remembered Settings is the view it came from.
+function leaveSettings() {
+  if (history.state && history.state.settingsFrom) history.back();
+  else go("");
+}
+
+function goToSettings() {
+  if (element("settings").hidden) go("#settings", false, { settingsFrom: { hash: location.hash, trail: shownTrail } });
 }
 
 function renderSettings(value) {
@@ -5500,7 +5522,8 @@ async function deleteCharacter(event) {
 }
 
 element("open-creation").addEventListener("click", () => go("#create"));
-element("open-settings").addEventListener("click", () => go("#settings"));
+element("open-settings").addEventListener("click", goToSettings);
+element("settings-back").addEventListener("click", leaveSettings);
 element("reset-settings").addEventListener("click", resetSettings);
 element("creation-form").addEventListener("submit", saveCharacter);
 element("reroll").addEventListener("click", rerollDice);
