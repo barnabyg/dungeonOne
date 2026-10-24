@@ -46,7 +46,6 @@ const [{ sheet }] = levelFourCareerLibrary().characters;
 
 const ROUTE = [
   ["examine", "woodpile"],
-  ["take", "woodpile-potion"],
   ["take", "hooded-lantern"],
   ["talk", "the-poachers-path", "persuasion"],
   ["move", "poachers-hide"],
@@ -63,9 +62,10 @@ const ROUTE = [
 
 // The handoff's seed for scenario 2: Ada's clicks win Brann over, kill both
 // beasts (neither flees, so each gives its full XP) and walk out with the
-// loot. The engine journey checks that before the browser plays it. Seed 1
-// since the Champion's initiative advantage (#315) moved the dice (2 before).
-const seed = 1;
+// loot. The engine journey checks that before the browser plays it. Seed 3
+// since the kennel yard's beasts lay in wait (#556); 1 since the Champion's
+// initiative advantage (#315) moved the dice, 2 before.
+const seed = 3;
 
 test(
   `Thornwood Lodge handoff: a level-4 Fighter talks her way to the poachers' hide, wins the kennel yard and reaches level 5 (seed ${seed})`,
@@ -184,10 +184,10 @@ const LEVEL_FIVE = fileURLToPath(
  * the first that did (a failed trophy wall, success by 5 with the lantern,
  * the hatch opened, the man-trap found and disarmed). Since the Champion's
  * initiative advantage (#315) moved the dice, seed 220 was the first; since
- * the Lodge's expansion (#445) moved them again, seed 989 is (on 358 the
- * hound flees).
+ * the Lodge's expansion (#445) moved them again, seed 989 was (on 358 the
+ * hound flees); since the kennel yard's beasts lay in wait (#556), 1948 is.
  */
-const CHECKS_SEED = 989;
+const CHECKS_SEED = 1948;
 
 /** A check's button: by approach, and the retry's own button. */
 const checkButton = (page, action, target, { approach, retry } = {}) =>
@@ -225,7 +225,6 @@ test(
         .click();
       await startAdventure(page, "thornwood-lodge");
       await clickAction(page, "examine", "woodpile");
-      await clickAction(page, "take", "woodpile-potion");
       await clickAction(page, "move", "kennel-yard");
       await fight(page);
       assert.match(
@@ -272,7 +271,7 @@ test(
       const retried = await lastEntry(page);
       assert.match(
         retried,
-        /Another try at the Trophy Wall \(Hooded Lantern\)\.\nPerception check: d20 19 \+ 0 \+ 3 proficiency = 22 against DC 15\. Success by 5 or more\./u,
+        /Another try at the Trophy Wall \(Hooded Lantern\)\.\nPerception check: d20 17 \+ 0 \+ 3 proficiency = 20 against DC 15\. Success by 5 or more\./u,
       );
       assert.match(
         retried,
@@ -282,7 +281,7 @@ test(
       await click("examine", "ice-house-hatch", { approach: "athletics" });
       assert.match(
         await lastEntry(page),
-        /^Athletics check, at advantage \(Remarkable Athlete\): d20 12 and 16, keeping 16; 16 \+ 4 \+ 3 proficiency = 23 against DC 15\. Success\.[\s\S]*The way to the Ice House is open\./u,
+        /^Athletics check, at advantage \(Remarkable Athlete\): d20 4 and 12, keeping 12; 12 \+ 4 \+ 3 proficiency = 19 against DC 15\. Success\.[\s\S]*The way to the Ice House is open\./u,
       );
       await clickAction(page, "search", "lodge-hall");
       assert.match(await lastEntry(page), /You find a Man-trap/u);

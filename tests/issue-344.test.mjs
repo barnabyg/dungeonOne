@@ -157,11 +157,10 @@ test("reaching level 5 offers the 3rd-level spells for the spellbook", () => {
     after: [4, 3, 2],
   });
   assert.deepEqual(changes.spells.prepared, { before: 7, after: 9 });
-  assert.deepEqual(changes.spells.spellbookOptions.slice(0, 7), [
+  assert.deepEqual(changes.spells.spellbookOptions.slice(0, 6), [
     "fireball",
     "lightning-bolt",
     "bestow-curse",
-    "protection-from-energy",
     "vampiric-touch",
     "haste",
     "slow",
@@ -236,7 +235,6 @@ test("every Wizard spell is on the list once and in SRD 5.2's spells the game kn
     "fireball",
     "lightning-bolt",
     "bestow-curse",
-    "protection-from-energy",
     "vampiric-touch",
     "haste",
     "slow",

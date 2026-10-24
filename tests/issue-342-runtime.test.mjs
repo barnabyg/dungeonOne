@@ -1,9 +1,8 @@
 // #342: a level-5 Life Cleric in the runtime. Sear Undead's roll and burns
 // in the card and its dice; Bestow Curse offered once for each curse, and
 // the AI DM's cast tool taking the curse; Spirit Guardians striking at the
-// end of the foes' turns; Beacon of Hope's healing at its most, with no
-// dice drawn; Protection from Energy cast outside a fight against a chosen
-// type.
+// end of the foes' turns; Protection from Evil and Good (#555) cast
+// outside a fight and warding against the undead in it.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -76,9 +75,9 @@ const MIRA = (() => {
     "spiritual-weapon",
     "prayer-of-healing",
     "spirit-guardians",
-    "beacon-of-hope",
+    "protection-from-evil-and-good",
     "bestow-curse",
-    "protection-from-energy",
+    "hold-person",
   ]);
 })();
 
@@ -99,9 +98,9 @@ const den = tunnels([
 ]);
 
 /** The fight in the cellar, Mira first: initiative 20, then the foes' 1s. */
-function cellarFight(runtime, foes) {
+function cellarFight(runtime, foes, state = runtime.createSession()) {
   const result = runtime.handleAction(
-    runtime.createSession(),
+    state,
     { type: "move", destinationId: "rat-cellar" },
     uncheckedDice(20, ...Array.from({ length: foes }, () => 1)),
   );
@@ -255,71 +254,21 @@ test("Spirit Guardians strike at the end of the bandit's turn, and the card show
   assert.equal(round.state.encounter.outcome, "victory");
 });
 
-test("Beacon of Hope: Healing Word heals its most and draws no dice", () => {
-  const runtime = createFifthRuntime(den, MIRA);
-  const opened = cellarFight(runtime, 1);
-  // Beacon of Hope takes Mira's action and her turn's slot: her turn ends
-  // and the bandit misses (1).
-  const lit = accepted(
-    runtime,
-    opened,
-    runtime.actionOf(
-      offered(runtime, opened, "cast").find(
-        ({ spell }) => spell.id === "beacon-of-hope",
-      ),
-    ),
-    1,
-  );
-  const state = {
-    ...lit.state,
-    encounter: {
-      ...lit.state.encounter,
-      combatants: lit.state.encounter.combatants.map((entrant) =>
-        entrant.id === "pc" ? { ...entrant, hp: 10 } : entrant,
-      ),
-    },
-  };
-  const word = offered(runtime, state, "cast").find(
-    ({ spell }) => spell.id === "healing-word" && spell.slotLevel === 1,
-  );
-  // 2d4 at most, 8, + 4 + Disciple of Life's 3, with no dice drawn.
-  const healed = accepted(runtime, state, runtime.actionOf(word));
-  assert.match(
-    renderFifthResult(healed),
-    /Healing Word: 4 \+ 4 \(Beacon of Hope: the most\) \+ 4 \+ 3 \(Disciple of Life\) = 15; you regain 15 HP and have 25\/43 HP\./u,
-  );
-  const [heal] = healed.lines.flatMap(({ rolls }) =>
-    rolls.filter(({ purpose }) => purpose === "healing"),
-  );
-  assert.deepEqual(heal.dice, [
-    { sides: 4, value: 4, effect: "Beacon of Hope" },
-    { sides: 4, value: 4, effect: "Beacon of Hope" },
-  ]);
-});
-
-test("Protection from Energy is cast outside a fight against a chosen type", () => {
-  const runtime = createFifthRuntime(den, MIRA);
+test("Protection from Evil and Good (#555) is cast outside a fight and carried into the next", () => {
+  const runtime = createFifthRuntime(crypt, MIRA);
   const state = runtime.createSession();
-  const wards = offered(runtime, state, "cast").filter(
-    ({ spell }) => spell.id === "protection-from-energy",
+  const ward = offered(runtime, state, "cast").find(
+    ({ spell }) => spell.id === "protection-from-evil-and-good",
   );
-  assert.deepEqual(
-    wards.map(({ spell }) => [spell.damageType, spell.damageTypeUse]),
-    [
-      ["acid", "resisted"],
-      ["cold", "resisted"],
-      ["fire", "resisted"],
-      ["lightning", "resisted"],
-      ["thunder", "resisted"],
-    ],
-  );
-  const warded = accepted(
-    runtime,
-    state,
-    runtime.actionOf(wards.find(({ spell }) => spell.damageType === "fire")),
-  );
+  const warded = accepted(runtime, state, runtime.actionOf(ward));
   assert.match(
     renderFifthResult(warded),
-    /Protection from Energy takes hold on you: resistance to fire damage, until the next rest. You concentrate on it\./u,
+    /Protection from Evil and Good takes hold on you: warded: attack rolls against it by aberrations, celestials, elementals, fey, fiends and undead have disadvantage, until the next rest\. You concentrate on it\./u,
+  );
+  const opened = cellarFight(runtime, 2, warded.state);
+  const pc = opened.encounter.combatants.find(({ id }) => id === "pc");
+  assert.deepEqual(
+    pc.effects.map(({ spellId }) => spellId),
+    ["protection-from-evil-and-good"],
   );
 });

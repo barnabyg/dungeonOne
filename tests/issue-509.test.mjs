@@ -122,7 +122,7 @@ test("at the defaults, a creation rolls as before and its pending creation recor
     assert.equal(sheet.abilities.strength, keptTotal(dice[0]) + 2);
     const file = JSON.parse(await readFile(library.path, "utf8"));
     assert.equal(file.formatVersion, FIFTH_LIBRARY_FORMAT);
-    assert.equal(FIFTH_LIBRARY_FORMAT, 28);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 29);
   }));
 
 test("the standard array is placed freely, and the sheet keeps the scores, not dice", async () =>
@@ -319,7 +319,7 @@ test("an older library is refused with the move-aside message; a malformed pendi
     await writeFile(path, older);
     const library = new FifthCharacterLibrary(path, 7);
     await assert.rejects(library.read(), {
-      message: `${path} is a character library in format version 26, not 28. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
+      message: `${path} is a character library in format version 26, not 29. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
     });
     assert.equal(await readFile(path, "utf8"), older);
 

@@ -287,7 +287,7 @@
         {
           "id": "hobbs-shackle",
           "name": "Hobb's Shackle",
-          "description": "A light chain from the wall to a boy's ankle. The pin is only pushed in; he hasn't dared to pull it."
+          "description": "A light chain from the wall to a boy's ankle, the skin under it rubbed raw. The pin is only pushed in; he hasn't dared to pull it."
         }
       ],
       "items": [
@@ -325,8 +325,10 @@
               "name": "the bell-wires",
               "reply": "\"They strung wires on the ways down, so the goblins can't come up quiet. Low, at your shin. Find the wire and follow it to the weight.\"",
               "check": {
-                "skill": "persuasion",
-                "dc": 10,
+                "approaches": [
+                  { "skill": "persuasion", "dc": 10 },
+                  { "skill": "medicine", "dc": 10 }
+                ],
                 "bands": {
                   "success": {
                     "text": "He shows you with his hands how the wires are strung.",
@@ -615,7 +617,7 @@
           "id": "dead-goblin",
           "name": "Dead Goblin",
           "description": "A goblin crushed under a sack of ballast stones, a satchel still on its shoulder.",
-          "discovery": "The satchel holds a stoppered vial of red liquid."
+          "discovery": "The satchel holds a broken vial, its red liquid long since soaked away."
         },
         {
           "id": "ballast-sack",
@@ -628,15 +630,7 @@
           "description": "A stone channel carries seepage away along the passage toward the pump room."
         }
       ],
-      "items": [
-        {
-          "id": "satchel-potion",
-          "name": "Potion of Healing",
-          "description": "A stoppered vial of red liquid that glimmers when shaken.",
-          "kind": "potion-of-healing",
-          "hiddenIn": "dead-goblin"
-        }
-      ],
+      "items": [],
       "creatures": []
     },
     {
@@ -1402,8 +1396,8 @@
       "description": "A low tunnel printed with small clawed feet.",
       "trap": {
         "id": "culvert-deadfall",
-        "name": "Bell-Wire Deadfall",
-        "description": "A wire strung low across the tunnel, tied to a sack of ballast stones above and a bell-line running up toward the keep.",
+        "name": "Bell-Wire Fire-Pot",
+        "description": "A wire strung low across the tunnel, tied to a pot of lamp oil on a ledge above, a slow-match smouldering beside it, and to a bell-line running up toward the keep.",
         "find": {
           "dc": 13
         },
@@ -1439,7 +1433,7 @@
               "noisy": true
             },
             "success": {
-              "text": "You tie off the wire and see how the Lockjaw rig their deadfalls.",
+              "text": "You tie off the wire and pinch out the slow-match: the kobolds have taken the Lockjaw's bell-wire trick and made it worse.",
               "effects": [
                 {
                   "type": "set",
@@ -1449,7 +1443,7 @@
             }
           }
         },
-        "trigger": "A wire snaps at your shin, and a sack of stones drops from the dark.",
+        "trigger": "A wire snaps at your shin, and a pot of burning oil tips from the ledge.",
         "save": {
           "ability": "dexterity",
           "dc": 12
@@ -1458,7 +1452,7 @@
           "dice": 2,
           "sides": 6,
           "modifier": 0,
-          "type": "bludgeoning"
+          "type": "fire"
         },
         "defeatEndingId": "fallen-at-the-weirgate"
       }

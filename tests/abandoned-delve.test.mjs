@@ -265,7 +265,7 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
   );
 });
 
-test("the sarcophagus opens two ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe", () => {
+test("the sarcophagus opens three ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe", () => {
   const { check } = feature("lords-tomb", "sarcophagus-lid");
   assert.deepEqual(
     check.approaches.map(({ skill, dc, advantage }) => [
@@ -276,6 +276,8 @@ test("the sarcophagus opens two ways, the goblin's directions help, and failing 
     [
       ["athletics", 14, undefined],
       ["investigation", 13, ["goblin-freed"]],
+      // Religion since #557: the old rite of the carved hand.
+      ["religion", 13, undefined],
     ],
   );
   assert.equal(check.bands["failure-by-5"].noisy, true);

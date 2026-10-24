@@ -1,20 +1,16 @@
 // #342: the Cleric's levels 4–5 in the encounter engine. Sear Undead adds
 // radiant damage to Turn Undead without ending the turning. The 3rd-level
 // spells: Spirit Guardians (an area that strikes again at the end of each
-// caught foe's turn), Mass Healing Word, Beacon of Hope (advantage on
-// Wisdom saves, healing at its most), Bestow Curse (two curses) and
-// Protection from Energy (resistance to a chosen type). Light is flavour,
-// and cantrips grow at level 5.
+// caught foe's turn) and Bestow Curse (two curses). Light is flavour, and
+// cantrips grow at level 5.
 import assert from "node:assert/strict";
 import test from "node:test";
 
 import { loadBuiltInFifthBestiary } from "../dist/bestiary-5e.js";
 import {
   act,
-  castOutsideFight,
   combatant,
   currentCombatant,
-  savingThrow,
   startEncounter,
 } from "../dist/encounter-5e.js";
 import { statBlockCombatant } from "../dist/runtime-5e.js";
@@ -88,11 +84,8 @@ const ilse = (extra = {}) => ({
       "sacred-flame",
       "light",
       "bless",
-      "mass-healing-word",
       "spirit-guardians",
-      "beacon-of-hope",
       "bestow-curse",
-      "protection-from-energy",
     ].map((id) => spellAtLevel(SPELLS[id], 5)),
     slots: [
       { uses: 4, max: 4 },
@@ -360,128 +353,6 @@ test("a bandit that saves against Bestow Curse isn't cursed", () => {
   );
   assert.equal(ofType(saved.events, "spell-curse")[0].success, true);
   assert.equal(effectOn(saved.state, "bandit", "bestow-curse"), undefined);
-});
-
-test("Beacon of Hope: advantage on Wisdom saves, and potions and healing spells heal their most", () => {
-  const state = opening([bandit()], [15], ilse({ hp: 10, maxHp: 40 }));
-  const lit = accepted(state, cast("beacon-of-hope", "pc", 3));
-  const beacon = effectOn(lit.state, "pc", "beacon-of-hope");
-  assert.equal(beacon.concentration, true);
-  assert.equal(beacon.ends, "fight");
-  const pc = combatant(lit.state, "pc");
-  const save = savingThrow(
-    lit.state,
-    pc,
-    { ability: "wisdom", dc: 15 },
-    dice([20, 3], [20, 18]),
-  );
-  assert.deepEqual(save.mode.advantage, ["Beacon of Hope"]);
-  assert.equal(save.d20, 18);
-  // A Constitution save has no advantage.
-  const con = savingThrow(
-    lit.state,
-    pc,
-    { ability: "constitution", dc: 15 },
-    dice([20, 3]),
-  );
-  assert.equal(con.mode, undefined);
-  // The potion's 2d4 + 2 is 10 without a roll. With nothing left to do,
-  // Ilse's turn ends and the bandit misses.
-  const drunk = accepted(
-    lit.state,
-    { type: "drink-potion", actorId: "pc", itemId: "potion" },
-    dice([20, 1]),
-  );
-  const [potion] = ofType(drunk.events, "potion");
-  assert.deepEqual(potion.rolls, [4, 4]);
-  assert.equal(potion.maximised, "Beacon of Hope");
-  assert.equal(potion.hpAfter, 20);
-  assert.equal(combatant(drunk.state, "pc").hp, 20);
-  // Mass Healing Word, a bonus action: 2d4 at most (8) + 3 + Disciple of
-  // Life's 5 = 16.
-  assert.equal(drunk.state.round, 2);
-  const healed = accepted(drunk.state, cast("mass-healing-word", "pc", 3));
-  const [heal] = ofType(healed.events, "spell-healing");
-  assert.deepEqual(heal.rolls, [4, 4]);
-  assert.equal(heal.maximised, "Beacon of Hope");
-  assert.equal(heal.disciple, 5);
-  assert.equal(heal.hpAfter, 36);
-  assert.equal(healed.state.economy.bonusAction, false);
-  assert.equal(healed.state.economy.actions, 1);
-});
-
-test("Beacon of Hope lasts no longer than a fight: never cast outside one", () => {
-  const result = castOutsideFight(
-    ilse(),
-    cast("beacon-of-hope", "pc", 3),
-    dice(),
-  );
-  assert.equal(result.rejection?.code, "fight-only");
-});
-
-test("Mass Healing Word heals 2d4 + Wisdom + Disciple of Life with a bonus action", () => {
-  const state = opening([bandit()], [15], ilse({ hp: 10 }));
-  const healed = accepted(
-    state,
-    cast("mass-healing-word", "pc", 3),
-    dice([4, 2], [4, 3]),
-  );
-  const [heal] = ofType(healed.events, "spell-healing");
-  assert.equal(heal.healing, 13);
-  assert.equal(heal.maximised, undefined);
-  assert.equal(healed.state.economy.actions, 1);
-});
-
-test("Protection from Energy: a chosen type, cast outside a fight, resists that damage", () => {
-  const unchosen = castOutsideFight(
-    ilse(),
-    cast("protection-from-energy", "pc", 3),
-    dice(),
-  );
-  assert.equal(unchosen.rejection?.code, "damage-type");
-  const poison = castOutsideFight(
-    ilse(),
-    cast("protection-from-energy", "pc", 3, { damageType: "poison" }),
-    dice(),
-  );
-  assert.equal(poison.rejection?.code, "damage-type");
-  const warded = castOutsideFight(
-    ilse(),
-    cast("protection-from-energy", "pc", 3, { damageType: "fire" }),
-    dice(),
-  );
-  assert.equal(warded.rejection, undefined, warded.rejection?.reason);
-  const ward = effectOn(
-    { combatants: [warded.caster] },
-    "pc",
-    "protection-from-energy",
-  );
-  assert.deepEqual(
-    [ward.buff.kind, ward.damageType, ward.concentration, ward.ends],
-    ["energy-ward", "fire", true, "rest"],
-  );
-  assert.equal(warded.caster.spellcasting.slots[2].uses, 1);
-  // A fire-wielding bandit hits (15 + 3) for 6 + 1 = 7 fire, halved to 3;
-  // Ilse keeps concentrating (15 + 2 against DC 10).
-  const foe = bandit();
-  const state = opening(
-    [
-      {
-        ...foe,
-        attack: {
-          ...foe.attack,
-          damage: { ...foe.attack.damage, type: "fire" },
-        },
-      },
-    ],
-    [15],
-    warded.caster,
-  );
-  const round = accepted(state, endTurn, dice([20, 15], [6, 6], [20, 15]));
-  const [hit] = ofType(round.events, "attack");
-  assert.equal(hit.damage, 3);
-  assert.equal(hit.damageAdjustment.by, "resistance");
-  assert.equal(combatant(round.state, "pc").hp, 17);
 });
 
 test("Light is flavour only, and cantrips grow at level 5", () => {

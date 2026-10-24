@@ -205,8 +205,9 @@ the design ticket.
   from its own minimum level (`MAGIC_ITEM_MIN_LEVEL`); a 1st-level scroll is
   common.
 - **Difficulty.** Declare the strictest difficulty whose survival threshold
-  every class clears by at least 3 points under the balance gate (a caster's
-  survival below level 3 sets nothing). `shipped-modules.test.mjs` checks it.
+  every class clears by at least 3 points under the balance gate, its
+  survival credited the gate's 2-point allowance (a caster's survival below
+  level 3 sets nothing). `shipped-modules.test.mjs` checks it.
 - **Keys.** If the only key to the way on can be lost (its carrier flees with
   it), the gate counts the character as stranded and fails the module. Give such
   a key a second way on.

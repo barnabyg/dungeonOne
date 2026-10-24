@@ -1,9 +1,9 @@
 // #342: a Cleric at levels 4 and 5. Level 4 brings an Ability Score
 // Improvement (the pending level choice, made before the next adventure), a
 // fourth cantrip, a third 2nd-level slot and a seventh prepared spell.
-// Level 5 brings Sear Undead, 3rd-level slots and spells, Mass Healing Word
-// always prepared, and cantrips that deal two dice. Engine tests are in
-// issue-342-engine.test.mjs.
+// Level 5 brings Sear Undead, 3rd-level slots and spells, and cantrips that
+// deal two dice; the Life Domain's level-5 spells are omitted (#555).
+// Engine tests are in issue-342-engine.test.mjs.
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -211,33 +211,24 @@ test("golden numbers for a level-5 Cleric: Sear Undead, 3rd-level slots and two-
     "Life Domain: Preserve Life",
     "Ability Score Improvement",
     "Sear Undead",
-    "Life Domain: Life Domain Spells: Mass Healing Word",
   ]);
   assert.match(
     profile.features.find(({ id }) => id === "sear-undead").text,
     /roll 4d8/u,
-  );
-  assert.match(
-    profile.features.find(({ id }) => id === "life-domain-spells-5").text,
-    /Revivify.*omitted/u,
   );
   assert.deepEqual(profile.spellcasting.alwaysPrepared, [
     "aid",
     "bless",
     "cure-wounds",
     "lesser-restoration",
-    "mass-healing-word",
   ]);
-  // Nine chosen, besides the five always prepared.
+  // Nine chosen, besides the four always prepared.
   assert.equal(sheet.spells.prepared.length, 9);
   assert.equal(profile.nextLevelXp, undefined);
   const pc = playerCombatant(sheet, startingResources(sheet));
   assert.deepEqual(pc.channelDivinity.searUndead, { dice: 4, sides: 8 });
   const flame = pc.spellcasting.spells.find(({ id }) => id === "sacred-flame");
   assert.equal(flame.effect.damage.dice, 2);
-  assert.ok(
-    pc.spellcasting.spells.some(({ id }) => id === "mass-healing-word"),
-  );
   assert.deepEqual(pc.spellcasting.slots, [
     { uses: 4, max: 4 },
     { uses: 3, max: 3 },
@@ -245,38 +236,27 @@ test("golden numbers for a level-5 Cleric: Sear Undead, 3rd-level slots and two-
   ]);
 });
 
-test("reaching level 5 offers the 3rd-level spells; Mass Healing Word is the domain's", () => {
+test("reaching level 5 offers the 3rd-level spells, and no domain spell (#555)", () => {
   const before = level4Ready();
   const after = earn(before, 3800, "tomb");
   assert.deepEqual(spellsOwed(after), { cantrips: 0, prepared: 2 });
   const preparable = preparableSpells(after);
-  for (const id of [
-    "spirit-guardians",
-    "beacon-of-hope",
-    "bestow-curse",
-    "protection-from-energy",
-  ]) {
+  for (const id of ["spirit-guardians", "bestow-curse"]) {
     assert.ok(preparable.includes(id), id);
   }
-  assert.ok(!preparable.includes("mass-healing-word"));
   const changes = levelUpChanges(before, after);
   assert.deepEqual(changes.spells, {
     slots: { before: [4, 3], after: [4, 3, 2] },
     cantrips: { before: 4, after: 4 },
     prepared: { before: 7, after: 9 },
-    alwaysPrepared: ["mass-healing-word"],
-    newSpells: [
-      "spirit-guardians",
-      "beacon-of-hope",
-      "bestow-curse",
-      "protection-from-energy",
-    ],
+    alwaysPrepared: [],
+    newSpells: ["spirit-guardians", "bestow-curse"],
     owed: 2,
     cantripsOwed: 0,
   });
   assert.deepEqual(
     changes.features.map(({ name }) => name),
-    ["Sear Undead", "Life Domain: Life Domain Spells: Mass Healing Word"],
+    ["Sear Undead"],
   );
   assert.deepEqual(changes.choices, []);
   // A choice of a 3rd-level spell is accepted.

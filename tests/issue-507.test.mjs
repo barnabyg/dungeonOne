@@ -616,7 +616,7 @@ test("the server gives a new character the starting coin the settings have when 
 });
 
 test("an older character library is refused with the move-aside message", async () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 28);
+  assert.equal(FIFTH_LIBRARY_FORMAT, 29);
   const directory = await mkdtemp(join(tmpdir(), "issue-507-library-"));
   try {
     const path = join(directory, "characters.json");
@@ -630,7 +630,7 @@ test("an older character library is refused with the move-aside message", async 
     });
     await writeFile(path, bytes);
     await assert.rejects(new FifthCharacterLibrary(path, 1).read(), {
-      message: `${path} is a character library in format version 26, not 28. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
+      message: `${path} is a character library in format version 26, not 29. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
     });
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {

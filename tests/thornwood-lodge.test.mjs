@@ -4,8 +4,8 @@
 // kennel yard, a bear that can be fed baits in the hall, an owlbear nests in
 // the ice house and the captain keeps the solar; and the Wolfstone above it,
 // the Hillfort's six rooms (#289) with a sheepfold and a guardroom added,
-// where a drover trades and the Reaver's wolf, a bear and the Reaver hold the
-// fort. Since #544 the wolf's lair hides a run under the rampart into the
+// where a drover trades and the Reaver's wolf, two ghouls (#557) and the
+// Reaver hold the fort. Since #544 the wolf's lair hides a run under the rampart into the
 // guardroom, found with Nature or Survival, and forcing the portcullis rouses
 // the Wolfstone, which rolls its wandering table. Journeys reach its
 // endings and its checks; shipped-modules.test.mjs checks it qualifies at
@@ -99,7 +99,7 @@ test("the lodge is a sixteen-room long level 4–5 Hard module in two regions, l
     ["falconers-mews", "sheepfold"],
   );
   // The two rooms only talking opens, the two bosses and the Owlbear, the
-  // Gaoler and the undercroft's bear (#444, decision 3): each route and sweep holds
+  // Gaoler and the undercroft's ghouls (#444, decision 3): each route and sweep holds
   // one fight.
   assert.deepEqual(
     roomIds(({ avoidable }) => avoidable),
@@ -184,7 +184,7 @@ test("the hunt ride joins the two holds, and the hall door from the kennels is n
   assert.match(room("kennel-yard").description, /hall door is nailed shut/u);
 });
 
-test("its fights are single sturdy beasts and the two bosses, the hall's bear only until it is fed, with a wandering beast in each region", () => {
+test("its fights are sturdy beasts, the undercroft's ghouls and the two bosses, the hall's bear only until it is fed, with a wandering beast in each region", () => {
   assert.deepEqual(
     lodge.encounters.map(({ id, opponents, presentUntil }) => [
       id,
@@ -239,10 +239,14 @@ test("its fights are single sturdy beasts and the two bosses, the hall's bear on
         [["Reaver's Gaoler", undefined, "1"]],
       ],
       [
-        "undercroft-bear",
+        // Ghouls since #557, so Turn Undead and Sear Undead have a foe here.
+        "undercroft-ghouls",
         "undercroft",
         undefined,
-        [["Undercroft Bear", undefined, "1"]],
+        [
+          ["Barrow Ghoul", undefined, "1"],
+          ["Barrow Hag-Ghoul", undefined, "1"],
+        ],
       ],
       [
         "keep-reaver",
@@ -307,8 +311,8 @@ test("Brann sells the weapons at the gate and Wenna the armour at the camp", () 
 
 test("no loot lies in an exit or a rest site: the first loot is behind the kennel fight", () => {
   // The Pearl of Power (#540) is a caster item, not loot.
+  // The woodpile's potion moved to the mews in #556, after the kennel yard.
   assert.deepEqual(itemsIn("forest-gate"), [
-    ["woodpile-potion", "potion-of-healing", "woodpile"],
     ["hooded-lantern", "tool", "woodpile"],
     ["oilskin-pearl", "caster-item", "woodpile"],
   ]);
@@ -316,7 +320,9 @@ test("no loot lies in an exit or a rest site: the first loot is behind the kenne
     ["cart-potion", "potion-of-healing", "drovers-cart"],
     ["crowbar", "tool", "drovers-cart"],
   ]);
-  assert.deepEqual(itemsIn("falconers-mews"), []);
+  assert.deepEqual(itemsIn("falconers-mews"), [
+    ["mews-potion", "potion-of-healing", "falconers-bench"],
+  ]);
   assert.deepEqual(itemsIn("sheepfold"), []);
   assert.deepEqual(requiredPath(lodge).roomIds, ["forest-gate", "kennel-yard"]);
   assert.deepEqual(itemsIn("kennel-yard"), [
@@ -879,7 +885,6 @@ test("a plain failure on the bridge may be tried again for 1d4 bludgeoning damag
 
 const POTION_AND_LANTERN = [
   ["examine", "woodpile"],
-  ["take", "woodpile-potion"],
   ["take", "hooded-lantern"],
 ];
 const KENNEL_LOOT = [
@@ -924,7 +929,7 @@ test("the kennel yard can still win at level 4, potion and all", () => {
   assert.equal(state.endingId, "fallen-in-the-thornwood");
 });
 
-test("taking the potion and leaving is escaping without loot", () => {
+test("taking the lantern and leaving is escaping without loot", () => {
   const { state, runtime: played } = firstJourney(
     lodge,
     level4,

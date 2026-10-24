@@ -143,7 +143,7 @@ test("a module completable but too deadly when its checks fail is rejected", () 
   );
   assert.match(
     renderGateResult(fallingArch, result),
-    /^ {2}Too deadly when every check fails, FAIL: the level 1, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, [a-z-]+ \(.*\); hard needs 75\.0%\.$/mu,
+    /^ {2}Too deadly when every check fails, FAIL: the level 1, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, [a-z-]+ \(.*\); with the allowance for play the gate doesn't model, that counts as \d+\.\d%, and hard needs 75\.0%\.$/mu,
   );
 });
 

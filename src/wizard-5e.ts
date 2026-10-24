@@ -95,7 +95,6 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "fireball",
     "lightning-bolt",
     "bestow-curse",
-    "protection-from-energy",
     "vampiric-touch",
     "haste",
     "slow",

@@ -44,16 +44,14 @@
  * - An area spell (#338) declares its shape and size, and so the most
  *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  * - A spell may take a damage type chosen at casting (`damageTypes`, #339,
- *   #340): the one Resistance resists, or the one Chromatic Orb deals, or
- *   the one Protection from Energy (#342) gives resistance to.
+ *   #340): the one Resistance resists, or the one Chromatic Orb deals.
  * - `curse` (#342): the target saves or is cursed while the caster
  *   concentrates, with the curse chosen at casting (Bestow Curse).
  * - `guardians` (#342): an area that damages the opponents it catches as
  *   it is cast and again at the end of each of their turns while the
  *   caster concentrates (Spirit Guardians).
- * - Buffs (#342) may also give advantage on Wisdom saves and maximise
- *   healing (Beacon of Hope), or resistance to the damage type chosen at
- *   casting (Protection from Energy).
+ * - A buff (#555) may give attacks on its holder by creatures of some types
+ *   disadvantage (Protection from Evil and Good).
  * - An attack (#343) may be several rays, each its own attack roll, split
  *   among the targets chosen (Scorching Ray); deal half its damage on a
  *   miss and more at the end of the target's next turn on a hit (Acid
@@ -143,15 +141,10 @@ export type Buff = Readonly<
    */
   | { kind: "lockout" }
   /**
-   * Beacon of Hope (#342): advantage on Wisdom saving throws, and the most
-   * hit points possible from any healing. There are no death saving throws.
+   * Protection from Evil and Good (#555): attack rolls against its holder
+   * by creatures of these types have disadvantage.
    */
-  | { kind: "beacon" }
-  /**
-   * Protection from Energy (#342): resistance to the damage type chosen at
-   * casting.
-   */
-  | { kind: "energy-ward" }
+  | { kind: "type-ward"; types: readonly string[] }
   /**
    * Bestow Curse's curse on its target (#342), as chosen at casting:
    * disadvantage on its attack rolls against the caster, or the extra
@@ -241,18 +234,6 @@ export const CHROMATIC_ORB_DAMAGE_TYPES = [
   "fire",
   "lightning",
   "poison",
-  "thunder",
-] as const satisfies readonly DamageType[];
-
-/**
- * The damage types Protection from Energy may resist (SRD 5.2, #342),
- * chosen at casting.
- */
-export const ENERGY_DAMAGE_TYPES = [
-  "acid",
-  "cold",
-  "fire",
-  "lightning",
   "thunder",
 ] as const satisfies readonly DamageType[];
 
@@ -748,6 +729,31 @@ export const SPELLS = {
       concentration: true,
     },
   },
+  // Protection from Evil and Good (#555): its charm, fright and possession
+  // wards are omitted, as no opponent charms, frightens or possesses.
+  "protection-from-evil-and-good": {
+    id: "protection-from-evil-and-good",
+    name: "Protection from Evil and Good",
+    level: 1,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: {
+        kind: "type-ward",
+        types: [
+          "aberration",
+          "celestial",
+          "elemental",
+          "fey",
+          "fiend",
+          "undead",
+        ],
+      },
+      duration: { minutes: 10 },
+      concentration: true,
+    },
+  },
   "mage-armor": {
     id: "mage-armor",
     name: "Mage Armor",
@@ -1048,22 +1054,11 @@ export const SPELLS = {
       duration: { minutes: 1 },
     },
   },
-  // The Cleric's 3rd-level spells (#342, owner-approved). Without
-  // companions Mass Healing Word, Beacon of Hope and Protection from Energy
-  // have one target, their caster. Spirit Guardians' 15-foot emanation
-  // catches three (D4), chosen at casting; its slowing is omitted, its
-  // damage is radiant, and it ends with the fight. Beacon of Hope's death
-  // saving throws don't exist (ADR 0005). Bestow Curse lays one of two
-  // curses (`CURSES`).
-  "mass-healing-word": {
-    id: "mass-healing-word",
-    name: "Mass Healing Word",
-    level: 3,
-    school: "abjuration",
-    castingTime: "bonus-action",
-    effect: { kind: "healing", healing: { dice: 2, sides: 4 } },
-    upcast: { dice: 1 },
-  },
+  // The Cleric's 3rd-level spells (#342, owner-approved; Mass Healing Word,
+  // Beacon of Hope and Protection from Energy left in #555). Spirit
+  // Guardians' 15-foot emanation catches three (D4), chosen at casting; its
+  // slowing is omitted, its damage is radiant, and it ends with the fight.
+  // Bestow Curse lays one of two curses (`CURSES`).
   "spirit-guardians": {
     id: "spirit-guardians",
     name: "Spirit Guardians",
@@ -1081,19 +1076,6 @@ export const SPELLS = {
     area: { shape: "emanation", feet: 15 },
     upcast: { dice: 1 },
   },
-  "beacon-of-hope": {
-    id: "beacon-of-hope",
-    name: "Beacon of Hope",
-    level: 3,
-    school: "abjuration",
-    castingTime: "action",
-    effect: {
-      kind: "buff",
-      buff: { kind: "beacon" },
-      duration: { minutes: 1 },
-      concentration: true,
-    },
-  },
   "bestow-curse": {
     id: "bestow-curse",
     name: "Bestow Curse",
@@ -1108,22 +1090,8 @@ export const SPELLS = {
       concentration: true,
     },
   },
-  "protection-from-energy": {
-    id: "protection-from-energy",
-    name: "Protection from Energy",
-    level: 3,
-    school: "abjuration",
-    castingTime: "action",
-    effect: {
-      kind: "buff",
-      buff: { kind: "energy-ward" },
-      duration: { minutes: 60 },
-      concentration: true,
-    },
-    damageTypes: ENERGY_DAMAGE_TYPES,
-  },
-  // The Wizard's 3rd-level spells (#344, owner-approved), besides Fireball,
-  // Bestow Curse and Protection from Energy. Lightning Bolt's 100-foot line
+  // The Wizard's 3rd-level spells (#344, owner-approved), besides Fireball
+  // and Bestow Curse. Lightning Bolt's 100-foot line
   // catches four (D4). Without companions Haste has one target, its caster;
   // its speed and its Dash, Disengage, Hide and Utilize are omitted. Slow's
   // 40-foot cube catches four; its speed, reaction, spell-delay and

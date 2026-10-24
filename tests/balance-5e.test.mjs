@@ -565,7 +565,7 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
   assert.equal(verdict.xp.ok, true);
   assert.match(
     renderGateResult(GOBLIN_PAIR, medium),
-    /^The Goblin Pair \(goblin-pair\) does not qualify as medium for the Fighter\.\n {2}Too deadly, FAIL: the level 3, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); medium needs 85\.0%\.$/mu,
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium for the Fighter\.\n {2}Too deadly, FAIL: the level 3, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); with the allowance for play the gate doesn't model, that counts as \d+\.\d%, and medium needs 85\.0%\.$/mu,
   );
 
   assert.equal(hard.verdict.qualified, true);

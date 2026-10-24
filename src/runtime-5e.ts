@@ -201,7 +201,6 @@ import {
   type DamageType,
   dealtDamageTypes,
   reducesDamage,
-  resistsDamage,
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
@@ -339,7 +338,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v48";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v49";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1893,7 +1892,7 @@ ${shortRestRule}
 
 ${longRestRule}
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the spell's own casting time (an action, or a bonus action for a bonus-action spell) and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, Protection from Energy gives resistance to one type, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Beacon of Hope gives advantage on Wisdom saves and makes healing heal its most. Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; otherwise a character leaves a fight only by fleeing. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, or Scorching Ray, each of which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. A spell scroll or a wand the character carries casts its spell with no slot: when the player reads a scroll or uses a wand, call cast with item, the scroll's or wand's id, and its spell, as the cast tool lists them. Reading a scroll takes the spell's own casting time (an action, or a bonus action for a bonus-action spell) and uses it up, and only a character whose class has the spell on its list can read it; the engine rolls the check a scroll above the character's spell slots needs. A Wand of Magic Missiles spends a charge for each spell level, regains charges on a long rest, and may crumble when its last charge is spent. If cast doesn't list the scroll or wand, say it can't be used now without calling a tool. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while one is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Bestow Curse lays one of two curses on a foe that fails its save: while it is offered, cast takes curse, attacks (disadvantage on its attacks against the character) or necrotic (extra necrotic damage from the character's attacks and spells), as the player chooses (null for every other spell); if they don't say which, ask, without calling a tool. Spirit Guardians strike the foes they catch as they are cast and again at the end of each of those foes' turns, until the fight ends. Sleep makes its target save, with advantage, or be incapacitated, then save again, with advantage, or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named, the first named taking any more, so one target named takes them all. Acid Arrow deals half its damage on a miss, and on a hit more acid at the end of its target's next turn. Ray of Sickness poisons the foe it hits for its next turn; Ice Knife bursts, hit or miss, for a Dexterity save. Blur gives attacks on the character disadvantage; Mirror Image's duplicates may take a hit instead of the character, and the engine rolls for them. A level-3 Evoker's damaging cantrips deal half their damage on a miss or a successful save (Potent Cantrip). Thaumaturgy and Light are flavour only: cast never offers them, so describe their harmless signs (a booming voice, flickering flames, a tremor, an object glowing like a torch) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook, writes a new level's spells into it and chooses Scholar's Expertise there too: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool, except a level-5 Wizard's Memorize Spell: with a short rest, rest takes forget_spell and learn_spell, a prepared spell and another in the spellbook from those listed (null for both otherwise), and the engine swaps them until the adventure ends. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. At level 5, Sear Undead makes Turn Undead also burn each undead that fails its save with radiant damage, which doesn't end its turning. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; otherwise a character leaves a fight only by fleeing. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Vampiric Touch heals the character half the necrotic damage it deals, and while it lasts a later touch takes the action and no slot: call vampiric_touch with the target. Haste gives the character +2 AC, advantage on Dexterity saves and one more weapon attack each turn, offered as attack; if it ends before the fight does, the character can't act until the end of its next turn. Slow makes each foe it catches that fails its Wisdom save easier to hit and limits it to one attack a turn, until it succeeds on a save at the end of one of its turns. Fireball and Lightning Bolt each catch up to four foes. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Protection from Evil and Good gives attacks on the character by aberrations, celestials, elementals, fey, fiends and undead disadvantage. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -2788,10 +2787,6 @@ export function buffText(buff: Buff, damageType?: string): string {
       return `a spectral weapon: a bonus action attacks with it for ${buff.dice}d${buff.sides} + your spellcasting modifier ${buff.type}`;
     case "lockout":
       return "can't benefit from it again";
-    case "beacon":
-      return "advantage on Wisdom saving throws, and healing heals its most";
-    case "energy-ward":
-      return `resistance to ${damageType ?? "the chosen"} damage`;
     case "curse":
       return `cursed: ${CURSE_NAMES[buff.curse]}`;
     case "guardians":
@@ -2799,6 +2794,9 @@ export function buffText(buff: Buff, damageType?: string): string {
     // Blur, Mirror Image and Acid Arrow's acid (#343).
     case "blur":
       return "blurred: attack rolls against it have disadvantage";
+    // Protection from Evil and Good (#555).
+    case "type-ward":
+      return `warded: attack rolls against it by ${listed(buff.types.map(pluralType), "and")} have disadvantage`;
     case "mirror-image":
       return `${buff.duplicates} illusory ${buff.duplicates === 1 ? "duplicate" : "duplicates"}: each hit rolls a d6 for each, and a 3 or higher strikes a duplicate instead`;
     case "later-damage":
@@ -2942,13 +2940,12 @@ function gearText(event: GearEvent): string {
   return `${done}${shortfall}${untrained} AC ${event.armorClass}; ${shownAttackText(event.attack)}${light}.`;
 }
 
+/** A creature type as a plural (#555): "fiends", but "fey" and "undead". */
+const pluralType = (type: string) =>
+  type === "fey" || type === "undead" ? type : `${type}s`;
+
 const titleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
-
-/** " (Beacon of Hope: the most)": healing dice at their most (#342). */
-function maximisedText(maximised: string | undefined): string {
-  return maximised === undefined ? "" : ` (${maximised}: the most)`;
-}
 
 /**
  * A spell cast (#336) and what it did: the slot it spent, a saving throw
@@ -3095,7 +3092,7 @@ function spellText(
         event.modifier +
         disciple;
       const self = event.targetId === PLAYER_ID;
-      return `${event.spell}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
+      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
     }
   }
 }
@@ -3122,7 +3119,7 @@ function channelText(
       const left = uses(event.usesLeft, "Channel Divinity");
       const rolled = `${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}`;
       if (event.mode === "heal") {
-        return `Divine Spark: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${event.total}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
+        return `Divine Spark: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
       }
       const { save } = event;
       const target = name(event.targetId);
@@ -3382,9 +3379,9 @@ export function renderFifthEvent(
       const rolled =
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
       if (event.lastStand === true) {
-        return `Last Stand: you drink the ${event.name} with your reaction: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you rise again with ${event.hpAfter}/${event.maxHp} HP.`;
+        return `Last Stand: you drink the ${event.name} with your reaction: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you rise again with ${event.hpAfter}/${event.maxHp} HP.`;
       }
-      return `You drink the ${event.name}: ${event.rolls.join(" + ")}${maximisedText(event.maximised)} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
+      return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "scroll-check":
       // A scroll above the reader's slots (#346).
@@ -4204,14 +4201,6 @@ export function describeFifthResult(
    * An attack's damage roll groups: the weapon's dice with Sneak Attack's,
    * then the rider's. Totals Uncanny Dodge halved (#308) say so.
    */
-  /** Healing dice (#342): drawn, or at their most with Beacon of Hope. */
-  const healingDice = (
-    values: readonly number[],
-    maximised: string | undefined,
-  ): ShownDie[] =>
-    maximised === undefined
-      ? take(values)
-      : values.map((value) => ({ sides: value, value, effect: maximised }));
   /** Bestow Curse's extra damage (#342), after a spell's own. */
   const curseGroups = (
     event: Extract<FifthEvent, { type: "spell-save" | "spell-damage" }>,
@@ -4771,7 +4760,7 @@ export function describeFifthResult(
             purpose: "healing",
             roller: name(event.combatantId),
             target: name(event.targetId),
-            dice: healingDice(event.rolls, event.maximised),
+            dice: take(event.rolls),
             // Disciple of Life's extra healing (#341) with the modifier.
             modifier: event.modifier + (event.disciple ?? 0),
             total: event.healing,
@@ -4788,7 +4777,7 @@ export function describeFifthResult(
               purpose: "healing",
               roller: name(event.combatantId),
               target: name(event.targetId),
-              dice: healingDice(event.rolls, event.maximised),
+              dice: take(event.rolls),
               modifier: event.modifier,
               total: event.healing,
               hpAfter: event.hpAfter,
@@ -4835,7 +4824,7 @@ export function describeFifthResult(
           {
             purpose: "healing",
             roller: name(event.combatantId),
-            dice: healingDice(event.rolls, event.maximised),
+            dice: take(event.rolls),
             modifier: event.modifier,
             total:
               event.rolls.reduce((sum, value) => sum + value, 0) +
@@ -12216,7 +12205,7 @@ export function createFifthRuntime(
             ? {}
             : {
                 damageType: action.damageType,
-                damageTypeUse: resistsDamage(SPELLS[action.spellId])
+                damageTypeUse: reducesDamage(SPELLS[action.spellId])
                   ? ("resisted" as const)
                   : ("dealt" as const),
               }),
@@ -14521,7 +14510,7 @@ export function createFifthRuntime(
                     type: ["string", "null"],
                     enum: [...damageTypes, null],
                     description:
-                      "The damage type the player chose from those listed for the spell: the one Resistance or Protection from Energy resists, or the one Chromatic Orb deals; null for every other spell.",
+                      "The damage type the player chose from those listed for the spell: the one Resistance resists, or the one Chromatic Orb deals; null for every other spell.",
                   },
                 }),
             // Only while Bestow Curse (#342) is offered.

@@ -223,6 +223,7 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
     "protection-from-poison",
     "prayer-of-healing",
     "hold-person",
+    "protection-from-evil-and-good",
   ]);
   assert.throws(
     () =>

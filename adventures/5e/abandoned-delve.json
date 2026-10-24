@@ -649,7 +649,8 @@
                     "name": "The goblin's directions"
                   }
                 ]
-              }
+              },
+              { "skill": "religion", "dc": 13 }
             ],
             "bands": {
               "failure-by-5": {
@@ -866,7 +867,31 @@
     {
       "id": "ossuary-to-tomb",
       "between": ["ossuary", "lords-tomb"],
-      "description": "A carved arch, its keystone a crowned skull."
+      "description": "A carved arch, its keystone a crowned skull.",
+      "trap": {
+        "id": "crowned-skull-ward",
+        "name": "Crowned-Skull Ward",
+        "description": "Faded sigils ring the crowned skull in the keystone: an old ward, set to wail at anyone who walks under the arch.",
+        "find": { "dc": 13 },
+        "disarm": {
+          "approaches": [
+            { "skill": "arcana", "dc": 13 },
+            { "skill": "religion", "dc": 13 }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "You trace the sigils wrongly, and the skull's eyes flicker."
+            },
+            "success": {
+              "text": "You trace the sigils in the order they were cut and speak the old lord's name. The ward sleeps."
+            }
+          }
+        },
+        "trigger": "The crowned skull's eyes flare, and a dead lord's wail fills your head.",
+        "save": { "ability": "wisdom", "dc": 12 },
+        "damage": { "dice": 1, "sides": 6, "modifier": 0, "type": "psychic" },
+        "defeatEndingId": "lost-in-the-delve"
+      }
     }
   ],
   "encounters": [

@@ -3500,6 +3500,29 @@ export const DIFFICULTY_THRESHOLDS: Readonly<
 };
 
 /**
+ * The survival credited to every judged survival check for the play the
+ * gate doesn't model (#556, owner's choice): talking, Tactical Mind,
+ * sneaking and fight actions. Two points, as a share of runs.
+ */
+export const UNMODELLED_PLAY_ALLOWANCE = 0.02;
+
+/**
+ * Whether a survival `rate`, credited the allowance, clears `share` by at
+ * least `slack` (#556). Rates are whole runs of 200, so the sum is
+ * compared in thousandths, free of floating-point error.
+ */
+export function clearsSurvival(
+  rate: number,
+  share: number,
+  slack = 0,
+): boolean {
+  return (
+    Math.round((rate + UNMODELLED_PLAY_ALLOWANCE) * 1000) >=
+    Math.round((share + slack) * 1000)
+  );
+}
+
+/**
  * The lowest level at which a caster's survival is judged (#348, owner's
  * choice): early magic is weak and unreliable, so a Cleric or Wizard may
  * struggle at levels 1 and 2. Below it its survival is reported; its career
@@ -5015,7 +5038,7 @@ export function gateVerdictAt(
     const { checks, level, percentile, style, runs, rate, kit, kits } =
       measured;
     return {
-      ok: measured.reported === true || rate >= share,
+      ok: measured.reported === true || clearsSurvival(rate, share),
       checks,
       level,
       percentile,
@@ -5316,7 +5339,7 @@ export function renderGateResult(
     title: string,
     difficulty: Difficulty = verdict.difficulty,
   ) =>
-    `  ${title}, ${check.reported === true ? `reported (not judged below level ${CASTER_JUDGED_LEVEL})` : mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${difficulty} needs ${percent(check.required)}.`;
+    `  ${title}, ${check.reported === true ? `reported (not judged below level ${CASTER_JUDGED_LEVEL})` : mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); with the allowance for play the gate doesn't model, that counts as ${percent(check.rate + UNMODELLED_PLAY_ALLOWANCE)}, and ${difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
   const stealth = verdict.stealthFirst;
   // A caster's (#348): the policy that survived more, and a level reported.
