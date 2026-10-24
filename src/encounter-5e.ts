@@ -621,6 +621,11 @@ export type Combatant = DamageDefenses &
      */
     undeadFortitude?: true;
     /**
+     * The Undead Fortitude saves it has made in this fight (house rule):
+     * each adds 5 to the next one's DC.
+     */
+    fortitudeRises?: number;
+    /**
      * An opponent's Multiattack: the attacks it makes each turn, each with
      * one of `weapons` picked by a die when there is more than one.
      */
@@ -1311,13 +1316,16 @@ export type LastStandSetting = GameSettings["lastStand"];
 
 /**
  * A combatant with Undead Fortitude reduced to 0 HP: its Constitution save
- * against DC 5 + the damage taken, and the HP it is left with.
+ * against DC 5 + the damage taken + 5 for each earlier save it made in the
+ * fight, and the HP it is left with.
  */
 export type FortitudeEvent = Readonly<{
   type: "undead-fortitude";
   combatantId: string;
   /** The damage taken from the attack that reduced it to 0 HP. */
   damage: number;
+  /** The saves it made earlier in the fight, each adding 5 to the DC. */
+  rises: number;
   d20: number;
   bonus: number;
   total: number;
@@ -4472,7 +4480,7 @@ function landAttack(
   ];
   // Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from
   // a critical hit, a Constitution save against DC 5 + the damage taken
-  // leaves it at 1 HP.
+  // (+ 5 per earlier rise) leaves it at 1 HP.
   const radiant =
     (weapon.damage.type === "radiant" && damage > 0) ||
     (rider?.damageType === "radiant" && rider.damage > 0);
@@ -4500,7 +4508,7 @@ function landAttack(
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id
         ? withEffects(
-            { ...candidate, hp: hpLeft },
+            risen(candidate, hpAfter, hpLeft),
             (candidate.effects ?? []).map((effect) =>
               effect === ward ? { ...effect, reducedIn: turnKey } : effect,
             ),
@@ -4748,7 +4756,8 @@ function answerLastStand(
  * Undead Fortitude (SRD 5.2): `target`, with it, reduced from above 0 to 0
  * HP by `taken` damage that isn't radiant or from a critical hit
  * (`bypassed`), makes a Constitution save against DC 5 + the damage taken,
- * and is left at 1 HP on a success. The HP it is left with.
+ * and is left at 1 HP on a success. House rule: each save it made earlier
+ * in the fight adds 5 to the DC. The HP it is left with.
  */
 function fortitude(
   target: Combatant,
@@ -4768,13 +4777,15 @@ function fortitude(
   }
   const d20 = random.roll(20);
   const bonus = target.saves.constitution;
-  const dc = 5 + taken;
+  const rises = target.fortitudeRises ?? 0;
+  const dc = 5 + taken + 5 * rises;
   const success = d20 + bonus >= dc;
   const hpLeft = success ? 1 : 0;
   events.push({
     type: "undead-fortitude",
     combatantId: target.id,
     damage: taken,
+    rises,
     d20,
     bonus,
     total: d20 + bonus,
@@ -4783,6 +4794,20 @@ function fortitude(
     hpAfter: hpLeft,
   });
   return hpLeft;
+}
+
+/**
+ * `target` at `hpLeft` after damage took it to `hpAfter`, counting the rise
+ * when Undead Fortitude kept it standing.
+ */
+function risen(target: Combatant, hpAfter: number, hpLeft: number): Combatant {
+  return hpLeft > hpAfter
+    ? {
+        ...target,
+        hp: hpLeft,
+        fortitudeRises: (target.fortitudeRises ?? 0) + 1,
+      }
+    : { ...target, hp: hpLeft };
 }
 
 /**
@@ -5819,7 +5844,9 @@ function spellDamage(
   const hit: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
-      candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
+      candidate.id === target.id
+        ? risen(candidate, hpAfter, hpLeft)
+        : candidate,
     ),
     engaged: engage(state, actor, target),
   };
