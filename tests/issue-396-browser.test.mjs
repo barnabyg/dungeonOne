@@ -53,10 +53,10 @@ test("Ada flees a fight, reloads, and meets it again on going back", async () =>
       ["stair-foot", "den", "sump"],
     );
     // Each button names its room; its accessible name says it all.
-    assert.equal(await flee.textContent(), "North: Foot of the Stair");
+    assert.equal(await flee.textContent(), "↩North: Foot of the Stair");
     assert.equal(
       await flee.getAttribute("aria-label"),
-      "Flee north to Foot of the Stair",
+      "Flee north to Foot of the Stair (the way you came)",
     );
     const drawn = row.locator("#flee-attacks");
     assert.match(

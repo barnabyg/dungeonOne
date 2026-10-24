@@ -226,7 +226,7 @@ test(
       const hall = page.locator('#exits li[data-id="hall"]');
       assert.match(
         await text(hall),
-        /^South: Hall of Niches — The passage into the dark\.\nGo$/u,
+        /^✦South: Hall of Niches\n\(not yet explored\)\n — The passage into the dark\.\nGo$/u,
       );
       const go = cardButton(page, "exits", "hall", "move", "hall");
       assert.equal(
@@ -235,7 +235,7 @@ test(
       );
       assert.match(
         await go.getAttribute("aria-label"),
-        /^Go south to Hall of Niches$/u,
+        /^Go south to Hall of Niches \(not yet explored\)$/u,
       );
       // The shut door's way: Go greyed with its reason, and Force on its card.
       const cell = page.locator('#exits li[data-id="flooded-cell"]');

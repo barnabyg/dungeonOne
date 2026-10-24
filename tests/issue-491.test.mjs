@@ -189,7 +189,7 @@ test("a save keeps the items examined; an older save and an older trace are refu
 });
 
 test("the save and trace formats bump; the DM prompt does not", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 68);
-  assert.equal(FIFTH_TRACE_FORMAT, 63);
+  assert.equal(FIFTH_SESSION_FORMAT, 69);
+  assert.equal(FIFTH_TRACE_FORMAT, 64);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
 });

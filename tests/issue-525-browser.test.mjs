@@ -508,7 +508,7 @@ test(
         const way = page.locator(
           '#flee-ways button.act[data-action="flee"][data-target="stair"]',
         );
-        assert.equal(await way.innerText(), "North: Cellar Stair");
+        assert.equal(await way.innerText(), "↩North: Cellar Stair");
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.target),
           "stair",

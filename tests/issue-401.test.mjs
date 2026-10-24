@@ -97,8 +97,8 @@ function longFight(on, turns, from = on.createSession()) {
 
 test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 68);
-  assert.equal(FIFTH_TRACE_FORMAT, 63);
+  assert.equal(FIFTH_SESSION_FORMAT, 69);
+  assert.equal(FIFTH_TRACE_FORMAT, 64);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
