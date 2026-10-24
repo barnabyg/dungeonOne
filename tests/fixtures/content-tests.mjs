@@ -45,6 +45,10 @@ export const CONTENT_TESTS = new Map([
     "plays every shipped module with every item Scarce items found may take missing (#507)",
   ],
   [
+    "tests/issue-557.test.mjs",
+    "the skills, saves and undead #557 added to the four shipped modules",
+  ],
+  [
     "tests/thornwood-lodge.test.mjs",
     "the Thornwood Lodge's content, gate verdict, checks and journeys",
   ],

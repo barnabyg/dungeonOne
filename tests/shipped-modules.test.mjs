@@ -289,23 +289,24 @@ test("every shipped module declares the strictest difficulty every class passes 
  */
 const QUOTED_FIGURES = {
   // Long and level 2 (#442): Medium since Last Stand (#499), as the Rogue's
-  // weakest is 94.5% overall and 93.5% on each route, over the 88% Medium
-  // needs with its slack and under Easy's 98% (88.0% and 86.5% before
-  // Undead Fortitude's DC rose with each rise). The Vault became avoidable
-  // when its ghoul held the Crypts sweep to 68.5%.
+  // weakest is 93.5% overall and 93.0% on each route, over the 88% Medium
+  // needs with its slack and under Easy's 98% (94.5% and 93.5% before the
+  // tomb's 1d6 ward, #557; 88.0% and 86.5% before Undead Fortitude's DC
+  // rose with each rise). The Vault became avoidable when its ghoul held
+  // the Crypts sweep to 68.5%.
   // The two skeletons of seven ordinary foes are over the cap. Every
   // fight's XP, the wandering zombie's included, and the ending's 600.
   "abandoned-delve": {
     fighter: {
-      survival: [2, "mace", 0.965],
-      alwaysFail: [2, 0.965],
+      survival: [2, "mace", 0.955],
+      alwaysFail: [2, 0.955],
       overCap: ["skeleton-sergeant", "skeleton-guard"],
       enemyCount: 7,
       xp: 50 + 100 + 50 + 200 + 200 + 25 + 50 + 600,
     },
     rogue: {
-      survival: [2, "shortsword", 0.945],
-      alwaysFail: [2, 0.915],
+      survival: [2, "shortsword", 0.935],
+      alwaysFail: [2, 0.905],
       overCap: [],
       xp: 1275,
     },
@@ -402,17 +403,30 @@ const QUOTED_FIGURES = {
   // the 88% Medium needs with its slack (the Cleric's 86.5% was too, before
   // its chain shirt and shield, #541). Each
   // route and sweep holds one fight; the hall's bear is fed. At level 5 the
-  // two mastiffs and the crag wolf of nine ordinary foes are over the cap
+  // two mastiffs and the crag wolf of ten ordinary foes are over the cap
   // (the mastiffs alone for the Cleric), no more than half. Every fight's
-  // XP, the wandering ones' included, and the spoils' 3,800 (2,350
-  // before).
+  // XP, the wandering ones' and the undercroft's two ghouls' (#557)
+  // included, and the spoils' 3,800 (2,350 before).
   "thornwood-lodge": {
     fighter: {
       survival: [4, "two-daggers", 0.97],
       alwaysFail: [4, 0.97],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
-      enemyCount: 9,
-      xp: 200 + 25 + 200 + 700 + 700 + 200 + 200 + 200 + 450 + 25 + 50 + 3800,
+      enemyCount: 10,
+      xp:
+        200 +
+        25 +
+        200 +
+        700 +
+        700 +
+        200 +
+        200 +
+        200 +
+        200 +
+        450 +
+        25 +
+        50 +
+        3800,
       routes: [
         ["lodge-hall", 4, "two-daggers", 0.97],
         ["wolfstone-gate", 4, "mace", 0.98],
@@ -426,7 +440,7 @@ const QUOTED_FIGURES = {
       survival: [4, "shortsword", 0.87],
       alwaysFail: [4, 0.87],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
-      xp: 6750,
+      xp: 6950,
       routes: [
         ["lodge-hall", 4, "shortsword", 0.87],
         ["wolfstone-gate", 4, "shortsword-and-dagger", 0.975],
@@ -440,7 +454,7 @@ const QUOTED_FIGURES = {
       survival: [4, "mace-and-shield", 0.93],
       alwaysFail: [4, 0.93],
       overCap: ["kennel-mastiff", "loose-mastiff"],
-      xp: 6750,
+      xp: 6950,
       routes: [
         ["lodge-hall", 4, "mace-and-shield", 0.93],
         ["wolfstone-gate", 4, "mace-and-shield", 0.975],
@@ -454,7 +468,7 @@ const QUOTED_FIGURES = {
       survival: [4, "quarterstaff-and-dagger", 0.94],
       alwaysFail: [4, 0.94],
       overCap: ["kennel-mastiff", "loose-mastiff", "crag-wolf"],
-      xp: 6750,
+      xp: 6950,
       routes: [
         ["lodge-hall", 4, "quarterstaff-and-dagger", 0.94],
         ["wolfstone-gate", 4, "quarterstaff-and-dagger", 0.955],
@@ -564,6 +578,14 @@ const TURN_UNDEAD_FIGURES = {
       ["wandering-guildsman", 34.3],
     ],
   },
+  // The undercroft's ghouls since #557, at level 5: Hard's cap.
+  "thornwood-lodge": {
+    cap: 0.3,
+    enemies: [
+      ["barrow-ghoul-1", 42.2],
+      ["barrow-ghoul-2", 42.2],
+    ],
+  },
 };
 
 test("in every undead module the gate judges the Cleric's Turn Undead against the control cap (#348, #349)", () => {
@@ -640,8 +662,14 @@ const CONTROL_OVER_CAP = {
     ["old-sullage", "sleep"],
   ],
   // Since #445, Sleep takes the Reaver's Gaoler out 31.6% of the time: one
-  // of nine foes.
+  // of ten foes.
   "thornwood-lodge wizard": [["reavers-gaoler", "sleep"]],
+  // Since #557, Turn Undead takes the undercroft's ghouls out 42.2% of the
+  // time at level 5: two of ten foes.
+  "thornwood-lodge cleric": [
+    ["barrow-ghoul-1", "turn-undead"],
+    ["barrow-ghoul-2", "turn-undead"],
+  ],
 };
 
 test("in every shipped module the gate judges the casters' Sleep and Hold Person, and only the pinned ordinary foes are over the cap (#369, #412, #442, #443, #445)", () => {
@@ -661,7 +689,8 @@ test("in every shipped module the gate judges the casters' Sleep and Hold Person
       assert.equal(control.ok, true, label);
       // Hold Person's saves each turn keep the one module's bandits under
       // the cap. The foes over it are pinned: Sleep at level 4 in the
-      // Weirgate (#443), and Sleep on the Lodge's Gaoler (#445). Turn Undead
+      // Weirgate (#443), Sleep on the Lodge's Gaoler (#445), and Turn Undead
+      // on the Lodge's ghouls (#557). Turn Undead
       // on the Delve's skeletons, 34.3%, was over Hard's cap (#442) and is
       // under Medium's since #499.
       assert.deepEqual(

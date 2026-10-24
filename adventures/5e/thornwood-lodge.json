@@ -551,7 +551,7 @@
             {
               "id": "the-hillfort",
               "name": "the hillfort",
-              "reply": "\"The Reaver took the keep when he fell out with Captain Hesk over the plunder. His wolf runs the ditch, and there's a bear in the old undercroft.\""
+              "reply": "\"The Reaver took the keep when he fell out with Captain Hesk over the plunder. His wolf runs the ditch, and the old dead are up and hungry in the undercroft.\""
             },
             {
               "id": "the-sheep-track",
@@ -866,13 +866,13 @@
       "name": "Undercroft",
       "at": [6, 2],
       "floor": -1,
-      "description": "A collapsed undercroft that stinks of bear. A stair at the far end climbs towards the keep.",
-      "encounterId": "undercroft-bear",
+      "description": "A collapsed undercroft that stinks of the grave. A stair at the far end climbs towards the keep.",
+      "encounterId": "undercroft-ghouls",
       "features": [
         {
           "id": "bear-bones",
           "name": "Heap of Bones",
-          "description": "Bones and rags dragged into a corner.",
+          "description": "Bones and grave-rags dragged into a corner and gnawed.",
           "discovery": "Under the rags are a stoppered vial of red liquid and a milky moonstone."
         }
       ],
@@ -1192,12 +1192,19 @@
       "defeatEndingId": "fallen-in-the-thornwood"
     },
     {
-      "id": "undercroft-bear",
+      "id": "undercroft-ghouls",
       "opponents": [
         {
-          "id": "undercroft-bear",
-          "monster": "brown-bear",
-          "name": "Undercroft Bear"
+          "id": "barrow-ghoul-1",
+          "monster": "ghoul",
+          "name": "Barrow Ghoul",
+          "description": "A grey, long-tongued thing in the rags of a hillfort warrior crouches over the bones."
+        },
+        {
+          "id": "barrow-ghoul-2",
+          "monster": "ghoul",
+          "name": "Barrow Hag-Ghoul",
+          "description": "A second ghoul, a woman once, drops from the vault on all fours."
         }
       ],
       "defeatEndingId": "fallen-in-the-thornwood"

@@ -134,7 +134,20 @@
           "id": "kennel",
           "name": "Kennel",
           "description": "A kennel of rotten boards, its straw trodden flat.",
-          "discovery": "A gnawed goblin sandal lies in the straw. Brack has been eating better than his masters think."
+          "discovery": "A gnawed goblin sandal lies in the straw. Brack has been eating better than his masters think.",
+          "fightAction": {
+            "once": "adventure",
+            "check": { "skill": "animal-handling", "dc": 13 },
+            "bands": {
+              "failure": {
+                "text": "Brack snarls at the sound of his kennel and lunges to the end of his chain."
+              },
+              "success": {
+                "text": "You call Brack by name, low and steady, and point to his kennel. He stops, whines, and slinks back into the straw. He won't trouble you again.",
+                "effects": [{ "type": "remove" }]
+              }
+            }
+          }
         },
         {
           "id": "water-trough",
