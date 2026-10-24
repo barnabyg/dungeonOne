@@ -268,12 +268,7 @@ import { FEATURE_USES_RULE } from "./class-5e.js";
 import { DEFAULT_CLASS } from "./character-5e.js";
 import { TURN_UNDEAD_ID } from "./encounter-5e.js";
 import { formatCoins, parseCoins } from "./equipment-5e.js";
-import {
-  CLASS_ICONS,
-  COIN_ICON,
-  iconCredits,
-  iconSprite,
-} from "./icons-5e.js";
+import { CLASS_ICONS, COIN_ICON, iconCredits, iconSprite } from "./icons-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT, SHORT_REASONS } from "./runtime-5e.js";
 import {
   resultSounds,

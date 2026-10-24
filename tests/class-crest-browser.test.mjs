@@ -32,8 +32,11 @@ const crest = (page) =>
       silhouette: tile.querySelector("svg").getAttribute("aria-hidden"),
       badge: getComputedStyle(tile, "::after").content,
       visible: box(tile).width > 0 && box(tile).height > 0,
-      hpRight: box(document.getElementById("status-hp")).left >= box(tile).right,
-      acBelow: box(document.getElementById("gear-numbers")).top >= box(tile).bottom - 6,
+      hpRight:
+        box(document.getElementById("status-hp")).left >= box(tile).right,
+      acBelow:
+        box(document.getElementById("gear-numbers")).top >=
+        box(tile).bottom - 6,
       // The badge is drawn, not text: the status reads as it did.
       statusText: !/^\s*\d/u.test(status.innerText),
     };
@@ -88,13 +91,20 @@ test(
       };
 
       // The three-column layout: the crest heads the character column.
-      const wide = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+      const wide = await browser.newPage({
+        viewport: { width: 1600, height: 900 },
+      });
       wide.setDefaultTimeout(8000);
       await start(wide, ADA);
-      assert.deepEqual(await crest(wide), shown("Level 1 Fighter", "barbute", 1));
+      assert.deepEqual(
+        await crest(wide),
+        shown("Level 1 Fighter", "barbute", 1),
+      );
       assert.ok(
         await wide.evaluate(() =>
-          document.getElementById("session-character").contains(document.getElementById("class-crest")),
+          document
+            .getElementById("session-character")
+            .contains(document.getElementById("class-crest")),
         ),
       );
       await wide
@@ -102,7 +112,9 @@ test(
         .waitFor({ state: "visible" });
 
       // The floor: the Rogue's own crest and level, with no side scroll.
-      const floor = await browser.newPage({ viewport: { width: 900, height: 560 } });
+      const floor = await browser.newPage({
+        viewport: { width: 900, height: 560 },
+      });
       floor.setDefaultTimeout(8000);
       await start(floor, VEX);
       const rogue = shown("Level 3 Rogue", "cowled", 3);

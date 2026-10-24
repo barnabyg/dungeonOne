@@ -20,7 +20,10 @@ import {
 } from "../dist/icons-5e.js";
 
 test("every class has a crest, and no monster or item shares one", () => {
-  assert.deepEqual(Object.keys(CLASS_ICONS).sort(), Object.keys(CLASSES).sort());
+  assert.deepEqual(
+    Object.keys(CLASS_ICONS).sort(),
+    Object.keys(CLASSES).sort(),
+  );
   for (const icon of Object.values(CLASS_ICONS)) {
     assert.ok(Object.hasOwn(GAME_ICONS, icon), icon);
   }
@@ -47,10 +50,15 @@ test("every class has a crest, and no monster or item shares one", () => {
     ].map(itemIcon),
   ]);
   for (const [id, icon] of Object.entries(CLASS_ICONS)) {
-    assert.ok(!elsewhere.has(icon), `${id}'s crest ${icon} is also a monster's or an item's`);
+    assert.ok(
+      !elsewhere.has(icon),
+      `${id}'s crest ${icon} is also a monster's or an item's`,
+    );
   }
   // Each offered class has its own; the test-only caster wears the Wizard's.
-  const offered = ["fighter", "rogue", "cleric", "wizard"].map((id) => CLASS_ICONS[id]);
+  const offered = ["fighter", "rogue", "cleric", "wizard"].map(
+    (id) => CLASS_ICONS[id],
+  );
   assert.equal(new Set(offered).size, offered.length);
   assert.equal(CLASS_ICONS["test-caster"], CLASS_ICONS.wizard);
 });
