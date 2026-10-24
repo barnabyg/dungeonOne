@@ -57,7 +57,7 @@ const entryFor = (scene, name) =>
   );
 
 test("the prompt changes", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /known rooms/u);
 });
 

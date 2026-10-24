@@ -55,8 +55,8 @@ Each class's definition in `src/<class>-5e.ts` (`fighter`, `rogue`, `cleric`, `w
   - _Preserve Life:_ a Channel Divinity use restores up to five times the Cleric level to the character while Bloodied, never above half its maximum. Without companions only the character is healed. Refused at half or more.
 - **Level 4** brings the Ability Score Improvement alone, and a new cantrip.
 - **Sear Undead** (level 5): each Turn Undead rolls d8s equal to the Wisdom modifier (at least one) once; each undead that fails its save takes the total as radiant damage, which doesn't end its turning. An undead immune to both conditions that fails still takes it.
-- **Revivify** is omitted from the domain's level-5 spells: without companions there is no one to revive, and the character's own fall ends the adventure.
-- **Spell list exclusions.** Aura of Vitality isn't a Cleric spell in SRD 5.2. Revivify, Dispel Magic, Remove Curse and the Cleric's other 3rd-level spells need companions, time, curses or enemy spells the game doesn't have.
+- **The domain's level-5 spells** are omitted: Revivify needs a companion to revive (the character's own fall ends the adventure), and Mass Healing Word is off the list.
+- **Spell list exclusions.** Aura of Vitality isn't a Cleric spell in SRD 5.2. Mass Healing Word and Beacon of Hope (#555) heal or help only the caster alone, worse than the spells kept. Protection from Energy (#555) resists acid, cold, fire, lightning and thunder, and no shipped foe deals them. Revivify, Dispel Magic, Remove Curse and the Cleric's other 3rd-level spells need companions, time, curses or enemy spells the game doesn't have.
 
 ## Wizard
 
@@ -69,4 +69,4 @@ Each class's definition in `src/<class>-5e.ts` (`fighter`, `rogue`, `cleric`, `w
   - _Potent Cantrip:_ when a damaging cantrip misses with its attack roll or its target succeeds on its save, the target still takes half the damage, rounded down, and nothing else. SRD 5.2 gives both cases; every Wizard cantrip is an attack roll, so the engine rolls the damage on such a miss. Levelled spells are unchanged.
 - **Level 4** brings the Ability Score Improvement alone, and a new cantrip.
 - **Memorize Spell** (level 5): when the Wizard finishes a short rest, it may swap one prepared 1st-level or higher spell for another in its spellbook. It is the one change to prepared spells during an adventure, and the swap lasts only that adventure: it lives in the session (`prepared`), and the library's prepared spells never change. Each short rest may swap again; an interrupted rest swaps nothing. A rest whose only gain is the swap is offered at full health.
-- **Spell list exclusions.** At 2nd level, Misty Step, Web, Invisibility, Darkness and the rest of SRD 5.2's need positions, time or senses the game doesn't model. At 3rd, Counterspell and Dispel Magic have no foe spells to work on, and Fly, Blink, Gaseous Form, Fear, Stinking Cloud, Sleet Storm and the rest need positions, time or senses.
+- **Spell list exclusions.** At 2nd level, Misty Step, Web, Invisibility, Darkness and the rest of SRD 5.2's need positions, time or senses the game doesn't model. At 3rd, Counterspell and Dispel Magic have no foe spells to work on, Protection from Energy (#555) no foe dealing its types, and Fly, Blink, Gaseous Form, Fear, Stinking Cloud, Sleet Storm and the rest need positions, time or senses.

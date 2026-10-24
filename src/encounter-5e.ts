@@ -165,9 +165,9 @@
  *   while the caster concentrates: its attacks on the caster have
  *   disadvantage, or the caster's attack rolls and spells that damage it
  *   deal 1d8 necrotic more, as chosen at casting.
- * - Beacon of Hope (#342): advantage on Wisdom saves, and healing from
- *   spells, potions and Divine Spark heals its most. Protection from
- *   Energy (#342): resistance to the damage type chosen at casting.
+ * - Protection from Evil and Good (#555): attack rolls against its holder
+ *   by aberrations, celestials, elementals, fey, fiends and undead have
+ *   disadvantage.
  * - Vampiric Touch (#344): a melee spell attack whose hit heals the caster
  *   half the damage dealt; while it concentrates, its action makes the
  *   attack again on each later turn (`drain-attack`).
@@ -1133,8 +1133,7 @@ export type CastAction = Readonly<{
   targetIds: readonly string[];
   /**
    * The damage type chosen at casting, for a spell that takes one: the one
-   * Resistance resists (#339), or the one Chromatic Orb deals (#340), or
-   * the one Protection from Energy resists (#342).
+   * Resistance resists (#339), or the one Chromatic Orb deals (#340).
    */
   damageType?: DamageType;
   /** Bestow Curse's curse (#342), chosen at casting. */
@@ -1563,8 +1562,6 @@ export type SpellHealingEvent = Readonly<{
   modifier: number;
   /** Disciple of Life's extra healing (#341). */
   disciple?: number;
-  /** The effect that made its dice their most (#342, Beacon of Hope). */
-  maximised?: string;
   healing: number;
   hpAfter: number;
   maxHp: number;
@@ -1590,8 +1587,6 @@ export type DivineSparkEvent = Readonly<{
         mode: "heal";
         healing: number;
         maxHp: number;
-        /** Beacon of Hope (#342) made the dice their most. */
-        maximised?: string;
       }>
     | Readonly<{
         mode: "radiant" | "necrotic";
@@ -1861,8 +1856,6 @@ export type PotionEvent = Readonly<{
   name: string;
   rolls: readonly number[];
   modifier: number;
-  /** Beacon of Hope (#342) made the dice their most. */
-  maximised?: string;
   /** Drunk with the reaction at 0 HP, as Last Stand (#499). */
   lastStand?: true;
   healing: number;
@@ -2097,14 +2090,8 @@ export function drinkPotion(
   hp: number,
   maxHp: number,
   random: Roller,
-  maximised?: string,
 ): PotionEvent {
-  const rolls = healingRolls(
-    random,
-    potion.healing.dice,
-    potion.healing.sides,
-    maximised,
-  );
+  const rolls = rollDice(random, potion.healing.dice, potion.healing.sides);
   const hpAfter = Math.min(
     maxHp,
     hp + rolls.reduce((sum, value) => sum + value, 0) + potion.healing.modifier,
@@ -2116,33 +2103,10 @@ export function drinkPotion(
     name: potion.name,
     rolls,
     modifier: potion.healing.modifier,
-    ...(maximised === undefined ? {} : { maximised }),
     healing: hpAfter - hp,
     hpAfter,
     maxHp,
   };
-}
-
-/**
- * Healing dice for a target (#342): rolled, or each at its most, without a
- * roll, while `maximised` names the effect that makes them so (Beacon of
- * Hope).
- */
-function healingRolls(
-  random: Roller,
-  count: number,
-  sides: number,
-  maximised: string | undefined,
-): number[] {
-  return maximised === undefined
-    ? rollDice(random, count, sides)
-    : Array.from({ length: count }, () => sides);
-}
-
-/** The effect on `entrant` that maximises its healing (#342), by name. */
-export function healingMaximisedBy(entrant: Combatant): string | undefined {
-  return (entrant.effects ?? []).find(({ buff }) => buff.kind === "beacon")
-    ?.spell;
 }
 
 /**
@@ -2543,6 +2507,13 @@ function attackModes(
   const cursed = curseOn(actor, target.id, "attacks");
   // Blur (#343): attacks on its holder have disadvantage.
   const blur = (target.effects ?? []).find(({ buff }) => buff.kind === "blur");
+  // Protection from Evil and Good (#555): so do those of the types it wards.
+  const warded = (target.effects ?? []).find(
+    ({ buff }) =>
+      buff.kind === "type-ward" &&
+      actor.creatureType !== undefined &&
+      buff.types.includes(actor.creatureType),
+  );
   const packTactics =
     actor.packTactics === true &&
     state.combatants.some(
@@ -2573,6 +2544,7 @@ function attackModes(
         : []),
       ...(cursed === undefined ? [] : [cursed.spell]),
       ...(blur === undefined ? [] : [blur.spell]),
+      ...(warded === undefined ? [] : [warded.spell]),
       ...conditionSources(state, actor.id, "attacks"),
     ],
   };
@@ -3767,11 +3739,6 @@ export function savingThrow(
   if (fails !== undefined) {
     return { ...common, success: false, autoFail: fails };
   }
-  // Beacon of Hope (#342): advantage on Wisdom saves.
-  const beacon =
-    save.ability === "wisdom"
-      ? (entrant.effects ?? []).find(({ buff }) => buff.kind === "beacon")
-      : undefined;
   // Haste (#344): advantage on Dexterity saves.
   const haste =
     save.ability === "dexterity" ? heldBy(entrant, "haste") : undefined;
@@ -3780,7 +3747,6 @@ export function savingThrow(
     [
       ...advantage,
       ...(save.advantage === undefined ? [] : [save.advantage]),
-      ...(beacon === undefined ? [] : [beacon.spell]),
       ...(haste === undefined ? [] : [haste]),
     ],
     entrant.abilityDisadvantages?.[save.ability] ?? [],
@@ -3850,17 +3816,12 @@ function resisting(defences: DamageDefenses, type: DamageType): DamageDefenses {
 
 /**
  * `entrant`'s damage defences with its effects' (#341): Protection from
- * Poison resists poison damage, and cancels a vulnerability to it;
- * Protection from Energy (#342) does the same for its chosen type.
+ * Poison resists poison damage, and cancels a vulnerability to it.
  */
 function defencesOf(entrant: Combatant): DamageDefenses {
   return (entrant.effects ?? [])
-    .flatMap(({ buff, damageType }): DamageType[] =>
-      buff.kind === "poison-ward"
-        ? ["poison"]
-        : buff.kind === "energy-ward" && damageType !== undefined
-          ? [damageType]
-          : [],
+    .flatMap(({ buff }): DamageType[] =>
+      buff.kind === "poison-ward" ? ["poison"] : [],
     )
     .reduce<DamageDefenses>(resisting, entrant);
 }
@@ -4714,14 +4675,7 @@ function answerLastStand(
     next = concludeIfOver(fall(rest, target, random, events), events);
   } else {
     const drunk: PotionEvent = {
-      ...drinkPotion(
-        target.id,
-        potion,
-        target.hp,
-        target.maxHp,
-        random,
-        healingMaximisedBy(target),
-      ),
+      ...drinkPotion(target.id, potion, target.hp, target.maxHp, random),
       lastStand: true,
     };
     events.push(drunk);
@@ -5344,7 +5298,7 @@ function spellRefusal(
       "damage-type",
       choices === undefined
         ? `${spell.name} takes no damage type.`
-        : `Choose the damage type ${spell.name} ${resistsDamage(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
+        : `Choose the damage type ${spell.name} ${reducesDamage(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
     );
   }
   // Bestow Curse (#342) names its curse; no other spell names one.
@@ -5622,18 +5576,6 @@ export function dealtDamageTypes(
         ...(rider?.damage === undefined ? [] : [rider.damage.type]),
       ]),
     ),
-  );
-}
-
-/**
- * Whether the damage type named when `spell` is cast is one its target
- * resists (#339, #342): Resistance's or Protection from Energy's, not one
- * it deals.
- */
-export function resistsDamage(spell: SpellDefinition): boolean {
-  return (
-    reducesDamage(spell) ||
-    (spell.effect.kind === "buff" && spell.effect.buff.kind === "energy-ward")
   );
 }
 
@@ -6245,14 +6187,7 @@ function castAndLand(
       // Its dice + the caster's spellcasting modifier (none for Prayer of
       // Healing, #341), and with a slot Disciple of Life's 2 + its level
       // (#341), up to the maximum.
-      // Beacon of Hope (#342) makes the dice their most.
-      const maximised = healingMaximisedBy(target);
-      const rolls = healingRolls(
-        random,
-        effect.healing.dice,
-        effect.healing.sides,
-        maximised,
-      );
+      const rolls = rollDice(random, effect.healing.dice, effect.healing.sides);
       const modifier = effect.noModifier === true ? 0 : casting.modifier;
       const disciple = discipleHealing(casting, action.slotLevel);
       const hpAfter = Math.min(
@@ -6267,7 +6202,6 @@ function castAndLand(
         rolls,
         modifier,
         ...(disciple === 0 ? {} : { disciple }),
-        ...(maximised === undefined ? {} : { maximised }),
         healing: hpAfter - target.hp,
         hpAfter,
         maxHp: target.maxHp,
@@ -7067,8 +7001,7 @@ function divineSpark(
     usesLeft,
   };
   if (mode === "heal") {
-    const maximised = healingMaximisedBy(target);
-    const rolls = healingRolls(random, dice, sides, maximised);
+    const rolls = rollDice(random, dice, sides);
     const total = Math.max(0, sum(rolls) + modifier);
     const hpAfter = Math.min(target.maxHp, target.hp + total);
     events.push({
@@ -7080,7 +7013,6 @@ function divineSpark(
       healing: hpAfter - target.hp,
       hpAfter,
       maxHp: target.maxHp,
-      ...(maximised === undefined ? {} : { maximised }),
     });
     return {
       ...spent,
@@ -7750,7 +7682,6 @@ export function act(
         actor.hp,
         actor.maxHp,
         random,
-        healingMaximisedBy(actor),
       );
       events.push(drunk);
       next = {

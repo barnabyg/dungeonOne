@@ -73,20 +73,23 @@ export const CLERIC_SPELLCASTING: SpellcastingDefinition = {
     // prepared as before.
     "hold-person",
     // 3rd level (#342, owner-approved), with Light, a flavour cantrip.
-    "mass-healing-word",
+    // Mass Healing Word, Beacon of Hope and Protection from Energy left in
+    // #555: alone, the first two only heal the caster less well, and
+    // nothing shipped deals the types the third resists.
     "spirit-guardians",
-    "beacon-of-hope",
     "bestow-curse",
-    "protection-from-energy",
     "light",
+    // #555, owner-approved: last, so level-ups and the gate's characters
+    // prepare the same spells as before.
+    "protection-from-evil-and-good",
   ],
 };
 
 /**
  * The Life Domain (SRD 5.2), the Cleric's subclass at level 3 (#341): its
- * always-prepared spells, Disciple of Life and Preserve Life; at level 5
- * (#342), Mass Healing Word always prepared too. Revivify, its other
- * level-5 spell, is omitted: without companions there is no one to revive.
+ * always-prepared spells, Disciple of Life and Preserve Life. Its level-5
+ * spells are omitted: Revivify needs a companion to revive, and Mass
+ * Healing Word left the list in #555.
  */
 export const LIFE_DOMAIN: SubclassDefinition = {
   id: "life-domain",
@@ -116,15 +119,6 @@ export const LIFE_DOMAIN: SubclassDefinition = {
       text: ({ level }) =>
         `As a Magic action, spend a use of Channel Divinity to restore up to ${5 * level} hit points (five times your Cleric level) to yourself while you are Bloodied, at half your hit points or fewer; it can't take you above half. Without companions it heals only you.`,
       effect: { kind: "preserve-life", perLevel: 5 },
-    },
-    {
-      // Revivify needs a creature that died within the minute, and the
-      // character has no companions (#342).
-      id: "life-domain-spells-5",
-      level: 5,
-      name: "Life Domain Spells: Mass Healing Word",
-      text: "Mass Healing Word is always prepared too, and doesn't count against the spells you prepare. Revivify, the domain's other level-5 spell, is omitted: without companions there is no one to revive.",
-      effect: { kind: "always-prepared", spells: ["mass-healing-word"] },
     },
   ],
 };

@@ -1,6 +1,7 @@
 // #344: the Wizard's 3rd-level spells in the encounter engine (owner's list,
 // 11 October 2026): Fireball and Lightning Bolt (areas of four), Bestow
-// Curse and Protection from Energy (the Cleric's, now a Wizard's too),
+// Curse (the Cleric's, now a Wizard's too; Protection from Energy left in
+// #555),
 // Vampiric Touch (a draining touch, repeated with the action while the
 // caster concentrates), Haste (+2 AC, advantage on Dexterity saves and one
 // more attack a turn; lethargy when it ends early) and Slow (an area of
@@ -85,7 +86,6 @@ const quill = (extra = {}) => ({
       "fireball",
       "lightning-bolt",
       "bestow-curse",
-      "protection-from-energy",
       "vampiric-touch",
       "haste",
       "slow",
@@ -212,17 +212,6 @@ test("a Wizard's Bestow Curse uses its Intelligence save DC", () => {
     effectOn(cursed.state, "bandit", "bestow-curse").buff.curse,
     "attacks",
   );
-});
-
-test("a Wizard's Protection from Energy resists the type chosen", () => {
-  const state = opening([bandit()], [10]);
-  const warded = accepted(
-    state,
-    cast("protection-from-energy", "pc", 3, { damageType: "fire" }),
-  );
-  const effect = effectOn(warded.state, "pc", "protection-from-energy");
-  assert.equal(effect.damageType, "fire");
-  assert.equal(effect.concentration, true);
 });
 
 test("Vampiric Touch: a melee spell attack, 3d6 necrotic, and Quill regains half", () => {
