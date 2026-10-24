@@ -289,23 +289,23 @@ test("every shipped module declares the strictest difficulty every class passes 
  */
 const QUOTED_FIGURES = {
   // Long and level 2 (#442): Medium since Last Stand (#499), as the Rogue's
-  // weakest is 88.0% overall, exactly the 88% Medium needs with its slack,
-  // and 86.5% on the old-well route (Hard before, at 86.5% and 84.5%). The
-  // wandering dead delver on a rest costs the Rogue about 5 points; the
-  // Vault became avoidable when its ghoul held the Crypts sweep to 68.5%.
+  // weakest is 94.5% overall and 93.5% on each route, over the 88% Medium
+  // needs with its slack and under Easy's 98% (88.0% and 86.5% before
+  // Undead Fortitude's DC rose with each rise). The Vault became avoidable
+  // when its ghoul held the Crypts sweep to 68.5%.
   // The two skeletons of seven ordinary foes are over the cap. Every
   // fight's XP, the wandering zombie's included, and the ending's 600.
   "abandoned-delve": {
     fighter: {
-      survival: [2, "mace", 0.935],
-      alwaysFail: [2, 0.93],
+      survival: [2, "mace", 0.965],
+      alwaysFail: [2, 0.965],
       overCap: ["skeleton-sergeant", "skeleton-guard"],
       enemyCount: 7,
       xp: 50 + 100 + 50 + 200 + 200 + 25 + 50 + 600,
     },
     rogue: {
-      survival: [2, "shortsword", 0.88],
-      alwaysFail: [2, 0.87],
+      survival: [2, "shortsword", 0.945],
+      alwaysFail: [2, 0.915],
       overCap: [],
       xp: 1275,
     },
@@ -333,24 +333,24 @@ const QUOTED_FIGURES = {
   // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 95.0% at
   // level 3 when every check fails is 10.0 points over the 85% Medium needs
   // (the Cleric's 91.5% was, before its chain shirt and shield, #541), and
-  // it and the Fighter's 97.0% are under the 98% Easy needs with its slack.
+  // it and the Fighter's 96.5% are under the 98% Easy needs with its slack.
   // Three kobolds of 15 ordinary foes are over the cap at level 4, the level
   // too easy judges; the survival figures are level 3's. Every fight's XP,
   // the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
-      survival: [3, "mace", 0.97],
+      survival: [3, "mace", 0.965],
       alwaysFail: [3, 0.965],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       enemyCount: 15,
       xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 1800,
       routes: [
-        ["keepers-stair", 3, "mace", 0.97],
-        ["drained-culvert", 3, "mace", 0.97],
+        ["keepers-stair", 3, "mace", 0.965],
+        ["drained-culvert", 3, "mace", 0.96],
       ],
       sweeps: [
         ["keep", 3, "mace", 0.99],
-        ["culverts", 3, "mace", 0.97],
+        ["culverts", 3, "mace", 0.965],
       ],
     },
     rogue: {
@@ -389,10 +389,10 @@ const QUOTED_FIGURES = {
       xp: 3075,
       routes: [
         ["keepers-stair", 3, "quarterstaff-and-dagger", 0.96],
-        ["drained-culvert", 4, "quarterstaff-and-dagger", 0.955],
+        ["drained-culvert", 3, "quarterstaff-and-dagger", 0.985],
       ],
       sweeps: [
-        ["keep", 3, "quarterstaff-and-dagger", 0.94],
+        ["keep", 3, "quarterstaff-and-dagger", 0.945],
         ["culverts", 3, "quarterstaff-and-dagger", 0.96],
       ],
     },

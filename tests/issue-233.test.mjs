@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { statBlockSaves } from "../dist/adventure-5e.js";
 import { characterAtLevel, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
+import { renderFifthEvent } from "../dist/runtime-5e.js";
 import { validateCharacter } from "../dist/character-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
@@ -261,6 +262,7 @@ test("Undead Fortitude: a successful save leaves the zombie at 1 HP", () => {
       type: "undead-fortitude",
       combatantId: "foe",
       damage: 7,
+      rises: 0,
       d20: 9,
       bonus: 3,
       total: 12,
@@ -272,6 +274,54 @@ test("Undead Fortitude: a successful save leaves the zombie at 1 HP", () => {
   assert.ok(!events.some(({ type }) => type === "defeated"));
   assert.equal(state.combatants[1].hp, 1);
   assert.equal(state.outcome, "ongoing");
+});
+
+test("Undead Fortitude: each rise adds 5 to the next save's DC in the fight", () => {
+  // The first hit's 4 + 3 = 7 takes it from 5 to 0, and 9 + 3 = 12 meets
+  // DC 12. Action Surge's hit of 1 + 3 = 4 takes it to 0 again: DC 5 + 4
+  // + 5 for the rise, so 10 + 3 = 13 fails where SRD 5.2's DC 9 would not.
+  const random = dice([20, 15], [20, 5], [20, 15], [6, 4], [20, 9]);
+  const { state } = startEncounter([fighter(), zombie()], random);
+  const first = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "foe" },
+    random,
+  );
+  assert.equal(first.state.combatants[1].hp, 1);
+  assert.equal(first.state.combatants[1].fortitudeRises, 1);
+  const surged = act(
+    first.state,
+    { type: "action-surge", actorId: "pc" },
+    random,
+  );
+  const more = dice([20, 15], [6, 1], [20, 10]);
+  const second = act(
+    surged.state,
+    { type: "attack", actorId: "pc", targetId: "foe" },
+    more,
+  );
+  assert.equal(second.rejection, undefined);
+  assert.equal(more.remaining(), 0);
+  const fortitude = second.events.find(
+    ({ type }) => type === "undead-fortitude",
+  );
+  assert.deepEqual(
+    [fortitude.damage, fortitude.rises, fortitude.dc, fortitude.success],
+    [4, 1, 14, false],
+  );
+  assert.equal(second.state.combatants[1].hp, 0);
+  assert.equal(second.state.outcome, "victory");
+  assert.equal(
+    renderFifthEvent({ encounter: second.state }, fortitude),
+    "Undead Fortitude: Zombie makes a Constitution saving throw against DC 5 + 4 damage taken + 5 for its earlier rise: 10 + 3 = 13 against DC 14. Failure: Zombie stays down.",
+  );
+  assert.match(
+    renderFifthEvent(
+      { encounter: second.state },
+      { ...fortitude, rises: 2, dc: 19 },
+    ),
+    /DC 5 \+ 4 damage taken \+ 10 for its 2 earlier rises: /u,
+  );
 });
 
 test("Undead Fortitude: a failed save leaves the zombie defeated", () => {

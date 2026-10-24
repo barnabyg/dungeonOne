@@ -80,8 +80,8 @@ const uses = (runtime, state) =>
 
 test("the formats bump, and the prompt", () => {
   assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 67);
-  assert.equal(FIFTH_TRACE_FORMAT, 62);
+  assert.equal(FIFTH_SESSION_FORMAT, 68);
+  assert.equal(FIFTH_TRACE_FORMAT, 63);
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v48");
 });
 

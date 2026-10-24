@@ -3309,7 +3309,7 @@ export function renderFifthEvent(
     }
     case "undead-fortitude": {
       const self = combatant(state.encounter!, event.combatantId);
-      return `Undead Fortitude: ${self.name} makes a Constitution saving throw against DC 5 + ${event.damage} damage taken: ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? `Success: ${self.name} refuses to fall and has ${event.hpAfter}/${self.maxHp} HP.` : `Failure: ${self.name} stays down.`}`;
+      return `Undead Fortitude: ${self.name} makes a Constitution saving throw against DC 5 + ${event.damage} damage taken${event.rises === 0 ? "" : ` + ${5 * event.rises} for ${event.rises === 1 ? "its earlier rise" : `its ${event.rises} earlier rises`}`}: ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? `Success: ${self.name} refuses to fall and has ${event.hpAfter}/${self.maxHp} HP.` : `Failure: ${self.name} stays down.`}`;
     }
     case "morale":
       return `${name(event.combatantId)} checks morale ${event.trigger === "first-fall" ? "as the first of its side falls" : "with its side at half strength"}: a Wisdom saving throw, ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success: it stands its ground." : `Failure: it will ${combatant(state.encounter!, event.combatantId).surrenders ? "surrender" : "flee"} on its turn.`}`;
