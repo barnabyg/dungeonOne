@@ -246,13 +246,15 @@ test("two ways lead down, the stair past the Toll Hall's fight and the culvert p
   );
 });
 
-test("its treasure is 82% of the long module's 900 gp budget at level 4, with its five potions and the wand outside it", () => {
+test("its treasure is 82% of the long module's 900 gp budget at level 4, with its four potions and the wand outside it", () => {
   const items = weirgate.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
     items
       .filter(({ kind }) => kind === "potion-of-healing")
       .map(({ hiddenIn }) => hiddenIn),
-    ["toll-chest", "lookouts-stool", "dead-goblin", "dry-shelf", "gear-shrine"],
+    // The dead goblin's vial is broken since #556, to keep the Weirgate
+    // Medium under the gate's allowance.
+    ["toll-chest", "lookouts-stool", "dry-shelf", "gear-shrine"],
   );
   assert.deepEqual(
     items

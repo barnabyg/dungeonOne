@@ -617,7 +617,7 @@
           "id": "dead-goblin",
           "name": "Dead Goblin",
           "description": "A goblin crushed under a sack of ballast stones, a satchel still on its shoulder.",
-          "discovery": "The satchel holds a stoppered vial of red liquid."
+          "discovery": "The satchel holds a broken vial, its red liquid long since soaked away."
         },
         {
           "id": "ballast-sack",
@@ -630,15 +630,7 @@
           "description": "A stone channel carries seepage away along the passage toward the pump room."
         }
       ],
-      "items": [
-        {
-          "id": "satchel-potion",
-          "name": "Potion of Healing",
-          "description": "A stoppered vial of red liquid that glimmers when shaken.",
-          "kind": "potion-of-healing",
-          "hiddenIn": "dead-goblin"
-        }
-      ],
+      "items": [],
       "creatures": []
     },
     {

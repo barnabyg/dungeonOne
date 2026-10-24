@@ -335,70 +335,72 @@ const QUOTED_FIGURES = {
       xp: 537,
     },
   },
-  // Long (#412), levels 3–4 since #443: Medium, as the Wizard's 95.0% at
-  // level 3 when every check fails is 10.0 points over the 85% Medium needs
-  // (the Cleric's 91.5% was, before its chain shirt and shield, #541), and
-  // it and the Fighter's 96.5% are under the 98% Easy needs with its slack.
+  // Long (#412), levels 3–4 since #443: Medium, as the Fighter's 92.5% at
+  // level 3, 94.5% with the gate's 2-point allowance (#556), is under the
+  // 98% Easy needs with its slack, and its 91.0% when every check fails is
+  // 6.0 points over the 85% Medium needs. Its Wizard's 96.0% would have made
+  // it Easy with the allowance, so the dead goblin's vial is broken since
+  // #556.
   // Three kobolds of 15 ordinary foes are over the cap at level 4, the level
   // too easy judges; the survival figures are level 3's. Every fight's XP,
   // the wandering ones' included, and the ending's 1,800 (500 before).
   "coldwater-weirgate": {
     fighter: {
-      survival: [3, "mace", 0.965],
-      alwaysFail: [3, 0.965],
+      survival: [3, "mace", 0.925],
+      alwaysFail: [3, 0.91],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       enemyCount: 15,
       xp: 25 + 50 + 50 + 25 + 75 + 200 + 450 + 100 + 200 + 50 + 50 + 1800,
       routes: [
-        ["keepers-stair", 3, "mace", 0.965],
-        ["drained-culvert", 3, "mace", 0.96],
+        ["keepers-stair", 3, "mace", 0.925],
+        ["drained-culvert", 3, "mace", 0.93],
       ],
       sweeps: [
-        ["keep", 3, "mace", 0.99],
-        ["culverts", 3, "mace", 0.965],
+        ["keep", 3, "mace", 0.98],
+        ["culverts", 3, "mace", 0.925],
       ],
     },
     rogue: {
-      survival: [3, "shortsword-and-dagger", 0.995],
-      alwaysFail: [3, 0.99],
+      survival: [3, "shortsword", 0.98],
+      alwaysFail: [3, 0.98],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "shortsword-and-dagger", 0.995],
-        ["drained-culvert", 3, "shortsword-and-dagger", 0.99],
+        ["keepers-stair", 3, "shortsword", 0.98],
+        ["drained-culvert", 3, "shortsword", 0.975],
       ],
       sweeps: [
-        ["keep", 3, "shortsword-and-dagger", 0.985],
-        ["culverts", 3, "shortsword-and-dagger", 0.995],
+        ["keep", 3, "shortsword-and-dagger", 0.975],
+        ["culverts", 3, "shortsword", 0.98],
       ],
     },
     cleric: {
-      survival: [3, "mace-and-shield", 0.975],
-      alwaysFail: [3, 0.975],
+      survival: [3, "mace-and-shield", 0.97],
+      alwaysFail: [3, 0.965],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "mace-and-shield", 0.975],
+        ["keepers-stair", 3, "mace-and-shield", 0.97],
         ["drained-culvert", 3, "mace-and-shield", 0.98],
       ],
       sweeps: [
-        ["keep", 3, "mace-and-shield", 0.955],
-        ["culverts", 3, "mace-and-shield", 0.975],
+        ["keep", 3, "mace-and-shield", 0.95],
+        ["culverts", 3, "mace-and-shield", 0.97],
       ],
     },
     // The Wizard finds the keeper's wand on its way (#540).
     wizard: {
-      survival: [3, "quarterstaff-and-dagger", 0.96],
-      alwaysFail: [3, 0.95],
+      survival: [3, "quarterstaff-and-dagger", 0.93],
+      alwaysFail: [3, 0.94],
       overCap: ["kobold-1", "kobold-2", "kobold-3"],
       xp: 3075,
       routes: [
-        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.96],
-        ["drained-culvert", 3, "quarterstaff-and-dagger", 0.985],
+        ["keepers-stair", 3, "quarterstaff-and-dagger", 0.93],
+        ["drained-culvert", 3, "quarterstaff-and-dagger", 0.97],
       ],
       sweeps: [
-        ["keep", 3, "quarterstaff-and-dagger", 0.945],
-        ["culverts", 3, "quarterstaff-and-dagger", 0.96],
+        ["keep", 3, "quarterstaff-and-dagger", 0.93],
+        ["culverts", 3, "quarterstaff-and-dagger", 0.93],
       ],
     },
   },

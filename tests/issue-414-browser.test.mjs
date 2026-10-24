@@ -214,7 +214,6 @@ const STAIR_ROUTE = [
   ["unlock", "iron-grate"],
   ["move", "stair-foot"],
   ["examine", "dead-goblin"],
-  ["take", "satchel-potion"],
   ["move", "pump-room"],
 ];
 const FIGHTER_ROUTE = [...STAIR_ROUTE, ["move", "gear-hall"]];
