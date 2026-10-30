@@ -15,6 +15,17 @@ function requireUint32(value: number, label: string): number {
   return value;
 }
 
+/** `random`, or a thrown error naming `what` when an action came without dice. */
+export function need(
+  random: Pick<RandomSource, "roll"> | undefined,
+  what: string,
+): Pick<RandomSource, "roll"> {
+  if (random === undefined) {
+    throw new Error(`${what} needs dice.`);
+  }
+  return random;
+}
+
 export function createSeededRandom(seed: number): RandomSource {
   let state = requireUint32(seed, "Seed");
 
