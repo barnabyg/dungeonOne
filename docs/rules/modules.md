@@ -138,16 +138,16 @@ These are the design constraints behind the rest:
   encounter is in two entries. No room may be held by two encounters.
 - **Treasure and magic items.** Treasure, coin and gear are hidden in a feature
   or carried by an opponent, never in plain sight. Findable coin, gems and art
-  stay within the budget for the module's maximum level, a module for level 1 or
-  2 hides at most one or two gems or art objects, and each item's tier is
-  allowed at that level (see [treasure.md](treasure.md#treasure)). Magic items
-  come only when the module's maximum level is 3 or more: one any class may use
-  (a wand is one) and one caster-only item in the caster slot, each no lower
-  than its own minimum level; none that any class may attune. A scroll is of a
-  spell the game knows, not a cantrip or a reaction spell. A bestiary opponent's
-  loot must be something its treasure type could produce. A merchant stocks no
-  magic item, no rare gear and uncommon gear only when the module's lowest
-  recommended level is 3 or more; one merchant per room.
+  stay within the budget and the gem and art limits for the module's maximum
+  level, and each item's tier is allowed at that level (see
+  [treasure.md](treasure.md#treasure)). Magic items come only when the module's
+  maximum level is 3 or more: one any class may use (a wand is one) and one
+  caster-only item in the caster slot, each no lower than its own minimum level;
+  none that any class may attune. A scroll is of a spell the game knows, not a
+  cantrip or a reaction spell. A bestiary opponent's loot must be something its
+  treasure type could produce. A merchant stocks no magic item, no rare gear and
+  uncommon gear only when the module's lowest recommended level is 3 or more;
+  one merchant per room.
 - **Doors, traps and tools.** A stuck door takes only a force check; a locked
   one any of a key, a pick and a break, never a force. A pick is a Dexterity
   check with thieves' tools, and only a pick or a disarm may name them. A
