@@ -34,7 +34,7 @@ import type {
 import type { GameToolDefinition } from "./runtime-contract.js";
 import type { GameSettings } from "./settings-5e.js";
 import { isSpellId, SPELLS, type SpellId } from "./spells-5e.js";
-import { listed } from "./text-5e.js";
+import { COUNT_WORDS, listed } from "./text-5e.js";
 
 /**
  * How many long rests the character may take in one adventure (#335, D1),
@@ -98,7 +98,7 @@ export function restsLeftText(kind: RestKind, rests: RestsView): string {
 }
 
 /** "in this adventure", or "in this region" in a long module (#404). */
-export function restsScope({ per }: RestsView): string {
+function restsScope({ per }: RestsView): string {
   return `in this ${per ?? "adventure"}`;
 }
 
@@ -106,9 +106,6 @@ export function restsScope({ per }: RestsView): string {
 export function hitDiceText({ available, total, sides }: HitDiceView): string {
   return `Hit dice: ${available} of ${total} d${sides} left`;
 }
-
-/** Counts in words, for the AI DM prompt's rest rules (#508). */
-export const COUNT_WORDS = ["no", "one", "two", "three", "four"] as const;
 
 /** What rests need from the runtime that made them. */
 export type RestDeps = Readonly<{
