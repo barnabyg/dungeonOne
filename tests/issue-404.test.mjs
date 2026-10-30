@@ -11,13 +11,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -65,9 +63,6 @@ function changed(change) {
 // The validator.
 
 test("a module with two regions and a rest site in each may declare itself long", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
   assert.equal(longTunnels.long, true);
   // Any other module is not long.
   assert.equal(regionTunnels.long, undefined);

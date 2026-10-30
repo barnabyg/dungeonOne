@@ -111,6 +111,7 @@ test("every layout error is listed with its rooms and cells, the map is still dr
 });
 
 test("a sketch is read strictly: only the module's map fields, in its own format version", async (t) => {
+  const { formatVersion } = await sketch();
   for (const [change, message] of [
     [
       (value) => (value.rooms[1].description = "A hall of foxes."),
@@ -129,8 +130,8 @@ test("a sketch is read strictly: only the module's map fields, in its own format
       "passage hall-to-niche names unknown room fox-den.",
     ],
     [
-      (value) => (value.formatVersion = 2),
-      "it is a layout sketch in format version 2, not 1. Move it aside; the file has not been changed.",
+      (value) => (value.formatVersion = formatVersion + 1),
+      `it is a layout sketch in format version ${formatVersion + 1}, not ${formatVersion}. Move it aside; the file has not been changed.`,
     ],
     // What a module refuses, a sketch refuses too, in the module's words.
     [

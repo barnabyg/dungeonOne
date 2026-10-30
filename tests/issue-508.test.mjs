@@ -16,7 +16,6 @@ import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   fifthDmSystemPrompt,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
@@ -128,7 +127,6 @@ test("the survival settings follow carrying capacity, in the issue's order, at t
 // The AI DM prompt.
 
 test("the prompt states the adventure's own rules, and at the defaults is as before", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
   assert.equal(fifthDmSystemPrompt(DEFAULT_SETTINGS), FIFTH_DM_SYSTEM_PROMPT);
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,

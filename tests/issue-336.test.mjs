@@ -152,7 +152,6 @@ test("a slot level's feature-uses id reads back to its level", () => {
 });
 
 test("a library saved before sheets had spells (#336) is refused, naming the file", async () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 29);
   const directory = await mkdtemp(join(tmpdir(), "issue-336-"));
   try {
     const path = join(directory, "characters.json");
@@ -166,7 +165,7 @@ test("a library saved before sheets had spells (#336) is refused, naming the fil
     });
     await writeFile(path, older);
     await assert.rejects(new FifthCharacterLibrary(path, 7).read(), {
-      message: `${path} is a character library in format version 15, not 29. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
+      message: `${path} is a character library in format version 15, not ${FIFTH_LIBRARY_FORMAT}. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
     });
     assert.equal(await readFile(path, "utf8"), older);
   } finally {

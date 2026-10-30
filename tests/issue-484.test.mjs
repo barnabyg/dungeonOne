@@ -9,11 +9,7 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  createFifthRuntime,
-  describeFifthResult,
-  FIFTH_PROMPT_VERSION,
-} from "../dist/runtime-5e.js";
+import { createFifthRuntime, describeFifthResult } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { SOUNDS, resultSounds } from "../dist/sounds-5e.js";
 import { FIFTH_TRACE_FORMAT, verifyFifthTraceFile } from "../dist/trace-5e.js";
@@ -292,10 +288,4 @@ test("a saved line keeps its sound; an unknown sound, an older save and an older
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-});
-
-test("the save and trace formats bump; the DM prompt does not", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
 });

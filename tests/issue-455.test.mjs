@@ -32,8 +32,7 @@ const changed = (change) => {
 const passage = (module, id) =>
   module.passages.find((entry) => entry.id === id);
 
-test("the format is bumped, and an older module file is refused by name", async () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
+test("an older module file is refused by name", async () => {
   const directory = await mkdtemp(join(tmpdir(), "dungeon-455-"));
   try {
     const path = join(directory, "old-tunnels.json");

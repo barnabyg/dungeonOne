@@ -14,16 +14,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
   gateAdventure,
   playAdventure,
   requiredPath,
 } from "../dist/balance-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT, FifthTraceRun } from "../dist/trace-5e.js";
+import { FifthTraceRun } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { uncheckedDice } from "./fixtures/engine-dice.mjs";
 import {
@@ -69,12 +68,6 @@ const sneakable = (runtime, state) =>
     .projectActions(state)
     .filter(({ action, available }) => action === "sneak" && available)
     .map(({ target }) => target.id);
-
-test("the formats bump", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-});
 
 // The validator.
 

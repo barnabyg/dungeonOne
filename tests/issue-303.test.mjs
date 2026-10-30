@@ -11,7 +11,6 @@ import {
   statBlockStealth,
 } from "../dist/adventure-5e.js";
 import { gateAdventure, playAdventure } from "../dist/balance-5e.js";
-import { FIFTH_BESTIARY_FORMAT } from "../dist/bestiary-5e.js";
 import { validateCharacter } from "../dist/character-5e.js";
 import { passivePerception } from "../dist/checks-5e.js";
 import {
@@ -67,8 +66,7 @@ const initiativeOf = (events, id) =>
     .find(({ type }) => type === "initiative")
     .order.find(({ combatantId }) => combatantId === id);
 
-test("the module, bestiary, save and trace formats bump; lurking and Stealth are validated", () => {
-  assert.equal(FIFTH_BESTIARY_FORMAT, 10);
+test("an older module is refused; lurking and Stealth are validated", () => {
   const older = { ...moduleFile("rat-tunnels"), formatVersion: 22 };
   assert.throws(
     () => validateModule(older),

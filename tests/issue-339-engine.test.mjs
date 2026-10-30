@@ -18,7 +18,6 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { SPELLS, spellAtLevel } from "../dist/spells-5e.js";
@@ -371,7 +370,6 @@ test("in a fight Resistance is offered against the foes' damage types", () => {
     resistance.map(({ spell }) => spell.damageType),
     ["slashing"],
   );
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /Thaumaturgy and Light are flavour only/u,

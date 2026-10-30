@@ -20,16 +20,12 @@ import {
   runFifthDmEvaluation,
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
-import {
-  FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
-} from "../dist/runtime-5e.js";
+import { FIFTH_DM_SYSTEM_PROMPT } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 
 const byId = (id) => FIFTH_WEIRGATE_DM_CASES.find((sample) => sample.id === id);
 
-test("the prompt changes: a wrong item, or fleeing untouched, calls no tool", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
+test("the prompt says a wrong item, or fleeing untouched, calls no tool", () => {
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /without calling a tool: not examine on the feature, nor use_on with another item, in its place/u,

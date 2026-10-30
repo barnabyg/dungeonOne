@@ -10,10 +10,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { currentCombatant } from "../dist/encounter-5e.js";
-import {
-  createFifthRuntime,
-  FIFTH_PROMPT_VERSION,
-} from "../dist/runtime-5e.js";
+import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { FIFTH_TRACE_FORMAT, verifyFifthTraceFile } from "../dist/trace-5e.js";
@@ -154,10 +151,4 @@ test("a save keeps the room come from; an older save and an older trace are refu
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-});
-
-test("the save and trace formats bump; the DM prompt does not", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
 });

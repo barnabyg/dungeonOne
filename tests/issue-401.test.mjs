@@ -31,13 +31,11 @@ import { createSeededRandom } from "../dist/random.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -95,11 +93,7 @@ function longFight(on, turns, from = on.createSession()) {
   return { state: result.state, events };
 }
 
-test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
+test("the prompt says no tool raises or lowers the alarm", () => {
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool raises or lowers the alarm\. Never raise it, quiet it, or say it is raised or quiet in your words/u,

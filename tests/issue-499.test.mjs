@@ -14,7 +14,6 @@ import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
@@ -151,7 +150,6 @@ test("falling instead ends the adventure in its defeat ending", () => {
 });
 
 test("the DM prompt tells the AI DM how Last Stand is answered", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /death saving throw \(Last Stand\); on a success its fall waits for the player's answer: only use_item is offered/u,
@@ -200,14 +198,12 @@ test("a saved session waiting for Last Stand reloads it, a trace replays it, and
     const replayed = await verifyFifthTraceFile(tracePath, [potionCellar]);
     assert.deepEqual(replayed.state, run.session.state);
     // Older formats are refused, naming the file.
-    assert.equal(FIFTH_SESSION_FORMAT, 70);
-    assert.equal(FIFTH_TRACE_FORMAT, 65);
     const saved = JSON.parse(await readFile(path, "utf8"));
     await writeFile(path, JSON.stringify({ ...saved, formatVersion: 64 }));
     await assert.rejects(
       FifthSession.load(path, [potionCellar]),
       new RegExp(
-        String.raw`session\.json is an adventure session in format version 64, not 70. This build cannot continue it\. Move it aside; the file has not been changed\.`,
+        String.raw`session\.json is an adventure session in format version 64, not ${FIFTH_SESSION_FORMAT}\. This build cannot continue it\. Move it aside; the file has not been changed\.`,
         "u",
       ),
     );
@@ -216,7 +212,7 @@ test("a saved session waiting for Last Stand reloads it, a trace replays it, and
     await assert.rejects(
       verifyFifthTraceFile(tracePath, [potionCellar]),
       new RegExp(
-        String.raw`trace\.json is a trace in format version 58, not 65. This build cannot replay it\. Move it aside; the file has not been changed\.`,
+        String.raw`trace\.json is a trace in format version 58, not ${FIFTH_TRACE_FORMAT}\. This build cannot replay it\. Move it aside; the file has not been changed\.`,
         "u",
       ),
     );

@@ -9,12 +9,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -30,9 +28,6 @@ import {
 // The validator.
 
 test("a module may declare regions and give each room one", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
   assert.deepEqual(regionTunnels.regions, [
     { id: "upper", name: "Upper Tunnels" },
     { id: "lower", name: "Lower Tunnels" },

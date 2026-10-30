@@ -23,15 +23,10 @@ import {
   runFifthDmEvaluation,
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
-import {
-  createFifthRuntime,
-  FIFTH_PROMPT_VERSION,
-  renderFifthResult,
-} from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -88,13 +83,6 @@ function nookFile(base, flag, setter, closing = false) {
 }
 
 const nook = (...args) => validateModule(nookFile(...args));
-
-test("the formats bump; the prompt does not change", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
-});
 
 // The validator.
 

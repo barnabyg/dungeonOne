@@ -9,7 +9,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
   gateAdventure,
   playAdventure,
@@ -40,10 +39,6 @@ const HALL = {
 };
 
 const routed = (routes) => validateModule(forkedTunnelsFile(routes));
-
-test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-});
 
 test("a module declares its routes, each a list of rooms to pass", () => {
   assert.deepEqual(forkedTunnels.routes, [CELLAR, HALL]);

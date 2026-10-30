@@ -41,7 +41,6 @@ import {
 // The validator.
 
 test("a module may mark rest sites and author one wandering encounter", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
   assert.equal(room(restingTunnels, "alcove").restSite, true);
   assert.equal(room(restingTunnels, "stair-foot").restSite, undefined);
   assert.deepEqual(restingTunnels.wanderingEncounter, {

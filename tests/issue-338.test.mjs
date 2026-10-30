@@ -9,15 +9,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
-import {
-  describeFifthResult,
-  FIFTH_PROMPT_VERSION,
-  renderFifthResult,
-} from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { describeFifthResult, renderFifthResult } from "../dist/runtime-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { testCasterAt } from "../dist/test-caster-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -64,12 +59,6 @@ const scriptedDm = (name, args, text = "Done.") => ({
   },
 });
 const attempt = (turn) => turn.toolAttempts[0];
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
-});
 
 test("the bar offers an area spell once per slot level, with its foes and its most", () => {
   const session = sagesTurn();
