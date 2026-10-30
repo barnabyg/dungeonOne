@@ -137,9 +137,9 @@ explains its output and the sketch format.
   career that falls short of a level stalls.
 - **No loot in the start or exit room.** The gate's cautious run takes it and
   leaves, which flatters the module. Put the first loot behind a fight.
-- **Treasure.** A designed module holds 75–100% of its budget. Low levels are
-  mostly copper and silver; from level 3, a mixed hoard with at least two kinds
-  of gem or art object. The budget, the gem and art limits and tiers are in
+- **Treasure.** Low levels are mostly copper and silver; from level 3, give a
+  mixed hoard with at least two kinds of gem or art object. The budget, the share
+  of it to hold, the gem and art limits and tiers are in
   [the treasure rules](rules/treasure.md#treasure), and magic items in
   [magic items](rules/treasure.md#magic-items).
 - **Difficulty.** Declare the strictest difficulty whose survival threshold

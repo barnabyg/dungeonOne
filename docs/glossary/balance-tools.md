@@ -63,5 +63,5 @@ A caster item every career is sure to hold at a level, because it lies on an ear
 _Avoid_: Expected item, Carried item
 
 **Class parity**:
-The gate's check that, from level 4, a weak caster's cautious survival is within 5 points of a weak Fighter's.
+The gate's check of a weak caster's survival against a weak Fighter's; see [the gate](../rules/balance-gate.md).
 _Avoid_: Class balance, Fairness
