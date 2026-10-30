@@ -118,10 +118,10 @@ test("a malformed file, an unknown key, a bad value or another format version is
     await refusedWith(
       JSON.stringify({
         kind: "dungeon-one-settings",
-        formatVersion: 2,
+        formatVersion: SETTINGS_FORMAT + 1,
         settings: {},
       }),
-      "it is in format version 2, not 1",
+      `it is in format version ${SETTINGS_FORMAT + 1}, not ${SETTINGS_FORMAT}`,
     );
     await refusedWith(
       settingsFile({}, { extra: true }),
