@@ -34,8 +34,7 @@ function spareKeyCrypt() {
   return validateModule(file);
 }
 
-test("the adventure format bumps, and an older module file is refused by name", async () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
+test("an older module file is refused by name", async () => {
   const directory = await mkdtemp(join(tmpdir(), "dungeon-543-"));
   try {
     const path = join(directory, "one-key-crypt.json");

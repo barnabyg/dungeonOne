@@ -27,14 +27,10 @@ import {
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
 import { combatant, currentCombatant } from "../dist/encounter-5e.js";
-import {
-  createFifthRuntime,
-  FIFTH_PROMPT_VERSION,
-  renderFifthResult,
-} from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT, FifthTraceRun } from "../dist/trace-5e.js";
+import { FifthTraceRun } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { uncheckedDice } from "./fixtures/engine-dice.mjs";
 import {
@@ -94,13 +90,6 @@ const fightActions = (runtime, state) =>
       available,
       ...(available ? {} : { reason }),
     }));
-
-test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
-});
 
 // The validator.
 

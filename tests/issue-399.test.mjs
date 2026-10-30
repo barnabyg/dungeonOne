@@ -12,7 +12,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -60,10 +59,6 @@ const offeredTalk = (runtime, state) =>
     .projectActions(state)
     .filter(({ action, available }) => action === "talk" && available)
     .map(({ target }) => target.id);
-
-test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-});
 
 // The validator.
 

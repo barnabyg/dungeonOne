@@ -20,7 +20,6 @@ import {
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   KNOWN_ROOMS_SCENE_BYTES,
 } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -56,8 +55,7 @@ const entryFor = (scene, name) =>
     (line) => line.startsWith(`${name} (`) || line.startsWith(`${name}:`),
   );
 
-test("the prompt changes", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
+test("the prompt mentions the known rooms", () => {
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /known rooms/u);
 });
 

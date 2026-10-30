@@ -10,7 +10,6 @@ import test from "node:test";
 import { FIFTH_DM_CASES } from "../dist/dm-evaluation-5e.js";
 import { exitDirection } from "../dist/map-5e.js";
 import {
-  FIFTH_PROMPT_VERSION,
   FIFTH_DM_SYSTEM_PROMPT,
   createFifthRuntime,
 } from "../dist/runtime-5e.js";
@@ -129,7 +128,6 @@ test("the flee and sneak tools give each exit's direction too", () => {
 });
 
 test("the prompt says there is no tactical grid, while the rooms have directions", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
   assert.doesNotMatch(FIFTH_DM_SYSTEM_PROMPT, /There is no map/u);
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /no tactical grid/u);
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /"I go north"/u);

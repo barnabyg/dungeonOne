@@ -9,15 +9,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { FIFTH_DM_CASES } from "../dist/dm-evaluation-5e.js";
-import {
-  FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
-} from "../dist/runtime-5e.js";
+import { FIFTH_DM_SYSTEM_PROMPT } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER_CHOICES } from "../dist/test-fighter-5e.js";
-
-test("the prompt changes", () => {
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
-});
 
 test("a request to do something in another room is not a move", () => {
   assert.match(

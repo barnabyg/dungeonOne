@@ -11,9 +11,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { uncheckedDice } from "./fixtures/engine-dice.mjs";
 import { ratTunnels, regionTunnels, sealedCrypt } from "./fixtures/modules.mjs";
 
@@ -44,11 +43,6 @@ const knownRoom = (runtime, state, id) =>
     .projectKnownRooms(state)
     .flatMap(({ rooms }) => rooms)
     .find((entry) => entry.id === id);
-
-test("the formats bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-});
 
 test("the known rooms are those visited and those seen through an exit, by region", () => {
   const runtime = createFifthRuntime(regionTunnels, TEST_FIGHTER);

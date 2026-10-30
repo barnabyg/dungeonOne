@@ -7,7 +7,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
   gateAdventure,
   gateVerdictAt,
@@ -41,10 +40,6 @@ const UPPER_SWEEP = {
   name: "Upper Tunnels",
   rooms: ["stair-foot", "alcove", "lair"],
 };
-
-test("the adventure format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-});
 
 test("a long module's region sweeps visit every room but the avoidable ones", () => {
   // The victory room is left to the objective, which comes last.

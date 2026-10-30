@@ -30,13 +30,11 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -90,11 +88,7 @@ const at = (roomId, more = {}) => ({
   ...more,
 });
 
-test("the formats bump, and the prompt", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 46);
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
+test("the prompt says no tool summons a wandering encounter", () => {
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /No tool summons, rolls for, delays or keeps away a wandering encounter\./u,

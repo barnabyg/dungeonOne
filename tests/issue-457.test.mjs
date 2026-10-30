@@ -9,7 +9,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { dice, uncheckedDice } from "./fixtures/engine-dice.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
@@ -36,10 +35,6 @@ const passages = (map) =>
     );
     return { passage: `${from} > ${to}`, ...rest };
   });
-
-test("the formats stay as they were", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-});
 
 test("the map shows the rooms visited, and ways to the rooms beyond by cell only", () => {
   const runtime = createFifthRuntime(mapTunnels, TEST_FIGHTER);

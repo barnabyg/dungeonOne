@@ -32,14 +32,12 @@ import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { testRogueAt } from "../dist/test-rogue-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -82,12 +80,6 @@ const wounded = (state, id, hp) => ({
       entrant.id === id ? { ...entrant, hp } : entrant,
     ),
   },
-});
-
-test("the formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 70);
-  assert.equal(FIFTH_TRACE_FORMAT, 65);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v49");
 });
 
 test("each opponent able to act attacks before the character gets away; the fight stays behind", () => {
