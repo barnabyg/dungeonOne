@@ -232,6 +232,9 @@ import {
 
 export type Side = "party" | "opponents";
 
+/** The player character's combatant id. */
+export const PLAYER_ID = "pc";
+
 /** The SRD 5.2 damage types. */
 export const DAMAGE_TYPES = [
   "acid",
