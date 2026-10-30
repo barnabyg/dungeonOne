@@ -1,0 +1,4 @@
+{
+  "testCommand": "npm ci && npm test",
+  "slowTestMs": 10000
+}
