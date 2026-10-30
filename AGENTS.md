@@ -35,6 +35,8 @@ Pick by what you changed:
 
 Before a commit, run at least the tiers that cover it; before a push, `npm.cmd run verify`.
 
+Name a new test file after its topic (`tests/last-stand.test.mjs`, with `-browser` for browser tests) and extend the topic's file if there is one; never add a `tests/issue-*` file. Put a ticket number in a test's title if it helps. Merge old `tests/issue-*` files into their topic's file when a ticket touches them, and update `tests/fixtures/content-tests.mjs` if it lists a moved file.
+
 ## 5e and file formats
 
 The game uses the 2024 5e rules in SRD 5.2 under [ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md); [`docs/rules/README.md`](docs/rules/README.md) indexes the rules. Use only SRD 5.2 names, rules and stat blocks.
