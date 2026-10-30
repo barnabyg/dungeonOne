@@ -15,7 +15,7 @@
  * any class may use and one that only a spellcaster may attune (#537, D1),
  * each from its own minimum level (D3). The budgets, the gem and art
  * limits, the tier levels and the magic item limits are parameter tables;
- * tune them here. `docs/rules/gear.md` states the rules they serve.
+ * tune them here. `docs/rules/treasure.md` states the rules they serve.
  */
 import {
   POTION_WEIGHT,
