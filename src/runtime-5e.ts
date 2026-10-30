@@ -88,7 +88,6 @@ import { exitDirection } from "./map-5e.js";
 import type { Cell, Direction, VerticalKind } from "./map-5e.js";
 import { castSound, type SoundId } from "./sounds-5e.js";
 import {
-  COUNT_WORDS,
   createRests,
   hitDiceText,
   restsLeftText,
@@ -99,7 +98,7 @@ import {
   type RestKind,
   type RestsView,
 } from "./rest-5e.js";
-import { listed } from "./text-5e.js";
+import { COUNT_WORDS, listed } from "./text-5e.js";
 import {
   approachesOf,
   authoredBand,
