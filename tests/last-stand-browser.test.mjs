@@ -1,4 +1,4 @@
-// #499, browser → API → storage: Ada takes a Potion of Healing, goes down
+// Last Stand (#499), browser → API → storage: Ada takes a Potion of Healing, goes down
 // to the lone goblin and only waits until it brings her to 0 HP. On a
 // seed whose death saving throw succeeds, the fall waits: the action bar holds only the Last Stand row, Drink and Fall, and
 // the turn line says so, before and after a reload. Drinking raises her and
@@ -43,7 +43,7 @@ const seed = (() => {
 })();
 
 async function serve() {
-  const directory = await mkdtemp(join(tmpdir(), "issue-499-"));
+  const directory = await mkdtemp(join(tmpdir(), "last-stand-"));
   const server = await startFifthBrowserServer({
     adventures: [potionCellar],
     // Fixtures are engine material, not gated content.
