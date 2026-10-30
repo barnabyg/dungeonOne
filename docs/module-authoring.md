@@ -238,9 +238,8 @@ it to another module, or keep a fixture for it in `tests/fixtures/`.
   (Lodge); a victory ending on a fight (Weirgate).
 - **Two modules:** a key carried by an opponent (Cider House, Weirgate; no
   fixture); region wandering tables (Weirgate, Lodge); talk-only passages
-  (Weirgate, Lodge); alarms (Delve, Weirgate); undead to turn (Delve,
-  Weirgate); merchant trade (Delve, Lodge).
-- **Three or four:** morale and fled carriers, monster loot, rest sites,
+  (Weirgate, Lodge); alarms (Delve, Weirgate); merchant trade (Delve, Lodge).
+- **Three or four:** undead to turn (Delve, Weirgate, Lodge), morale and fled carriers, monster loot, rest sites,
   thieves' tools, stuck and locked doors, graded checks, several approaches,
   circumstances, hidden passages with open and close effects, flags, items used
   on features, fight actions, and routes with region sweeps.
