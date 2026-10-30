@@ -3,7 +3,7 @@
  * character module (`character-5e.ts`) derives a Wizard's hit points,
  * saves, skills, spellcasting, spellbook, Arcane Recovery, Scholar, the
  * Evoker, its Ability Score Improvement and Memorize Spell from this
- * definition alone. `docs/rules/classes.md` records the
+ * definition alone. `docs/rules/classes-casters.md` records the
  * abstractions and omissions.
  */
 import {

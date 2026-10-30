@@ -1196,7 +1196,7 @@ export type FifthEnding = Readonly<{
 
 /**
  * The ending that meets a module's objective (#475), as
- * docs/rules/balance.md has it: its victory, if it has one, or else getting
+ * docs/rules/balance-harness.md has it: its victory, if it has one, or else getting
  * out with loot.
  */
 export function objectiveEnding(

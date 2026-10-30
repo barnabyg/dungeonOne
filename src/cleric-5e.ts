@@ -3,7 +3,7 @@
  * character module (`character-5e.ts`) derives a Cleric's hit points,
  * saves, skills, training, spellcasting, Divine Order, Channel Divinity,
  * Ability Score Improvement, Sear Undead and Life Domain from this
- * definition alone. `docs/rules/classes.md` records the
+ * definition alone. `docs/rules/classes-casters.md` records the
  * abstractions and omissions.
  */
 import {

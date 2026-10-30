@@ -2,9 +2,10 @@
 
 Read this first when you design or build an adventure module, whether you are a
 person or an agent. It holds the rules that are settled, so each design doesn't
-learn them again. The module format, what the validator refuses and the
-bestiary are in [rules/modules.md](rules/modules.md); the balance gate is in
-[rules/balance.md](rules/balance.md); the game's terms are in
+learn them again. The module format and what the validator refuses are in
+[rules/modules.md](rules/modules.md), the bestiary in
+[rules/bestiary.md](rules/bestiary.md); the balance gate is in
+[rules/balance-gate.md](rules/balance-gate.md); the game's terms are in
 [`CONTEXT.md`](../CONTEXT.md).
 
 ## The design ticket
@@ -112,68 +113,11 @@ A warning doesn't fail the tool. Fix it, or give a reason in the proposal.
   passage back to the start.
 - Leave a cell free beside a room that might later grow a neighbour.
 
-## The mapping tool
+## The mapping tool and layout sketches
 
-```powershell
-npm.cmd run map -- <module-id | path to a module or a layout sketch>
-```
-
-The command builds the project, then draws and checks one layout: a shipped
-module by id (`abandoned-delve`), or a module or sketch file by path. It prints
-a text grid of each floor and writes an SVG to `.scratch/maps/<id>.svg`. It
-lists every layout error and warning, and exits 1 on any error (0 if there are
-only warnings). For a module, it also runs the full module validator and lists
-the validator's first problem that isn't a layout one.
-
-### Reading the text grid
-
-```text
-Floor 0
-      0   1   2   3
-  0  [A]-[B]-----[D]
-          |
-  1      [C]
-```
-
-- Each room is a letter in brackets on its cell. The x values head the columns
-  and the y values start the rows. Every floor uses the same columns, but shows
-  only its own rows.
-- `-`, `|`, `\` and `/` are passages on the floor. A run across an empty cell
-  draws through it.
-- **Rooms** lists each letter with its id, name, cell, floor, region, backdrop
-  (in a module that names any), and whether it is the start or an exit.
-- **Marked passages** lists the passages with something to note: a door, a
-  hidden passage, a trap, a flag that opens or closes it, and the floors a
-  vertical passage joins.
-- A crooked passage (an error) isn't drawn on the grid.
-
-### Reading the SVG
-
-The SVG shows each floor from the top down, shading rooms by region (its legend
-names each region's backdrop) and tagging the start and exits. Its legend
-explains the marks: hidden and flag-controlled passages are dashed or dotted,
-doors are squares (filled when locked), traps are red triangles, and ▲ / ▼ mark
-a room's stairs, ladders and shafts.
-
-## Layout sketches
-
-A sketch is a module's map before its content exists: a strict subset of a
-module, each field meaning the same, so the module is built by filling in the
-rest. `tests/fixtures/fox-barrow-sketch.json` is a complete example.
-
-- **Top level:** `kind` (`dungeon-one-5e-map-sketch`), `formatVersion`, `id`,
-  `title`, `startRoomId`, `rooms`, `passages`, and optionally `regions` (each
-  `id` and `name`).
-- **A room:** `id`, `name` and `at`, and optionally `floor`, `region` and
-  `exit`.
-- **A passage:** `id` and `between`, and optionally `description`, `vertical`,
-  `hidden`, `openWhen`, `closeWhen`, `door` (only its `state`, `stuck` or
-  `locked`) and `trap` (`{}`, which the module fills in).
-
-Anything else is refused, and so is a reference to a room or region that isn't
-there, and what the module validator would refuse of these fields. Keep
-sketches in `.scratch/` while you work, which git ignores, and paste them into
-the design ticket.
+Propose every layout as a sketch file and check it with
+`npm.cmd run map -- <module-id | path>`. [The mapping tool](mapping-tool.md)
+explains its output and the sketch format.
 
 ## Settled authoring rules
 
@@ -193,17 +137,11 @@ the design ticket.
   career that falls short of a level stalls.
 - **No loot in the start or exit room.** The gate's cautious run takes it and
   leaves, which flatters the module. Put the first loot behind a fight.
-- **Treasure.** The budget covers coin, gems and art objects only: 50 gp at
-  maximum level 1, 100 gp at 2, 300 gp at 3, 450 gp at 4 and 600 gp at 5
-  (`TREASURE_BUDGETS`), twice that for a long module
-  (`LONG_MODULE_BUDGET_FACTOR`). A designed module holds 75–100% of it. Low
-  levels are mostly copper and silver, with at most one gem or art object at
-  level 1 and two at level 2 (`TRADE_GOOD_LIMITS`); from level 3, a mixed
-  hoard with at least two kinds of gem or art object. Potions, scrolls and
-  gear are outside the budget. From maximum level 3 (`MAGIC_ITEM_LIMITS`), one
-  magic item any class may use and one caster item in the caster slot, each
-  from its own minimum level (`MAGIC_ITEM_MIN_LEVEL`); a 1st-level scroll is
-  common.
+- **Treasure.** A designed module holds 75–100% of its budget. Low levels are
+  mostly copper and silver; from level 3, a mixed hoard with at least two kinds
+  of gem or art object. The budget, the gem and art limits and tiers are in
+  [the treasure rules](rules/treasure.md#treasure), and magic items in
+  [magic items](rules/treasure.md#magic-items).
 - **Difficulty.** Declare the strictest difficulty whose survival threshold
   every class clears by at least 3 points under the balance gate, its
   survival credited the gate's 2-point allowance (a caster's survival below

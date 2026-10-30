@@ -1,73 +1,160 @@
 # Adventure modules
 
+The bestiary is in [Bestiary](bestiary.md).
+
 ## Module format
 
-A module is a JSON file in `adventures/5e/`, loaded and validated by `src/adventure-5e.ts`, whose header comment and validator messages give the detail. A module in another format version is refused with a message naming the file. The shape, in short:
+A module is a JSON file in `adventures/5e/`, loaded and validated by
+`src/adventure-5e.ts`, whose header comment and validator messages give the
+detail. A module in another format version is refused with a message naming the
+file. The shape, in short:
 
-- **Module:** `id`, `title`, `objective` (text), `recommendedLevels` (1–5), `difficulty` (easy, medium or hard), `startRoomId`, `rooms`, `passages`, `encounters` (at most 30, wandering ones included) and `endings` (victory, escape with loot, escape without loot, defeat; a victory or escape may award `xp`). Optional: `long: true`; `regions` (1–10, each `id`, `name`, an optional `backdrop` and an optional `wandering` table: `chance` on a d100 every `every` moves, 1–6 `entries` of `encounterId` and `omen`); `flags` (1–30 ids); an `alarm` (`flag`, `text`, optional `fights`: `{ region, round }` pairs); `routes` (1–6, each `id`, `name` and 1–20 `rooms` passed in order); and one `wanderingEncounter` (`{ encounterId, chance }`, rolled on each rest), not beside region tables.
-- **Room:** `id`, `name`, `description`, its map cell `at` (`[x, y]`, −50 to 50) and optional `floor` (−9 to 9); optional `region`, `backdrop` (in place of its region's), `exit`, `restSite: true` (where a long rest may be taken), `avoidable: true` (left out of its region's sweep), `encounterId`, up to 12 `features` and 12 `items`, and up to 6 `creatures`. The map's layout rules are in [exploring.md](exploring.md) and [the authoring guide](../module-authoring.md).
-- **Feature:** optional `discovery`, `check`, `sets` (a flag), `changed` (`{ when, description }`), `uses` (up to four `{ item, text, effects }`, optionally `consumes: true`) and `fightAction` (`{ once, check, bands }`, `once` being `fight` or `adventure`).
-- **Item:** `kind` is a potion (Healing or Greater Healing), `key`, `tool`, `treasure` (a catalogue gem or art object), `coin` (`coins` in gp, sp and cp), `gear` (a catalogue weapon, armour or shield), `scroll` (its `spell`), `wand` (a catalogue wand) or `caster-item` (its `casterItem`, a catalogue caster item). `hiddenIn` names a feature of its room, or an opponent of its room's fight, which then carries it. Optional `sets`.
-- **Creature:** `topics`, each `id`, `name` and `reply`, with an optional check and `failure` words, `offeredWhile` or `offeredUntil` (a flag) and, on a surrender's topic, `gives`. A merchant has `merchant: { stock, minutes }`: catalogue gear, and the minutes a trade takes (1–60).
-- **Passage:** `id`, `between` two rooms, `description`; optional `door` (`state` stuck, opened by a `force` check; or locked, opened by any of `keyItemIds` (one or two keys), a `pick` check and a `break` check), `trap` (`find: { dc }`, as the search rolls Perception or Investigation; a `disarm` check, `trigger` text, a saving throw, damage of an SRD 5.2 type and a defeat ending), `hidden: true`, `vertical` (`stairs`, `ladder` or `shaft`), `openWhen` and `closeWhen` (flags).
-- **Check:** a `skill` (any in `SKILLS` in `src/class-5e.ts`: SRD 5.2's skills but Performance) or `ability`, with a `dc` from 5 to 30; or `approaches`, 2–4 such, each a different skill, ability or tool. An approach may have `advantage` and `disadvantage` (1–4 circumstances each: `holds` an item, `discovered` a feature, `won` an encounter or a `flag`, each with a `name` and optional `not: true`). A Dexterity approach may name `"tool": "thieves-tools"`, only on a pick or a disarm. A Strength approach (Athletics or Strength) may be marked `"movement": "climb"` or `"jump"`, which a Thief makes with Dexterity (Second-Story Work). A check may have a `retry`: a damage cost, an item cost (a tool) or `after` a circumstance. Any check but a trap's find may have `bands`: any of `failure-by-5`, `failure`, `success` and `success-by-5`, each with optional `text`, `noisy: true` (raises the alarm) and up to six `effects`: `discovery`, `item` (reveals a hidden item), `damage`, `open` or `close` (a passage) and `set` (a flag).
-- **Encounter:** `id`, `opponents`, `defeatEndingId` and optional `victoryEndingId`. An opponent names a bestiary `monster` (with an optional `name` and `description`) or gives its own name, description and SRD 5.2 `statBlock`; it may have an `icon` (from `src/icons-5e.ts`), `boss: true` (exempt from the gate's one-hit-kill cap and never removed by a fight action), a `surrender` (description, topics and optional `xp`) and `reacts: true`. The encounter may have `bypassXp` (1–10,000, for slipping past it), `sneakAgain: true`, `lurking: true`, a `reaction` (each attitude's `options` and `text`, optional `peacefulXp`, `parley`, `toll` and `trade`; see [combat.md](combat.md)), `sets` (flags for `won`, `bypassed`, `peaceful` and `fled`), and one of `presentWhile`, `presentUntil` (a flag) and `movesTo` (`{ roomId, when }`).
+- **Module:** `id`, `title`, `objective` (text), `recommendedLevels` (1–5),
+  `difficulty` (easy, medium or hard), `startRoomId`, `rooms`, `passages`,
+  `encounters` (at most 30, wandering ones included) and `endings` (victory,
+  escape with loot, escape without loot, defeat; a victory or escape may award
+  `xp`). Optional: `long: true`; `regions` (1–10, each `id`, `name`, an optional
+  `backdrop` and an optional `wandering` table: `chance` on a d100 every `every`
+  moves, 1–6 `entries` of `encounterId` and `omen`); `flags` (1–30 ids); an
+  `alarm` (`flag`, `text`, optional `fights`: `{ region, round }` pairs);
+  `routes` (1–6, each `id`, `name` and 1–20 `rooms` passed in order); and one
+  `wanderingEncounter` (`{ encounterId, chance }`, rolled on each rest), not
+  beside region tables.
+- **Room:** `id`, `name`, `description`, its map cell `at` (`[x, y]`, −50 to 50)
+  and optional `floor` (−9 to 9); optional `region`, `backdrop` (in place of its
+  region's), `exit`, `restSite: true` (where a long rest may be taken),
+  `avoidable: true` (left out of its region's sweep), `encounterId`, up to 12
+  `features` and 12 `items`, and up to 6 `creatures`. The map's layout rules are
+  in [exploring.md](exploring.md) and
+  [the authoring guide](../module-authoring.md).
+- **Feature:** optional `discovery`, `check`, `sets` (a flag), `changed`
+  (`{ when, description }`), `uses` (up to four `{ item, text, effects }`,
+  optionally `consumes: true`) and `fightAction` (`{ once, check, bands }`,
+  `once` being `fight` or `adventure`).
+- **Item:** `kind` is a potion (Healing or Greater Healing), `key`, `tool`,
+  `treasure` (a catalogue gem or art object), `coin` (`coins` in gp, sp and cp),
+  `gear` (a catalogue weapon, armour or shield), `scroll` (its `spell`), `wand`
+  (a catalogue wand) or `caster-item` (its `casterItem`, a catalogue caster
+  item). `hiddenIn` names a feature of its room, or an opponent of its room's
+  fight, which then carries it. Optional `sets`.
+- **Creature:** `topics`, each `id`, `name` and `reply`, with an optional check
+  and `failure` words, `offeredWhile` or `offeredUntil` (a flag) and, on a
+  surrender's topic, `gives`. A merchant has `merchant: { stock, minutes }`:
+  catalogue gear, and the minutes a trade takes (1–60).
+- **Passage:** `id`, `between` two rooms, `description`; optional `door`
+  (`state` stuck, opened by a `force` check; or locked, opened by any of
+  `keyItemIds` (one or two keys), a `pick` check and a `break` check), `trap`
+  (`find: { dc }`, as the search rolls Perception or Investigation; a `disarm`
+  check, `trigger` text, a saving throw, damage of an SRD 5.2 type and a defeat
+  ending), `hidden: true`, `vertical` (`stairs`, `ladder` or `shaft`),
+  `openWhen` and `closeWhen` (flags).
+- **Check:** a `skill` (any in `SKILLS` in `src/class-5e.ts`: SRD 5.2's skills
+  but Performance) or `ability`, with a `dc` from 5 to 30; or `approaches`, 2–4
+  such, each a different skill, ability or tool. An approach may have
+  `advantage` and `disadvantage` (1–4 circumstances each: `holds` an item,
+  `discovered` a feature, `won` an encounter or a `flag`, each with a `name` and
+  optional `not: true`). A Dexterity approach may name
+  `"tool": "thieves-tools"`, only on a pick or a disarm. A Strength approach
+  (Athletics or Strength) may be marked `"movement": "climb"` or `"jump"`, which
+  a Thief makes with Dexterity (Second-Story Work). A check may have a `retry`:
+  a damage cost, an item cost (a tool) or `after` a circumstance. Any check but
+  a trap's find may have `bands`: any of `failure-by-5`, `failure`, `success`
+  and `success-by-5`, each with optional `text`, `noisy: true` (raises the
+  alarm) and up to six `effects`: `discovery`, `item` (reveals a hidden item),
+  `damage`, `open` or `close` (a passage) and `set` (a flag).
+- **Encounter:** `id`, `opponents`, `defeatEndingId` and optional
+  `victoryEndingId`. An opponent names a bestiary `monster` (with an optional
+  `name` and `description`) or gives its own name, description and SRD 5.2
+  `statBlock`; it may have an `icon` (from `src/icons-5e.ts`), `boss: true`
+  (exempt from the gate's one-hit-kill cap and never removed by a fight action),
+  a `surrender` (description, topics and optional `xp`) and `reacts: true`. The
+  encounter may have `bypassXp` (1–10,000, for slipping past it),
+  `sneakAgain: true`, `lurking: true`, a `reaction` (each attitude's `options`
+  and `text`, optional `peacefulXp`, `parley`, `toll` and `trade`; see
+  [talk-and-stealth.md](talk-and-stealth.md#reaction-rolls)), `sets` (flags for
+  `won`, `bypassed`, `peaceful` and `fled`), and one of `presentWhile`,
+  `presentUntil` (a flag) and `movesTo` (`{ roomId, when }`).
 
 ## What the validator refuses
 
-Unknown references and malformed fields are refused with a message naming them. These are the design constraints behind the rest:
+Unknown references and malformed fields are refused with a message naming them.
+These are the design constraints behind the rest:
 
-- **Reachability.** Every room is reachable from the start. Each essential room (one whose fight ends the adventure in victory), and some exit, must be reachable without a check or trap, or through checks every band of which leaves a way forward (a door's success opens it; a band's `open` opens a hidden passage). A locked door counts as open when one of its keys can be reached that way and is not hidden in a feature with a check. A band no character of the module's maximum level can roll at its DC doesn't count, and an authored band nobody can roll is refused. A passage any band, use or flag can close is never counted on, and a closer that can cut off an essential room or every exit is refused. A check only thieves' tools make is never counted on, as the character may carry none. A way a use opens counts only once the feature's room and the item are reached for sure: the item in plain sight or hidden in a feature with no check, not carried by an opponent, and not used up first. An item hidden in a feature with a check must be revealed by some band, and a hidden passage opened by a band or a use.
-- **Sure flags.** Rooms reached and flags set for sure are grown together until neither changes, and the reachability rules are checked over them. A flag is set for sure by entering a room reached, examining its features, taking its items (not those hidden in a feature with a check or carried by an opponent) and ending its fight, and by a check reached for sure every band of which sets it. A fight's flag is sure only when every final outcome sets it: `won`, and `peaceful` too when the fight is reaction-eligible. Slipping past or fleeing leaves a fight unresolved, so `bypassed` and `fled` flags are never counted on. A way only an unsure flag opens is never counted on. Every declared flag must be set by something and used by something. A hidden passage can't have `openWhen` (bands open hidden passages; flags open visible ones), and no passage opens and closes on one flag. A topic that `gives` can't be withdrawn or wait on an unsure flag. Only the alarm sets the alarm's flag.
-- **Avoidable rooms and routes.** Only a long module's room may be `avoidable`. An avoidable room lies off every declared route and never holds the victory fight. In a long module every room must reach an exit by passages nothing can close, so a hurt character can leave with what it found. A long module has at least two regions, each with a rest site. Regions are all or nothing: every room names one, or none does.
-- **Fight actions.** A fight action needs a room where a fight is fought. Its approaches name no tool, movement or circumstance; a band has at most two effects, a removal stands alone, and a condition is prone (for 1 turn), poisoned or paralysed. One that can remove an opponent is once per adventure, and never in a room where a boss may be fought or where an opponent carries a door's key or an item a use needs (removed, it would strand the character as a lost key does).
-- **Reactions and surrender.** A reaction-eligible encounter's fight can't end the adventure, and none of its opponents may be mindless (Undead, or morale `"never"`). No band is hostile, and every band offers `attack` or `let-pass`, so the reaction can always end. A parley, toll or trade is authored exactly when some band offers it; a parley has 1–3 approaches of Persuasion, Deception or Intimidation, a shift is ±1 to ±4, and `surprise-attack` is only on `failure-by-5`. `reacts` needs a reaction. A surrender can't be on a mindless opponent or one whose fight ends the adventure; only a surrender's topics give, each item they give is one the opponent carries, and no item is given twice. An item carried by an opponent whose fight ends the adventure is refused, as its body is never searched.
-- **Wandering encounters.** A wandering encounter sits in no room and has no victory ending, `bypassXp`, `sneakAgain`, `lurking`, reaction or surrendering opponent. A region table's chance is at least its number of entries, and no encounter is in two entries. No room may be held by two encounters.
-- **Treasure and magic items.** Treasure, coin and gear are hidden in a feature or carried by an opponent, never in plain sight. Findable coin, gems and art stay within the budget for the module's maximum level, a module for level 1 or 2 hides at most one or two gems or art objects, and each item's tier is allowed at that level (see [gear.md](gear.md)). Magic items come only when the module's maximum level is 3 or more: one any class may use (a wand is one) and one caster-only item in the caster slot, each no lower than its own minimum level; none that any class may attune. A scroll is of a spell the game knows, not a cantrip or a reaction spell. A bestiary opponent's loot must be something its treasure type could produce. A merchant stocks no magic item, no rare gear and uncommon gear only when the module's lowest recommended level is 3 or more; one merchant per room.
-- **Doors, traps and tools.** A stuck door takes only a force check; a locked one any of a key, a pick and a break, never a force. A pick is a Dexterity check with thieves' tools, and only a pick or a disarm may name them. A retry's `after` can't be `not` (it could never change back); its item cost is a tool the check's own advantage doesn't need; its damage ending is a defeat.
-- **Ids and names.** No id may be a catalogue item's (such as `longsword`), as those name the character's own gear. Features, items, doors, traps, creatures and topics have unique ids. Names the player types must be unique ignoring case: features in a room, opponents in an encounter, doors, and a creature's topics.
-
-## Bestiary
-
-The bestiary (`adventures/5e/bestiary.json`, `src/bestiary-5e.ts`) holds the monsters modules name by id. Each has a default description, a `levelBand` (the character levels it suits), a `treasureType` (see Monster loot in [gear.md](gear.md)) and a stat block with its XP and `morale`: a DC from 1 to 30, or `"never"`, which every Undead has (see Morale in [combat.md](combat.md)). A stat block may list `traits` (Pack Tactics, Undead Fortitude, Nimble Escape, Rampage), `multiattack` (2–4 attacks a turn), a `stealth` bonus, `saveProficiencies`, damage resistances, vulnerabilities and immunities, and `conditionImmunities` (poisoned, prone, paralysed, or exhaustion, which only makes it succeed on Sleep's saves). An attack may have a `rider`: extra damage and a condition (poisoned, prone or paralysed) with an optional save; poisoned and paralysed last 1–10 turns and may repeat the save. A monster without Multiattack uses only its first attack.
-
-The Giant Spider's poison and the knockdowns of the Wolf, Mastiff, Dire Wolf and Brown Bear are derived house riders: SRD 5.2's numbers differ, and its knockdowns land on any hit with no save, which would cost a prone character a turn on nearly every hit. SRD 5.2 has no kobold or gnoll, so the Kobold and the Gnoll Ravager are house stat blocks with their own numbers and wording, not SRD content.
-
-| Monster (id)                            | Source               | CR (XP)   | Levels | Attacks used                       | Traits                      |
-| --------------------------------------- | -------------------- | --------- | ------ | ---------------------------------- | --------------------------- |
-| Giant Rat (`giant-rat`)                 | SRD 5.2              | 1/8 (25)  | 1      | Bite                               | Pack Tactics                |
-| Goblin Minion (`goblin-minion`)         | SRD 5.2              | 1/8 (25)  | 1      | Dagger                             | Nimble Escape               |
-| Kobold (`kobold`)                       | House                | 1/8 (25)  | 1      | Spike                              | Nimble Escape, Pack Tactics |
-| Bandit (`bandit`)                       | SRD 5.2              | 1/8 (25)  | 1–2    | Scimitar                           |                             |
-| Mastiff (`mastiff`)                     | SRD 5.2, house rider | 1/8 (25)  | 1–2    | Bite                               |                             |
-| Goblin Warrior (`goblin-warrior`)       | SRD 5.2              | 1/4 (50)  | 1–2    | Scimitar                           | Nimble Escape               |
-| Zombie (`zombie`)                       | SRD 5.2              | 1/4 (50)  | 1–2    | Slam                               | Undead Fortitude            |
-| Skeleton (`skeleton`)                   | SRD 5.2              | 1/4 (50)  | 1–2    | Shortsword                         |                             |
-| Wolf (`wolf`)                           | SRD 5.2, house rider | 1/4 (50)  | 2–3    | Bite                               | Pack Tactics                |
-| Hobgoblin Warrior (`hobgoblin-warrior`) | SRD 5.2              | 1/2 (100) | 2–3    | Longsword                          | Pack Tactics                |
-| Goblin Boss (`goblin-boss`)             | SRD 5.2              | 1 (200)   | 2–3    | Scimitar, one a turn               | Nimble Escape               |
-| Ghoul (`ghoul`)                         | SRD 5.2              | 1 (200)   | 2–3    | Claw                               |                             |
-| Bugbear Warrior (`bugbear-warrior`)     | SRD 5.2              | 1 (200)   | 2–3    | Light Hammer                       |                             |
-| Giant Spider (`giant-spider`)           | SRD 5.2, house rider | 1 (200)   | 3–4    | Bite                               |                             |
-| Gnoll Ravager (`gnoll`)                 | House                | 1 (200)   | 3–4    | Multiattack: two of Spear and Bite | Rampage                     |
-| Ogre (`ogre`)                           | SRD 5.2              | 2 (450)   | 4–5    | Greatclub                          |                             |
-| Dire Wolf (`dire-wolf`)                 | SRD 5.2, house rider | 1 (200)   | 3–5    | Bite                               | Pack Tactics                |
-| Brown Bear (`brown-bear`)               | SRD 5.2, house rider | 1 (200)   | 3–5    | Multiattack: two of Bite and Claw  |                             |
-| Bandit Captain (`bandit-captain`)       | SRD 5.2              | 2 (450)   | 4–5    | Multiattack: two Scimitar          |                             |
-| Owlbear (`owlbear`)                     | SRD 5.2              | 3 (700)   | 5      | Multiattack: two Rend              |                             |
-| Warrior Veteran (`warrior-veteran`)     | SRD 5.2              | 3 (700)   | 5      | Multiattack: two Greatsword        |                             |
-
-SRD 5.2 monsters left out because their blocks need what the engine lacks: the Hobgoblin Captain (a 10-foot aura), the Minotaur of Baphomet (10-foot reach and a charge) and the Wight (Life Drain lowers maximum hit points, and it raises zombies).
-
-Left out of the stat blocks, so the engine never meets them:
-
-- the Ghoul's Multiattack and its Bite's necrotic damage; it fights with its paralysing Claw;
-- the Goblin Boss's Multiattack (two attacks made it far deadlier than its CR suggests);
-- every reaction: the Goblin Boss's Redirect Attack, and the Bandit Captain's and Warrior Veteran's Parry;
-- ranged attacks: the Hobgoblin Warrior's Longbow, the Bugbear Warrior's thrown Light Hammer, the Ogre's Javelin, the Bandit Captain's Pistol and the Warrior Veteran's Heavy Crossbow;
-- the Bugbear Warrior's Grab, Abduct and 10-foot reach (no grappling, no positions);
-- the Kobold's Sunlight Sensitivity (no light), and the Gnoll Ravager's Rampage move;
-- the Brown Bear's fixed Bite and Claw: a die picks each of its two attacks, so it may bite or claw twice;
-- every monster's skills, senses, languages, speed and gear.
-
-The SRD 5.2 stat blocks are from the System Reference Document 5.2 by Wizards of the Coast LLC, licensed under CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/legalcode).
+- **Reachability.** Every room is reachable from the start. Each essential room
+  (one whose fight ends the adventure in victory), and some exit, must be
+  reachable without a check or trap, or through checks every band of which
+  leaves a way forward (a door's success opens it; a band's `open` opens a
+  hidden passage). A locked door counts as open when one of its keys can be
+  reached that way and is not hidden in a feature with a check. A band no
+  character of the module's maximum level can roll at its DC doesn't count, and
+  an authored band nobody can roll is refused. A passage any band, use or flag
+  can close is never counted on, and a closer that can cut off an essential room
+  or every exit is refused. A check only thieves' tools make is never counted
+  on, as the character may carry none. A way a use opens counts only once the
+  feature's room and the item are reached for sure: the item in plain sight or
+  hidden in a feature with no check, not carried by an opponent, and not used up
+  first. An item hidden in a feature with a check must be revealed by some band,
+  and a hidden passage opened by a band or a use.
+- **Sure flags.** Rooms reached and flags set for sure are grown together until
+  neither changes, and the reachability rules are checked over them. A flag is
+  set for sure by entering a room reached, examining its features, taking its
+  items (not those hidden in a feature with a check or carried by an opponent)
+  and ending its fight, and by a check reached for sure every band of which sets
+  it. A fight's flag is sure only when every final outcome sets it: `won`, and
+  `peaceful` too when the fight is reaction-eligible. Slipping past or fleeing
+  leaves a fight unresolved, so `bypassed` and `fled` flags are never counted
+  on. A way only an unsure flag opens is never counted on. Every declared flag
+  must be set by something and used by something. A hidden passage can't have
+  `openWhen` (bands open hidden passages; flags open visible ones), and no
+  passage opens and closes on one flag. A topic that `gives` can't be withdrawn
+  or wait on an unsure flag. Only the alarm sets the alarm's flag.
+- **Avoidable rooms and routes.** Only a long module's room may be `avoidable`.
+  An avoidable room lies off every declared route and never holds the victory
+  fight. In a long module every room must reach an exit by passages nothing can
+  close, so a hurt character can leave with what it found. A long module has at
+  least two regions, each with a rest site. Regions are all or nothing: every
+  room names one, or none does.
+- **Fight actions.** A fight action needs a room where a fight is fought. Its
+  approaches name no tool, movement or circumstance; a band has at most two
+  effects, a removal stands alone, and a condition is prone (for 1 turn),
+  poisoned or paralysed. One that can remove an opponent is once per adventure,
+  and never in a room where a boss may be fought or where an opponent carries a
+  door's key or an item a use needs (removed, it would strand the character as a
+  lost key does).
+- **Reactions and surrender.** A reaction-eligible encounter's fight can't end
+  the adventure, and none of its opponents may be mindless (Undead, or morale
+  `"never"`). No band is hostile, and every band offers `attack` or `let-pass`,
+  so the reaction can always end. A parley, toll or trade is authored exactly
+  when some band offers it; a parley has 1–3 approaches of Persuasion, Deception
+  or Intimidation, a shift is ±1 to ±4, and `surprise-attack` is only on
+  `failure-by-5`. `reacts` needs a reaction. A surrender can't be on a mindless
+  opponent or one whose fight ends the adventure; only a surrender's topics
+  give, each item they give is one the opponent carries, and no item is given
+  twice. An item carried by an opponent whose fight ends the adventure is
+  refused, as its body is never searched.
+- **Wandering encounters.** A wandering encounter sits in no room and has no
+  victory ending, `bypassXp`, `sneakAgain`, `lurking`, reaction or surrendering
+  opponent. A region table's chance is at least its number of entries, and no
+  encounter is in two entries. No room may be held by two encounters.
+- **Treasure and magic items.** Treasure, coin and gear are hidden in a feature
+  or carried by an opponent, never in plain sight. Findable coin, gems and art
+  stay within the budget for the module's maximum level, a module for level 1 or
+  2 hides at most one or two gems or art objects, and each item's tier is
+  allowed at that level (see [treasure.md](treasure.md#treasure)). Magic items
+  come only when the module's maximum level is 3 or more: one any class may use
+  (a wand is one) and one caster-only item in the caster slot, each no lower
+  than its own minimum level; none that any class may attune. A scroll is of a
+  spell the game knows, not a cantrip or a reaction spell. A bestiary opponent's
+  loot must be something its treasure type could produce. A merchant stocks no
+  magic item, no rare gear and uncommon gear only when the module's lowest
+  recommended level is 3 or more; one merchant per room.
+- **Doors, traps and tools.** A stuck door takes only a force check; a locked
+  one any of a key, a pick and a break, never a force. A pick is a Dexterity
+  check with thieves' tools, and only a pick or a disarm may name them. A
+  retry's `after` can't be `not` (it could never change back); its item cost is
+  a tool the check's own advantage doesn't need; its damage ending is a defeat.
+- **Ids and names.** No id may be a catalogue item's (such as `longsword`), as
+  those name the character's own gear. Features, items, doors, traps, creatures
+  and topics have unique ids. Names the player types must be unique ignoring
+  case: features in a room, opponents in an encounter, doors, and a creature's
+  topics.

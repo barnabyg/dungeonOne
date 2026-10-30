@@ -83,7 +83,7 @@ These are for development, not play. Run each with `--help` for its options.
 - `npm.cmd run cli` plays a module on the command line with Ada, a fixed
   level-1 Fighter; it records and replays traces.
 - `npm.cmd run balance` runs the balance harness and gate over every module
-  (see [balance](docs/rules/balance.md)).
+  (see [balance](docs/rules/balance-gate.md)).
 - `npm.cmd run gate:verdicts` (no options) records the gate's verdicts in
   `adventures/5e/gate-verdicts.json`; run it after changing a shipped module.
 - `npm.cmd run career` plays a new level-1 character through every module in

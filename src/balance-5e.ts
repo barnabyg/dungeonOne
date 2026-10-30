@@ -3490,7 +3490,7 @@ export type DifficultyThresholds = Readonly<{
   oneHitKillCap: number;
 }>;
 
-/** The gate's parameter table, recorded in docs/rules/balance.md. */
+/** The gate's parameter table, recorded in docs/rules/balance-gate.md. */
 export const DIFFICULTY_THRESHOLDS: Readonly<
   Record<Difficulty, DifficultyThresholds>
 > = {
