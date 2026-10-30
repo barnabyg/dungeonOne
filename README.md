@@ -51,7 +51,8 @@ an adventure, click the actions the engine offers or type what you want to do
 to the Dungeon Master. The AI Dungeon Master uses the OpenAI model the Settings
 page chooses (default `gpt-6-luna`, the only one offered); each adventure keeps
 the model it started with. Treasure, gear, coin and XP are kept only by getting out alive. A
-character at 0 HP is defeated for good; there are no death saving throws.
+character at 0 HP is defeated for good, apart from
+[Last Stand](docs/rules/house-rules.md)'s single death saving throw.
 
 ## Adventure modules
 

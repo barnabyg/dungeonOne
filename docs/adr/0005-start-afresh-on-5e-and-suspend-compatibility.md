@@ -14,7 +14,7 @@ The game moved to the 2024 fifth-edition rules in the System Reference Document 
 
 **House rules.** Every departure from SRD 5.2 is a house rule, listed, with the SRD rule it replaces, in [`docs/rules/house-rules.md`](../rules/house-rules.md), and so is the handling of every rule that needs positions. The founding ones:
 
-- A player character at 0 HP is defeated at once, with no death saving throws; a defeated character cannot start another adventure. Monsters at 0 HP are defeated as in 5e.
+- A player character at 0 HP is defeated at once, with no death saving throws; a defeated character cannot start another adventure. Monsters at 0 HP are defeated as in 5e. (A later house rule, [Last Stand](../rules/house-rules.md), adds a single save.)
 - Ability scores are rolled once with 4d6-drop-lowest from the seeded stream and placed freely. The set is saved before it is shown, so reloading or restarting creation shows the same set. There are no rerolls.
 - Starting gear is common tier only, as early levels are the most dangerous; it departs from the 2024 starting equipment.
 - Morale and reaction rolls are added, though neither is core 5e.

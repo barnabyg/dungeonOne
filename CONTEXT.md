@@ -112,7 +112,7 @@ Treasure and coin carried during an adventure but not yet kept, though it can be
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **Treasure budget**:
-The most a module's findable coin, treasure, gear and consumables may be worth, set by its maximum recommended level; each item's tier must also suit that level.
+The most the coin, gems and art objects a module hides may be worth, set by its maximum recommended level. Potions, scrolls, gear and magic items are outside it, limited by their tiers; see [gear](docs/rules/gear.md).
 _Avoid_: Loot table, Hoard
 
 **Treasure type**:
@@ -160,7 +160,7 @@ Giving up an adventure in progress from the sheet. The character stays exactly a
 _Avoid_: Escape, Quit
 
 **Defeated character**:
-A character whose adventure ended at 0 HP. It stays in the library but cannot adventure again; there are no death saving throws.
+A character whose adventure ended at 0 HP. It stays in the library but cannot adventure again. A character at 0 HP is defeated for good, apart from [Last Stand](docs/rules/house-rules.md)'s single death saving throw.
 _Avoid_: Dead character, Unconscious
 
 **Adventure module**:
