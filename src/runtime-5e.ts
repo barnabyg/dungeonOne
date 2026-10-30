@@ -4967,7 +4967,11 @@ export type MapView = Readonly<{
     region?: Readonly<{ name: string; shade: number }>;
     /** The character is here. */
     current?: true;
+    /** A long rest may be taken here (#563). */
+    restSite?: true;
   }>[];
+  /** The adventure's settings allow long rests, so the key lists rest sites. */
+  restSites?: true;
   /**
    * A passage out of a visited room: its two ends, the first one visited;
    * one between floors is stairs, a ladder or a shaft. A hidden passage
@@ -13541,7 +13545,9 @@ export function createFifthRuntime(
         floor: of.floor,
         ...shade(of),
         ...(of.id === state.roomId ? { current: true as const } : {}),
+        ...(isRestSite(of) ? { restSite: true as const } : {}),
       })),
+      ...(settings.longRest === "on" ? { restSites: true as const } : {}),
       passages,
     };
   };

@@ -41,7 +41,7 @@ The engine records each condition with what gave it, how many of the bearer's tu
 
 Every adventure starts with every hit point, hit die and feature use, as a rest between adventures restores them all (see [Characters](characters.md)). During an adventure they carry from fight to fight, and only rests restore them. Each feature's class data says how many uses it has at each level and what a short and a long rest restore. Hit dice (one of the class's die per level) are spent only on a short rest and never in a fight.
 
-- **Where.** Outside a fight, in a room with no unresolved hostile encounter (none, or one won or ended peacefully); a long rest only in a room marked `restSite: true`.
+- **Where.** Outside a fight, in a room with no unresolved hostile encounter (none, or one won or ended peacefully); a long rest only in a room marked `restSite: true`, which the map marks once visited.
 - **How many (a house rule).** **Two short rests and one long rest per adventure**, or per region in a long module. SRD 5.2's limits are the clock and one long rest a day, and this game has no clock. The short rests per adventure [setting](settings.md) makes it 0, 1, 2 (the default), 3, 4 or unlimited; the long rest setting (default on) off offers no long rest anywhere.
 - **Short rest.** The player chooses how many hit dice to spend. Each heals its roll + the Constitution modifier (at least 0), and spending stops at full HP. Then each feature regains its short-rest uses.
 - **Long rest.** Restores every hit point, hit die and long-rest use. It doesn't give back short rests taken.
