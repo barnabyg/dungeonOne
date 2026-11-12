@@ -10,6 +10,8 @@ types, chooses only among the actions the engine offers, and never invents an
 outcome. The [rules document](docs/rules/README.md) records the rules in use,
 the house rules and the rules left out.
 
+![A level-1 Fighter at the Lane Gate of The Bramblecote Cider House: the character's HP and features, the people and things in the room, the ways on, the box for typing to the Dungeon Master, and the history of what happened](docs/images/play-screen.png)
+
 ## Requirements
 
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported: Node.js 24.x)
