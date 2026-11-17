@@ -129,8 +129,44 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     await createAndStart(page, server.url, "map-tunnels");
     assert.equal(await openButton.isVisible(), true);
 
+    const inline = page.locator("#inline-map");
+    const inlineDrawing = await drawn(page);
+    for (const viewport of [
+      { width: 1600, height: 950 },
+      { width: 2560, height: 1400 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.waitForFunction(() => {
+        const view = document
+          .querySelector("#map-view")
+          .getBoundingClientRect();
+        const drawing = document
+          .querySelector("#map-canvas")
+          .getBoundingClientRect();
+        const panel = document
+          .querySelector("#inline-map")
+          .getBoundingClientRect();
+        const history = document
+          .querySelector("#session-history")
+          .getBoundingClientRect();
+        return (
+          drawing.width > 0 &&
+          drawing.left >= view.left &&
+          drawing.right <= view.right + 1 &&
+          drawing.top >= view.top &&
+          drawing.bottom <= view.bottom + 1 &&
+          Math.abs(panel.bottom - history.bottom) < 2
+        );
+      });
+    }
+    assert.equal(await inline.locator("#map-key").isVisible(), false);
+    await inline.getByText("Key", { exact: true }).click();
+    assert.equal(await inline.locator("#map-key").isVisible(), true);
+    await inline.getByText("Key", { exact: true }).click();
+
     // The button opens it, focused on her room; Escape returns focus.
     await openButton.click();
+    assert.deepEqual(await drawn(page), inlineDrawing);
     assert.equal(await dialog.isVisible(), true);
     assert.equal(
       await page.evaluate(
@@ -205,9 +241,8 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     assert.equal(await page.locator("#message").inputValue(), "m");
     await page.locator("#message").fill("");
 
-    // The hidden passage shows once the wall gives it away.
+    // The inline map updates as the wall gives away a passage.
     await clickAction(page, "examine", "draughty-wall");
-    await openButton.click();
     assert.deepEqual((await drawn(page)).stubs.at(-1), [
       "Go to Cupboard (not yet explored)",
       [0, -1],
