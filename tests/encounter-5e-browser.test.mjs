@@ -88,17 +88,14 @@ const post = (page, path, body) =>
     [path, body],
   );
 
-/** What the encounter panel shows: initiative rows, turn and the log. */
-/**
- * The fight panel (#525): a line per card, Ada's then each foe's in
- * initiative order, "Goblin Warrior: 4/10, AC 15" with a fallen foe's state;
- * the turn line and the history.
- */
+/** The fight panel's live cards and finished foes, the turn line and history. */
 const panel = (page) =>
   page.evaluate(() => ({
     rows: [...document.querySelectorAll("#you-card, #foe-cards > li")].map(
       (card) =>
-        `${card.querySelector(".card-name").textContent}: ${card.querySelector(".hp-now").textContent}/${/\d+/u.exec(card.querySelector(".hp-max").textContent)[0]}, ${card.querySelector(".card-ac").textContent}${card.querySelector(".card-state") ? `, ${card.querySelector(".card-state").textContent}` : ""}`,
+        card.classList.contains("foe-summary")
+          ? card.innerText
+          : `${card.querySelector(".card-name").textContent}: ${card.querySelector(".hp-now").textContent}/${/\d+/u.exec(card.querySelector(".hp-max").textContent)[0]}, ${card.querySelector(".card-ac").textContent}${card.querySelector(".card-state") ? `, ${card.querySelector(".card-state").textContent}` : ""}`,
     ),
     turn: document.getElementById("turn").textContent,
     log: document.getElementById("log").textContent,
@@ -369,10 +366,28 @@ test(
         ({ id }) => id === expected.firstFall.id,
       ).name;
       shown = await panel(page);
+      const compact = page.locator("#foe-cards > li").last();
+      assert.equal(
+        await compact.getAttribute("data-combatant"),
+        expected.firstFall.id,
+      );
+      assert.equal(await compact.locator(".card-state").innerText(), "Fallen");
+      assert.equal(await compact.locator(".card-name").innerText(), fallen);
+      assert.equal(
+        await compact.locator("button, .card-ac, .card-hp, .hp-bar").count(),
+        0,
+      );
       assert.ok(
-        shown.rows.some(
-          (row) => row.startsWith(`${fallen}: 0/`) && row.endsWith(", Fallen"),
+        await compact.evaluate(
+          (row) =>
+            row.clientHeight <=
+            Math.ceil(parseFloat(getComputedStyle(row).lineHeight)),
         ),
+      );
+      assert.ok(
+        await page
+          .locator(`#turn-order [data-combatant="${expected.firstFall.id}"]`)
+          .isVisible(),
       );
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.ok(!(await attackLabels()).includes(`Attack ${fallen} with Mace`));
@@ -402,6 +417,11 @@ test(
       assert.equal(
         await page.locator("#ending-title").textContent(),
         "The storeroom is clear",
+      );
+      const rewards = await page.locator("#ending-rewards").innerText();
+      assert.match(
+        rewards,
+        /Defeated Goblin (?:Minion and Goblin Warrior|Warrior and Goblin Minion): \+\d+ XP/u,
       );
       // Every die matches an uninterrupted engine run on the same seed.
       const finished = await sessionFile(directory);
