@@ -2,38 +2,51 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-function run(command, args) {
-  const result = spawnSync(command, args, {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      npm_config_cache: path.join(
-        process.cwd(),
-        ".verify-artifacts",
-        "npm-cache",
-      ),
+import { permitsDevAuditException } from "./dev-audit-exception.mjs";
+
+function runNpm(args, capture = false) {
+  const cli = process.env.npm_execpath;
+  const result = spawnSync(
+    cli ? process.execPath : "npm",
+    cli ? [cli, ...args] : args,
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        npm_config_cache: path.join(
+          process.cwd(),
+          ".verify-artifacts",
+          "npm-cache",
+        ),
+      },
+      stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit",
     },
-    stdio: "inherit",
-  });
+  );
   if (result.error) {
     throw result.error;
   }
-  if (result.status !== 0) {
+  if (!capture && result.status !== 0) {
     process.exit(result.status ?? 1);
   }
-}
-
-function runNpm(args) {
-  if (process.env.npm_execpath) {
-    run(process.execPath, [process.env.npm_execpath, ...args]);
-    return;
-  }
-  run("npm", args);
+  return result;
 }
 
 runNpm(["ci", "--ignore-scripts", "--dry-run"]);
-runNpm(["audit", "--audit-level=high"]);
+const audit = runNpm(["audit", "--audit-level=high", "--json"], true);
+if (audit.status !== 0) {
+  const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
+  if (
+    audit.status !== 1 ||
+    !permitsDevAuditException(JSON.parse(audit.stdout), lock.packages)
+  ) {
+    process.stderr.write(audit.stdout);
+    process.exit(audit.status ?? 1);
+  }
+  process.stdout.write(
+    "Applied temporary development-only audit exception GHSA-fc5q-39xc-vjpf.\n",
+  );
+}
 
 const listed = spawnSync(
   "git",
