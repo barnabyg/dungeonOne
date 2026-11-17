@@ -333,10 +333,7 @@ test(
         await page.locator("#resources [data-resource=action]").count(),
         0,
       );
-      assert.match(
-        await page.locator("#fight-foot").innerText(),
-        /Left unused: .*End turn$/su,
-      );
+      assert.equal(await page.locator("#end-controls").innerText(), "End turn");
       // The room folds to its heading and one line naming its things.
       assert.equal(await page.locator("#room-things").isHidden(), true);
       assert.equal(

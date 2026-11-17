@@ -146,15 +146,20 @@ const cardAttack = (page, foe) =>
     .locator(`#foe-cards li[data-combatant="${foe}"] button`)
     .getAttribute("aria-label");
 
-/** What End turn says it gives up, and what a screen reader hears for it. */
-const endTurnNote = (page) =>
-  page.locator('button[data-action="end-turn"]').evaluate((button) => ({
-    shown: document.querySelector(".end-note")?.textContent ?? "",
-    described: (button.getAttribute("aria-describedby") ?? "")
-      .split(" ")
-      .map((id) => document.getElementById(id)?.textContent)
-      .join(" "),
-  }));
+/** Open the confirmation, inspect its choices, then keep playing. */
+async function remainingChoices(page) {
+  const end = page.locator('#end-controls button[data-action="end-turn"]');
+  const previous = await page.locator("#log li").count();
+  await end.click();
+  const question = await page.locator("#end-turn-question").innerText();
+  await page.locator("#keep-turn").click();
+  assert.equal(await page.locator("#log li").count(), previous);
+  assert.equal(
+    await end.evaluate((button) => button === document.activeElement),
+    true,
+  );
+  return question;
+}
 
 /** The visible button texts in row `key`. */
 const buttons = async (page, key) =>
@@ -271,12 +276,8 @@ test(
       );
       // End turn says what it gives up, and the fight's first turn says
       // the turn ends by itself.
-      const note =
-        "Left unused: Attack, Cast a spell, Divine Spark, Turn Undead";
-      assert.deepEqual(await endTurnNote(page), {
-        shown: note,
-        described: note,
-      });
+      assert.equal(await page.locator("#end-controls").innerText(), "End turn");
+      assert.match(await remainingChoices(page), /Attack/u);
       assert.match(
         await page.locator("#log").innerText(),
         /It is your turn\. Your turn ends by itself once nothing is left to do\./u,
@@ -328,17 +329,15 @@ test(
         /^Attack Goblin Warrior with /u,
       );
       // After the attack only Action Surge is left: End turn says so.
-      assert.equal(
-        (await endTurnNote(page)).shown,
-        "Left unused: Attack, Action Surge",
-      );
+      assert.match(await remainingChoices(page), /Attack/u);
       await settled(page, () =>
         page.locator('#encounter button[data-action="attack"]').click(),
       );
-      assert.equal(
-        (await endTurnNote(page)).shown,
-        "Left unused: Action Surge",
-      );
+      assert.match(await remainingChoices(page), /Action Surge/u);
+      await page
+        .locator('#end-controls button[data-action="end-turn"]')
+        .click();
+      await settled(page, () => page.locator("#confirm-end-turn").click());
     }),
 );
 
@@ -477,10 +476,7 @@ test(
           await sacred.locator(".chip-reason").textContent(),
           "Action used",
         );
-        assert.equal(
-          await page.locator(".end-note").textContent(),
-          "Left unused: Cast a spell: Healing Word",
-        );
+        assert.match(await remainingChoices(page), /Healing Word/u);
       },
       hurtSeed,
     ),

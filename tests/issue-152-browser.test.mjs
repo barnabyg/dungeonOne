@@ -11,6 +11,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 import {
+  confirmEndTurn,
   createFighter,
   openCreation,
   saveFighter,
@@ -235,6 +236,7 @@ async function fightToTheEnd(page) {
         ? attack.first()
         : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
+    await confirmEndTurn(page);
     await page.waitForFunction(
       (seen) => document.querySelectorAll("#log li").length > seen,
       count,

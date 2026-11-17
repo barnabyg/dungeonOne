@@ -51,11 +51,20 @@ export const text = async (locator) =>
 export async function settled(page, run) {
   const count = await page.locator("#log li").count();
   await run();
+  await confirmEndTurn(page);
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log li:not([data-pending])").length > seen,
     count,
   );
+}
+
+/** Finish an early End turn when the player has a usable action left. */
+export async function confirmEndTurn(page) {
+  const confirm = page.locator("#confirm-end-turn");
+  if (await confirm.isVisible()) {
+    await confirm.click();
+  }
 }
 
 /**

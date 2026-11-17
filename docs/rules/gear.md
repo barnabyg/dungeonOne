@@ -60,7 +60,8 @@ adventure show the weight carried with no capacity.
   Arrows and bolts count one by one (7 arrows weigh 0.35 lb). Coin weighs 50 to
   the pound, carried as the fewest coins worth the purse. Modules author no
   weights: a Potion of Healing weighs ½ lb, a key nothing, and treasure 1 lb
-  each.
+  each. The play screen and shop round the displayed load to the nearest tenth
+  of a pound. The capacity check uses the exact weight.
 - **Refused:** taking anything (dropped gear and ammunition included) and
   buying, when the weight afterwards would exceed capacity; the reply names the
   weight, the load and the capacity. Dropping, equipping and selling are never

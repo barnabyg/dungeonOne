@@ -106,6 +106,14 @@ const logCount = (page) => page.locator("#log > li").count();
 async function enterAction(page) {
   const count = await logCount(page);
   await page.keyboard.press("Enter");
+  if (await page.locator("#end-turn-dialog").isVisible()) {
+    await page.keyboard.press("Tab");
+    assert.equal(
+      await page.evaluate(() => document.activeElement.id),
+      "confirm-end-turn",
+    );
+    await page.keyboard.press("Enter");
+  }
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log > li").length > seen &&

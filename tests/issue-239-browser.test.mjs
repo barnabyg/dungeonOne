@@ -16,6 +16,7 @@ import { sessionSeed } from "../dist/session-5e.js";
 import { gemMarket } from "./fixtures/gem-market.mjs";
 import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
 import {
+  confirmEndTurn,
   createFighter,
   leaveShop,
   openShop,
@@ -69,6 +70,7 @@ async function fight(page) {
     }
     const count = await page.locator("#log li").count();
     await ((await attack.count()) > 0 ? attack.first() : endTurn).click();
+    await confirmEndTurn(page);
     await page.waitForFunction(
       (seen) => document.querySelectorAll("#log li").length > seen,
       count,

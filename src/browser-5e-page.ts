@@ -16,7 +16,7 @@
 //   character acts out of a fight (#520): after #room-region, #room-heading
 //   holds #room-title, in a way-out room only #leave-controls ("Way out
 //   · Leave"), and #room-history-link ("Description in history", #524),
-//   shown while the history has an arrival in the room; the description
+//   shown when the room's latest arrival scrolls out of view; the description
 //   itself is only in the history. Then #leave-confirm, #room-actions (the
 //   row for what acts on no one thing: a search of the room, Tactical
 //   Mind) and #room-alarm. Then the room's things, one card each
@@ -79,8 +79,8 @@
 //   #flee-attacks, whom a flight draws attacks from, over #flee-ways, a
 //   button per way out; Escape or a click elsewhere closes it; disabled
 //   with #flee-reason when every flight is refused), #turn-resources (the
-//   turn's Action, Bonus and Reaction pips) and #end-controls (End turn and
-//   what it leaves unused), then the action bar's other rows, moved in
+//   turn's Action, Bonus and Reaction pips) and #end-controls (End turn, which confirms before passing up
+//   an available action with a cost), then the action bar's other rows, moved in
 //   (over the cards while a hit or a fall waits for an answer). The rolls
 //   behind the turn order are in the history's arrival entry (#524), with
 //   a closed .initiative-how, "How initiative was rolled" (#525).
@@ -126,8 +126,7 @@
 //   sits in the character column's #rest-group (#521), never the bar, shown
 //   whenever the adventure is in play. In a fight #rest-fight says "Not
 //   during a fight" with the rests left. Otherwise #short-rest (#334) has
-//   the short rests and hit dice left, a one-line hint of what hit dice do
-//   (#rest-hint, #533), a choice of how many hit dice to
+//   the short rests and hit dice left, a choice of how many hit dice to
 //   spend (#rest-dice) while a rest would restore something, and its Short
 //   rest button, disabled with its reason as visible text when the engine
 //   would refuse it or offers none ("Nothing to recover", "No short rests
@@ -228,9 +227,8 @@
 // sound, #settings-sound-on and #settings-sound-volume, in step with the
 // header's; with sound off for the launch it says so and has no controls.
 // Settings remembers the view it was opened from in its history entry, so
-// a reload keeps it: the breadcrumb runs through that view, and
-// #settings-back ("Back to <view>") returns to it as Back does; a Settings
-// URL opened on its own goes back to the characters.
+// a reload keeps it. Its breadcrumb returns to that view as Back does.
+// A Settings URL opened on its own links back to the characters.
 //
 // Creation's ability scores (#509) follow the pending creation's method:
 // #method-hint and #placing-hint say how; each #place-<ability> places a
@@ -327,7 +325,6 @@ export const fifthBrowserHtml = (sound: boolean): string => `<!doctype html>
 <section id="settings" class="panel" aria-labelledby="settings-title" hidden>
 <h2 id="settings-title" tabindex="-1">Settings</h2>
 <p class="hint">The defaults are the game as it is balanced. Each adventure keeps the settings it started with.</p>
-<div class="controls"><button id="settings-back" type="button" class="primary">Back to your characters</button></div>
 ${SETTINGS_SOUND(sound)}
 <p id="settings-in-progress" class="notice" hidden>An adventure is in progress: changes apply from the next adventure.</p>
 <div id="settings-list"></div>
@@ -380,13 +377,12 @@ ${SETTINGS_SOUND(sound)}
 </section>
 <section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
 <h2 id="adventure-title" class="visually-hidden" tabindex="-1"></h2>
-<p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
 <div id="session-main">
 <section id="session-character" aria-label="Character">
 <section id="session-status" aria-label="Status"><div id="class-crest" role="img"><svg aria-hidden="true"><use></use></svg></div><div id="status-lines"><strong id="fight-character-name" hidden></strong><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul></div><p id="gear-numbers"></p></section>
 <div id="inventory-group"><h3 id="inventory-title">You carry</h3><div id="inventory"></div><p id="purse"></p><p id="carrying"></p></div>
-<div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><p id="rest-hint" class="hint">Each hit die spent heals its roll + Con. Only a long rest or a new adventure brings hit dice back.</p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">You have one hit die per level, its size set by your class. A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. It also brings back the feature uses that return on a short rest, but no hit dice. Short rests are counted per adventure, or per region in a long module, and the Settings page sets how many. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left. Each new adventure starts with everything restored.</p></details></div>
+<div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">You have one hit die per level, its size set by your class. A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. It also brings back the feature uses that return on a short rest, but no hit dice. Short rests are counted per adventure, or per region in a long module, and the Settings page sets how many. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left. Each new adventure starts with everything restored.</p></details></div>
 </section>
 <div id="session-scene">
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></div></section>
@@ -436,6 +432,10 @@ ${SETTINGS_SOUND(sound)}
 <p id="delete-error" class="error" role="alert"></p>
 <div class="controls"><button id="confirm-delete" type="submit" class="primary danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
 </form>
+</dialog>
+<dialog id="end-turn-dialog" aria-labelledby="end-turn-title" aria-describedby="end-turn-question">
+<h2 id="end-turn-title">End your turn?</h2><p id="end-turn-question"></p>
+<div class="controls"><button id="keep-turn" type="button" class="secondary" autofocus>Keep playing</button><button id="confirm-end-turn" type="button" class="primary">End turn</button></div>
 </dialog>
 <dialog id="map-dialog" aria-labelledby="map-title">
 </dialog></body></html>`;
@@ -529,9 +529,9 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #session-status{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:var(--space-1) var(--space-3);font:var(--text-xs) var(--font-sans)}#gear-numbers{grid-column:1/-1}#status-lines{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;min-width:0}#class-crest{position:relative;display:grid;place-items:center;width:62px;height:62px;border-radius:var(--radius-md);background:var(--color-ink);color:var(--color-on-ink)}#class-crest svg{width:44px;height:44px;fill:currentColor}#class-crest::after{content:attr(data-level);position:absolute;right:-5px;bottom:-5px;min-width:1.4em;padding:0 5px;border:1px solid var(--color-paper);border-radius:999px;background:var(--color-gold);color:var(--color-ink);font:600 11px/1.45 var(--font-serif);text-align:center}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{display:flex;flex-direction:column;flex:1 0 auto;min-width:0}#session-scene>section{flex:none}#session-scene>#session-actions+section h3{margin-top:0}#session-main{grid-area:1/1}#session-composer{grid-area:2/1}#session-history{grid-area:1/2/3/3}#scene-backdrop{position:relative;flex:1 0 0;min-height:0;container-type:size;overflow:hidden;color:var(--color-line);opacity:.3;pointer-events:none}#scene-backdrop svg{position:absolute;inset:0;width:100%;height:100%}@container (height < 160px){#scene-backdrop svg{visibility:hidden}}@media(min-width:1500px){#session-character{grid-area:1/1/3/2}#session-scene{grid-area:1/2}#session-composer{grid-area:2/2}#session-history{grid-area:1/3/3/4}}
 #session-history{display:flex;flex-direction:column;min-width:0;min-height:0;border-left:1px solid var(--color-line);padding-left:var(--space-5)}#session-actions{display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-actions:has(.error:not(:empty),#ending:not([hidden]),.controls:not(:empty)){margin-bottom:var(--space-4)}#session-composer{min-width:0;border-top:1px solid var(--color-line);padding:var(--space-2) var(--space-2) 0 0;margin-top:var(--space-2)}
-.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p,#rest-hint{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-panel{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;border:1px solid var(--color-panel-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-2) 0 var(--space-3)}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}#log::after{content:"";height:var(--turn-room,0px)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
-button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.end-line{justify-content:flex-end;flex-wrap:nowrap}.end-note{font:var(--text-sm) var(--font-sans);color:var(--color-text-muted)}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}
-body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}#adventure-objective{margin-bottom:var(--space-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
+.controls.rest-panel{align-items:flex-end;margin:var(--space-1) 0 var(--space-2)}.rest-line,#rest-counts{margin:0;font:var(--text-sm) var(--font-sans);overflow-wrap:anywhere}.rest-line b{font-weight:600}#rest-fight{margin-bottom:var(--space-2)}#rest-rules{font:var(--text-sm) var(--font-sans)}#rest-rules p{margin:var(--space-1) 0 0}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}:is(#session-actions,#encounter) .controls{margin-top:0;min-width:0;max-width:100%}:is(#session-actions,#encounter) .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button{display:inline-grid}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button>span,:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#encounter,#room,#inventory,#shop-detail,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-panel{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;border:1px solid var(--color-panel-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-2) 0 var(--space-3)}#history-title{margin:0 0 var(--space-2)}#log{flex:1;align-content:start;overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}#log::after{content:"";height:var(--turn-room,0px)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#rest-rules summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}:is(#session-actions,#encounter) .controls.rows{display:grid;gap:var(--space-3);flex-basis:100%}.action-row{display:grid;gap:var(--space-1)}.row-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2);font:600 var(--text-sm) var(--font-sans);line-height:1.4;color:var(--color-text-label)}.row-label:empty{display:none}.row-uses{font:400 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.row-controls{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-2);min-width:0}.row-controls select{font-size:var(--text-sm);line-height:1.4;padding:10px var(--space-2);width:auto;max-width:100%;margin:0}.joiner,.reach{font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.row-line{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);flex-basis:100%}.strike-choice{flex-direction:row;align-items:center;gap:var(--space-1);font:var(--text-sm) var(--font-sans);color:var(--color-text-label)}.strike-choice select{width:auto;margin:0}
+body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}#adventure{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:var(--space-2)}@media(min-width:1500px){body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1880px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 .icon{display:inline-block;flex:none;width:1.6em;height:1.6em;vertical-align:-.45em;margin:-.3em .3em -.3em 0;fill:currentColor;color:var(--color-ink)}:is(.card-name,.things,.carry-list,#purse) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}.compact .icon{width:1.15em;height:1.15em;vertical-align:-.2em;margin:-.2em .2em -.2em 0}#credits{margin-top:var(--space-5)}#credits p{margin:0 0 var(--space-1)}
@@ -545,7 +545,7 @@ body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;f
 #encounter{flex-basis:100%;min-width:0;border:1px solid var(--color-danger);border-radius:var(--radius-md);background:color-mix(in srgb,var(--color-danger-soft) 40%,var(--color-surface));padding:var(--space-2) var(--space-3);margin-bottom:var(--space-4);font-family:var(--font-sans)}#session-scene>#session-actions+#encounter h3{margin:0}#fight-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#encounter-title{font-size:var(--text-lg);color:var(--color-danger)}#turn-order{margin:0 0 0 auto;font-size:var(--text-xs);color:var(--color-text-muted);overflow-wrap:anywhere}#turn-order strong{color:var(--color-ink)}
 #fight-sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-3);margin:var(--space-2) 0}.fight-side{min-width:0}.fight-side h4{margin:0 0 var(--space-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em}#foe-cards{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}.fight-card{min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);--hp-color:var(--color-danger)}.foe-summary{display:flex;align-items:baseline;gap:var(--space-1);min-width:0;padding:0 var(--space-2);font-size:var(--text-xs)}.foe-summary .card-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.foe-summary .card-state{flex:none}.foe-card[aria-current=true]{border-color:var(--color-danger)}.foe-card[data-state]{color:var(--color-text-muted);--hp-color:var(--color-hp-down)}#you-card{--hp-color:var(--color-hp-healthy)}#you-card[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}#you-card[data-health=critical]{--hp-color:var(--color-hp-critical)}#you-card[data-health=down]{--hp-color:var(--color-hp-down)}
 .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}.card-name{min-width:0;overflow-wrap:anywhere}.card-ac{flex:none;font-size:var(--text-xs);color:var(--color-text-muted)}.card-hp{margin:2px 0 0;line-height:1.2}.hp-now{font-size:1.3rem;font-weight:700}.hp-max{font-size:var(--text-xs);font-weight:600;color:var(--color-text-muted)}.fight-card .hp-bar{height:8px;margin:var(--space-1) 0 var(--space-2)}.card-tags{margin:0 0 var(--space-1);font-size:var(--text-xs);line-height:1.7}.card-state{margin:0;font-weight:600}#encounter .card-controls{gap:var(--space-1)}#heal-controls{flex-direction:column;align-items:stretch}#heal-controls .action{display:flex}#heal-controls button{text-align:left}.act-detail{font-size:var(--text-xs);font-weight:400;white-space:nowrap}
-#fight-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);border-top:1px solid var(--color-line);padding-top:var(--space-2)}#fight-foot:not(:has(#flee-control:not([hidden]),li,button:not(#flee-toggle))){display:none}#flee-control{position:relative;display:flex;align-items:center;gap:var(--space-2)}#flee-control[hidden]{display:none}#flee-reason:empty{display:none}#turn-resources{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);list-style:none;margin:0 0 0 auto;padding:0}#end-controls{display:flex;min-width:0}#end-controls:empty{display:none}#end-controls .end-note{text-align:right}
+#fight-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);border-top:1px solid var(--color-line);padding-top:var(--space-2)}#fight-foot:not(:has(#flee-control:not([hidden]),li,button:not(#flee-toggle))){display:none}#flee-control{position:relative;display:flex;align-items:center;gap:var(--space-2)}#flee-control[hidden]{display:none}#flee-reason:empty{display:none}#turn-resources{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);list-style:none;margin:0 0 0 auto;padding:0}#end-controls{display:flex;min-width:0}#end-controls:empty{display:none}
 button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}#flee-menu{position:absolute;left:0;bottom:calc(100% + var(--space-1));z-index:3;width:max-content;min-width:14rem;max-width:min(24rem,60vw);background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);box-shadow:0 6px 18px rgb(0 0 0/.2);padding:var(--space-1)}#flee-attacks{margin:0;padding:2px var(--space-2) var(--space-1);font-size:var(--text-xs);color:var(--color-danger)}#flee-ways{display:grid;gap:2px}#flee-ways .action{display:flex}#flee-ways button{text-align:left;border-color:transparent}#flee-ways button:hover:not(:disabled){background:var(--color-highlight)}#encounter #action-bar{margin:var(--space-2) 0 0}#fight-foot+#action-bar:has(.action-row){border-top:1px solid var(--color-line);padding-top:var(--space-2)}#strike-control{margin:var(--space-1) 0 0}#strike-control:empty,#area-cast:empty{display:none}#fight-sides:has(#attack-chooser:not([hidden])){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}#attack-chooser{display:grid;gap:var(--space-1);margin-top:var(--space-2);padding:var(--space-2);background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);font-size:var(--text-sm)}#attack-chooser[hidden]{display:none}#chooser-chips{display:grid;gap:var(--space-1)}.chooser-group{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:var(--space-1) var(--space-2);align-items:start}.chooser-label{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-label);padding-top:3px;line-height:1.2;overflow-wrap:anywhere}.chooser-pips{display:block;letter-spacing:1px;color:var(--color-ink)}.chips{display:flex;flex-wrap:wrap;gap:var(--space-1);min-width:0}.chip{position:relative;display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:3px;max-width:100%;border:1px solid var(--color-control-border);border-radius:999px;padding:2px 9px;font-size:var(--text-xs);line-height:1.4;background:var(--color-paper);color:var(--color-ink);cursor:pointer}.chip-name{overflow-wrap:anywhere}.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}.chip:hover:not(.on,.off){background:var(--color-surface-hover)}.chip.on{background:var(--color-ink);color:var(--color-on-ink);border-color:var(--color-ink)}.chip.off{color:var(--color-text-muted);border-color:var(--color-line);background:transparent;cursor:default}.chip-tag,.chip-reason{font-size:.9em;opacity:.85;white-space:nowrap}.chip-reason{font-style:italic}#chooser-detail{margin:0;border-top:1px solid var(--color-line);padding-top:var(--space-1);font-size:var(--text-xs);line-height:1.5;color:var(--color-text)}#chooser-detail select{width:auto;max-width:100%;margin:0 0 0 var(--space-1);padding:2px var(--space-1);font-size:var(--text-xs);line-height:1.4}.blast-tick{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);color:var(--color-text);cursor:pointer}.blast-tick input{width:auto;margin:0}#area-cast{margin-top:var(--space-2)}
 #room #room-fold{display:block;margin:0 0 var(--space-2);padding:2px 0;text-decoration:none;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left;font-size:var(--text-sm);color:var(--color-text-label)}@media(max-width:1499px){#fight-sides{gap:var(--space-2);margin:6px 0}.chooser-group{grid-template-columns:3.75rem minmax(0,1fr)}.fight-side h4{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.fight-card{padding:6px var(--space-2)}#encounter .fight-card button{padding:6px 10px}.hp-now{font-size:1.15rem}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
@@ -741,7 +741,7 @@ function show(id, title, trail) {
     if (index === items.length - 1) {
       const current = make("span", item.label);
       current.setAttribute("aria-current", "page");
-      current.title = item.label;
+      current.title = id === "adventure" ? item.label + " — " + session.adventure.objective : item.label;
       entry.append(current);
       return entry;
     }
@@ -751,7 +751,9 @@ function show(id, title, trail) {
     link.addEventListener("click", (event) => {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
-      go(item.hash);
+      const from = history.state?.settingsFrom;
+      if (id === "settings" && from && item.hash === from.hash) history.back();
+      else go(item.hash);
     });
     entry.append(link);
     return entry;
@@ -775,6 +777,7 @@ function route(focus) {
     element("delete-dialog").close();
   }
   if (element("map-dialog").open) closeMap(false);
+  if (element("end-turn-dialog").open) element("end-turn-dialog").close();
   const hash = location.hash;
   const character = /^#character-([a-f0-9]{32})$/.exec(hash);
   const adventure = /^#adventure-([a-f0-9]{32})$/.exec(hash);
@@ -1492,9 +1495,6 @@ function renderAdventure() {
   element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty);
   element("adventure-meta").title = element("adventure-meta").textContent;
   element("adventure-title").textContent = adventure.title;
-  // One line under the header bar (#430); a long objective shows in full on hover.
-  element("adventure-objective").textContent = adventure.objective;
-  element("adventure-objective").title = adventure.objective;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
   // A new room, or a fight beginning or ending, shows the centre column from
@@ -2066,7 +2066,9 @@ function historyEntry(entry) {
     item.append(said);
   }
   if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(part("p", message ? "reply" : "narration", entry.reply));
-  item.append(...entry.cards.map(historyCard));
+  const cards = entry.cards.map(historyCard);
+  if (entry === session.history[0]) cards[0]?.append(make("p", session.adventure.objective));
+  item.append(...cards);
   return item;
 }
 
@@ -2170,7 +2172,13 @@ function renderHistory() {
   else if (!turnStart?.isConnected) turnStart = log.lastElementChild ?? undefined;
   markNewest(log);
   followTurn();
-  element("room-history-link").hidden = !arrivalEntry();
+  const arrival = arrivalEntry();
+  if (arrival !== observedArrival) {
+    arrivalVisibility.disconnect();
+    observedArrival = arrival;
+    element("room-history-link").hidden = true;
+    if (arrival) arrivalVisibility.observe(arrival);
+  }
 }
 
 /**
@@ -2184,6 +2192,13 @@ function arrivalEntry() {
     .at(-1)
     ?.closest("li");
 }
+
+let observedArrival;
+const arrivalVisibility = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.target === observedArrival) element("room-history-link").hidden = entry.isIntersecting;
+  }
+}, { root: element("log") });
 
 /** "Description in history": scrolls the log to the room's arrival and focuses it. */
 function showArrival() {
@@ -2570,7 +2585,8 @@ const TREASURE_COLLAPSE_ABOVE = 4;
 const openCarried = new Set();
 let treasureOpen = null;
 
-const carryingText = ({ weight, capacity }) => capacity === undefined ? "Carrying " + weight + " lb." : "Carrying " + weight + " lb of the " + capacity + " lb your Strength allows.";
+const carryingText = ({ weight, capacity }) =>
+  "Carrying " + Math.round(weight * 10) / 10 + " lb" + (capacity === undefined ? "." : " of the " + capacity + " lb your Strength allows.");
 
 function renderInventory(room) {
   const entries = [...gearEntries(room.gear), ...room.inventory];
@@ -3107,8 +3123,17 @@ const HELD_REFUSALS = ${JSON.stringify([SHORT_REASONS["not-light"], SHORT_REASON
 const FIGHT_ROWS = [["attack", "Attack"], ["cast", "Cast a spell"], ["channel-divinity", "Channel Divinity"], ["fighter", "Fighter features"], ["rogue", "Rogue features"], ["items", "Items"], ["weapons", "Weapons"], ["last-stand", "Last Stand"], ["answer", "Answer the hit"], ["room", "Use the room"], ["other", "Other actions"]];
 // The row each of the fight's actions goes in.
 const FIGHT_ROW = { attack: "attack", "light-attack": "attack", "spectral-attack": "attack", "drain-attack": "attack", "divine-spark": "channel-divinity", "turn-undead": "channel-divinity", "preserve-life": "channel-divinity", "second-wind": "fighter", "action-surge": "fighter", "tactical-mind": "fighter", hide: "rogue", "steady-aim": "rogue", disengage: "rogue", "use-feature": "room", use: "items", equip: "weapons", unequip: "weapons", swap: "weapons", drop: "weapons", "uncanny-dodge": "answer", "take-hit": "answer", fall: "last-stand" };
-// What End turn would leave unused (#392), by the engine's option kinds.
-const UNUSED_NAMES = { attack: "Attack", "light-attack": "Extra attack", "second-wind": "Second Wind", "action-surge": "Action Surge", hide: "Hide", "steady-aim": "Steady Aim", "drink-potion": "Drink", cast: "Cast a spell", "divine-spark": "Divine Spark", "turn-undead": "Turn Undead", "preserve-life": "Preserve Life", "spectral-attack": "Spiritual Weapon", "drain-attack": "Vampiric Touch" };
+// The engine offers weapon changes with the free interaction first, then
+// with Fast Hands. Only the latter spends a bonus action.
+function endTurn(option) {
+  const unused = session.actions.filter(({ action, available }) =>
+    available && action !== "end-turn" && action !== "move" && !(GEAR.includes(action) && session.turn?.interaction)
+  );
+  if (!unused.length) return perform(option);
+  const names = unused.map(({ action, spell, feature, target }) => spell?.name || feature?.name || (action === "flee" ? "Flee" : (ACTIONS[action].label + (target?.name ?? "")).trim()));
+  element("end-turn-question").textContent = "You can still use: " + [...new Set(names)].join(", ") + ".";
+  element("end-turn-dialog").showModal();
+}
 // The ways to heal on the character's card (#525), in this order.
 const HEALS = ["second-wind", "use", "heal-spell", "preserve-life"];
 // Whom a Channel Divinity action that takes no choice reaches (#392).
@@ -3332,7 +3357,10 @@ function renderActions() {
     if (option.approach) button.dataset.approach = option.approach.id;
     if (option.retry) button.dataset.retry = "true";
     button.disabled = acting || !option.available;
-    button.addEventListener("click", () => action === "leave" ? openLeave() : perform(option));
+    button.addEventListener("click", () => {
+      if (action === "end-turn") return endTurn(option);
+      return action === "leave" ? openLeave() : perform(option);
+    });
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     if (!option.available) wrap.dataset.unavailable = "true";
@@ -3368,22 +3396,6 @@ function renderActions() {
       wrap.dataset.target = target.id;
       if (GEAR.includes(action)) wrap.dataset.slot = action === "unequip" ? "equipped" : "stowed";
       groups.carried.push(wrap);
-      return;
-    }
-    // End turn says what it gives up (#392): what the engine would still
-    // accept this turn, named as the bar names it. With nothing left the
-    // turn ends by itself, so End turn only ever ends one early.
-    // A few spells left to cast are named: "Cast a spell: Healing Word".
-    const spellsLeft = [...new Set(session.actions.filter((option) => option.action === "cast" && option.available).map(({ spell }) => spell.name))];
-    const unusedName = (kind) => (kind === "cast" && spellsLeft.length && spellsLeft.length <= 3 ? UNUSED_NAMES.cast + ": " + spellsLeft.join(", ") : UNUSED_NAMES[kind]);
-    const unused = fighting && action === "end-turn" && words !== WAIT && session.turn ? session.turn.options.filter((kind) => UNUSED_NAMES[kind]).map(unusedName) : [];
-    if (unused.length) {
-      const line = make("span", undefined, "row-line end-line");
-      const note = make("span", "Left unused: " + unused.join(", "), "end-note");
-      note.id = "end-note";
-      button.setAttribute("aria-describedby", [button.getAttribute("aria-describedby"), note.id].filter(Boolean).join(" "));
-      line.append(note, wrap);
-      endWraps.push(line);
       return;
     }
     // End turn closes the panel's footer (#525).
@@ -3623,7 +3635,9 @@ function restButton(action, option, onClick) {
   button.disabled = acting || !option.available;
   button.addEventListener("click", onClick);
   wrap.append(button);
-  if (!option.available) {
+  if (action === "long-rest" && option.reason === "Nothing to recover" && element("rest-reason")?.textContent === option.reason) {
+    button.setAttribute("aria-describedby", "rest-reason");
+  } else if (!option.available) {
     const reason = make("span", option.reason, "reason");
     reason.id = action + "-reason";
     button.setAttribute("aria-describedby", reason.id);
@@ -5357,15 +5371,8 @@ async function openSettings(ticket) {
   // The view Settings was opened from, if this entry remembers one.
   const from = history.state && history.state.settingsFrom;
   const trail = from ? from.trail.map((item, index) => index === from.trail.length - 1 ? { label: item.label, hash: from.hash } : item) : [];
-  element("settings-back").textContent = "Back to " + (trail.length ? trail[trail.length - 1].label : "your characters");
   show("settings", "Settings", [...trail, { label: "Settings" }]);
   element("settings-title").focus();
-}
-
-// The entry before a remembered Settings is the view it came from.
-function leaveSettings() {
-  if (history.state && history.state.settingsFrom) history.back();
-  else go("");
 }
 
 function goToSettings() {
@@ -5680,7 +5687,6 @@ async function deleteCharacter(event) {
 
 element("open-creation").addEventListener("click", () => go("#create"));
 element("open-settings").addEventListener("click", goToSettings);
-element("settings-back").addEventListener("click", leaveSettings);
 element("reset-settings").addEventListener("click", resetSettings);
 element("creation-form").addEventListener("submit", saveCharacter);
 element("reroll").addEventListener("click", rerollDice);
@@ -5735,6 +5741,12 @@ document.addEventListener("keydown", (event) => {
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 element("confirm-leave").addEventListener("click", leaveAdventure);
 element("cancel-leave").addEventListener("click", cancelLeave);
+element("keep-turn").addEventListener("click", () => element("end-turn-dialog").close());
+element("confirm-end-turn").addEventListener("click", () => {
+  element("end-turn-dialog").close();
+  const option = session.actions.find(({ action, available }) => action === "end-turn" && available);
+  if (option) perform(option);
+});
 element("room-history-link").addEventListener("click", showArrival);
 element("flee-toggle").addEventListener("click", () => {
   showFleeMenu(!fleeOpen);
