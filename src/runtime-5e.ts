@@ -3464,14 +3464,15 @@ export function renderFifthEvent(
       return `You use the ${event.item} on the ${event.feature}. ${event.text}`;
     case "alarm":
       return `The alarm is raised by ${event.cause}. ${event.text}`;
-    case "examined":
-      return [
-        `${event.name}: ${event.description}`,
-        ...(event.discovery === undefined ? [] : [event.discovery]),
-        ...(event.found.length === 0
-          ? []
-          : [`You find the ${listed(event.found, "and")}.`]),
-      ].join(" ");
+    case "examined": {
+      const finding =
+        event.found.length > 0
+          ? `You find the ${listed(event.found, "and")}.`
+          : event.discovery;
+      return [`${event.name}: ${event.description}`, finding]
+        .filter(Boolean)
+        .join(" ");
+    }
     case "taken":
       return event.coin !== undefined
         ? `You take the ${event.name} and put ${formatCoins(event.coin)} in your purse.`

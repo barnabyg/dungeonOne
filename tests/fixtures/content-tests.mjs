@@ -65,7 +65,7 @@ export const CONTENT_TESTS = new Map([
     "the Coldwater Weirgate's content, routes, flags, alarm, bargain, lure, journeys and generated release run",
   ],
   [
-    "tests/issue-414-browser.test.mjs",
+    "tests/coldwater-weirgate-browser.test.mjs",
     "the increment 17 handoff runs of the Coldwater Weirgate through the browser",
   ],
   [

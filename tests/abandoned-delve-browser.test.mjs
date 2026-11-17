@@ -130,6 +130,23 @@ test(
 
       for (const [action, target] of TO_THE_FIGHT) {
         await explore(page, action, target);
+        if (target === "old-barrel") {
+          const history = await page.locator("#log li").last().innerText();
+          assert.match(
+            history,
+            /You find the Potion of Healing, Oiled Shortsword and Storeroom Shield\./u,
+          );
+          assert.doesNotMatch(history, /Packed in straw/u);
+          const barrel = page.locator('#features li[data-id="old-barrel"]');
+          assert.doesNotMatch(await barrel.innerText(), /Packed in straw/u);
+          await barrel.getByText("What you found", { exact: true }).click();
+          const recall = await barrel.innerText();
+          assert.match(recall, /Packed in straw/u);
+          assert.match(
+            recall,
+            /Potion of Healing, Oiled Shortsword and Storeroom Shield/u,
+          );
+        }
       }
       while (
         (await page.locator("#turn").textContent()) !== "The fight is over."

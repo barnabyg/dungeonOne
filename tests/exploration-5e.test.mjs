@@ -173,7 +173,7 @@ test("examining makes a discovery and reveals the hidden potion, which can then 
   const examined = accepted(state, { type: "examine", targetId: "iron-chest" });
   assert.equal(
     runtime.renderResult(examined),
-    "Iron-Bound Chest: A squat iron-bound chest sits in the corner, its lock long since broken. Under a mouldy blanket in the chest lies a stoppered vial of red liquid. You find the Potion of Healing.",
+    "Iron-Bound Chest: A squat iron-bound chest sits in the corner, its lock long since broken. You find the Potion of Healing.",
   );
   state = examined.state;
   assert.deepEqual(state.examinedFeatureIds, ["iron-chest"]);
