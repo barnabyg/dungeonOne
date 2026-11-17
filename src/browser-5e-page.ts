@@ -2809,9 +2809,12 @@ function renderRoom(room) {
         ask.hidden = true;
         item.append(ask);
       }
-      if (entry.discovery) {
+      if (entry.discovery || entry.outcome || entry.foundItems) {
         const details = make("details");
-        details.append(make("summary", "What you found"), make("p", entry.discovery, "discovery"));
+        details.append(make("summary", "What you found"));
+        for (const detail of [entry.outcome, entry.discovery, entry.foundItems]) {
+          if (detail) details.append(make("p", detail, "discovery"));
+        }
         item.append(details);
       }
       // An exit's door and found trap (#132), a way a check opened or closed
