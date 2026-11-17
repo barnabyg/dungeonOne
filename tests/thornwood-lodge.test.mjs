@@ -568,6 +568,11 @@ test("a success on the trophy wall reveals the topaz", () => {
     dice([20, 12]),
   );
   assert.deepEqual(visible(found), ["trophy-topaz"]);
+  const wall = runtime
+    .projectRoom(found)
+    .features.find(({ id }) => id === TROPHY.targetId);
+  assert.equal(wall.foundItems, "Topaz");
+  assert.doesNotMatch(wall.outcome, /vial/u);
 });
 
 test("a success by 5 on the trophy wall reveals the topaz and a potion", () => {

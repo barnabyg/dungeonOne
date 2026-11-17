@@ -53,7 +53,7 @@ export const CONTENT_TESTS = new Map([
     "the Thornwood Lodge's content, gate verdict, checks and journeys",
   ],
   [
-    "tests/issue-291-browser.test.mjs",
+    "tests/thornwood-lodge-browser.test.mjs",
     "the increment 14 handoff runs through the browser",
   ],
   [

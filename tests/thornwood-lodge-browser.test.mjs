@@ -237,6 +237,8 @@ test(
       await clickAction(page, "move", "lodge-hall");
       await fight(page);
 
+      const wall = page.locator('#features li[data-id="trophy-wall"]');
+      assert.doesNotMatch(await wall.textContent(), /Topaz|Potion of Healing/u);
       // The trophy wall offers one Examine per approach.
       assert.equal(
         await checkButton(page, "examine", "trophy-wall", {
@@ -249,6 +251,7 @@ test(
         await lastEntry(page),
         /^Perception check: d20 11 \+ 0 \+ 3 proficiency = 14 against DC 15\. Failure\./u,
       );
+      assert.doesNotMatch(await wall.textContent(), /Topaz|Potion of Healing/u);
       // No lantern yet: no other try.
       assert.equal(
         await checkButton(page, "examine", "trophy-wall", {
@@ -289,6 +292,15 @@ test(
       assert.match(await lastEntry(page), /You disarm the Man-trap\./u);
       await clickAction(page, "take", "trophy-topaz");
       await clickAction(page, "take", "trophy-potion");
+      await clickAction(page, "move", "lodge-kitchen");
+      await clickAction(page, "move", "lodge-hall");
+      await page.reload();
+      await wall.waitFor();
+      assert.doesNotMatch(await wall.innerText(), /Topaz|Potion of Healing/u);
+      await wall.getByText("What you found", { exact: true }).click();
+      const recalled = await wall.innerText();
+      assert.match(recalled, /One shield bears no king's arms/u);
+      assert.match(recalled, /Topaz and Potion of Healing/u);
       await clickAction(page, "move", "lodge-kitchen");
       await clickAction(page, "move", "kennel-yard");
       await clickAction(page, "move", "forest-gate");

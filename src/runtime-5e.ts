@@ -4968,7 +4968,14 @@ export type RoomView = Readonly<{
       door?: Named & Readonly<{ open: boolean }>;
       trap?: Named & Readonly<{ state: TrapState }>;
     }>)[];
-  features: readonly (Named & Readonly<{ discovery?: string }>)[];
+  features: readonly (Named &
+    Readonly<{
+      discovery?: string;
+      /** The text of the feature check's last band, if it had any. */
+      outcome?: string;
+      /** Items actually uncovered here, including those since picked up. */
+      foundItems?: string;
+    }>)[];
   /**
    * The encounter waiting here before its fight begins (#530): the
    * character unseen by it, or its opponents reacting, by the reaction's
@@ -13090,7 +13097,29 @@ export function createFifthRuntime(
             : { trap: { ...named(trap), state: trapState(trap.id) } }),
         }),
       ),
-      features: describedFeatures(state),
+      features: describedFeatures(state).map((feature) => {
+        const authored = featureById.get(feature.id);
+        // Bodies already name their loot in the discovery. A checked feature
+        // remembers only the items a band revealed, even after they are taken.
+        if (
+          authored === undefined ||
+          !state.examinedFeatureIds.includes(feature.id)
+        ) {
+          return feature;
+        }
+        const tried = outcomeAt(state, { kind: "examine", id: feature.id });
+        const outcome = tried && authored.check?.bands?.[tried.band]?.text;
+        const names = hiddenIn(state, feature.id, true)
+          .filter(
+            (item) => !authored.check || revealedIn(state).items.has(item.id),
+          )
+          .map((item) => item.name);
+        return {
+          ...feature,
+          ...(outcome === undefined ? {} : { outcome }),
+          ...(names.length === 0 ? {} : { foundItems: listed(names, "and") }),
+        };
+      }),
       ...waitingOf(state),
       // A topic withdrawn (#399) still shows what the creature said.
       creatures: creaturesHere(state, true).map((creature) => ({
