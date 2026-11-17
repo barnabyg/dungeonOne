@@ -170,12 +170,15 @@ const cards = (page) =>
       return {
         id: card.dataset.combatant,
         name: card.querySelector(".card-name").textContent,
-        ac: card.querySelector(".card-ac").textContent,
-        hp: card.querySelector(".card-hp").textContent,
-        bar: Math.round(
-          (100 * card.querySelector(".hp-fill").getBoundingClientRect().width) /
-            bar.getBoundingClientRect().width,
-        ),
+        ac: card.querySelector(".card-ac")?.textContent,
+        hp: card.querySelector(".card-hp")?.textContent,
+        bar:
+          bar &&
+          Math.round(
+            (100 *
+              card.querySelector(".hp-fill").getBoundingClientRect().width) /
+              bar.getBoundingClientRect().width,
+          ),
         state: card.querySelector(".card-state")?.textContent ?? "",
       };
     }),
@@ -188,16 +191,28 @@ const expectedCards = (session) =>
     ...fightOf(session)
       .combatants.map(({ id }) => id)
       .filter((id) => id !== "pc"),
-  ].map((id) => {
-    const { name, hp, maxHp, defeated } = fighter(session, id);
-    return {
-      id,
-      name,
-      hp: `HP ${hp} of ${maxHp}${hp} / ${maxHp} HP`,
-      bar: Math.round((100 * hp) / maxHp),
-      fallen: id !== "pc" && defeated,
-    };
-  });
+  ]
+    .map((id) => {
+      const { name, hp, maxHp, defeated, morale } = fighter(session, id);
+      const state = defeated
+        ? "Fallen"
+        : morale === "fled"
+          ? "Fled"
+          : morale === "surrendered"
+            ? "Surrendered"
+            : "";
+      return {
+        id,
+        name,
+        hp: state ? undefined : `HP ${hp} of ${maxHp}${hp} / ${maxHp} HP`,
+        bar: Math.round((100 * hp) / maxHp),
+        state,
+      };
+    })
+    .sort(
+      (left, right) =>
+        Number(Boolean(left.state)) - Number(Boolean(right.state)),
+    );
 
 /** Asserts every card's HP and bar match `session`'s. */
 async function assertCards(page, session, label) {
@@ -209,13 +224,16 @@ async function assertCards(page, session, label) {
     label,
   );
   for (const [index, card] of shown.entries()) {
+    if (expected[index].state) {
+      assert.equal(card.state, expected[index].state);
+      assert.equal(card.bar, null);
+      assert.equal(card.ac, undefined);
+      continue;
+    }
     assert.ok(
       Math.abs(card.bar - expected[index].bar) <= 1,
       `${label}: ${card.id}'s bar ${card.bar}% of ${expected[index].bar}%`,
     );
-    if (expected[index].fallen) {
-      assert.equal(card.state, "Fallen", `${label}: ${card.id} fallen`);
-    }
   }
 }
 

@@ -65,9 +65,11 @@
 //   curse or Divine Spark's damage), then what it does; then
 //   #strike-control (Cunning Strike's choice, #308, shown only while a weapon
 //   attack is chosen); #fight-foes with #foe-cards, an li.foe-card[data-combatant]
-//   per foe in initiative order: head, HP and bar, .card-tags (conditions,
+//   per foe: active foes first in initiative order, followed by single-line
+//   summaries of fallen, fled or surrendered foes. Active cards have a
+//   head, HP and bar, .card-tags (conditions,
 //   effects, Sapped, Hidden, Fleeing, Surrendering, Surprised), .card-state
-//   (Fallen, Fled, Surrendered or Turned) and, while it can be attacked,
+//   (Turned when applicable) and, while it can be attacked,
 //   .foe-controls, holding the chosen attack's one button (data-action,
 //   data-target, a spell's data-spell and data-slot, a scroll's or wand's
 //   data-item: "Attack with Mace +6 · 1d6 + 4", "Fire Bolt +7 · 2d10") or,
@@ -541,7 +543,7 @@ body:has(#adventure:not([hidden])){height:100dvh;min-height:560px;display:flex;f
 .shop-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1)}.shop-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-color:transparent;color:var(--color-text);text-align:left}.shop-item[aria-pressed=true]{background:var(--color-highlight);border-color:var(--color-ink)}.shop-name{min-width:0;overflow-wrap:anywhere}.shop-state{margin-left:var(--space-1);font-size:var(--text-xs);color:var(--color-text-muted)}.shop-price{flex:none;padding:0 var(--space-2) 0 var(--space-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--color-gold);color:var(--color-text);font:600 var(--text-xs)/1.6 var(--font-sans);font-variant-numeric:tabular-nums;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%)}.purse-after{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}.shop-group[data-shelf=unsold] .shop-item{color:var(--color-text-muted)}.shop-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);margin:var(--space-2) 0 var(--space-1)}.shop-group h5{margin:0;font:600 var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.shop-group-head button{padding:var(--space-1) var(--space-2);font-size:var(--text-xs)}:is(.shop-list,.shop-heading) .icon{width:1.3em;height:1.3em;vertical-align:-.3em;margin:-.15em .25em -.15em 0}
 #shop-receipt{margin:0;min-height:2em;border-left:4px solid var(--color-gold);border-radius:var(--radius-sm);background:var(--color-surface);padding:var(--space-1) var(--space-3);font-size:var(--text-sm)}#shop-receipt:empty{visibility:hidden}#shop-receipt.error{color:var(--color-danger);border-left-color:var(--color-danger);font-weight:600}
 #encounter{flex-basis:100%;min-width:0;border:1px solid var(--color-danger);border-radius:var(--radius-md);background:color-mix(in srgb,var(--color-danger-soft) 40%,var(--color-surface));padding:var(--space-2) var(--space-3);margin-bottom:var(--space-4);font-family:var(--font-sans)}#session-scene>#session-actions+#encounter h3{margin:0}#fight-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-3)}#encounter-title{font-size:var(--text-lg);color:var(--color-danger)}#turn-order{margin:0 0 0 auto;font-size:var(--text-xs);color:var(--color-text-muted);overflow-wrap:anywhere}#turn-order strong{color:var(--color-ink)}
-#fight-sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-3);margin:var(--space-2) 0}.fight-side{min-width:0}.fight-side h4{margin:0 0 var(--space-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em}#foe-cards{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}.fight-card{min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);--hp-color:var(--color-danger)}.foe-card[aria-current=true]{border-color:var(--color-danger)}.foe-card[data-state]{color:var(--color-text-muted);--hp-color:var(--color-hp-down)}#you-card{--hp-color:var(--color-hp-healthy)}#you-card[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}#you-card[data-health=critical]{--hp-color:var(--color-hp-critical)}#you-card[data-health=down]{--hp-color:var(--color-hp-down)}
+#fight-sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-3);margin:var(--space-2) 0}.fight-side{min-width:0}.fight-side h4{margin:0 0 var(--space-1);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em}#foe-cards{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}.fight-card{min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-sm);--hp-color:var(--color-danger)}.foe-summary{display:flex;align-items:baseline;gap:var(--space-1);min-width:0;padding:0 var(--space-2);font-size:var(--text-xs)}.foe-summary .card-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.foe-summary .card-state{flex:none}.foe-card[aria-current=true]{border-color:var(--color-danger)}.foe-card[data-state]{color:var(--color-text-muted);--hp-color:var(--color-hp-down)}#you-card{--hp-color:var(--color-hp-healthy)}#you-card[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}#you-card[data-health=critical]{--hp-color:var(--color-hp-critical)}#you-card[data-health=down]{--hp-color:var(--color-hp-down)}
 .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}.card-name{min-width:0;overflow-wrap:anywhere}.card-ac{flex:none;font-size:var(--text-xs);color:var(--color-text-muted)}.card-hp{margin:2px 0 0;line-height:1.2}.hp-now{font-size:1.3rem;font-weight:700}.hp-max{font-size:var(--text-xs);font-weight:600;color:var(--color-text-muted)}.fight-card .hp-bar{height:8px;margin:var(--space-1) 0 var(--space-2)}.card-tags{margin:0 0 var(--space-1);font-size:var(--text-xs);line-height:1.7}.card-state{margin:0;font-weight:600}#encounter .card-controls{gap:var(--space-1)}#heal-controls{flex-direction:column;align-items:stretch}#heal-controls .action{display:flex}#heal-controls button{text-align:left}.act-detail{font-size:var(--text-xs);font-weight:400;white-space:nowrap}
 #fight-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);border-top:1px solid var(--color-line);padding-top:var(--space-2)}#fight-foot:not(:has(#flee-control:not([hidden]),li,button:not(#flee-toggle))){display:none}#flee-control{position:relative;display:flex;align-items:center;gap:var(--space-2)}#flee-control[hidden]{display:none}#flee-reason:empty{display:none}#turn-resources{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3);list-style:none;margin:0 0 0 auto;padding:0}#end-controls{display:flex;min-width:0}#end-controls:empty{display:none}#end-controls .end-note{text-align:right}
 button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}#flee-menu{position:absolute;left:0;bottom:calc(100% + var(--space-1));z-index:3;width:max-content;min-width:14rem;max-width:min(24rem,60vw);background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);box-shadow:0 6px 18px rgb(0 0 0/.2);padding:var(--space-1)}#flee-attacks{margin:0;padding:2px var(--space-2) var(--space-1);font-size:var(--text-xs);color:var(--color-danger)}#flee-ways{display:grid;gap:2px}#flee-ways .action{display:flex}#flee-ways button{text-align:left;border-color:transparent}#flee-ways button:hover:not(:disabled){background:var(--color-highlight)}#encounter #action-bar{margin:var(--space-2) 0 0}#fight-foot+#action-bar:has(.action-row){border-top:1px solid var(--color-line);padding-top:var(--space-2)}#strike-control{margin:var(--space-1) 0 0}#strike-control:empty,#area-cast:empty{display:none}#fight-sides:has(#attack-chooser:not([hidden])){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}#attack-chooser{display:grid;gap:var(--space-1);margin-top:var(--space-2);padding:var(--space-2);background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);font-size:var(--text-sm)}#attack-chooser[hidden]{display:none}#chooser-chips{display:grid;gap:var(--space-1)}.chooser-group{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:var(--space-1) var(--space-2);align-items:start}.chooser-label{font:600 var(--text-xs) var(--font-sans);color:var(--color-text-label);padding-top:3px;line-height:1.2;overflow-wrap:anywhere}.chooser-pips{display:block;letter-spacing:1px;color:var(--color-ink)}.chips{display:flex;flex-wrap:wrap;gap:var(--space-1);min-width:0}.chip{position:relative;display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:3px;max-width:100%;border:1px solid var(--color-control-border);border-radius:999px;padding:2px 9px;font-size:var(--text-xs);line-height:1.4;background:var(--color-paper);color:var(--color-ink);cursor:pointer}.chip-name{overflow-wrap:anywhere}.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}.chip:hover:not(.on,.off){background:var(--color-surface-hover)}.chip.on{background:var(--color-ink);color:var(--color-on-ink);border-color:var(--color-ink)}.chip.off{color:var(--color-text-muted);border-color:var(--color-line);background:transparent;cursor:default}.chip-tag,.chip-reason{font-size:.9em;opacity:.85;white-space:nowrap}.chip-reason{font-style:italic}#chooser-detail{margin:0;border-top:1px solid var(--color-line);padding-top:var(--space-1);font-size:var(--text-xs);line-height:1.5;color:var(--color-text)}#chooser-detail select{width:auto;max-width:100%;margin:0 0 0 var(--space-1);padding:2px var(--space-1);font-size:var(--text-xs);line-height:1.4}.blast-tick{display:flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm);color:var(--color-text);cursor:pointer}.blast-tick input{width:auto;margin:0}#area-cast{margin-top:var(--space-2)}
@@ -2845,30 +2847,41 @@ function renderFight(encounter) {
   for (const node of [...(self.hidden ? [make("span", "Hidden", "tag")] : []), ...surprised]) own.append(...(own.childNodes.length ? [" "] : []), node);
   you.replaceChildren(cardHead(self), ...hpNodes(self), ...(own.childNodes.length ? [own] : []), heal);
   // A card per foe: its attack goes in its .foe-controls (renderActions).
-  element("foe-cards").replaceChildren(...encounter.combatants.filter(({ id, side }) => id !== self.id && side !== self.side).map((foe) => {
-    const card = make("li", undefined, "fight-card foe-card");
-    card.dataset.combatant = foe.id;
+  const active = [];
+  const finished = [];
+  for (const foe of encounter.combatants.filter(({ side }) => side !== self.side)) {
     const state = foeState(foe);
+    const card = make("li", undefined, "foe-card");
+    card.dataset.combatant = foe.id;
     if (state) card.dataset.state = state.toLowerCase();
+    // Turned foes are still attackable. Only a final state replaces the card.
+    if (state && state !== "Turned") {
+      card.classList.add("foe-summary");
+      const name = make("span", foe.name, "card-name");
+      name.title = foe.name;
+      if (state === "Fallen") card.append(unspoken(make("span", "☠")));
+      card.append(name, " — ", make("span", state, "card-state"));
+      finished.push(card);
+      continue;
+    }
+    card.classList.add("fight-card");
     if (foe.id === encounter.currentTurn) card.setAttribute("aria-current", "true");
     const tags = make("p", undefined, "card-tags");
     const tag = (node) => tags.append(...(tags.childNodes.length ? [" "] : []), node);
-    // What is on it, unless it is out of the fight.
-    if (!foe.defeated && foe.morale !== "fled" && foe.morale !== "surrendered") {
-      foe.conditions.forEach((condition) => tag(conditionTag(condition)));
-      foe.effects.forEach((effect) => tag(effectTag(effect)));
-      if (foe.sapped) tag(make("span", "Sapped", "tag"));
-      if (foe.hidden) tag(make("span", "Hidden", "tag"));
-      // Morale (#237): a fleeing opponent leaves on its turn. One that may
-      // surrender (#238) yields on its turn instead.
-      if (foe.morale) tag(make("span", MORALE_TAGS[foe.morale], "tag morale"));
-    }
+    foe.conditions.forEach((condition) => tag(conditionTag(condition)));
+    foe.effects.forEach((effect) => tag(effectTag(effect)));
+    if (foe.sapped) tag(make("span", "Sapped", "tag"));
+    if (foe.hidden) tag(make("span", "Hidden", "tag"));
+    // Morale (#237): a fleeing opponent leaves on its turn. One that may
+    // surrender (#238) yields on its turn instead.
+    if (foe.morale) tag(make("span", MORALE_TAGS[foe.morale], "tag morale"));
     if (foe.initiative.mode?.disadvantage.includes("surprised")) tag(make("span", "Surprised", "tag surprised"));
     const controls = make("div", undefined, "controls card-controls foe-controls");
     // A turned foe (#341) may still be attacked, which ends its turning.
-    card.append(cardHead(foe), ...hpNodes(foe), ...(tags.childNodes.length ? [tags] : []), ...(state ? [make("p", state, "card-state")] : []), ...(!state || state === "Turned" ? [controls] : []));
-    return card;
-  }));
+    card.append(cardHead(foe), ...hpNodes(foe), ...(tags.childNodes.length ? [tags] : []), ...(state ? [make("p", state, "card-state")] : []), controls);
+    active.push(card);
+  }
+  element("foe-cards").replaceChildren(...active, ...finished);
 }
 
 // One action at a time: every action control is disabled while one is in

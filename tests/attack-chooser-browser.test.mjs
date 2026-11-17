@@ -265,7 +265,7 @@ async function assertHp(page, game, label) {
   if (fight === undefined || fight.currentTurn === null) {
     return;
   }
-  const shown = await page.$$eval("#foe-cards > li", (all) =>
+  const shown = await page.$$eval("#foe-cards > .fight-card", (all) =>
     all.map((card) => [
       card.dataset.combatant,
       card.querySelector(".hp-now").textContent,
@@ -274,7 +274,13 @@ async function assertHp(page, game, label) {
   assert.deepEqual(
     shown,
     fight.combatants
-      .filter(({ id }) => id !== "pc")
+      .filter(
+        ({ id, defeated, morale }) =>
+          id !== "pc" &&
+          !defeated &&
+          morale !== "fled" &&
+          morale !== "surrendered",
+      )
       .map(({ id, hp }) => [id, String(hp)]),
     label,
   );
