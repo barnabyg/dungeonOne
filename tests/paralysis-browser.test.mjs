@@ -140,9 +140,10 @@ test(
       assert.deepEqual(await shown(page), held);
 
       // Ada waits: the paralysis runs out as her turn ends, with no save.
-      await settled(page, () =>
-        page.locator('#encounter button[data-action="end-turn"]').click(),
-      );
+      await settled(page, async () => {
+        await wait.click();
+        assert.equal(await page.locator("#end-turn-dialog").isVisible(), false);
+      });
       const after = await page.locator("#log").innerText();
       assert.match(
         after,

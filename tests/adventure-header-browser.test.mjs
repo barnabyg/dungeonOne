@@ -1,6 +1,6 @@
 // #430, browser → API: during an adventure the masthead, breadcrumb and the
 // adventure's levels and difficulty (not the room, #522) share one compact
-// bar, with the objective on a line under it, so little more than about
+// bar. The adventure objective appears in the opening history entry. About
 // 75 px comes before the session layout. The adventure title stays the page's h2 and is focused
 // on entry; the other screens get the same bar without the adventure's line.
 import assert from "node:assert/strict";
@@ -118,20 +118,11 @@ for (const viewport of [
         shown.layout.top <= 75 + 1,
         `session layout starts at ${shown.layout.top}`,
       );
-      assert.ok(shown.objective.top >= shown.bar.bottom);
-      assert.ok(shown.objective.bottom <= shown.layout.top);
-      // The objective keeps to one line; its full text is on hover.
+      assert.equal(shown.objective, null);
       assert.ok(
-        shown.objective.height <= 25,
-        `objective ${shown.objective.height}`,
-      );
-      assert.equal(
-        await text(page.locator("#adventure-objective")),
-        yard.objective,
-      );
-      assert.equal(
-        await page.locator("#adventure-objective").getAttribute("title"),
-        yard.objective,
+        (await text(page.locator("#log > li").first())).includes(
+          yard.objective,
+        ),
       );
       assert.equal(
         await text(page.locator("#adventure-meta")),
@@ -158,7 +149,7 @@ for (const viewport of [
         );
       }
       assert.equal(row.metaClipped, false, "levels and difficulty in full");
-      assert.equal(row.currentTitle, yard.title);
+      assert.equal(row.currentTitle, yard.title + " — " + yard.objective);
       // Headings stay in order, and the title is the focused h2.
       assert.deepEqual(shown.headings, ["H1 Dungeon One", `H2 ${yard.title}`]);
       assert.deepEqual(

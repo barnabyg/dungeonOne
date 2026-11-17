@@ -17,7 +17,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { loneGoblin, moduleFile } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { fightTurn, createAndStart } from "./fixtures/browser-journey.mjs";
 import {
   assertNoSideScroll,
   firstFighter,
@@ -39,21 +39,6 @@ function rollOffSeed() {
     }
   }
   throw new Error("no seed with an initiative roll-off");
-}
-
-/** Clicks the first Attack button, or End turn once the action is spent. */
-async function clickNext(page) {
-  const count = await page.locator("#log li").count();
-  const attack = page.locator("#encounter button.attack:enabled");
-  await (
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#encounter button[data-action="end-turn"]')
-  ).click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
 }
 
 const fightOver = async (page) =>
@@ -184,7 +169,7 @@ test(
       );
       assert.equal(await page.locator("#inventory-group").isVisible(), true);
       // Re-rendering after an action keeps the room shown, below the fight.
-      await clickNext(page);
+      await fightTurn(page);
       assert.equal(await page.locator("#room-title").isVisible(), true);
       assert.deepEqual(await documentOrder(page, ["#room", "#encounter"]), [
         "#encounter",
@@ -213,7 +198,7 @@ test(
       );
 
       while (!(await fightOver(page))) {
-        await clickNext(page);
+        await fightTurn(page);
       }
 
       // After the fight the panel is gone, and the room unfolds.

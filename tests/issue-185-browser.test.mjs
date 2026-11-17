@@ -12,6 +12,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import {
+  confirmEndTurn,
   openCreation,
   saveFighter,
   startAdventure,
@@ -99,6 +100,7 @@ async function holdAction(
   const count = await page.locator("#log > li").count();
   const release = await holdRequests(page, path);
   await button.click();
+  await confirmEndTurn(page);
   await page
     .locator(`${selector}[aria-busy="true"]`)
     .waitFor({ state: "attached" });

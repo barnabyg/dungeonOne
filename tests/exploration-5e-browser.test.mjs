@@ -8,7 +8,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { fightTurn, createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { recordingRandom } from "./fixtures/seed-search.mjs";
@@ -127,21 +127,6 @@ async function explore(page, action, target) {
   );
 }
 
-/** Clicks the first Attack button, or End turn once the action is spent. */
-async function clickNext(page) {
-  const count = await page.locator("#log li").count();
-  const attack = page.locator("#encounter button.attack:enabled");
-  await (
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#encounter button[data-action="end-turn"]')
-  ).click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-}
-
 test(
   "walk the tunnels, search the chest by typing, take the potion, drink it after a fight, and resume exactly",
   { timeout: 120000 },
@@ -217,7 +202,7 @@ test(
       while (
         (await page.locator("#turn").textContent()) !== "The fight is over."
       ) {
-        await clickNext(page);
+        await fightTurn(page);
       }
       assert.match(
         await page.locator("#log").textContent(),

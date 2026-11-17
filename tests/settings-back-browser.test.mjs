@@ -1,6 +1,6 @@
 // Settings returns to the view it was opened from: an adventure in progress,
 // a sheet, or the characters. The breadcrumb runs through that view, a reload
-// keeps it, and the Back button returns as the browser's Back does; a
+// keeps it, and the originating crumb returns as the browser's Back does; a
 // Settings URL opened on its own goes back to the characters.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -86,13 +86,19 @@ test(
       viewport: { width: 1280, height: 850 },
     });
     page.setDefaultTimeout(5000);
-    const back = page.locator("#settings-back");
+    const back = page.locator("#breadcrumb a").last();
     try {
       // From the characters.
       await page.goto(server.url);
       await openSettings(page);
       assert.deepEqual(await breadcrumb(page), ["Characters", "Settings"]);
-      assert.equal(await back.textContent(), "Back to your characters");
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Back to your characters" })
+          .count(),
+        0,
+      );
+      assert.equal(await back.textContent(), "Characters");
       await back.click();
       await page.locator("#library").waitFor({ state: "visible" });
       assert.equal(new URL(page.url()).hash, "");
@@ -106,7 +112,7 @@ test(
         "Wren",
         "Settings",
       ]);
-      assert.equal(await back.textContent(), "Back to Wren");
+      assert.equal(await back.textContent(), "Wren");
       await back.click();
       await page.locator("#sheet").waitFor({ state: "visible" });
       assert.equal(new URL(page.url()).hash, `#character-${sheet.id}`);
@@ -122,10 +128,10 @@ test(
         title,
         "Settings",
       ]);
-      assert.equal(await back.textContent(), `Back to ${title}`);
+      assert.equal(await back.textContent(), title);
       await page.reload();
       await page.locator("#settings").waitFor({ state: "visible" });
-      assert.equal(await back.textContent(), `Back to ${title}`);
+      assert.equal(await back.textContent(), title);
       assert.equal(
         await page
           .locator('#breadcrumb a[data-view="adventure"]')
@@ -139,7 +145,7 @@ test(
       // Back left no extra entry: Forward returns to Settings.
       await page.goForward();
       await page.locator("#settings").waitFor({ state: "visible" });
-      assert.equal(await back.textContent(), `Back to ${title}`);
+      assert.equal(await back.textContent(), title);
 
       // The breadcrumb's adventure link goes there too.
       await page.locator('#breadcrumb a[data-view="adventure"]').click();
@@ -151,10 +157,10 @@ test(
       await other.goto(`${server.url}#settings`);
       await other.locator("#settings").waitFor({ state: "visible" });
       assert.equal(
-        await other.locator("#settings-back").textContent(),
-        "Back to your characters",
+        await other.locator("#breadcrumb a").textContent(),
+        "Characters",
       );
-      await other.locator("#settings-back").click();
+      await other.locator("#breadcrumb a").click();
       await other.locator("#library").waitFor({ state: "visible" });
     } finally {
       await browser.close();

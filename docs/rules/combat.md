@@ -20,7 +20,9 @@ or outcome argument.
 - **Turn economy.** One action, one bonus action, one reaction and one object
   interaction (see [Changing gear](gear.md#changing-gear)) per turn. Drinking a
   potion takes the bonus action (SRD 5.2). The player's turn lasts until it is
-  ended or nothing is left that the engine would accept. Only Uncanny Dodge,
+  ended or nothing is left that the engine would accept. The browser asks for
+  confirmation before ending a turn with an available action, bonus action,
+  extra attack or limited feature use. Only Uncanny Dodge,
   reaction spells such as Shield and Last Stand's potion use a reaction:
   opportunity attacks need positions. The player fleeing a fight draws one
   attack from each foe in their place, which takes no reaction (see

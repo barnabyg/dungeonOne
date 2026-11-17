@@ -17,7 +17,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
 import { FIFTH_SESSION_FORMAT, sessionSeed } from "../dist/session-5e.js";
 import { goblinBand } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { settled, createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 const END_TURN = { type: "end-turn", actorId: "pc" };
@@ -101,19 +101,8 @@ const FONTS = [
   ["Verdana", "0.06em"],
 ];
 
-/** Waits for the history to gain an entry after `run`. */
-async function added(page, run) {
-  const count = await page.locator("#log > li").count();
-  await run();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log > li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
 const say = (page, message) =>
-  added(page, async () => {
+  settled(page, async () => {
     await page.locator("#message").fill(message);
     await page.locator("#message").press("Enter");
   });
@@ -240,7 +229,7 @@ test(
       // Clicks until the fight ends.
       while (!(await page.locator("#ending").isVisible())) {
         const attack = page.locator("#encounter button.attack:enabled");
-        await added(page, async () =>
+        await settled(page, async () =>
           ((await attack.count()) > 0
             ? attack.first()
             : page.locator('#encounter button[data-action="end-turn"]')

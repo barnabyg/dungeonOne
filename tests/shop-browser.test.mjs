@@ -230,7 +230,16 @@ test(
         await page.locator("#shop-purse").textContent(),
         "Purse: 18 gp",
       );
-      assert.notEqual(await page.locator("#shop-load").textContent(), load);
+      const afterPurchase = await page.locator("#shop-load").innerText();
+      assert.notEqual(afterPurchase, load);
+      assert.match(
+        afterPurchase,
+        /^Carrying \d+(?:\.\d)? lb of the \d+ lb your Strength allows\.$/u,
+      );
+      assert.equal(
+        await page.locator("#carrying").textContent(),
+        afterPurchase,
+      );
       assert.equal(
         await page.evaluate(() => document.activeElement?.dataset.target),
         "dagger",

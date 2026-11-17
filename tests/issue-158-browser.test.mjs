@@ -13,7 +13,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { confirmEndTurn, createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
@@ -52,6 +52,7 @@ async function playToTheEnd(page) {
         ? attack.first()
         : page.locator('#encounter button[data-action="end-turn"]')
     ).click();
+    await confirmEndTurn(page);
     await page.waitForFunction(
       (seen) => document.querySelectorAll("#log li").length > seen,
       count,
