@@ -3208,7 +3208,12 @@ function endTurn(option) {
     available && action !== "end-turn" && action !== "move" && !(GEAR.includes(action) && session.turn?.interaction)
   );
   if (!unused.length) return perform(option);
-  const names = unused.map(({ action, spell, feature, target }) => spell?.name || feature?.name || (action === "flee" ? "Flee" : (ACTIONS[action].label + (target?.name ?? "")).trim()));
+  const names = unused.map(({ action, spell, feature }) => {
+    if (spell) return spell.name;
+    if (feature) return feature.name;
+    if (action === "flee") return "Flee";
+    return FOE_WORDS[action] || ACTIONS[action].short || ACTIONS[action].label.trim();
+  });
   element("end-turn-question").textContent = "You can still use: " + [...new Set(names)].join(", ") + ".";
   element("end-turn-dialog").showModal();
 }
