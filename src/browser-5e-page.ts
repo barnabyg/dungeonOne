@@ -366,7 +366,7 @@ ${SETTINGS_SOUND(sound)}
 </form>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
-<h2 id="sheet-name" tabindex="-1"></h2>
+<header class="sheet-heading"><span id="sheet-crest" aria-hidden="true"></span><div><p class="sheet-label">Character sheet</p><h2 id="sheet-name" tabindex="-1"></h2></div></header>
 <section id="level-choice" class="level-up" aria-labelledby="level-choice-title" hidden><h3 id="level-choice-title"></h3><ul id="level-up-changes"></ul>
 <fieldset id="asi" aria-describedby="asi-error"><legend>Ability Score Improvement</legend><fieldset class="choice-row"><legend>How to improve</legend><label><input type="radio" name="asi-mode" id="asi-mode-two" value="two"> +2 to one ability</label><label><input type="radio" name="asi-mode" id="asi-mode-split" value="split"> +1 to two abilities</label></fieldset><div id="asi-fields" class="checks"></div><p id="asi-error" class="error" role="alert"></p></fieldset>
 <fieldset id="new-mastery" aria-describedby="new-mastery-error"><legend>Fourth weapon mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><div id="new-mastery-fields" class="checks"></div><p id="new-mastery-error" class="error" role="alert"></p></fieldset>
@@ -486,6 +486,22 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .map-side{min-height:0;overflow-y:auto;font:var(--text-sm) var(--font-sans)}.map-side h3{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 var(--space-1);color:var(--color-text-label)}.map-side .hint{margin-bottom:var(--space-2)}#map-status{color:var(--color-danger);font-weight:600}#map-status:empty{display:none}#map-record h4{margin-top:0}#map-record .things{font-size:var(--text-xs)}
 .map-key{list-style:none;padding:0;margin:0;display:grid;gap:var(--space-1);font-size:var(--text-xs)}.map-key li{display:flex;align-items:center;gap:var(--space-2)}.map-key :is(.map-mark,.map-stub){position:static;flex:none;margin:0;width:20px;height:20px;font-size:11px}.map-swatch{flex:none;width:20px;height:14px;border:1px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade)}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
+.sheet-heading{display:flex;align-items:center;gap:var(--space-4);padding:0 0 var(--space-3);margin:0 0 var(--space-4);border-bottom:4px double var(--color-panel-border)}
+#sheet-crest{flex:none;display:grid;place-items:center;width:3.2rem;height:3.7rem;background:var(--color-ink);color:var(--color-on-ink);clip-path:polygon(0 0,100% 0,100% 74%,50% 100%,0 74%)}
+#sheet-crest svg{width:2rem;height:2rem;margin:0 0 .35rem;color:inherit;fill:currentColor}
+#sheet-name{margin:0;overflow-wrap:anywhere;font-size:var(--text-2xl)}
+.sheet-label{letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--color-text-muted);font:600 var(--text-sm) var(--font-sans)}
+#sheet-body .profile-reference{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:var(--space-4);align-items:start}
+#sheet-body .profile-reference>*{min-width:0;border:1px solid var(--color-panel-border);border-radius:var(--radius-sm);padding:var(--space-3);background:var(--color-surface)}
+#sheet-body .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);margin:0}
+#sheet-body .stats li{padding-bottom:var(--space-1);border-bottom:1px solid var(--color-line);color:var(--color-text-label)}
+#sheet-body .stats li strong{color:var(--color-ink);margin:0}
+#sheet-body .stats li:nth-child(-n+5) strong{font:600 var(--text-lg) var(--font-serif)}
+#sheet-body .stats li:nth-child(n+5){grid-column:1/-1}
+#sheet-body table{margin:0;font-variant-numeric:tabular-nums}
+#sheet-body caption{text-align:left;margin:0 0 var(--space-2);font:600 var(--text-md) var(--font-serif);color:var(--color-ink)}
+#sheet-body .ability-score{display:inline-block;min-width:2em;text-align:center;border:1px solid var(--color-panel-border);border-radius:50%;font:700 var(--text-lg) var(--font-serif);color:var(--color-ink)}
+#sheet-body h3{border-bottom:3px double var(--color-panel-border);padding-bottom:var(--space-1);color:var(--color-ink)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);width:100%}.choice-head button{flex:0 0 auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}#adventure-choices .level-choice-notice{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-md) var(--font-sans);color:var(--color-text)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
 .log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted)}
@@ -821,7 +837,9 @@ function abilityTable(abilities, profile, caption) {
     const name = make("th", titleCase(ability));
     name.scope = "row";
     const save = profile.savingThrows[ability];
-    row.append(name, make("td", abilities[ability]), make("td", signed(profile.modifiers[ability])), make("td", signed(save.bonus) + (save.proficient ? " (proficient)" : "")));
+    const score = make("td");
+    score.append(make("span", abilities[ability], "ability-score"));
+    row.append(name, score, make("td", signed(profile.modifiers[ability])), make("td", signed(save.bonus) + (save.proficient ? " (proficient)" : "")));
     table.append(row);
   }
   wrap.append(table);
@@ -875,7 +893,9 @@ function profileNodes(abilities, profile, hp, carrying) {
   // character with a limited-use feature; spell slots alone don't count.
   const limited = profile.features.some(({ id }) => profile.featureUses[id]);
   const rule = limited ? [make("p", ${JSON.stringify(FEATURE_USES_RULE)}, "hint feature-uses-rule")] : [];
-  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features, ...rule];
+  const reference = make("div", undefined, "profile-reference");
+  reference.append(stats, abilityTable(abilities, profile, "Ability scores and saving throws"));
+  return [reference, skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features, ...rule];
 }
 
 /** A spell by id, from the classes' lists (#339). */
@@ -1147,6 +1167,7 @@ function openSheet(id) {
   const { sheet, profile, purse, stowed, ammunition, carrying, treasure, magicItems, gear } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
+  element("sheet-crest").replaceChildren(icon(CLASS_ICONS[sheet.class]));
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   // Its dice, or its scores before the background (#509: standard array or point buy).
   const rolls = make("p", (sheet.abilityRolls ? "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") : "Base scores: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.baseScores[ability]).join("; ")) + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
