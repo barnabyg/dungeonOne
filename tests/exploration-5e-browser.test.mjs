@@ -178,7 +178,7 @@ test(
       );
       shown = await screen(page);
       assert.doesNotMatch(shown.room, /Under a mouldy blanket/);
-      assert.match(shown.log, /Under a mouldy blanket/);
+      assert.doesNotMatch(shown.log, /Under a mouldy blanket/);
       assert.match(shown.actions, /Take Potion of Healing/);
 
       await explore(page, "take", "healing-potion");

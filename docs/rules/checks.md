@@ -7,6 +7,10 @@
   feature becomes visible when that feature is first examined. Examining draws
   no dice, except that a feature may have a check, made the first time it is
   examined: its bands then make the discovery and reveal what is hidden.
+  When an examination uncovers items, history lists them by name. On the
+  feature card, open **What you found** to reread the authored discovery, the
+  check's outcome and the names of the items found, including after pickup.
+  A discovery without an item appears directly in history.
 - **Ability checks.** d20 + the ability's modifier, + the proficiency bonus when
   proficient in the skill (twice with Expertise), against the module's DC. A
   natural 20 or 1 is just its number. Each check is rolled once and its outcome
