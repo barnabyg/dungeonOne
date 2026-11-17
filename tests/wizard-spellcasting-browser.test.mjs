@@ -246,15 +246,15 @@ test(
       );
       assert.deepEqual(
         await page
-          .locator("#sheet-body #sheet-spellbook li strong")
-          .allTextContents(),
+          .locator("#prepare-spells input")
+          .evaluateAll((boxes) => boxes.map(({ id }) => id)),
         [
-          "Shield. ",
-          "Mage Armor. ",
-          "Burning Hands. ",
-          "Chromatic Orb. ",
-          "Thunderwave. ",
-          "Ray of Sickness. ",
+          "prepared-shield",
+          "prepared-mage-armor",
+          "prepared-burning-hands",
+          "prepared-chromatic-orb",
+          "prepared-thunderwave",
+          "prepared-ray-of-sickness",
         ],
       );
       assert.match(sheetText, /Ritual Adept\. Omitted/u);
@@ -303,6 +303,19 @@ test(
 
       await page.locator("#sheet-name").filter({ hasText: "Vela" }).waitFor();
       await startAdventure(page, "rat-tunnels");
+      // During an adventure the same spellbook is readable without editing.
+      await page.locator('#breadcrumb a[data-view="sheet"]').click();
+      await page.locator("#continue-adventure").waitFor();
+      const sheet = page.locator("#sheet");
+      const spellLists = await sheet.innerText();
+      assert.match(
+        spellLists,
+        /Prepared spells change only between adventures/u,
+      );
+      assert.equal(spellLists.split("Thunderwave").length - 1, 1);
+      assert.equal(spellLists.split("Ray of Sickness").length - 1, 1);
+      assert.equal(await sheet.getByRole("checkbox").count(), 0);
+      await page.locator("#continue-adventure").click();
       // A Wizard's strip has no feature pips (#385): hit dice alone.
       const stripResources = () =>
         page

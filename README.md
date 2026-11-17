@@ -58,6 +58,8 @@ the model it started with. Treasure, gear, coin and XP are kept only by getting 
 character at 0 HP is defeated for good, apart from
 [Last Stand](docs/rules/house-rules.md)'s single death saving throw.
 
+On a character sheet, expand a feature to read its full rules or **Ability rolls** to see the original dice. A caster’s **Spellcasting** section lists its spells. Between adventures, change the ticked spells there and select **Prepare spells** to save the new selection.
+
 ## Adventure modules
 
 | Module                      | File                                         | Levels | Difficulty |

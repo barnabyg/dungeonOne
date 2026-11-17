@@ -515,6 +515,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 #sheet-body caption{text-align:left;margin:0 0 var(--space-2);font:600 var(--text-md) var(--font-serif);color:var(--color-ink)}
 #sheet-body .ability-score{display:inline-block;min-width:2em;text-align:center;border:1px solid var(--color-panel-border);border-radius:50%;font:700 var(--text-lg) var(--font-serif);color:var(--color-ink)}
 #sheet-body h3{border-bottom:3px double var(--color-panel-border);padding-bottom:var(--space-1);color:var(--color-ink)}
+#sheet-body .profile-features ul{list-style:none;padding:0}#sheet-body .profile-features li{padding:var(--space-1) 0;border-bottom:1px solid var(--color-line)}#sheet-body summary{cursor:pointer}#sheet-body .profile-features details p{margin:var(--space-1) 0 var(--space-1) 1.1em}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.choice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-2);width:100%}.choice-head button{flex:0 0 auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}#adventure-choices .level-choice-notice{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-md) var(--font-sans);color:var(--color-text)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
 .log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted)}
@@ -880,7 +881,7 @@ const untrainedText = (gear) => (gear.untrainedArmour ? "; disadvantage on Stren
 /** "17 arrows", "1 bolt". */
 const ammunitionText = ({ id, count }) => count + " " + (count === 1 ? id.slice(0, -1) : id);
 
-function profileNodes(abilities, profile, hp, carrying) {
+function profileNodes(abilities, profile, hp, carrying, entry) {
   const stats = make("ul", undefined, "stats");
   const entries = [
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
@@ -899,19 +900,41 @@ function profileNodes(abilities, profile, hp, carrying) {
     stats.append(item);
   }
   const skills = make("p", "Skills: " + profile.skills.filter((skill) => skill.proficient).map((skill) => skill.name + " " + signed(skill.bonus) + (skill.expertise ? " (Expertise)" : "")).join(", ") + "." + (profile.tools ? " Tools: " + profile.tools.join(", ") + "." : ""), "hint");
+  const reference = make("div", undefined, "profile-reference");
+  reference.append(stats, abilityTable(abilities, profile, "Ability scores and saving throws"));
+  return [reference, skills, ...spellcastingNodes(profile.spellcasting, entry), featureSection(profile, Boolean(entry))];
+}
+
+function disclosure(label, body) {
+  const details = make("details");
+  const summary = make("summary");
+  summary.append(label);
+  details.append(summary, body);
+  return details;
+}
+
+function featureSection(profile, onSheet) {
+  const section = make("section", undefined, "profile-features");
+  section.setAttribute("aria-label", "Features");
   const features = make("ul", undefined, "features");
   for (const feature of profile.features) {
     const item = make("li");
-    item.append(make("strong", feature.name + ". "), document.createTextNode(feature.text));
+    const name = make("strong", feature.name + ". ");
+    const split = onSheet ? feature.text.indexOf(". ") : -1;
+    if (split < 0) item.append(name, feature.text);
+    else {
+      const label = document.createDocumentFragment();
+      label.append(name, feature.text.slice(0, split + 1));
+      item.append(disclosure(label, make("p", feature.text.slice(split + 2))));
+    }
     features.append(item);
   }
-  // How spent uses come back, once under the features (#431), for a
-  // character with a limited-use feature; spell slots alone don't count.
-  const limited = profile.features.some(({ id }) => profile.featureUses[id]);
-  const rule = limited ? [make("p", ${JSON.stringify(FEATURE_USES_RULE)}, "hint feature-uses-rule")] : [];
-  const reference = make("div", undefined, "profile-reference");
-  reference.append(stats, abilityTable(abilities, profile, "Ability scores and saving throws"));
-  return [reference, skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features, ...rule];
+  section.append(make("h3", "Features"), features);
+  if (profile.features.some(({ id }) => profile.featureUses[id])) {
+    const rule = make("p", ${JSON.stringify(FEATURE_USES_RULE)}, "hint feature-uses-rule");
+    section.append(onSheet ? disclosure("How resting works", rule) : rule);
+  }
+  return section;
 }
 
 /** A spell by id, from the classes' lists (#339). */
@@ -924,7 +947,7 @@ const skillName = (id) => (library.classes.flatMap(({ skills }) => skills).find(
  * A caster's spellcasting (#339): its spell attack bonus and save DC, its
  * slots, and its cantrips and prepared spells, each with what it does.
  */
-function spellcastingNodes(casting) {
+function spellcastingNodes(casting, entry) {
   if (!casting) return [];
   const heading = make("h3", "Spellcasting");
   heading.id = "spellcasting-title";
@@ -942,9 +965,17 @@ function spellcastingNodes(casting) {
     }));
     return [make("h4", title), node];
   };
-  // A Wizard's spellbook (#340), whose spells it prepares from; the Life
-  // Domain's always-prepared spells (#341).
-  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared), ...(casting.alwaysPrepared ? list("Always prepared", "sheet-always-prepared", casting.alwaysPrepared) : [])];
+  const nodes = [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips)];
+  if (casting.alwaysPrepared) nodes.push(...list("Always prepared", "sheet-always-prepared", casting.alwaysPrepared));
+  const editable = entry && !entry.defeated && !entry.session;
+  if (editable) nodes.push(...prepareNodes(entry));
+  else nodes.push(...list("Prepared spells", "sheet-prepared", casting.prepared));
+  // Keep the entire spellbook readable, including any spells outside the chooser.
+  const shown = editable ? entry.spells.preparable.map(({ id }) => id) : casting.prepared;
+  const other = casting.spellbook?.filter((id) => !shown.includes(id));
+  if (other?.length) nodes.push(...list("Other spells in your spellbook", "sheet-spellbook", other));
+  if (entry?.session && !entry.defeated) nodes.push(make("p", "Prepared spells change only between adventures. Finish or abandon the adventure first.", "hint"));
+  return nodes;
 }
 
 // The cantrips being learned on a sheet (#342), by character.
@@ -1104,13 +1135,9 @@ let preparing;
 
 /**
  * Preparing spells (#339, D8): between adventures a tick for each levelled
- * spell on the class's list and Prepare spells; on an adventure, why not.
+ * preparable spell, with a save action while the selection has changed.
  */
 function prepareNodes(entry) {
-  if (!entry.spells || entry.defeated) return [];
-  const heading = make("h3", "Prepare spells");
-  heading.id = "prepare-title";
-  if (entry.session) return [heading, make("p", "Prepared spells change only between adventures. Finish or abandon the adventure first.", "hint")];
   // A draft starts again when the sheet's own choice changed under it: a
   // new level (#341) may have freed spells now always prepared.
   const base = entry.sheet.spells.prepared.join(",");
@@ -1138,7 +1165,8 @@ function prepareNodes(entry) {
   const update = () => {
     for (const box of fields.querySelectorAll("input")) box.disabled = !box.checked && preparing.prepared.length >= limit;
     count.textContent = preparing.prepared.length + " of " + limit + " chosen";
-    const same = preparing.prepared.length === limit && preparing.prepared.every((id) => entry.sheet.spells.prepared.includes(id));
+    const same = preparing.prepared.length === entry.sheet.spells.prepared.length && preparing.prepared.every((id) => entry.sheet.spells.prepared.includes(id));
+    button.hidden = same;
     button.disabled = isBusy(button) || preparing.prepared.length !== limit || same;
   };
   fields.append(...entry.spells.preparable.map((spell) => spellBox("prepared-" + spell.id, spell, preparing.prepared.includes(spell.id), (event) => {
@@ -1164,7 +1192,7 @@ function prepareNodes(entry) {
   const controls = make("div", undefined, "controls");
   controls.append(button);
   update();
-  return [heading, group, controls];
+  return [group, controls];
 }
 
 /** "Fighting Style: Defense [Applies] Applies: you wear armour." for the sheet (#144). */
@@ -1188,7 +1216,7 @@ function openSheet(id) {
   // Its dice, or its scores before the background (#509: standard array or point buy).
   const rolls = make("p", (sheet.abilityRolls ? "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") : "Base scores: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.baseScores[ability]).join("; ")) + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...gearNodes(gear), ...learnNodes(entry), ...prepareNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying, entry), ...gearNodes(gear), ...learnNodes(entry), ...magicItemNodes(magicItems, entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), sheet.abilityRolls ? disclosure("Ability rolls", rolls) : rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
