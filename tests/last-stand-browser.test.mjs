@@ -96,6 +96,12 @@ test(
           "Fall",
         ]);
         assert.equal(await row.locator("button.act").count(), 2);
+        assert.equal(
+          await page
+            .locator('#you-card [data-resource="second-wind"]:visible')
+            .count(),
+          1,
+        );
         await assertTogether(page, label);
       };
       await check("the Last Stand");

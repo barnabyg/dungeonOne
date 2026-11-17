@@ -1833,6 +1833,21 @@ function renderStatus(fighting) {
     items.push(resource("hit-dice", "Hit dice", available, total, "Hit dice: " + available + " of " + total + " d" + sides + " left"));
   }
   element("resources").replaceChildren(...items);
+  if (fighting) {
+    // A pending reaction can replace every ordinary action with its answers.
+    // Keep each feature count on the You card until its usual control returns.
+    const encounterPanel = element("encounter");
+    const missing = items.filter(({ dataset: { resource } }) => {
+      if (resource === "channel-divinity") return !encounterPanel.querySelector("#row-channel-divinity .row-uses");
+      return resource !== "hit-dice" && !encounterPanel.querySelector('button[data-action="' + resource + '"]');
+    });
+    if (missing.length) {
+      const counts = make("ul", undefined, "resources");
+      counts.setAttribute("aria-label", "Feature uses");
+      counts.append(...missing);
+      element("heal-controls").before(counts);
+    }
+  }
 }
 
 // Every part of a history entry is one card in one font (#524): the player's
