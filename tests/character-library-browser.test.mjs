@@ -10,7 +10,12 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
-import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
+import {
+  createFighter,
+  openCreation,
+  saveFighter,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
@@ -106,7 +111,13 @@ test(
     try {
       await page.goto(server.url);
       await page.locator("#no-characters").waitFor();
-      await createFighter(page, "Bea");
+      await openCreation(page);
+      await page.locator("#class-rogue").check();
+      await page
+        .locator("#preview-body")
+        .filter({ hasText: "Sneak Attack" })
+        .waitFor();
+      await saveFighter(page, "Bea");
       await page.locator('#breadcrumb a[data-view="library"]').click();
       await createFighter(page, "Ada");
       await startAdventure(page, "quiet-tunnels");
@@ -131,6 +142,36 @@ test(
       // Back in the library: Ada is tagged and has Continue; Bea has neither.
       await page.locator('#breadcrumb a[data-view="library"]').click();
       await page.locator("#characters .continue-adventure").waitFor();
+      const cards = page.locator("#characters > li");
+      assert.deepEqual(
+        await cards
+          .locator("svg use")
+          .evaluateAll((icons) => icons.map((use) => use.getAttribute("href"))),
+        ["#icon-cowled", "#icon-barbute"],
+      );
+      for (const width of [1499, 1500, 2560]) {
+        await page.setViewportSize({ width, height: 950 });
+        const first = await cards.nth(0).boundingBox();
+        const second = await cards.nth(1).boundingBox();
+        if (width < 1500) {
+          assert.ok(
+            second.y >= first.y + first.height,
+            "one column below 1500 px",
+          );
+        } else {
+          assert.equal(first.y, second.y);
+          assert.ok(
+            second.x >= first.x + first.width,
+            "two roster cards fit side by side",
+          );
+          assert.ok(
+            (await page.locator("#characters").boundingBox()).width >
+              width * 0.9,
+            "the roster uses the window width",
+          );
+        }
+        await assertNoSideScroll(page, width + " px roster");
+      }
       const shown = await rows(page);
       assert.deepEqual(
         shown.map(({ name, tags, defeated }) => ({ name, tags, defeated })),
@@ -215,6 +256,71 @@ test(
       assert.ok(contrast >= 4.5, `defeated row text ${contrast.toFixed(2)}:1`);
       await page.locator("#characters .open-character").first().click();
       await page.locator("#sheet-name").filter({ hasText: "Bea" }).waitFor();
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "a pending creation can be continued or discarded from its own roster card",
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "roster-draft-"));
+    const server = await startFifthBrowserServer({
+      adventures: [ratlessTunnels],
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+    });
+    const browser = await launch();
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      const create = page.getByRole("button", {
+        name: "Create a character",
+        exact: true,
+      });
+      await create.click();
+      await page.locator("#character-name").fill("Draft name");
+      await page.locator("#close-creation").click();
+      const draft = page
+        .getByRole("listitem")
+        .filter({ hasText: "New character — creation in progress" });
+      assert.ok(await draft.isVisible());
+      assert.ok(await create.isDisabled());
+      await draft.getByRole("button", { name: "Continue" }).click();
+      assert.equal(
+        await page.locator("#character-name").inputValue(),
+        "Draft name",
+      );
+      await page.locator("#close-creation").click();
+
+      const stale = await browser.newPage();
+      await stale.goto(server.url);
+      const staleDiscard = stale.getByRole("button", { name: "Discard" });
+      await staleDiscard.waitFor();
+      await draft.getByRole("button", { name: "Discard" }).click();
+      await draft.waitFor({ state: "hidden" });
+      assert.ok(await create.isEnabled());
+      assert.ok(await page.locator("#no-characters").isVisible());
+      await create.click();
+      await page.locator("#creation").waitFor();
+      assert.equal(await page.locator("#character-name").inputValue(), "");
+      await page.locator("#close-creation").click();
+      await page.reload();
+      await draft.waitFor();
+      await staleDiscard.click();
+      await stale
+        .getByRole("status")
+        .filter({ hasText: "refresh before retrying" })
+        .waitFor();
+      await page.reload();
+      assert.ok(
+        await draft.getByRole("button", { name: "Continue" }).isEnabled(),
+      );
     } finally {
       await browser.close();
       await server.close();

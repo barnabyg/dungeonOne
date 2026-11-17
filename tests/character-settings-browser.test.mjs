@@ -171,7 +171,9 @@ test(
       // Changing the method and reloading changes neither method nor dice.
       await choose(page, "abilityScores", "point-buy");
       await page.reload();
-      await openCreation(page);
+      await page.locator('#breadcrumb a[data-view="library"]').click();
+      await page.locator("#continue-creation").click();
+      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
       assert.deepEqual(await shownDice(page), second);
       assert.equal(await page.locator("#reroll").isHidden(), true);
       assert.deepEqual(

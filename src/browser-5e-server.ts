@@ -1212,6 +1212,18 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.startCreation((await readSettings()).abilityScores),
           ),
         );
+      case "/api/5e/creation/discard":
+        if (
+          !hasExactKeys(body, ["revision"]) ||
+          typeof body.revision !== "string"
+        ) {
+          throw new Error("Invalid discard creation request.");
+        }
+        return view(
+          await serialized(() =>
+            library.discardCreation(body.revision as string),
+          ),
+        );
       case "/api/5e/creation/reroll":
         // The one reroll of "4d6 drop lowest, one reroll" (#509).
         if (

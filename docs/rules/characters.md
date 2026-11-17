@@ -32,8 +32,10 @@ with each discarded die struck through.
   picks the method when a creation starts. The pending creation in the library
   records it, with its dice when it rolls, before the player sees anything, so
   reloading, restarting the server with any seed, leaving the creation screen or
-  changing the setting keeps the method and dice. Saving a character spends the
-  pending creation; the next one starts by the setting of the moment. A fresh
+  changing the setting keeps the method and dice. The roster shows a pending
+  creation with **Continue** and **Discard**. Saving a character or explicitly
+  discarding its draft spends that creation. The next one starts with a new
+  creation number and the current setting. A fresh
   creation places its scores, highest first, down its class's ability priority
   (`abilityPriority`), tied totals keeping roll order.
   - **4d6 drop lowest** (default): the engine rolls 4d6, dropping the lowest
