@@ -69,7 +69,7 @@ export const CONTENT_TESTS = new Map([
     "the increment 17 handoff runs of the Coldwater Weirgate through the browser",
   ],
   [
-    "tests/issue-448-browser.test.mjs",
+    "tests/four-module-handoff-browser.test.mjs",
     "the four-module handoff runs, one per shipped module, through the browser",
   ],
   [

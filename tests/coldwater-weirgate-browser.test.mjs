@@ -380,7 +380,7 @@ test(
       assert.deepEqual(ends, ["21/21", "21/21"]);
       await keep("rogue", log);
       says(log, [
-        /You find the Windlass Crank\./u,
+        /Behind the charts hangs an iron crank with a square socket, worn bright with use\./u,
         /You listen as you go: d100 2, 15 or less: Patrolling Bandit and Patrol Bandit come upon you\./u,
         /Patrol Bandit is defeated\./u,
         /Patrolling Bandit is defeated\./u,
