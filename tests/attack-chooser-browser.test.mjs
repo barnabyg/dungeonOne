@@ -570,7 +570,7 @@ test(
         ["Cantrips", "", ["Sacred Flame"]],
         ["1st", "●●●●", ["Guiding Bolt"]],
         ["2nd", "●●", ["Spiritual Weapon", "Hold Person"]],
-        ["Channel Divinity", "●●", ["Divine Spark"]],
+        ["Channel Divinity", "", ["Divine Spark"]],
       ]);
       /** Asserts chip `key` is greyed with the engine's reason for it. */
       const greyed = async (key, spellId) => {

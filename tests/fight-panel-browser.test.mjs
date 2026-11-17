@@ -257,6 +257,14 @@ test(
         await page.locator("#turn-order strong").textContent(),
         /^Ada \d+ · your turn$/u,
       );
+      assert.equal(
+        await page.locator("#fight-character-name").innerText(),
+        "Ada",
+      );
+      assert.equal(await page.locator("#status-hp").isHidden(), true);
+      assert.equal(await page.locator("#resources").isHidden(), true);
+      assert.equal(await page.locator("#gear-numbers").isHidden(), true);
+      assert.equal(await page.locator("#you-card .hp-bar").isVisible(), true);
       // Ada's card and the goblins' cards, as the engine has them.
       await assertCards(page, session, "first turn");
       const ac = (id) => `AC ${fighter(session, id).armorClass}`;
@@ -529,6 +537,21 @@ test(
         await toggle.click();
         await settled(page, () => way.click());
         await page.locator("#encounter").waitFor({ state: "hidden" });
+        assert.equal(
+          await page.locator("#fight-character-name").isHidden(),
+          true,
+        );
+        assert.equal(
+          await page.locator("#status-hp .hp-bar").isVisible(),
+          true,
+        );
+        assert.equal(
+          await page
+            .locator("#resources [data-resource=second-wind]")
+            .isVisible(),
+          true,
+        );
+        assert.equal(await page.locator("#gear-numbers").isVisible(), true);
         assert.equal(
           await page.locator("#room-title").textContent(),
           "Cellar Stair",

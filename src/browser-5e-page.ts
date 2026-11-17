@@ -84,9 +84,10 @@
 //   (over the cards while a hit or a fall waits for an answer). The rolls
 //   behind the turn order are in the history's arrival entry (#524), with
 //   a closed .initiative-how, "How initiative was rolled" (#525).
-// - #session-status: the status strip (#155): HP with its bar and health,
-//   the round and whose turn it is (#turn), the character's conditions in a
-//   fight (#conditions, #232), and #resources, a pip for each class feature
+// - #session-status: during a fight, the class crest, name and round line.
+//   Outside a fight the strip (#155) shows HP with its bar and health,
+//   conditions and effects (#conditions and #effects move to #you-card in
+//   combat), and #resources, a pip for each class feature
 //   use, and outside a fight's turns for each hit die (#333); the turn's
 //   pips are in the fight panel's footer (#525). It shows only what the session view projects.
 // - #inventory-group: "You carry" (#432), #inventory, in groups (worn and
@@ -383,7 +384,7 @@ ${SETTINGS_SOUND(sound)}
 <div id="session-layout"><div id="scene-backdrop" aria-hidden="true">${BACKDROPS.map((name) => BACKDROP_ART[name]).join("")}</div>
 <div id="session-main">
 <section id="session-character" aria-label="Character">
-<section id="session-status" aria-label="Status"><div id="class-crest" role="img"><svg aria-hidden="true"><use></use></svg></div><div id="status-lines"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul></div><p id="gear-numbers"></p></section>
+<section id="session-status" aria-label="Status"><div id="class-crest" role="img"><svg aria-hidden="true"><use></use></svg></div><div id="status-lines"><strong id="fight-character-name" hidden></strong><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul></div><p id="gear-numbers"></p></section>
 <div id="inventory-group"><h3 id="inventory-title">You carry</h3><div id="inventory"></div><p id="purse"></p><p id="carrying"></p></div>
 <div id="rest-group" hidden><h3 id="rest-title">Rest</h3><div id="rest-fight" hidden><p class="rest-line">Not during a fight</p><p id="rest-counts" class="reason"></p></div><div id="short-rest"><p id="rest-summary" class="rest-line"></p><p id="rest-hint" class="hint">Each hit die spent heals its roll + Con. Only a long rest or a new adventure brings hit dice back.</p><div id="rest-controls" class="controls rest-panel"></div></div><div id="long-rest"><p id="long-rest-summary" class="rest-line"></p><div id="long-rest-controls" class="controls rest-panel"></div></div><details id="rest-rules"><summary>How resting works</summary><p id="rest-rules-text" class="hint">You have one hit die per level, its size set by your class. A short rest spends hit dice: each heals its roll + your Constitution modifier, and you stop spending them at full HP. It also brings back the feature uses that return on a short rest, but no hit dice. Short rests are counted per adventure, or per region in a long module, and the Settings page sets how many. A long rest, only at a safe place to rest, restores every hit point, hit die and feature use. You can rest only where no foes are left. Each new adventure starts with everything restored.</p></details></div>
 </section>
@@ -1514,12 +1515,15 @@ function renderAdventure() {
   // cards and the footer, or over the cards while a hit or a fall waits for
   // an answer; out of a fight it is back in #session-actions. It moves only
   // when its place changes, so focus in it stays put.
+  // Keep the condition and spell-effect lists as their home changes.
+  const statusLists = [element("conditions"), element("effects")];
   element("encounter").hidden = !fighting;
   if (fighting) renderFight(encounter);
   else {
     element("you-card").replaceChildren();
     element("foe-cards").replaceChildren();
   }
+  element(fighting ? "heal-controls" : "resources").before(...statusLists);
   const bar = element("action-bar");
   const holder = fighting ? element("encounter") : element("session-actions");
   const next = fighting && encounter.pendingReaction ? element("fight-sides") : null;
@@ -1528,7 +1532,7 @@ function renderAdventure() {
   renderActions();
   renderRoomFold(fighting);
   renderShop();
-  renderStatus();
+  renderStatus(fighting);
   renderEnding();
   renderComposer();
   renderHistory();
@@ -1753,10 +1757,16 @@ const usesLeft = (name, { uses, max }) => name + ": " + uses + " of " + max + (m
 
 // The status strip shows the session view as the server projects it: HP and
 // its health, the round and whose turn it is, and pips for what is left.
-function renderStatus() {
+function renderStatus(fighting) {
   // The class crest (#559): its silhouette and the level on its badge, both
   // in words for a screen reader.
   const entry = findEntry(session.characterId);
+  const name = element("fight-character-name");
+  name.hidden = !fighting;
+  name.textContent = entry?.sheet.name ?? "";
+  element("status-hp").hidden = fighting;
+  element("resources").hidden = fighting;
+  element("gear-numbers").hidden = fighting;
   const crest = element("class-crest");
   crest.hidden = !entry;
   if (entry) {
@@ -2825,11 +2835,11 @@ function renderFight(encounter) {
   heal.id = "heal-controls";
   heal.setAttribute("role", "group");
   heal.setAttribute("aria-label", "Heal");
-  // Its conditions (#232) and Hide (#307), as the status strip has them too.
+  // The shared condition and effect lists follow these tags (#574).
   const own = make("p", undefined, "card-tags");
   // And whether it was surprised (#303).
   const surprised = self.initiative.mode?.disadvantage.includes("surprised") ? [make("span", "Surprised", "tag surprised")] : [];
-  for (const node of [...self.conditions.map(conditionTag), ...(self.hidden ? [make("span", "Hidden", "tag")] : []), ...surprised]) own.append(...(own.childNodes.length ? [" "] : []), node);
+  for (const node of [...(self.hidden ? [make("span", "Hidden", "tag")] : []), ...surprised]) own.append(...(own.childNodes.length ? [" "] : []), node);
   you.replaceChildren(cardHead(self), ...hpNodes(self), ...(own.childNodes.length ? [own] : []), heal);
   // A card per foe: its attack goes in its .foe-controls (renderActions).
   element("foe-cards").replaceChildren(...encounter.combatants.filter(({ id, side }) => id !== self.id && side !== self.side).map((foe) => {
@@ -4378,9 +4388,8 @@ function chosenAttack(choices) {
   return { choice, slots, slot, variants, variant, options: at(slot).filter((option) => variantOf(option) === variant) };
 }
 
-/** The spell slots or Channel Divinity uses a group's pips show, if any. */
+/** Slot pips in the chooser; the Channel Divinity count is on its action row. */
 function groupUses(group) {
-  if (group === "channel") return session.channelDivinity;
   return group.startsWith("level-") && session.spellSlots ? session.spellSlots[Number(group.slice(6)) - 1] : undefined;
 }
 

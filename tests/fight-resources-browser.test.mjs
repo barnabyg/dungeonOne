@@ -59,8 +59,7 @@ async function clickAndWait(page, button) {
 }
 
 /**
- * What the status strip says to a screen reader (text outside aria-hidden
- * parts), each resource's words, and the filled and empty pips shown.
+ * The fight panel's HP, Second Wind count and turn-resource pips.
  */
 const status = (page) =>
   page.evaluate(() => {
@@ -77,18 +76,16 @@ const status = (page) =>
         : node.classList?.contains("visually-hidden")
           ? ""
           : [...node.childNodes].map(seen).join("");
-    const strip = document.getElementById("session-status");
+    const hp = document.querySelector("#you-card .card-hp");
     return {
-      hp: tidy(spoken(document.getElementById("character-hp"))),
-      shown: tidy(seen(document.getElementById("character-hp"))),
-      health: document.getElementById("status-hp").dataset.health,
+      hp: tidy(spoken(hp)),
+      shown: tidy(seen(hp)),
+      wind: document.querySelector("#you-card button[data-action=second-wind]")
+        .innerText,
       turn: document.getElementById("turn").textContent,
       resources: Object.fromEntries(
         // The turn's pips are in the fight panel's footer (#525).
-        [
-          ...document.querySelectorAll("#turn-resources li"),
-          ...strip.querySelectorAll("#resources li"),
-        ].map((item) => [
+        [...document.querySelectorAll("#turn-resources li")].map((item) => [
           item.dataset.resource,
           {
             words: tidy(spoken(item)),
@@ -103,7 +100,7 @@ const status = (page) =>
 
 const viewport = { width: 1280, height: 850 };
 test(
-  `the status strip tracks the action, bonus action and Second Wind through a reload at ${viewport.width} px (#155)`,
+  `the fight panel tracks the action, bonus action and Second Wind through a reload at ${viewport.width} px (#155)`,
   { timeout: 120000 },
   async () => {
     const seed = bandSeed();
@@ -131,17 +128,14 @@ test(
       assert.equal(await page.locator("#feature-rule").count(), 0);
       let shown = await status(page);
       const maxHp = firstFighter(seed).hp;
-      assert.match(shown.hp, new RegExp(`^HP \\d+ of ${maxHp}, \\w+$`));
-      assert.match(shown.shown, new RegExp(`^HP \\d+/${maxHp} \\w+$`));
+      assert.match(shown.hp, new RegExp(`^HP \\d+ of ${maxHp}$`));
+      assert.match(shown.shown, new RegExp(`^\\d+ / ${maxHp} HP$`));
+      assert.match(shown.wind, /2 of 2 left/u);
       assert.match(shown.turn, /^Round 1: your turn\.$/);
       assert.deepEqual(shown.resources, {
         action: { words: "Action: available", pips: "●" },
         "bonus-action": { words: "Bonus action: available", pips: "●" },
         reaction: { words: "Reaction: available", pips: "●" },
-        "second-wind": {
-          words: "Second Wind: 2 of 2 uses left",
-          pips: "●●",
-        },
       });
       // Attacking marks the action used; the bonus action is left.
       await clickAndWait(
@@ -152,10 +146,6 @@ test(
         action: { words: "Action: used", pips: "○" },
         "bonus-action": { words: "Bonus action: available", pips: "●" },
         reaction: { words: "Reaction: available", pips: "●" },
-        "second-wind": {
-          words: "Second Wind: 2 of 2 uses left",
-          pips: "●●",
-        },
       };
       assert.deepEqual((await status(page)).resources, attacked);
       shown = await status(page);
@@ -171,10 +161,7 @@ test(
         .locator("#turn")
         .filter({ hasText: /^Round 2: your turn\.$/ })
         .waitFor();
-      assert.deepEqual((await status(page)).resources["second-wind"], {
-        words: "Second Wind: 1 of 2 uses left",
-        pips: "●○",
-      });
+      assert.match((await status(page)).wind, /1 of 2 left/u);
 
       // Second Wind takes a use and the bonus action, not the action.
       await clickAndWait(
@@ -185,12 +172,9 @@ test(
         action: { words: "Action: available", pips: "●" },
         "bonus-action": { words: "Bonus action: used", pips: "○" },
         reaction: { words: "Reaction: available", pips: "●" },
-        "second-wind": {
-          words: "Second Wind: 0 of 2 uses left",
-          pips: "○○",
-        },
       };
       assert.deepEqual((await status(page)).resources, healed);
+      assert.match((await status(page)).wind, /0 of 2 left/u);
       const file = await sessionFile(directory);
       assert.deepEqual(
         file.transitions.map(({ action }) => action.type),
@@ -202,7 +186,7 @@ test(
       assert.deepEqual(await status(page), shown);
       // HP and its health come from the saved state.
       const hp = file.state.character.hp;
-      assert.equal(shown.hp.startsWith(`HP ${hp} of ${maxHp},`), true);
+      assert.equal(shown.hp, `HP ${hp} of ${maxHp}`);
     } finally {
       await browser.close();
       await server.close();
