@@ -150,8 +150,8 @@ explains its output and the sketch format.
   it), the gate counts the character as stranded and fails the module. Give such
   a key a second way on.
 - **Long modules** have at least two regions, each with a rest site.
-- **Backdrops.** Give each region a `backdrop`: the faint drawing behind the
-  room panel of the kind of place it is. A room that is a different kind of
+- **Backdrops.** Give each region a `backdrop`: the faint drawing of the setting shown
+  below the room cards when space permits. A room that is a different kind of
   place, such as a forest camp outside a lodge, names its own. The backdrops
   are `cellar` (a vault of barrels and shelves), `crypt` (arches, skulls and a
   tomb), `culvert` (a brick tunnel over water), `farmyard` (a barn, a well and a
