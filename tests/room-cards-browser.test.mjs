@@ -287,8 +287,7 @@ test(
         true,
       );
 
-      // Examining marks the card's button and shows the find on the card;
-      // focus stays on the button.
+      // History shows the find immediately. The card remembers it on return.
       await onCard(
         page,
         "features",
@@ -297,10 +296,11 @@ test(
         "carved-warning",
       );
       const warning = page.locator('#features li[data-id="carved-warning"]');
-      assert.match(
-        await text(warning),
-        /^Carved Warning — Words are cut into the stone above the passage\.\n✓ Examined\nYou found: The words read: "The warden keeps the tomb\. Mind the offerings\."$/u,
-      );
+      const finding =
+        'The words read: "The warden keeps the tomb. Mind the offerings."';
+      assert.match(await text(warning), /✓ Examined/u);
+      assert.ok(!(await text(warning)).includes(finding));
+      assert.ok((await text(page.locator("#log li").last())).includes(finding));
       assert.deepEqual(await focusedAction(page), {
         action: "examine",
         target: "carved-warning",
@@ -337,6 +337,12 @@ test(
         await page.locator("#room h4:visible").allTextContents(),
         ["Here", "Ways on"],
       );
+
+      await onCard(page, "exits", "crypt-stair", "move", "crypt-stair");
+      assert.ok(!(await text(warning)).includes(finding));
+      await warning.getByText("What you found", { exact: true }).click();
+      assert.ok((await text(warning)).includes(finding));
+      await onCard(page, "exits", "hall", "move", "hall");
 
       // The smuggler's card: "Ask about" and a button per topic.
       const smuggler = page.locator('#creatures li[data-id="smuggler"]');
