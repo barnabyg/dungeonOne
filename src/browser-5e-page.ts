@@ -2812,8 +2812,10 @@ const effectTag = (effect) => {
 const MORALE_TAGS = { fleeing: "Fleeing", fled: "Fled", surrendering: "Surrendering", surrendered: "Surrendered" };
 const TURN_UNDEAD_ID = ${JSON.stringify(TURN_UNDEAD_ID)};
 /** A foe out of the fight, or turned, shows its state in place of an attack (#525). */
+const resolvedFoeState = ({ defeated, morale }) =>
+  defeated ? "Fallen" : morale === "fled" || morale === "surrendered" ? MORALE_TAGS[morale] : "";
 const foeState = (combatant) =>
-  combatant.defeated ? "Fallen" : combatant.morale === "fled" ? "Fled" : combatant.morale === "surrendered" ? "Surrendered" : combatant.effects.some(({ spellId }) => spellId === TURN_UNDEAD_ID) ? "Turned" : "";
+  resolvedFoeState(combatant) || (combatant.effects.some(({ spellId }) => spellId === TURN_UNDEAD_ID) ? "Turned" : "");
 
 /** A card's name, with its icon (#377), and AC. */
 function cardHead(combatant) {
@@ -2870,11 +2872,11 @@ function renderFight(encounter) {
     card.dataset.combatant = foe.id;
     if (state) card.dataset.state = state.toLowerCase();
     // Turned foes are still attackable. Only a final state replaces the card.
-    if (state && state !== "Turned") {
+    if (resolvedFoeState(foe)) {
       card.classList.add("foe-summary");
       const name = make("span", foe.name, "card-name");
       name.title = foe.name;
-      if (state === "Fallen") card.append(unspoken(make("span", "☠")));
+      if (foe.defeated) card.append(unspoken(make("span", "☠")));
       card.append(name, " — ", make("span", state, "card-state"));
       finished.push(card);
       continue;
