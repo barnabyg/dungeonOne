@@ -371,6 +371,14 @@ export class FifthCharacterLibrary {
     return data as FifthLibraryData & { pendingCreation: PendingCreation };
   }
 
+  /** Discards just the pending creation, leaving the next creation its own number. */
+  async discardCreation(revision: string): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      this.pending(data);
+      delete data.pendingCreation;
+    });
+  }
+
   /**
    * Rolls the pending creation's whole set again (#509), once, for the
    * "roll-reroll" method: the new set replaces the old and must be kept. Its

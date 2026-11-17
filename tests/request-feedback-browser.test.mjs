@@ -103,7 +103,7 @@ test(
       assert.deepEqual(await busyState(opener), {
         busy: "true",
         disabled: true,
-        text: "Opening…",
+        text: "Create a character",
       });
       await opener.evaluate((button) => button.click());
       assert.equal(posts("/api/5e/creation"), 1);

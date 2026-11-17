@@ -81,10 +81,7 @@ test(
       await page.reload();
       assert.deepEqual(await shownRolls(page), shown);
       await page.locator("#close-creation").click();
-      await page
-        .locator("#open-creation")
-        .filter({ hasText: "Continue" })
-        .click();
+      await page.locator("#continue-creation").click();
       assert.deepEqual(await shownRolls(page), shown);
 
       // Restart, even with another seed: the same dice.
@@ -95,7 +92,7 @@ test(
         seed: 7,
       });
       await page.goto(server.url);
-      await page.locator("#open-creation").click();
+      await page.locator("#continue-creation").click();
       assert.deepEqual(await shownRolls(page), shown);
 
       // No request yields a different set while the creation is pending.
@@ -505,7 +502,9 @@ test(
       await page.locator("#library").waitFor({ state: "visible" });
       await page.locator("#feedback").filter({ hasText: "Ada" }).waitFor();
       assert.deepEqual(
-        await page.locator("#characters strong").allInnerTexts(),
+        await page
+          .locator("#characters .open-character strong")
+          .allInnerTexts(),
         ["Bram"],
       );
       const replayed = await post(page, "/api/5e/characters/delete", {
@@ -517,9 +516,14 @@ test(
 
       // Reload and restart: Ada is gone, Bram intact, the same dice pending.
       await page.reload();
-      await page.locator("#characters strong").first().waitFor();
+      await page
+        .locator("#characters .open-character strong")
+        .first()
+        .waitFor();
       assert.deepEqual(
-        await page.locator("#characters strong").allInnerTexts(),
+        await page
+          .locator("#characters .open-character strong")
+          .allInnerTexts(),
         ["Bram"],
       );
       await server.close();
@@ -535,10 +539,7 @@ test(
         .click();
       await page.locator("#sheet-name").filter({ hasText: "Bram" }).waitFor();
       await page.locator(`#breadcrumb a[data-view="library"]`).click();
-      await page
-        .locator("#open-creation")
-        .filter({ hasText: "Continue" })
-        .click();
+      await page.locator("#continue-creation").click();
       assert.deepEqual(await shownRolls(page), pendingRolls);
       const stored = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.deepEqual(stored.pendingCreation, pending);
