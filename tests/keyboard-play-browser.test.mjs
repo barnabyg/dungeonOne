@@ -201,8 +201,8 @@ test(
         [
           "Examine Rusted Lantern",
           "Go west to Alcove (not yet explored)",
-          "Go south to Rat-Gnawed Cellar (not yet explored)",
           "Sneak south into Rat-Gnawed Cellar (not yet explored)",
+          "Go south to Rat-Gnawed Cellar (not yet explored)",
         ],
       );
 
