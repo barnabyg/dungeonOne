@@ -1,8 +1,7 @@
 // The backdrops (#517): faint drawings of the kind of place a room is, made
 // for Dungeon One in one colour. A module names one for each region, and a
 // room may override its region's (src/adventure-5e.ts); the page draws the
-// current room's behind the scene column, as the shop draws its shelves
-// (#515). Each is 800 x 600, standing on its bottom edge, and drawn in
+// current room's below the scene cards when space permits. Each is 800 x 600, standing on its bottom edge, and drawn in
 // currentColor so the page picks its colour and strength. Each starts
 // hidden; the page shows the current room's.
 
