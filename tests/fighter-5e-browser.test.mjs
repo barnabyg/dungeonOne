@@ -19,12 +19,11 @@ import { loneGoblin } from "./fixtures/modules.mjs";
 import { openCreation } from "./fixtures/browser-journey.mjs";
 
 // The page shows the creation screen only after rendering the rolls it
-// fetched, so wait for it before reading them. Each row's Roll cell shows
-// the dice placed on it (#184).
+// fetched, so wait for it before reading the dice grouped by ability.
 const shownRolls = async (page) => {
   await page.locator("#creation").waitFor({ state: "visible" });
   return page
-    .locator("#ability-rows .dice .visually-hidden")
+    .locator("#rolled-dice > span")
     .evaluateAll((items) => items.map((item) => item.textContent));
 };
 
@@ -62,18 +61,20 @@ test(
       await page.locator("#creation").waitFor();
       const shown = await shownRolls(page);
       assert.equal(shown.length, 6);
-      // Every die is shown once, in its row, the dropped one marked.
-      assert.match(shown[0], /^Dice \d( dropped)?(, \d( dropped)?){3}$/);
+      // Every die is shown once, by ability, the dropped one marked.
+      assert.match(shown[0], /^Strength(?: \d(?: dropped)?){4}$/);
       assert.ok(shown.every((label) => label.split("dropped").length === 2));
       const stored = JSON.parse(await readFile(libraryPath, "utf8"));
       const dice = stored.pendingCreation.dice;
       assert.equal(dice.length, 6);
-      assert.equal(await page.locator("#creation .die").count(), 24);
-      assert.equal(await page.locator("#creation .die.dropped").count(), 6);
+      assert.equal(await page.locator("#rolled-dice s").count(), 6);
       const placed = defaultPlacement(dice);
       assert.deepEqual(
         shown.map((label) => label.replace(/ dropped/, "")),
-        ABILITIES.map((ability) => `Dice ${dice[placed[ability]].join(", ")}`),
+        ABILITIES.map(
+          (ability) =>
+            `${ability[0].toUpperCase() + ability.slice(1)} ${dice[placed[ability]].join(" ")}`,
+        ),
       );
 
       // Reload, then back out and reopen: the same dice.

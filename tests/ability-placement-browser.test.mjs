@@ -1,4 +1,5 @@
-// #184: each roll appears once, in the ability table's Roll column, and every
+// #578: the dice sit below the ability table and the wide preview stays in view.
+// #184: each roll is placed once, and every
 // score, modifier, the 20 cap and the skill limit come from the server's
 // projection. #162: rolls and the background increase are placed in one live
 // table, a bonus or roll moves by swapping, errors sit beside their fields
@@ -50,17 +51,20 @@ const shownRows = (page) =>
         row.querySelector(".score").firstChild.textContent,
         row.querySelector(".modifier").textContent,
         row.querySelector(".score .cap")?.textContent ?? "",
-        row.querySelector(".dice .visually-hidden").textContent,
+        document.getElementById(
+          row.querySelector("select").getAttribute("aria-describedby"),
+        ).textContent,
       ]),
     );
 
-const spokenDice = (roll) => {
+const spokenDice = (ability, roll) => {
   const dropped = roll.indexOf(Math.min(...roll));
   return (
-    "Dice " +
+    title(ability) +
+    " " +
     roll
       .map((die, index) => die + (index === dropped ? " dropped" : ""))
-      .join(", ")
+      .join(" ")
   );
 };
 
@@ -70,10 +74,10 @@ const expectedRows = (projection, dice, placement) =>
     String(score),
     signed(modifier),
     atCap ? "max 20" : "",
-    spokenDice(dice[placement[ability]]),
+    spokenDice(ability, dice[placement[ability]]),
   ]);
 
-const [width, height, seed] = [1280, 850, 1];
+const [width, height, seed] = [1600, 950, 1];
 test(
   `each roll shows once and the server projects every row (${width} px)`,
   { timeout: 60000 },
@@ -95,16 +99,52 @@ test(
       );
       await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
 
+      // At the wide breakpoint, the live numbers stay beside both the roll
+      // selectors and fighting styles even when the player scrolls to them.
+      for (const selector of [
+        "#place-strength",
+        "#place-charisma",
+        "#style-defense",
+      ]) {
+        const control = page.locator(selector);
+        await control.scrollIntoViewIfNeeded();
+        const choice = await control.boundingBox();
+        for (const label of ["HP:", "AC:", "Mace:"]) {
+          const stat = await page
+            .locator("#preview li")
+            .filter({ hasText: label })
+            .first()
+            .boundingBox();
+          assert.ok(
+            stat.x >= choice.x + choice.width,
+            label + " is beside " + selector,
+          );
+          assert.ok(
+            stat.y >= 0 && stat.y + stat.height <= height,
+            label + " is on screen",
+          );
+        }
+      }
+      await page.setViewportSize({ width: 1499, height });
+      const fields = await page.locator("#masteries").boundingBox();
+      const preview = await page.locator("#preview").boundingBox();
+      assert.ok(
+        preview.y >= fields.y + fields.height,
+        "the preview follows the form below 1500 px",
+      );
+
       // The pending creation was saved before it was shown.
       const dice = JSON.parse(await readFile(libraryPath, "utf8"))
         .pendingCreation.dice;
       const placement = { ...defaultPlacement(dice) };
 
-      // One table and no separate list: 24 dice, six of them dropped.
-      assert.equal(await page.locator("#rolls").count(), 0);
-      assert.equal(await page.locator("#creation .dice").count(), 6);
-      assert.equal(await page.locator("#creation .die").count(), 24);
-      assert.equal(await page.locator("#creation .die.dropped").count(), 6);
+      // The dice and discarded values are readable below the ability table.
+      assert.equal(await page.locator("#ability-table .die").count(), 0);
+      assert.equal(await page.locator("#rolled-dice s").count(), 6);
+      assert.match(
+        await page.locator("#rolled-dice").innerText(),
+        /^Rolled: Strength [1-6]/u,
+      );
       assert.deepEqual(
         await shownRows(page),
         expectedRows(projection, dice, placement),

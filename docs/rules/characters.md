@@ -23,7 +23,10 @@ What each class does beyond its data is in [classes.md](classes.md).
 
 Every character is created at level 1 with 0 XP and full health, from its
 pending creation. The library refuses any other new sheet. The server validates
-every choice and projects every derived number; the page computes none.
+every choice and projects every derived number. The “Before you save” preview
+updates as choices change. At window widths of 1500 px and above it stays beside
+the form. For rolled scores, the dice are grouped by ability below the table,
+with each discarded die struck through.
 
 - **Ability scores.** The Ability scores setting ([settings.md](settings.md))
   picks the method when a creation starts. The pending creation in the library
