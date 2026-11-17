@@ -342,6 +342,7 @@ ${SETTINGS_SOUND(sound)}
 <h2 id="creation-title" tabindex="-1">Create a character</h2>
 <p id="method-hint" class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
+<div id="creation-fields">
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <fieldset id="classes" aria-describedby="class-hint"><legend>Class</legend><div id="class-fields" class="choice-row"></div><p id="class-hint" class="hint"></p></fieldset>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
@@ -350,6 +351,7 @@ ${SETTINGS_SOUND(sound)}
 <p id="points-status" class="hint" role="status" hidden></p><p id="scores-error" class="error" role="alert"></p>
 <fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
 <div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col" id="base-heading">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<p id="rolled-dice" class="hint" hidden></p>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
@@ -359,9 +361,10 @@ ${SETTINGS_SOUND(sound)}
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
+</div>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
-<p id="creation-error" class="error" role="alert"></p>
-<div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>
+<div id="creation-actions"><p id="creation-error" class="error" role="alert"></p>
+<div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div></div>
 </form>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
@@ -469,10 +472,17 @@ button.primary{background:var(--color-ink);border-color:var(--color-ink);color:v
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
 #feedback{color:var(--color-text);font-size:var(--text-sm);background:var(--color-surface);border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}#breadcrumb{flex:0 1 auto;min-width:0}#breadcrumb ol{list-style:none;display:flex;padding:0;margin:0;font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);white-space:nowrap}#breadcrumb li{flex:none}#breadcrumb li:last-child{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
-.dice{display:flex;gap:3px;margin-top:var(--space-1)}.die{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700;font-size:var(--text-xs)}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}
+#rolled-dice>span{white-space:nowrap}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}.checks input:disabled+span{color:var(--color-text-muted)}
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
+@media(min-width:1500px){
+  body:has(#creation:not([hidden])) :is(main,.masthead){max-width:1620px}
+  #creation-form{display:grid;grid-template-columns:minmax(0,800px) minmax(0,1fr);grid-template-areas:"fields preview" "actions preview";column-gap:var(--space-6)}
+  #creation-fields{grid-area:fields}#creation-actions{grid-area:actions}
+  #preview{grid-area:preview;align-self:start;position:sticky;top:var(--space-4);max-height:calc(100dvh - 2 * var(--space-4));overflow:auto;margin:0;padding:var(--space-4);background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-md)}
+  #preview-title{margin-top:0}
+}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
 .masthead #open-settings{order:2;display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}#open-settings svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-sound-volume{width:10rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-ink);vertical-align:middle}#settings-sound-volume-value{display:inline-block;min-width:3em;font-variant-numeric:tabular-nums}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
@@ -5004,20 +5014,27 @@ function scoreSelect(ability) {
 /** The four dice of the roll placed on an ability, the dropped one marked. */
 function placedDice(ability) {
   const roll = library.pendingCreation.rolls[choices.placement[ability]];
-  const dice = make("span", undefined, "dice");
+  const dice = make("span", titleCase(ability));
   dice.id = "dice-" + ability;
-  dice.append(spoken("Dice " + roll.dice.map((die, position) => die + (position === roll.dropped ? " dropped" : "")).join(", ")));
   roll.dice.forEach((die, position) => {
-    const node = make("span", die, "die" + (position === roll.dropped ? " dropped" : ""));
-    node.setAttribute("aria-hidden", "true");
-    if (position === roll.dropped) node.title = "Dropped";
-    dice.append(node);
+    dice.append(" ");
+    if (position === roll.dropped) dice.append(make("s", die), spoken(" dropped"));
+    else dice.append(String(die));
   });
   return dice;
 }
 
 function renderAbilities() {
   element("increase-mode-" + increaseMode).checked = true;
+  const pending = library.pendingCreation;
+  const dice = element("rolled-dice");
+  dice.hidden = pending.method === "standard-array" || Boolean(pending.pointBuy);
+  dice.replaceChildren();
+  if (!dice.hidden) {
+    for (const ability of library.abilities) {
+      dice.append(dice.hasChildNodes() ? " · " : "Rolled: ", placedDice(ability));
+    }
+  }
   element("ability-rows").replaceChildren(...library.abilities.map((ability) => {
     const row = make("tr");
     row.dataset.ability = ability;
@@ -5025,9 +5042,7 @@ function renderAbilities() {
     name.scope = "row";
     const roll = make("td");
     // A point buy's score, or the roll or array score placed (#509).
-    const pending = library.pendingCreation;
-    if (pending.pointBuy) roll.append(scoreSelect(ability));
-    else roll.append(rollSelect(ability), ...(pending.method === "standard-array" ? [] : [placedDice(ability)]));
+    roll.append(pending.pointBuy ? scoreSelect(ability) : rollSelect(ability));
     const bonus = make("td", undefined, "bonus");
     bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
     const score = make("td", undefined, "num score");

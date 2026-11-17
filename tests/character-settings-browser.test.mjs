@@ -43,7 +43,7 @@ async function openCreation(page) {
 
 const shownDice = (page) =>
   page
-    .locator("#ability-rows .dice .visually-hidden")
+    .locator("#rolled-dice > span")
     .evaluateAll((items) => items.map((item) => item.textContent));
 
 const withServer = async (adventures, run) => {
@@ -84,7 +84,7 @@ test(
         await page.locator("#method-hint").textContent(),
         "The standard array: 15, 14, 13, 12, 10 and 8. Choose a class, place the six scores on your abilities in any order, then make your other choices.",
       );
-      assert.equal(await page.locator("#ability-rows .dice").count(), 0);
+      assert.equal(await page.locator("#rolled-dice").isHidden(), true);
       assert.equal(await page.locator("#base-heading").textContent(), "Array");
       assert.deepEqual(
         await page.locator("#place-strength option").allTextContents(),
