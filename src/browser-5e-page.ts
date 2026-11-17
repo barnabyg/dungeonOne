@@ -2860,7 +2860,7 @@ function renderFight(encounter) {
   // And whether it was surprised (#303).
   const surprised = self.initiative.mode?.disadvantage.includes("surprised") ? [make("span", "Surprised", "tag surprised")] : [];
   for (const node of [...(self.hidden ? [make("span", "Hidden", "tag")] : []), ...surprised]) own.append(...(own.childNodes.length ? [" "] : []), node);
-  you.replaceChildren(cardHead(self), ...hpNodes(self), ...(own.childNodes.length ? [own] : []), heal);
+  you.replaceChildren(cardHead(self), ...hpNodes(self), make("span", HEALTH_LABELS[you.dataset.health], "tag"), ...(own.childNodes.length ? [own] : []), heal);
   // A card per foe: its attack goes in its .foe-controls (renderActions).
   const active = [];
   const finished = [];
