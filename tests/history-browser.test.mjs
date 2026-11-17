@@ -85,7 +85,7 @@ function assertRests(view, label) {
 /**
  * The "What happened" panel (owner feedback on #529): framed, in the top
  * half of the history column, with the title and the log inside it and
- * nothing under it.
+ * the map below it.
  */
 const panel = (page) =>
   page.evaluate(() => {
@@ -102,7 +102,7 @@ const panel = (page) =>
       holds: ["history-title", "log"].every((id) =>
         frame.contains(document.getElementById(id)),
       ),
-      alone: column.children.length === 1,
+      mapBelow: frame.nextElementSibling?.id === "inline-map",
     };
   });
 
@@ -176,7 +176,7 @@ test(
             atTop: true,
             border: "solid 1",
             holds: true,
-            alone: true,
+            mapBelow: true,
           },
           `${label}: the panel`,
         );

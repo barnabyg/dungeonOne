@@ -23,6 +23,8 @@ the house rules and the rules left out.
 
 ## Playing
 
+The map below **What happened** shows explored rooms and the ways out of your current room. Select an adjacent room to travel, select **Key** for the symbols, or press **M** for a larger map.
+
 From the repository root in PowerShell, or by double-clicking `run.bat`:
 
 ```powershell

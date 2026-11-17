@@ -2,7 +2,7 @@
 // centre the room with, pinned under it, the box to tell the Dungeon Master
 // what Ada does, and, in a fight, the fight's controls above the room, and
 // the ending card when the adventure is over; on the right the history
-// alone, at the panel's full height. The DM box stays on screen whatever the
+// and the map below it. The DM box stays on screen whatever the
 // room's length, nothing scrolls sideways, and Tab runs left, centre, right.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -103,7 +103,7 @@ const geometry = (page) =>
   });
 
 /**
- * The columns at every width: the history alone on the right at the
+ * The columns at every width: the history and map on the right at the
  * panel's full height, the DM box at the bottom of the centre on screen, the
  * character to the left of (or, narrower, above) the scene.
  */
@@ -114,9 +114,9 @@ async function assertColumns(page, when) {
     await assertNoSideScroll(page, `${at}: no horizontal scroll`);
     const shown = await geometry(page);
     const where = JSON.stringify(shown);
-    // Right: the history, alone and full height, the last region; its
+    // Right: the history and map, together at full height, the last region; its
     // "What happened" panel (#529) holds the title and the log.
-    assert.deepEqual(shown.historyHolds, ["history-panel"], at);
+    assert.deepEqual(shown.historyHolds, ["history-panel", "inline-map"], at);
     assert.equal(shown.historyNext, undefined, `${at}: history is last`);
     assert.ok(
       Math.abs(shown.history.top - shown.layout.top) <= 1 &&
@@ -124,7 +124,7 @@ async function assertColumns(page, when) {
       `${at}: history at full height ${where}`,
     );
     // The log fills the panel, the top half of the column; the bottom
-    // half is kept for later use (owner feedback on #529).
+    // half holds the map (#571).
     const half = shown.history.top + shown.history.height / 2;
     assert.ok(
       shown.log.bottom <= half + 1 &&

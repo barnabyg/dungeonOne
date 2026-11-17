@@ -171,7 +171,7 @@
 // sits in the second, a row of its own height under the scene, so it stays
 // on screen however long the room; the history spans both, at the panel's
 // full height. Its top half is #history-panel, "What happened" framed with
-// the log in it; the bottom half is kept empty for later use. The session fills the window. From 1500 px wide it is up to
+// the log in it; the bottom half holds the exploration map. The session fills the window. From 1500 px wide it is up to
 // 1880 px wide, in three columns: character (both rows), the scene over the
 // composer, and the history, the columns scrolling on their own. Narrower,
 // it is up to 1240 px wide, in two: on the left #session-main scrolls the
@@ -407,7 +407,11 @@ ${SETTINGS_SOUND(sound)}
 </div>
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
 <section id="session-history" aria-labelledby="history-title"><div id="history-panel"><h3 id="history-title">What happened</h3>
-<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></div></section>
+<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></div>
+<section id="inline-map" aria-label="Exploration map"><div id="map-panel"><div class="map-head"><h3 id="map-title">Map</h3><div id="map-floors" role="group" aria-label="Floors" hidden></div><button id="close-map" type="button" class="secondary">Close</button></div>
+<div class="map-body"><div id="map-view"><div id="map-canvas"></div></div>
+<div class="map-side"><p class="hint">Choose a room next to yours to go there; one you have not explored has a dashed edge. Choose any other room to see what you found there. A ? is a way you have not taken from a room you have left.</p><p id="map-status" role="status"></p><div id="map-record" aria-live="polite" hidden></div><details id="map-legend"><summary id="map-key-title">Key</summary><ul id="map-key" class="map-key" aria-labelledby="map-key-title"></ul></details></div></div>
+</div></section></section>
 </div>
 <section id="shop" aria-labelledby="shop-title" hidden>
 <div class="shop-sign">${SHOP_BELL}<div class="shop-heading"><h3 id="shop-title" tabindex="-1"></h3><p id="shop-greeting"></p></div><div class="shop-status"><p id="shop-purse"></p><p id="shop-load"></p></div><button id="leave-shop" type="button" class="secondary" aria-keyshortcuts="Escape">Leave the shop</button></div>
@@ -431,9 +435,6 @@ ${SETTINGS_SOUND(sound)}
 </form>
 </dialog>
 <dialog id="map-dialog" aria-labelledby="map-title">
-<div class="map-head"><h2 id="map-title">Map</h2><div id="map-floors" role="group" aria-label="Floors" hidden></div><button id="close-map" type="button" class="secondary">Close</button></div>
-<div class="map-body"><div id="map-view"><div id="map-canvas"></div></div>
-<div class="map-side"><p class="hint">Choose a room next to yours to go there; one you have not explored has a dashed edge. Choose any other room to see what you found there. A ? is a way you have not taken from a room you have left.</p><p id="map-status" role="status"></p><div id="map-record" aria-live="polite" hidden></div><h3 id="map-key-title">Key</h3><ul id="map-key" class="map-key" aria-labelledby="map-key-title"></ul></div></div>
 </dialog></body></html>`;
 
 // Design tokens (#152). Use these names rather than literal values:
@@ -475,7 +476,16 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
 #sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
-.map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h2{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
+#inline-map{flex:1;min-height:0;padding-top:var(--space-2)}
+#map-panel{height:100%;min-height:0;display:flex;flex-direction:column}
+#map-legend summary{cursor:pointer;font-weight:600}
+#inline-map .map-head{margin:0 0 var(--space-1);gap:var(--space-1)}
+#inline-map .map-head h3{font-size:var(--text-md)}
+#inline-map :is(#close-map,.map-side>.hint){display:none}
+#inline-map .map-body{display:flex;flex-direction:column;gap:var(--space-1)}
+#inline-map #map-view{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+#inline-map .map-side{max-height:40%}
+.map-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-3)}.map-head h3{margin:0}#map-floors{display:flex;flex-wrap:wrap;gap:var(--space-1)}#map-floors button{padding:3px 10px}#map-floors button[aria-pressed=true]{background:var(--color-ink);color:var(--color-on-ink)}#close-map{margin-left:auto}
 .map-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:var(--space-4)}#map-view{overflow:auto;border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface)}#map-canvas{position:relative;margin:auto}
 .map-lines{position:absolute;inset:0;pointer-events:none}.map-lines line{stroke:var(--color-ink);stroke-width:3}.map-lines line.closed{stroke:var(--color-danger);stroke-dasharray:7 5}
 .map-room{position:absolute;display:flex;flex-direction:column;border:1.5px solid var(--color-ink);border-radius:var(--radius-sm);background:var(--map-shade,var(--color-paper));overflow:hidden}.map-room.current{border-width:3px;box-shadow:0 0 0 3px var(--color-gold)}
@@ -1453,6 +1463,7 @@ function showAdventure(value) {
   if (form.dataset.session !== session.id) {
     form.dataset.session = session.id;
     openCarried.clear();
+    shownPlace = "";
     openStats.clear();
     treasureOpen = null;
     element("message").value = "";
@@ -1483,17 +1494,20 @@ function renderAdventure() {
   element("adventure-objective").title = adventure.objective;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room);
-  if (element("map-dialog").open) renderMap();
   // A new room, or a fight beginning or ending, shows the centre column from
   // its top, where a fight's panel is (#523, #525); the room folds again.
   const place = session.room.id + (fighting ? " fighting" : "");
   if (place !== shownPlace) {
+    mapFloor = session.map.floor;
+    mapRecordId = null;
+    element("map-status").textContent = "";
     shownPlace = place;
     roomUnfolded = false;
     fleeOpen = false;
     element("session-main").scrollTop = 0;
     element("session-scene").scrollTop = 0;
   }
+  renderMap();
   // The fight panel (#525) opens the centre column while a fight is under
   // way, and is gone once it ends. The action bar moves into it, under the
   // cards and the footer, or over the cards while a hit or a fall waits for
@@ -2227,6 +2241,14 @@ const MAP_PAD = 16;
 const MAP_SHADES = 6;
 let mapFloor = 0;
 let mapRecordId = null;
+let inlineKeyOpen = false;
+function fitInlineMap() {
+  const view = element("map-view");
+  const canvas = element("map-canvas");
+  if (!element("inline-map").contains(view) || !view.clientWidth || !canvas.offsetWidth) return;
+  canvas.style.zoom = String(Math.min(1, view.clientWidth / canvas.offsetWidth, view.clientHeight / canvas.offsetHeight));
+}
+new ResizeObserver(fitInlineMap).observe(element("map-view"));
 let mapReturn = null;
 let restoreMapFocus = true;
 const SVG = "http://www.w3.org/2000/svg";
@@ -2272,6 +2294,10 @@ function openMap() {
   mapFloor = session.map.floor;
   mapRecordId = null;
   element("map-status").textContent = "";
+  inlineKeyOpen = element("map-legend").open;
+  element("map-dialog").append(element("map-panel"));
+  element("map-legend").open = true;
+  element("map-canvas").style.zoom = "";
   renderMap();
   element("map-dialog").showModal();
   const here = document.querySelector("#map-canvas .map-room.current > button");
@@ -2305,7 +2331,7 @@ function mapGo(roomId) {
   const why = moveRefusal(option);
   element("map-status").textContent = why;
   if (why) return false;
-  closeMap(false);
+  if (element("map-dialog").open) closeMap(false);
   perform(option);
   return true;
 }
@@ -2439,6 +2465,7 @@ function renderMap() {
     nodes.push(box);
   }
   canvas.replaceChildren(...nodes);
+  fitInlineMap();
   if (focusedRoom) canvas.querySelector(".map-room[data-room='" + focusedRoom + "'] > button")?.focus();
   renderMapKey(stubs.size > 0);
   renderMapRecord();
@@ -5612,7 +5639,15 @@ if (soundControls) {
 }
 element("open-map").addEventListener("click", openMap);
 element("close-map").addEventListener("click", () => closeMap(true));
-element("map-dialog").addEventListener("close", () => { if (restoreMapFocus && mapReturn && mapReturn.isConnected && focusLeftIn(element("map-dialog"))) mapReturn.focus(); });
+element("map-dialog").addEventListener("close", () => {
+  const dialog = element("map-dialog");
+  if (dialog.open || !dialog.contains(element("map-panel"))) return;
+  const returnFocus = restoreMapFocus && mapReturn?.isConnected && focusLeftIn(dialog);
+  element("inline-map").append(element("map-panel"));
+  element("map-legend").open = inlineKeyOpen;
+  fitInlineMap();
+  if (returnFocus) mapReturn.focus();
+});
 // M opens the map (#457), but not while typing, as in the message box.
 document.addEventListener("keydown", (event) => {
   if ((event.key !== "m" && event.key !== "M") || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
