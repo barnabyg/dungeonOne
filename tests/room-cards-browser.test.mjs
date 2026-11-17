@@ -214,7 +214,6 @@ test(
           action: "examine",
           target: "carved-warning",
         },
-        { place: "exits/flooded-cell", action: "move", target: "flooded-cell" },
         {
           place: "exits/flooded-cell",
           action: "force",
@@ -237,18 +236,14 @@ test(
         await go.getAttribute("aria-label"),
         /^Go south to Hall of Niches \(not yet explored\)$/u,
       );
-      // The shut door's way: Go greyed with its reason, and Force on its card.
       const cell = page.locator('#exits li[data-id="flooded-cell"]');
       assert.equal(
-        await cardButton(
-          page,
-          "exits",
-          "flooded-cell",
-          "move",
-          "flooded-cell",
-        ).isDisabled(),
-        true,
+        await cell
+          .locator('button:disabled, button[data-action="move"]')
+          .count(),
+        0,
       );
+      assert.equal((await text(cell)).match(/shut/giu)?.length, 1);
       assert.match(await text(cell), /Swollen Door: shut\./u);
       assert.equal(
         await cardButton(
@@ -397,17 +392,27 @@ test(
           target: "key-whereabouts",
         },
         { place: "exits/crypt-stair", action: "move", target: "crypt-stair" },
-        { place: "exits/tomb", action: "move", target: "tomb" },
         { place: "exits/tomb", action: "sneak", target: "tomb" },
+        { place: "exits/tomb", action: "move", target: "tomb" },
+        { place: "exits/offering-room", action: "disarm", target: "dart-trap" },
         {
           place: "exits/offering-room",
           action: "move",
           target: "offering-room",
         },
-        { place: "exits/offering-room", action: "disarm", target: "dart-trap" },
-        { place: "exits/strongroom", action: "move", target: "strongroom" },
         { place: "exits/strongroom", action: "break", target: "iron-door" },
       ]);
+      const edges = await page
+        .locator('#exits button[data-action="move"]')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getBoundingClientRect().right),
+        );
+      assert.ok(edges.length > 1);
+      assert.equal(
+        new Set(edges).size,
+        1,
+        "Go aligns on plain and sneakable ways",
+      );
       await assertFits(page, "in the hall");
 
       // Into the tomb's fight: the room's cards have no buttons; the fight

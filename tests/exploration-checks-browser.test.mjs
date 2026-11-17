@@ -150,10 +150,7 @@ async function play(seed, check, { reload = false } = {}) {
     await createAndStart(page, server.url, "sealed-crypt");
 
     let shown = await screen(page);
-    assert.match(
-      shown.actions,
-      /Go west to Flooded Cell \(not yet explored\) Door shut/,
-    );
+    assert.doesNotMatch(shown.actions, /Go west to Flooded Cell/);
     assert.match(shown.actions, /Force Swollen Door/);
     assert.match(shown.actions, /Search Crypt Stair/);
     assert.match(shown.room, /Swollen Door: shut\./);
@@ -167,18 +164,16 @@ async function play(seed, check, { reload = false } = {}) {
       ),
     );
     shown = await screen(page);
-    // An opened door's Force button goes; a failed one says it was tried.
+    assert.doesNotMatch(shown.actions, /Force Swollen Door/);
     if (expected.forced) {
-      assert.doesNotMatch(shown.actions, /Force Swollen Door/);
+      assert.match(
+        shown.actions,
+        /Go west to Flooded Cell \(not yet explored\)/,
+      );
     } else {
-      assert.match(shown.actions, /Force Swollen Door Already tried/);
+      assert.doesNotMatch(shown.actions, /Go west to Flooded Cell/);
+      assert.match(shown.room, /Swollen Door: shut\./);
     }
-    assert.match(
-      shown.actions,
-      expected.forced
-        ? /Go west to Flooded Cell \(not yet explored\)\n/
-        : /Go west to Flooded Cell \(not yet explored\) Door shut/,
-    );
 
     await click(page, "move", "hall");
     await click(page, "talk", "warden");
