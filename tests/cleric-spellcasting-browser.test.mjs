@@ -243,6 +243,9 @@ test(
         { ...expected, name: "Mira" },
       );
 
+      // The prepared spell is listed once, in the chooser (#577).
+      assert.equal(sheetText.split("Guiding Bolt").length - 1, 1);
+      assert.equal(await page.locator("#save-prepared").isVisible(), false);
       // Between adventures, prepared spells change on the sheet.
       await page.locator("#prepared-shield-of-faith").uncheck();
       await page.locator("#prepared-bless").check();
@@ -269,7 +272,7 @@ test(
       );
       await page.locator("#save-prepared").click();
       assert.equal((await saved).status(), 200);
-      await page.locator("#save-prepared:disabled").waitFor();
+      await page.locator("#save-prepared").waitFor({ state: "hidden" });
       await page.locator("#prepared-shield-of-faith:checked").waitFor();
       assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [
         "cure-wounds",

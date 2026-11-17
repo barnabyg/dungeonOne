@@ -99,7 +99,7 @@ export const LIFE_DOMAIN: SubclassDefinition = {
       id: "life-domain-spells",
       level: 3,
       name: "Life Domain Spells",
-      text: "Aid, Bless, Cure Wounds and Lesser Restoration are always prepared, and don't count against the spells you prepare.",
+      text: "Your domain spells are always prepared, and don't count against the spells you prepare.",
       effect: {
         kind: "always-prepared",
         spells: ["aid", "bless", "cure-wounds", "lesser-restoration"],

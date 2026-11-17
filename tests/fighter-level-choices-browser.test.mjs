@@ -248,6 +248,11 @@ test(
         await page.locator("#feedback").textContent(),
         "Ada's level choices are saved: +2 Strength, and mastery of the longsword.",
       );
+      await page
+        .locator("#sheet-body summary")
+        .filter({ hasText: "Second Wind." })
+        .click();
+      await page.getByText("Ability rolls", { exact: true }).click();
       const sheet = await page.locator("#sheet-body").innerText();
       assert.match(sheet, /Level 4 Fighter · 2740 XP \(level 5 at 6500\) · /u);
       assert.match(sheet, /HP: 36\/36/u);
@@ -263,7 +268,7 @@ test(
       );
       assert.match(
         sheet,
-        /Second Wind\. Bonus action: regain 1d10 \+ 4 HP\. 3 uses\./u,
+        /Second Wind\. Bonus action: regain 1d10 \+ 4 HP\.\s+3 uses\./u,
       );
       assert.match(
         sheet,

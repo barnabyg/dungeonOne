@@ -129,10 +129,7 @@ test(
       const copy = entry.locator("button[data-scroll]");
       assert.equal(await copy.innerText(), "Copy into spellbook (50 gp)");
       await copy.click();
-      await page
-        .locator("#sheet-spellbook")
-        .filter({ hasText: "Ray of Sickness" })
-        .waitFor();
+      await page.getByRole("checkbox", { name: /^Ray of Sickness/u }).waitFor();
       assert.equal(await page.locator("#magic-items").count(), 0);
 
       const copied = await saved(libraryPath);
