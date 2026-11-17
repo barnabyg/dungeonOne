@@ -766,7 +766,7 @@ function show(id, title, trail) {
       event.preventDefault();
       const from = history.state?.settingsFrom;
       if (id === "settings" && from && item.hash === from.hash) history.back();
-      else go(item.hash);
+      else go(item.hash, false, item.state);
     });
     entry.append(link);
     return entry;
@@ -849,17 +849,17 @@ function renderLibrary() {
     }
     return item;
   }));
-  if (library.pendingCreation) list.append(draftCard());
+  if (library.pendingCreation) list.append(draftCard(library.pendingCreation.number));
   element("no-characters").hidden = list.childElementCount > 0;
   element("open-creation").disabled = Boolean(library.pendingCreation);
 }
 
-function draftCard() {
+function draftCard(creationNumber) {
   const item = make("li", undefined, "character-row draft-card");
   const resume = make("button", "Continue", "secondary");
   resume.id = "continue-creation";
   resume.type = "button";
-  resume.addEventListener("click", () => go("#create"));
+  resume.addEventListener("click", () => go("#create", false, { creationNumber }));
   const discard = make("button", "Discard", "danger");
   discard.type = "button";
   discard.addEventListener("click", async () => {
@@ -5458,7 +5458,7 @@ async function openSettings(ticket) {
   renderSettings(value);
   // The view Settings was opened from, if this entry remembers one.
   const from = history.state && history.state.settingsFrom;
-  const trail = from ? from.trail.map((item, index) => index === from.trail.length - 1 ? { label: item.label, hash: from.hash } : item) : [];
+  const trail = from ? from.trail.map((item, index) => index === from.trail.length - 1 ? { ...item, hash: from.hash } : item) : [];
   show("settings", "Settings", [...trail, { label: "Settings" }]);
   element("settings-title").focus();
 }
@@ -5540,8 +5540,13 @@ async function openCreation(ticket) {
   const discard = document.querySelector(".draft-card .danger");
   if (discard) discard.disabled = true;
   setBusy(opener);
+  const creationNumber = history.state?.creationNumber;
+  let current;
   try {
-    library = await request("/api/5e/creation", {});
+    // A saved navigation or Continue opens exactly the draft the player saw.
+    current = creationNumber === undefined
+      ? await request("/api/5e/creation", {})
+      : await request("/api/5e/library");
   } catch (error) {
     if (ticket === routeTicket) lost(error.message);
     return;
@@ -5551,6 +5556,13 @@ async function openCreation(ticket) {
     if (discard) discard.disabled = false;
   }
   if (ticket !== routeTicket) return;
+  library = current;
+  if (creationNumber !== undefined && library.pendingCreation?.number !== creationNumber) {
+    lost("That creation is no longer in progress.");
+    return;
+  }
+  const state = { creationNumber: library.pendingCreation.number };
+  history.replaceState(state, "");
   // Choices made for another creation start afresh (#509).
   if (!choices || choicesFor !== library.pendingCreation.number) {
     choices = defaultChoices();
@@ -5561,7 +5573,7 @@ async function openCreation(ticket) {
   element("score-cap").textContent = library.pendingCreation.rules.scoreCap;
   renderMethod();
   renderChoices();
-  show("creation", "Create a character", [{ label: "Create a character" }]);
+  show("creation", "Create a character", [{ label: "Create a character", state }]);
   element("creation-title").focus();
   await refresh();
 }
