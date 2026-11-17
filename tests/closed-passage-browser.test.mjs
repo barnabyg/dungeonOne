@@ -71,11 +71,8 @@ test(
       await clickAction(page, "move", "bone-hall");
       let screen = await shown(page);
       assert.doesNotMatch(screen.exits, /The way is closed/);
-      assert.ok(
-        screen.go.includes(
-          "Go south to Side Crypt (not yet explored) Door shut",
-        ),
-      );
+      assert.match(screen.exits, /Rotten Door: shut\./);
+      assert.ok(screen.go.every((label) => !label.includes("Side Crypt")));
 
       await clickAction(page, "force", "rotten-door");
       assert.match(
