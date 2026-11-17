@@ -2302,6 +2302,7 @@ function openMap() {
   if (!session || element("adventure").hidden || document.querySelector("dialog[open]")) return false;
   mapReturn = document.activeElement;
   restoreMapFocus = true;
+  const changeFloor = mapFloor !== session.map.floor;
   mapFloor = session.map.floor;
   mapRecordId = null;
   element("map-status").textContent = "";
@@ -2309,7 +2310,8 @@ function openMap() {
   element("map-dialog").append(element("map-panel"));
   element("map-legend").open = true;
   element("map-canvas").style.zoom = "";
-  renderMap();
+  if (changeFloor) renderMap();
+  else renderMapRecord();
   element("map-dialog").showModal();
   const here = document.querySelector("#map-canvas .map-room.current > button");
   if (here) {
@@ -5672,11 +5674,11 @@ element("close-map").addEventListener("click", () => closeMap(true));
 element("map-dialog").addEventListener("close", () => {
   const dialog = element("map-dialog");
   if (dialog.open || !dialog.contains(element("map-panel"))) return;
-  const returnFocus = restoreMapFocus && mapReturn?.isConnected && focusLeftIn(dialog);
+  const returnFocus = restoreMapFocus && focusLeftIn(dialog);
   element("inline-map").append(element("map-panel"));
   element("map-legend").open = inlineKeyOpen;
   fitInlineMap();
-  if (returnFocus) mapReturn.focus();
+  if (returnFocus) (mapReturn?.isConnected ? mapReturn : element("open-map")).focus();
 });
 // M opens the map (#457), but not while typing, as in the message box.
 document.addEventListener("keydown", (event) => {

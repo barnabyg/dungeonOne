@@ -164,6 +164,17 @@ test("the map pop-up shows the rooms visited and moves one room per click", asyn
     assert.equal(await inline.locator("#map-key").isVisible(), true);
     await inline.getByText("Key", { exact: true }).click();
 
+    const inlineStub = inline.locator(".map-stub.named").first();
+    await inlineStub.focus();
+    await page.keyboard.press("m");
+    await dialog.waitFor();
+    await page.keyboard.press("Escape");
+    await inlineStub.waitFor();
+    assert.equal(
+      await inlineStub.evaluate((node) => document.activeElement === node),
+      true,
+    );
+
     // The button opens it, focused on her room; Escape returns focus.
     await openButton.click();
     assert.deepEqual(await drawn(page), inlineDrawing);
