@@ -149,6 +149,21 @@ test(
           .evaluateAll((icons) => icons.map((use) => use.getAttribute("href"))),
         ["#icon-cowled", "#icon-barbute"],
       );
+      // The shared item icon is ink-coloured; each crest must paint a visible
+      // silhouette on the dark tile, as well as reference the correct symbol.
+      const visibleCrests = await cards
+        .locator(".class-crest")
+        .evaluateAll((tiles) =>
+          tiles.map((tile) => {
+            const silhouette = tile.querySelector("use");
+            return (
+              silhouette.getBBox().width > 0 &&
+              getComputedStyle(silhouette).fill !==
+                getComputedStyle(tile).backgroundColor
+            );
+          }),
+        );
+      assert.deepEqual(visibleCrests, [true, true]);
       for (const width of [1499, 1500, 2560]) {
         await page.setViewportSize({ width, height: 950 });
         const first = await cards.nth(0).boundingBox();
