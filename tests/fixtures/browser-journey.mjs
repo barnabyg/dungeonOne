@@ -51,7 +51,6 @@ export const text = async (locator) =>
 export async function settled(page, run) {
   const count = await page.locator("#log li").count();
   await run();
-  await confirmEndTurn(page);
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log li:not([data-pending])").length > seen,
@@ -59,11 +58,15 @@ export async function settled(page, run) {
   );
 }
 
-/** Finish an early End turn when the player has a usable action left. */
-export async function confirmEndTurn(page) {
-  const confirm = page.locator("#confirm-end-turn");
-  if (await confirm.isVisible()) {
-    await confirm.click();
+/** Click a game action. Only an intentional End turn can confirm giving up actions. */
+export async function clickGameAction(button) {
+  const endingTurn = (await button.getAttribute("data-action")) === "end-turn";
+  await button.click();
+  if (endingTurn) {
+    const confirm = button.page().locator("#confirm-end-turn");
+    if (await confirm.isVisible()) {
+      await confirm.click();
+    }
   }
 }
 
@@ -101,7 +104,7 @@ export const clickAction = (page, action, target) =>
     if (CHOSEN.includes(action)) {
       await chooseAttack(page, action);
     }
-    await actionButton(page, action, target).click();
+    await clickGameAction(actionButton(page, action, target));
   });
 
 /**
@@ -192,11 +195,11 @@ export const fightTurn = (page) =>
       await weapon.click();
     }
     const attack = page.locator("#encounter button.attack:enabled");
-    await (
+    await clickGameAction(
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#encounter button[data-action="end-turn"]')
-    ).click();
+        : page.locator('#encounter button[data-action="end-turn"]'),
+    );
   });
 
 /**

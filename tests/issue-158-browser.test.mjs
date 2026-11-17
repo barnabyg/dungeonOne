@@ -13,7 +13,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
-import { confirmEndTurn, createAndStart } from "./fixtures/browser-journey.mjs";
+import { fightTurn, createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
@@ -45,18 +45,7 @@ function seedFor(wanted) {
 /** Attacks, or ends the turn once the action is spent, until the ending. */
 async function playToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
-    const count = await page.locator("#log li").count();
-    const attack = page.locator("#encounter button.attack:enabled");
-    await (
-      (await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#encounter button[data-action="end-turn"]')
-    ).click();
-    await confirmEndTurn(page);
-    await page.waitForFunction(
-      (seen) => document.querySelectorAll("#log li").length > seen,
-      count,
-    );
+    await fightTurn(page);
   }
   // The page moves focus once the action settles.
   await page.evaluate(

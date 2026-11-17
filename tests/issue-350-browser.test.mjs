@@ -21,7 +21,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
-import { settled, startAdventure, text } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  settled,
+  startAdventure,
+  text,
+} from "./fixtures/browser-journey.mjs";
 import { libraryOf, miraAt3, velaAt3 } from "./fixtures/level-3-casters.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
 import { sunkenChantry } from "./fixtures/modules.mjs";
@@ -139,9 +144,7 @@ async function fightTurn(page, who) {
   ) {
     return settled(page, () => attack.first().click());
   }
-  return settled(page, () =>
-    page.locator('#encounter button[data-action="end-turn"]').click(),
-  );
+  return clickAction(page, "end-turn");
 }
 
 /** The character's HP as the status strip shows it, "13/28". */

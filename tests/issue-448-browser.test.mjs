@@ -28,6 +28,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { levelFourCareerLibrary, libraryAt } from "../dist/test-fighter-5e.js";
 import { rogueLibrary, testRogueAt } from "../dist/test-rogue-5e.js";
 import {
+  clickAction,
   createFighter,
   settled,
   startAdventure,
@@ -108,9 +109,7 @@ async function ruleTurn(page) {
       return settled(page, () => choice.first().click());
     }
   }
-  return settled(page, () =>
-    page.locator('#encounter button[data-action="end-turn"]').click(),
-  );
+  return clickAction(page, "end-turn");
 }
 
 /** The character's HP as the status strip shows it, "13/28". */

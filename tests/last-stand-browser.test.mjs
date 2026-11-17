@@ -65,9 +65,7 @@ async function toLastStand(page, url) {
       await page.locator("#turn").textContent(),
       "The fight is over.",
     );
-    await settled(page, () =>
-      page.locator('#encounter button[data-action="end-turn"]').click(),
-    );
+    await clickAction(page, "end-turn");
   }
   return row;
 }

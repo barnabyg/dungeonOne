@@ -32,6 +32,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import {
+  clickAction,
   attackChip,
   castArea,
   castAt,
@@ -452,9 +453,7 @@ test(
             await ice.locator(".chip-reason").textContent(),
             "Action used",
           );
-          await settled(page, () =>
-            page.locator('#encounter button[data-action="end-turn"]').click(),
-          );
+          await clickAction(page, "end-turn");
           game.act({ type: "end-turn", actorId: "pc" });
           await assertHp(page, game, "end turn");
           continue;
@@ -644,9 +643,7 @@ test(
       );
       await assertHp(page, game, "divine spark");
       if (game.spent()) {
-        await settled(page, () =>
-          page.locator('#encounter button[data-action="end-turn"]').click(),
-        );
+        await clickAction(page, "end-turn");
         game.act({ type: "end-turn", actorId: "pc" });
       }
       // Her next turn: Divine Spark still chosen, with its damage.

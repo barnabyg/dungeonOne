@@ -105,8 +105,9 @@ const logCount = (page) => page.locator("#log > li").count();
 /** Presses Enter on the focused action and waits for its history entry. */
 async function enterAction(page) {
   const count = await logCount(page);
+  const endingTurn = (await focused(page)).action === "end-turn";
   await page.keyboard.press("Enter");
-  if (await page.locator("#end-turn-dialog").isVisible()) {
+  if (endingTurn && (await page.locator("#end-turn-dialog").isVisible())) {
     await page.keyboard.press("Tab");
     assert.equal(
       await page.evaluate(() => document.activeElement.id),

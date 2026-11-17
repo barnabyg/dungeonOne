@@ -134,9 +134,7 @@ async function fightTurn(page, chain) {
       return settled(page, () => choice.first().click());
     }
   }
-  return settled(page, () =>
-    page.locator('#encounter button[data-action="end-turn"]').click(),
-  );
+  return clickAction(page, "end-turn");
 }
 
 /** The character's HP as the status strip shows it, "13/28". */
