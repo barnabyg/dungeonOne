@@ -277,7 +277,9 @@ test(
       // End turn says what it gives up, and the fight's first turn says
       // the turn ends by itself.
       assert.equal(await page.locator("#end-controls").innerText(), "End turn");
-      assert.match(await remainingChoices(page), /Attack/u);
+      const choices = await remainingChoices(page);
+      assert.match(choices, /Attack,/u);
+      assert.match(choices, /, Divine Spark[,\.]/u);
       assert.match(
         await page.locator("#log").innerText(),
         /It is your turn\. Your turn ends by itself once nothing is left to do\./u,
