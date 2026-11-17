@@ -257,7 +257,7 @@ test(
       assert.deepEqual(ends, ["28/28", "23/28", "13/28", "13/28"]);
       await keep("fighter", log);
       says(log, [
-        /You find the Sexton's Key\./u,
+        /In the coat's pocket is a heavy iron key on a loop of twine\./u,
         /You unlock the Iron Grille with the Sexton's Key\./u,
         /Initiative: Ghoul 20 \+ 2 = 22; Ada/u,
         /Ada makes a Constitution saving throw against being paralysed: 14 \+ 4 = 18 against DC 10\. Success\./u,

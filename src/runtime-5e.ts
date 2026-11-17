@@ -3465,13 +3465,16 @@ export function renderFifthEvent(
     case "alarm":
       return `The alarm is raised by ${event.cause}. ${event.text}`;
     case "examined": {
-      const finding =
-        event.found.length > 0
-          ? `You find the ${listed(event.found, "and")}.`
-          : event.discovery;
-      return [`${event.name}: ${event.description}`, finding]
+      const described = [`${event.name}: ${event.description}`, event.discovery]
         .filter(Boolean)
         .join(" ");
+      if (event.found.length === 0) {
+        return described;
+      }
+      // A separate item list lets the browser fold it under the authored
+      // discovery while keeping the full names and icon positions in history.
+      const items = `You find the ${listed(event.found, "and")}.`;
+      return described + (event.discovery === undefined ? " " : "\n") + items;
     }
     case "taken":
       return event.coin !== undefined

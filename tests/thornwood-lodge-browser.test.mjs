@@ -303,6 +303,17 @@ test(
       assert.match(recalled, /Topaz and Potion of Healing/u);
       await clickAction(page, "move", "lodge-kitchen");
       await clickAction(page, "move", "kennel-yard");
+      await clickAction(page, "move", "falconers-mews");
+      await clickAction(page, "examine", "falconers-bench");
+      const bench = page.locator("#log > li").last();
+      assert.match(
+        await bench.innerText(),
+        /Hesk feeds it through the kitchen hatch/u,
+      );
+      assert.doesNotMatch(await bench.innerText(), /Potion of Healing/u);
+      await bench.getByText("Items found", { exact: true }).click();
+      assert.match(await bench.innerText(), /You find the Potion of Healing/u);
+      await clickAction(page, "move", "kennel-yard");
       await clickAction(page, "move", "forest-gate");
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();

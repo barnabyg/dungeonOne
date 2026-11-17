@@ -419,7 +419,7 @@ test(
       /You use the Side of Salt Pork on the Feeding Hatch\. [^\n]*Heavy steps drag after it toward the spillway/u,
       /The Side of Salt Pork is used up\./u,
       /Lock Chamber — /u,
-      /You find the Gilded Guild Seal, Strongbox Gold and Wand of Magic Missiles\./u,
+      /The strongbox holds a gilded seal, a bag of gold and a slim wand of pale wood\./u,
       /You take the Wand of Magic Missiles\./u,
       /Grisk is defeated\./u,
     ]);

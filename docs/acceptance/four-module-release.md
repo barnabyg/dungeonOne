@@ -21,7 +21,7 @@ content.
   check carries every class's weakest character to level 5.
   `tests/shipped-modules.test.mjs` pins the figures and
   `adventures/5e/gate-verdicts.json` records the verdicts.
-- **The handoff journeys** (`tests/issue-448-browser.test.mjs`) play
+- **The handoff journeys** (`tests/four-module-handoff-browser.test.mjs`) play
   scenarios 1–4 below in a real browser on their seeds, check each against
   an engine journey with the same clicks and against the library file, and
   assert the lines, fight-end HP and endings quoted here.

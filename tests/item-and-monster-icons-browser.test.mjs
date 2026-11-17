@@ -64,8 +64,10 @@ test("monsters and items show their icons beside the text that names them", asyn
     // that finds it.
     await clickAction(page, "examine", "woodpile");
     assert.deepEqual(await iconsIn(last()), ["#icon-plain-dagger"]);
+    await last().getByText("Items found", { exact: true }).click();
     assert.match(await text(last()), /You find the Dagger\.$/u);
     assert.equal(await afterIcon(last().locator("p").last()), "Dagger.");
+    await last().getByText("Items found", { exact: true }).click();
     await clickAction(page, "examine", "water-butt");
     assert.deepEqual(await iconsIn(page.locator("#room-items")), [
       "#icon-two-coins",
