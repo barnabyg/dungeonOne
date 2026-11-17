@@ -2715,7 +2715,11 @@ function renderRoom(room) {
         ask.hidden = true;
         item.append(ask);
       }
-      if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
+      if (entry.discovery) {
+        const details = make("details");
+        details.append(make("summary", "What you found"), make("p", entry.discovery, "discovery"));
+        item.append(details);
+      }
       // An exit's door and found trap (#132), a way a check opened or closed
       // (#282) or a flag opened or closed (#397), and what each topic drew
       // from a creature.

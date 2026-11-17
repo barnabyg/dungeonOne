@@ -192,7 +192,8 @@ test(
         /^You: search the chestIron-Bound Chest: /,
       );
       shown = await screen(page);
-      assert.match(shown.room, /You found: Under a mouldy blanket/);
+      assert.doesNotMatch(shown.room, /Under a mouldy blanket/);
+      assert.match(shown.log, /Under a mouldy blanket/);
       assert.match(shown.actions, /Take Potion of Healing/);
 
       await explore(page, "take", "healing-potion");
