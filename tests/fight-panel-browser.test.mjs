@@ -281,6 +281,10 @@ test(
       );
       assert.equal(await page.locator("#status-hp").isHidden(), true);
       assert.equal(await page.locator("#resources").isHidden(), true);
+      assert.equal(
+        await page.locator("#you-card > .tag").innerText(),
+        await page.locator("#character-hp .tag").textContent(),
+      );
       assert.equal(await page.locator("#gear-numbers").isHidden(), true);
       assert.equal(await page.locator("#you-card .hp-bar").isVisible(), true);
       // Ada's card and the goblins' cards, as the engine has them.
