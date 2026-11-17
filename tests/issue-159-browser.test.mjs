@@ -17,7 +17,11 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
 import { FIFTH_SESSION_FORMAT, sessionSeed } from "../dist/session-5e.js";
 import { goblinBand } from "./fixtures/modules.mjs";
-import { settled, createAndStart } from "./fixtures/browser-journey.mjs";
+import {
+  fightTurn,
+  settled,
+  createAndStart,
+} from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 const END_TURN = { type: "end-turn", actorId: "pc" };
@@ -228,13 +232,7 @@ test(
 
       // Clicks until the fight ends.
       while (!(await page.locator("#ending").isVisible())) {
-        const attack = page.locator("#encounter button.attack:enabled");
-        await settled(page, async () =>
-          ((await attack.count()) > 0
-            ? attack.first()
-            : page.locator('#encounter button[data-action="end-turn"]')
-          ).click(),
-        );
+        await fightTurn(page);
       }
       // Each attack: actor and target, the outcome as a tag, the attack's
       // dice; a hit adds its damage and the target's HP after.

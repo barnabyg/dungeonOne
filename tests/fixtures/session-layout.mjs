@@ -10,7 +10,7 @@ import {
 } from "../../dist/character-5e.js";
 import { FIGHTER_DEFAULT_CHOICES } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
-import { actionButton, settled } from "./browser-journey.mjs";
+import { actionButton, clickGameAction, settled } from "./browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 export const launch = () =>
@@ -143,17 +143,17 @@ export async function act(page, label, click) {
 /** Runs `actionButton(page, action, target)` by `act`. */
 export const explore = (page, action, target) =>
   act(page, `${action} ${target}`, () =>
-    actionButton(page, action, target).click(),
+    clickGameAction(actionButton(page, action, target)),
   );
 
 export const fightOn = (page) =>
   act(page, "fight", async () => {
     const attack = page.locator("#encounter button.attack:enabled");
-    await (
+    await clickGameAction(
       (await attack.count()) > 0
         ? attack.first()
-        : page.locator('#encounter button[data-action="end-turn"]')
-    ).click();
+        : page.locator('#encounter button[data-action="end-turn"]'),
+    );
   });
 
 export const say = (page, message) =>

@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FifthSession, sessionSeed } from "../dist/session-5e.js";
 import {
+  clickGameAction,
   actionButton,
   clickAction,
   createAndStart,
@@ -347,7 +348,7 @@ test(
       const compared = [];
       /** Clicks `control` and plays `action` in the replay; then compares. */
       const step = async (control, action, label) => {
-        await settled(page, () => control.click());
+        await settled(page, () => clickGameAction(control));
         assert.equal(
           session.act(action, "click").result.rejection,
           undefined,

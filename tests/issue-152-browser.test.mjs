@@ -11,7 +11,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 import {
-  confirmEndTurn,
+  fightTurn,
   createFighter,
   openCreation,
   saveFighter,
@@ -229,18 +229,7 @@ async function check(page, screen) {
 /** Attacks, or ends the turn once the action is spent, until the fight ends. */
 async function fightToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
-    const count = await page.locator("#log li").count();
-    const attack = page.locator("#encounter button.attack:enabled");
-    await (
-      (await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#encounter button[data-action="end-turn"]')
-    ).click();
-    await confirmEndTurn(page);
-    await page.waitForFunction(
-      (seen) => document.querySelectorAll("#log li").length > seen,
-      count,
-    );
+    await fightTurn(page);
   }
 }
 

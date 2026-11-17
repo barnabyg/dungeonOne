@@ -19,6 +19,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, sessionSeed } from "../dist/session-5e.js";
 import {
+  clickGameAction,
   actionButton,
   settled,
   startAdventure,
@@ -145,7 +146,9 @@ async function fightClick(page) {
     if ((await attack.count()) > 0) {
       await attack.first().click();
     } else {
-      await page.locator('#encounter button[data-action="end-turn"]').click();
+      await clickGameAction(
+        page.locator('#encounter button[data-action="end-turn"]'),
+      );
     }
   });
   return "plain";
