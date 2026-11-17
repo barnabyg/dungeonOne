@@ -317,10 +317,24 @@ test(
       await stale.goto(server.url);
       const staleDiscard = stale.getByRole("button", { name: "Discard" });
       await staleDiscard.waitFor();
+      const olderRoster = await browser.newPage();
+      await olderRoster.goto(server.url);
+      const oldContinue = olderRoster.getByRole("button", {
+        name: "Continue",
+        exact: true,
+      });
+      await oldContinue.waitFor();
       await draft.getByRole("button", { name: "Discard" }).click();
       await draft.waitFor({ state: "hidden" });
       assert.ok(await create.isEnabled());
       assert.ok(await page.locator("#no-characters").isVisible());
+      await oldContinue.click();
+      const unavailable = "That creation is no longer in progress.";
+      await olderRoster
+        .getByRole("status")
+        .filter({ hasText: unavailable })
+        .waitFor();
+      assert.ok(await olderRoster.locator("#no-characters").isVisible());
       await create.click();
       await page.locator("#creation").waitFor();
       assert.equal(await page.locator("#character-name").inputValue(), "");
@@ -332,6 +346,32 @@ test(
         .getByRole("status")
         .filter({ hasText: "refresh before retrying" })
         .waitFor();
+      await stale
+        .getByRole("button", { name: "Continue", exact: true })
+        .click();
+      await stale
+        .getByRole("status")
+        .filter({ hasText: unavailable })
+        .waitFor();
+      // The refreshed card now targets the replacement.
+      await stale
+        .getByRole("button", { name: "Continue", exact: true })
+        .click();
+      await stale.locator("#creation").waitFor();
+      await stale.locator("#open-settings").click();
+      await stale.locator("#settings").waitFor();
+      await draft.getByRole("button", { name: "Discard" }).click();
+      await draft.waitFor({ state: "hidden" });
+      await stale.goBack();
+      await stale
+        .getByRole("status")
+        .filter({ hasText: unavailable })
+        .waitFor();
+      assert.ok(await stale.locator("#no-characters").isVisible());
+      // A fresh direct link still deliberately starts a new creation.
+      const fresh = await browser.newPage();
+      await fresh.goto(server.url + "#create");
+      await fresh.locator("#creation").waitFor();
       await page.reload();
       assert.ok(
         await draft.getByRole("button", { name: "Continue" }).isEnabled(),
