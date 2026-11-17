@@ -2250,7 +2250,7 @@ function renderHistory() {
   else if (!turnStart?.isConnected) turnStart = log.lastElementChild ?? undefined;
   markNewest(log);
   followTurn();
-  const arrival = arrivalEntry();
+  const arrival = arrivalCard();
   if (arrival !== observedArrival) {
     arrivalVisibility.disconnect();
     observedArrival = arrival;
@@ -2264,11 +2264,10 @@ function renderHistory() {
  * card holds the room's description; none in an older session that has not
  * moved since.
  */
-function arrivalEntry() {
+function arrivalCard() {
   return [...element("log").querySelectorAll(":scope > li [data-arrival]")]
     .filter((card) => card.dataset.arrival === session.room.name)
-    .at(-1)
-    ?.closest("li");
+    .at(-1);
 }
 
 let observedArrival;
@@ -2280,11 +2279,12 @@ const arrivalVisibility = new IntersectionObserver((entries) => {
 
 /** "Description in history": scrolls the log to the room's arrival and focuses it. */
 function showArrival() {
-  const entry = arrivalEntry();
-  if (!entry) return;
+  const card = observedArrival;
+  if (!card) return;
+  const entry = card.closest("li");
   const log = element("log");
   // Just under the top of the view, its focus ring in view.
-  log.scrollTop = entryTop(log, entry) - TURN_MARGIN;
+  log.scrollTop = entryTop(log, card) - TURN_MARGIN;
   entry.tabIndex = -1;
   entry.focus({ preventScroll: true });
 }

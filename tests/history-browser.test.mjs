@@ -347,7 +347,7 @@ const jump = async (page, from) => {
   return page.evaluate(() => {
     const log = document.getElementById("log");
     const focused = document.activeElement;
-    const box = focused.getBoundingClientRect();
+    const box = focused.querySelector("[data-arrival]").getBoundingClientRect();
     const port = log.getBoundingClientRect();
     return {
       focused: [...log.children].indexOf(focused),
@@ -446,6 +446,17 @@ test(
 
       // Entries tall enough that the log scrolls at every width.
       await pad(page);
+
+      // A turn can extend below its arrival card. Once the card itself has
+      // scrolled away, its link should work even with that turn still visible.
+      await page.locator('[data-arrival="Alcove"]').evaluate((card) => {
+        const log = document.getElementById("log");
+        log.scrollTop +=
+          card.getBoundingClientRect().bottom -
+          log.getBoundingClientRect().top +
+          20;
+      });
+      await page.locator("#room-history-link").waitFor({ state: "visible" });
 
       // From the foot of the history, the link goes back to the arrival.
       for (const viewport of WIDTHS) {
