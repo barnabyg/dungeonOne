@@ -3448,7 +3448,8 @@ function renderActions() {
       if (list.key === "exits") {
         // Keep Go last in reading and tab order, at the same edge on every way.
         // A shut door names its state beside the actions the player can take.
-        const shut = controls.parentElement.classList.contains("shut-door");
+        const exit = session.room.exits.find(({ id }) => id === card.dataset.id);
+        const shut = exit.door && !exit.door.open;
         const verbs = placed.verbs.filter((wrap) => !shut || !wrap.hasAttribute("data-unavailable"));
         const go = verbs.find((wrap) => wrap.querySelector('button[data-action="move"]'));
         controls.replaceChildren(...verbs.filter((wrap) => wrap !== go), ...(go ? [go] : []));
