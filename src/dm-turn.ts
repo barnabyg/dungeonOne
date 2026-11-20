@@ -162,6 +162,21 @@ function unexecutedAttempt(call: DmToolCall): DmToolAttempt {
   };
 }
 
+/**
+ * What a model's error tells the player in place of the DM's reply (#589),
+ * when it carries a `playerMessage`: a setting the model can't play by,
+ * which every call would fail alike. Otherwise the turn's own fallback.
+ */
+function modelPlayerMessage(error: unknown): string | undefined {
+  return error !== null &&
+    typeof error === "object" &&
+    "playerMessage" in error &&
+    typeof error.playerMessage === "string" &&
+    error.playerMessage.length > 0
+    ? error.playerMessage
+    : undefined;
+}
+
 const SAFE_FALLBACK =
   "I couldn't complete that request safely. Please try one specific action, or ask one specific question about what you can see or your character's status.";
 const COMMITTED_ACTION_FALLBACK =
@@ -390,8 +405,11 @@ export async function runDmTurn(
           output: result.modelOutput,
         })),
       });
-    } catch {
-      return fail({ code: "model-failure", responseNumber });
+    } catch (error) {
+      return fail(
+        { code: "model-failure", responseNumber },
+        modelPlayerMessage(error),
+      );
     }
 
     if (

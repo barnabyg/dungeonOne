@@ -144,7 +144,7 @@ test("the DM is offered GPT 5 and later and the o series, newest first, without 
   );
   assert.deepEqual(
     SETTINGS.dmReasoning.choices.map(({ value }) => value),
-    ["default", "none", "low", "medium", "high", "xhigh"],
+    ["default", "none", "low", "medium", "high", "xhigh", "max"],
   );
 });
 
@@ -169,10 +169,10 @@ test("a settings file may name any well-formed model, but not a malformed one", 
     await assert.rejects(new FifthSettingsStore(path).read(), {
       message: `${path} is not a settings file this build can read: its dungeon master model is "GPT 5!", which is not one of the choices. Move it aside to play at the default settings; the file has not been changed.`,
     });
-    await write({ dmReasoning: "max" });
+    await write({ dmReasoning: "minimal" });
     await assert.rejects(new FifthSettingsStore(path).read(), {
       message:
-        /its dungeon master thinking is "max", which is not one of the choices/u,
+        /its dungeon master thinking is "minimal", which is not one of the choices/u,
     });
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -251,7 +251,7 @@ test("Settings offers the listed models as a menu; a typed message uses its sess
       }
       const thinking = await post(server.url, "/api/5e/settings", {
         id: "dmReasoning",
-        value: "max",
+        value: "minimal",
       });
       assert.equal(thinking.status, 409);
       assert.equal(
@@ -372,3 +372,141 @@ test("the Settings page has the sound controls, or with sound off says so and ha
   );
   assert.doesNotMatch(off, /settings-sound-on|settings-sound-volume/u);
 });
+
+// What each model takes, as a probe would learn it (#589).
+const MODEL_EFFORTS = {
+  "gpt-6-luna": ["none", "low", "medium", "high", "xhigh", "max"],
+  "gpt-6.2-astra": ["low", "medium", "high", "xhigh", "max"],
+  o3: ["low", "medium", "high"],
+};
+
+const levelsView = async (url) =>
+  (await (await fetch(`${url}/api/5e/settings`)).json()).settings.find(
+    ({ id }) => id === "dmReasoning",
+  );
+
+test("Settings offers each model only the thinking levels it takes, and a model change drops a level it doesn't (#589)", async () =>
+  withLibrary(async (library) => {
+    const probed = [];
+    const server = await startFifthBrowserServer({
+      libraryPath: library.path,
+      seed: 0,
+      adventures: [validateModule(barrowFile)],
+      qualifies: () => true,
+      openDmModel: fakeModel([]),
+      listDmModels: async () => LISTED_MODELS,
+      probeDmEfforts: async (model) => {
+        probed.push(model);
+        return MODEL_EFFORTS[model];
+      },
+    });
+    const change = (id, value) =>
+      post(server.url, "/api/5e/settings", { id, value });
+    try {
+      const levels = await levelsView(server.url);
+      assert.deepEqual(
+        levels.choices.map(({ value }) => value),
+        ["default", "none", "low", "medium", "high", "xhigh", "max"],
+      );
+      assert.equal(levels.choices.at(-1).label, "Maximum");
+      assert.equal(levels.note, undefined);
+
+      // None is fine on gpt-6-luna; gpt-6.2-astra doesn't take it.
+      assert.equal((await change("dmReasoning", "none")).status, 200);
+      const moved = await change("dmModel", "gpt-6.2-astra");
+      assert.equal(moved.status, 200, JSON.stringify(moved.body));
+      assert.equal(
+        moved.body.notice,
+        "Dungeon Master model: gpt-6.2-astra. Saved. It doesn't take None, so Dungeon Master thinking is back to Model default.",
+      );
+      const after = moved.body.settings.find(({ id }) => id === "dmReasoning");
+      assert.equal(after.value, "default");
+      assert.deepEqual(
+        after.choices.map(({ value }) => value),
+        ["default", "low", "medium", "high", "xhigh", "max"],
+      );
+      const refused = await change("dmReasoning", "none");
+      assert.equal(refused.status, 409);
+      assert.equal(
+        refused.body.error,
+        "Dungeon Master thinking has no such choice.",
+      );
+
+      // A level the new model takes is kept, with no notice.
+      assert.equal((await change("dmReasoning", "high")).status, 200);
+      const kept = await change("dmModel", "o3");
+      assert.equal(kept.body.notice, undefined);
+      assert.equal(
+        kept.body.settings.find(({ id }) => id === "dmReasoning").value,
+        "high",
+      );
+      assert.equal((await change("dmReasoning", "max")).status, 409);
+      // Each model is probed once for the launch.
+      assert.deepEqual(probed, ["gpt-6-luna", "gpt-6.2-astra", "o3"]);
+    } finally {
+      await server.close();
+    }
+  }));
+
+test("a model whose levels can't be learned offers them all with a note, and is probed again; a saved level the model rejects is shown with a warning (#589)", async () =>
+  withLibrary(async (library) => {
+    const directory = join(library.path, "..");
+    await writeFile(
+      join(directory, "settings.json"),
+      JSON.stringify({
+        kind: "dungeon-one-settings",
+        formatVersion: SETTINGS_FORMAT,
+        settings: { dmModel: "gpt-6.2-astra", dmReasoning: "none" },
+      }),
+    );
+    let fail = true;
+    const probed = [];
+    const server = await startFifthBrowserServer({
+      libraryPath: library.path,
+      seed: 0,
+      adventures: [validateModule(barrowFile)],
+      qualifies: () => true,
+      openDmModel: fakeModel([]),
+      listDmModels: async () => LISTED_MODELS,
+      probeDmEfforts: async (model) => {
+        probed.push(model);
+        if (fail) {
+          throw new Error("offline");
+        }
+        return MODEL_EFFORTS[model];
+      },
+    });
+    try {
+      const unknown = await levelsView(server.url);
+      assert.equal(unknown.choices.length, 7);
+      assert.equal(
+        unknown.note,
+        "This model's thinking levels couldn't be checked; a level it doesn't take will stop the Dungeon Master answering.",
+      );
+      fail = false;
+      const known = await levelsView(server.url);
+      assert.deepEqual(
+        known.choices.map(({ value }) => value),
+        ["default", "none", "low", "medium", "high", "xhigh", "max"],
+      );
+      assert.equal(known.value, "none");
+      assert.equal(
+        known.note,
+        "gpt-6.2-astra doesn't take None: typed messages will fail until you choose another level.",
+      );
+      assert.deepEqual(probed, ["gpt-6.2-astra", "gpt-6.2-astra"]);
+      // Choosing a level it takes clears the warning and drops None.
+      const fixed = await post(server.url, "/api/5e/settings", {
+        id: "dmReasoning",
+        value: "low",
+      });
+      const levels = fixed.body.settings.find(({ id }) => id === "dmReasoning");
+      assert.equal(levels.note, undefined);
+      assert.equal(
+        levels.choices.some(({ value }) => value === "none"),
+        false,
+      );
+    } finally {
+      await server.close();
+    }
+  }));

@@ -8,17 +8,24 @@ import type {
   DmToolCall,
 } from "./dm-turn.js";
 
-import type { OpenAiReasoningEffort } from "./openai-dm-models.js";
+import {
+  OPENAI_DM_EFFORT_PROBES,
+  OPENAI_DM_REASONING_EFFORTS,
+  OPENAI_DM_REASONING_LABELS,
+  supportedEffortsFrom,
+  type OpenAiReasoningEffort,
+} from "./openai-dm-models.js";
 
 export const OPENAI_DM_DEFAULT_TIMEOUT_MS = 30_000;
 export { OPENAI_DM_DEFAULT_MODEL } from "./openai-dm-models.js";
 
 /**
  * A call's timeout at each reasoning effort (#587): more thinking takes
- * longer, so High and Extra high wait longer than the default.
+ * longer, so High, Extra high and Maximum (#589) wait longer than the
+ * default.
  */
 export function openAiDmTimeoutMs(effort?: OpenAiReasoningEffort): number {
-  return effort === "xhigh"
+  return effort === "xhigh" || effort === "max"
     ? 120_000
     : effort === "high"
       ? 60_000
@@ -31,6 +38,7 @@ export const OPENAI_DM_ERROR_CODES = [
   "timeout",
   "unavailable",
   "malformed-response",
+  "unsupported-setting",
   "unknown",
 ] as const;
 
@@ -48,19 +56,30 @@ const ERROR_MESSAGES: Readonly<Record<OpenAiDmErrorCode, string>> = {
   timeout: "OpenAI request timed out.",
   unavailable: "OpenAI service is unavailable.",
   "malformed-response": "OpenAI returned a malformed response.",
+  "unsupported-setting":
+    "The OpenAI model does not take the chosen reasoning effort.",
   unknown: "OpenAI request failed.",
 };
 
 export class OpenAiDmError extends Error {
   readonly code: OpenAiDmErrorCode;
   readonly evidence?: OpenAiDmErrorEvidence;
+  /** What the player is told in place of the DM's reply (#589). */
+  readonly playerMessage?: string;
 
-  constructor(code: OpenAiDmErrorCode, evidence?: OpenAiDmErrorEvidence) {
+  constructor(
+    code: OpenAiDmErrorCode,
+    evidence?: OpenAiDmErrorEvidence,
+    playerMessage?: string,
+  ) {
     super(ERROR_MESSAGES[code]);
     this.name = "OpenAiDmError";
     this.code = code;
     if (evidence !== undefined) {
       this.evidence = evidence;
+    }
+    if (playerMessage !== undefined) {
+      this.playerMessage = playerMessage;
     }
   }
 }
@@ -386,6 +405,20 @@ export function createOpenAiDmModel(config: OpenAiDmModelConfig): DmModel {
           timedOut,
         ]);
       } catch (error) {
+        // The model doesn't take the chosen effort (#589): every call will
+        // fail alike, so the player is told to choose another.
+        if (
+          config.reasoningEffort !== undefined &&
+          isRecord(error) &&
+          error.status === 400 &&
+          error.param === "reasoning.effort"
+        ) {
+          throw new OpenAiDmError(
+            "unsupported-setting",
+            providerErrorEvidence(error),
+            `The Dungeon Master's model, ${config.model}, doesn't take the thinking level ${OPENAI_DM_REASONING_LABELS[config.reasoningEffort]}. Choose another on the Settings page.`,
+          );
+        }
         throw error instanceof OpenAiDmError
           ? error
           : classifyProviderError(error);
@@ -426,4 +459,51 @@ export async function listOpenAiModelIds(
     ids.push(model.id);
   }
   return ids;
+}
+
+type EffortProbeClient = Readonly<{
+  responses: Readonly<{
+    create(body: Record<string, unknown>): Promise<unknown>;
+  }>;
+}>;
+
+/**
+ * The offered reasoning efforts `model` takes (#589), learned by trying
+ * OPENAI_DM_EFFORT_PROBES in turn until OpenAI rejects one and lists the
+ * ones it takes; a model that takes every probe takes every offered effort.
+ * Undefined when that can't be learned (no network, no access, a message
+ * that lists none).
+ */
+export async function probeReasoningEfforts(
+  apiKey: string,
+  model: string,
+  client: EffortProbeClient = new OpenAI({
+    apiKey,
+    maxRetries: 0,
+    timeout: 15_000,
+  }) as unknown as EffortProbeClient,
+): Promise<readonly OpenAiReasoningEffort[] | undefined> {
+  for (const effort of OPENAI_DM_EFFORT_PROBES) {
+    try {
+      await client.responses.create({
+        model,
+        input: "ok",
+        max_output_tokens: 16,
+        store: false,
+        reasoning: { effort },
+      });
+    } catch (error) {
+      if (
+        isRecord(error) &&
+        error.status === 400 &&
+        error.code === "unsupported_value" &&
+        error.param === "reasoning.effort" &&
+        typeof error.message === "string"
+      ) {
+        return supportedEffortsFrom(error.message);
+      }
+      return undefined;
+    }
+  }
+  return OPENAI_DM_REASONING_EFFORTS;
 }

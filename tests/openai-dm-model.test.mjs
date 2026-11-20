@@ -6,7 +6,9 @@ import {
   OPENAI_DM_DEFAULT_TIMEOUT_MS,
   OpenAiDmError,
   createOpenAiDmModel,
+  probeReasoningEfforts,
 } from "../dist/openai-dm-model.js";
+import { supportedEffortsFrom } from "../dist/openai-dm-models.js";
 import { counterRuntime } from "./fixtures/counter-runtime.mjs";
 
 const runtime = counterRuntime();
@@ -355,6 +357,7 @@ test("Responses adapter sends the chosen reasoning effort, and waits longer for 
     "medium",
     "high",
     "xhigh",
+    "max",
   ]) {
     await createOpenAiDmModel({
       apiKey: "unused",
@@ -371,11 +374,141 @@ test("Responses adapter sends the chosen reasoning effort, and waits longer for 
       { effort: "medium" },
       { effort: "high" },
       { effort: "xhigh" },
+      { effort: "max" },
     ],
   );
   assert.ok(!("reasoning" in sent[0].body));
   assert.deepEqual(
     sent.map(({ options }) => options.timeout),
-    [OPENAI_DM_DEFAULT_TIMEOUT_MS, 30_000, 30_000, 60_000, 120_000],
+    [OPENAI_DM_DEFAULT_TIMEOUT_MS, 30_000, 30_000, 60_000, 120_000, 120_000],
   );
+});
+
+// OpenAI's rejections of an effort, recorded 2026-11-20 (#589).
+const rejected = (model, effort, supported) => ({
+  status: 400,
+  code: "unsupported_value",
+  param: "reasoning.effort",
+  message: `400 Unsupported value: '${effort}' is not supported with the '${model}' model. Supported values are: ${supported}.`,
+});
+
+test("the supported efforts are read from OpenAI's rejection, keeping only offered ones (#589)", () => {
+  assert.deepEqual(
+    supportedEffortsFrom(
+      rejected(
+        "gpt-6.2-astra",
+        "none",
+        "'low', 'medium', 'high', 'xhigh', and 'max'",
+      ).message,
+    ),
+    ["low", "medium", "high", "xhigh", "max"],
+  );
+  assert.deepEqual(
+    supportedEffortsFrom(
+      rejected("gpt-5", "none", "'minimal', 'low', 'medium', and 'high'")
+        .message,
+    ),
+    ["low", "medium", "high"],
+  );
+  assert.equal(
+    supportedEffortsFrom("400 Something else went wrong."),
+    undefined,
+  );
+});
+
+test("probing a model's efforts stops at the first rejection, and learns nothing from other failures (#589)", async () => {
+  const probe = async (model, answer) => {
+    const tried = [];
+    const efforts = await probeReasoningEfforts("unused", model, {
+      responses: {
+        async create(body) {
+          tried.push(body.reasoning.effort);
+          assert.equal(body.model, model);
+          assert.equal(body.store, false);
+          return answer(body.reasoning.effort);
+        },
+      },
+    });
+    return { efforts, tried };
+  };
+  assert.deepEqual(
+    await probe("gpt-6.2-astra", (effort) => {
+      throw rejected(
+        "gpt-6.2-astra",
+        effort,
+        "'low', 'medium', 'high', 'xhigh', and 'max'",
+      );
+    }),
+    { efforts: ["low", "medium", "high", "xhigh", "max"], tried: ["minimal"] },
+  );
+  // gpt-5 takes minimal, so the probe goes on to none.
+  assert.deepEqual(
+    await probe("gpt-5", (effort) => {
+      if (effort === "minimal") {
+        return { status: "incomplete" };
+      }
+      throw rejected("gpt-5", effort, "'minimal', 'low', 'medium', and 'high'");
+    }),
+    { efforts: ["low", "medium", "high"], tried: ["minimal", "none"] },
+  );
+  assert.deepEqual(await probe("gpt-9", () => ({ status: "completed" })), {
+    efforts: ["none", "low", "medium", "high", "xhigh", "max"],
+    tried: ["minimal", "none", "max"],
+  });
+  // A value OpenAI doesn't know lists every effort, not the model's.
+  for (const failure of [
+    {
+      status: 400,
+      code: "invalid_value",
+      param: "reasoning.effort",
+      message:
+        "400 Invalid value: 'minimal'. Supported values are: 'none', 'low'.",
+    },
+    { status: 429, message: "Rate limited" },
+    new Error("offline"),
+  ]) {
+    assert.deepEqual(
+      await probe("gpt-6-luna", () => {
+        throw failure;
+      }),
+      { efforts: undefined, tried: ["minimal"] },
+    );
+  }
+});
+
+test("a model that rejects the chosen effort tells the player to choose another on Settings (#589)", async () => {
+  const model = createOpenAiDmModel({
+    apiKey: "unused",
+    model: "gpt-6.2-astra",
+    reasoningEffort: "none",
+    client: {
+      responses: {
+        async create() {
+          throw rejected(
+            "gpt-6.2-astra",
+            "none",
+            "'low', 'medium', 'high', 'xhigh', and 'max'",
+          );
+        },
+      },
+    },
+  });
+  const message =
+    "The Dungeon Master's model, gpt-6.2-astra, doesn't take the thinking level None. Choose another on the Settings page.";
+  await assert.rejects(model.respond(request()), {
+    code: "unsupported-setting",
+    playerMessage: message,
+  });
+  const turn = await runDmTurn({
+    runtime,
+    state: runtime.createSession(),
+    playerInput: "Look around",
+    transcript: [],
+    random: { roll: () => 4 },
+    model,
+  });
+  assert.equal(turn.narration, message);
+  assert.deepEqual(turn.diagnostics, [
+    { code: "model-failure", responseNumber: 1 },
+  ]);
 });
