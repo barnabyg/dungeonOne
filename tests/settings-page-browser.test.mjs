@@ -2,7 +2,8 @@
 // the header's mute button and slider stay in step, live and across reloads,
 // and a mute from the Settings page applies at once to the adventure under
 // way; with sound off for the launch the page says so and has no sound
-// controls. The DM model is listed at its default, gpt-6-luna.
+// controls. The DM model is a menu of OpenAI's listed models at its default,
+// gpt-6-luna, and a choice there and of thinking level is saved (#587).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -28,7 +29,7 @@ const serve = (libraryPath, options = {}) =>
   });
 
 async function withPage(work) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-510-browser-"));
+  const directory = await mkdtemp(join(tmpdir(), "settings-page-browser-"));
   const browser = await launch();
   const page = await browser.newPage({
     viewport: { width: 1280, height: 850 },
@@ -77,12 +78,15 @@ test(
         assert.equal(await soundOn.isChecked(), true);
         assert.equal(await pageVolume.inputValue(), "50");
         assert.equal(await shown.textContent(), "50%");
-        // The DM model, listed at its default.
-        const model = page.locator("#setting-dmModel-gpt-6-luna");
-        assert.equal(await model.isChecked(), true);
-        assert.equal(
-          (await page.locator("label", { has: model }).textContent()).trim(),
-          "gpt-6-luna Default",
+        // The DM model, a menu at its default; without a key it says why.
+        const model = page.locator("#setting-dmModel-menu");
+        assert.equal(await model.inputValue(), "gpt-6-luna");
+        assert.deepEqual(await model.locator("option").allTextContents(), [
+          "gpt-6-luna (default)",
+        ]);
+        assert.match(
+          await page.locator("#setting-dmModel .setting-note").textContent(),
+          /Set OPENAI_API_KEY/u,
         );
 
         // The Settings page changes the header's controls, and back.
@@ -158,6 +162,47 @@ test(
         );
         assert.equal(await page.locator("input[type=range]").count(), 0);
         assert.equal(await page.locator("#sound-controls").count(), 0);
+      } finally {
+        await server.close();
+      }
+    }),
+);
+
+test(
+  "the DM model menu lists OpenAI's models, and a model and thinking level chosen there are saved (#587)",
+  { timeout: 60000 },
+  () =>
+    withPage(async (page, libraryPath) => {
+      const server = await serve(libraryPath, {
+        listDmModels: async () => ["gpt-image-2", "gpt-6-luna", "gpt-6.2-sol"],
+      });
+      try {
+        await page.goto(server.url);
+        await openSettings(page);
+        const model = page.locator("#setting-dmModel-menu");
+        assert.deepEqual(await model.locator("option").allTextContents(), [
+          "gpt-6.2-sol",
+          "gpt-6-luna (default)",
+        ]);
+        assert.equal(
+          await page.locator("#setting-dmModel .setting-note").count(),
+          0,
+        );
+        await model.selectOption("gpt-6.2-sol");
+        await page
+          .locator("#feedback", { hasText: "gpt-6.2-sol. Saved." })
+          .waitFor({ state: "attached" });
+        await page.locator("#setting-dmReasoning-high").check();
+        await page
+          .locator("#feedback", { hasText: "High. Saved." })
+          .waitFor({ state: "attached" });
+        await page.reload();
+        await page.locator("#setting-dmModel").waitFor();
+        assert.equal(await model.inputValue(), "gpt-6.2-sol");
+        assert.equal(
+          await page.locator("#setting-dmReasoning-high").isChecked(),
+          true,
+        );
       } finally {
         await server.close();
       }

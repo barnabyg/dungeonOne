@@ -19,8 +19,8 @@ import { writeFileAtomically } from "./atomic-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { acquireFileLock } from "./file-lock.js";
 import {
+  isOpenAiModelId,
   OPENAI_DM_DEFAULT_MODEL,
-  OPENAI_DM_MODELS,
 } from "./openai-dm-models.js";
 
 export const SETTINGS_FORMAT = 1;
@@ -35,6 +35,11 @@ export type SettingDefinition = Readonly<{
   text: string;
   choices: readonly SettingChoice[];
   default: string | number;
+  /**
+   * The values the file may hold, when they are not only `choices`: a
+   * setting whose choices are fetched (#587) takes any well-formed value.
+   */
+  accepts?: (value: unknown) => boolean;
 }>;
 
 /** Every setting, in the order the Settings page shows them. */
@@ -211,11 +216,34 @@ export const SETTINGS = {
   },
   // The model the AI DM answers a typed message with (#510): the session
   // records it with the rest, so an adventure keeps its model to the end.
+  // The Settings page offers OpenAI's listed models (#587), so the file may
+  // name any well-formed model id.
   dmModel: {
     name: "Dungeon Master model",
     text: "The OpenAI model the AI Dungeon Master answers with when you type to it.",
-    choices: OPENAI_DM_MODELS.map((model) => ({ value: model, label: model })),
+    choices: [
+      {
+        value: OPENAI_DM_DEFAULT_MODEL as string,
+        label: OPENAI_DM_DEFAULT_MODEL,
+      },
+    ],
     default: OPENAI_DM_DEFAULT_MODEL,
+    accepts: isOpenAiModelId,
+  },
+  // How hard the DM's model reasons before it answers (#587); Model default
+  // sends no reasoning effort, so the model uses its own.
+  dmReasoning: {
+    name: "Dungeon Master thinking",
+    text: "How much the AI Dungeon Master thinks before it answers. More thinking can answer better, but takes longer and costs more. Model default leaves it to the model.",
+    choices: [
+      { value: "default", label: "Model default" },
+      { value: "none", label: "None" },
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "xhigh", label: "Extra high" },
+    ],
+    default: "default",
   },
 } as const satisfies Record<string, SettingDefinition>;
 
@@ -250,9 +278,11 @@ export const DEFAULT_SETTINGS: GameSettings = Object.fromEntries(
 
 /** Whether `value` is one of the values setting `id` offers. */
 export function isSettingValue(id: SettingId, value: unknown): boolean {
-  return (SETTINGS[id].choices as readonly SettingChoice[]).some(
-    (choice) => choice.value === value,
-  );
+  const setting: SettingDefinition = SETTINGS[id];
+  if (setting.accepts !== undefined) {
+    return setting.accepts(value);
+  }
+  return setting.choices.some((choice) => choice.value === value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -388,20 +418,47 @@ export class FifthSettingsStore {
   }
 }
 
-/** How the Settings page shows the settings: each with its choices, in order. */
-export function settingsView(settings: GameSettings) {
+/**
+ * The models the Settings page offers the DM (#587): those fetched from
+ * OpenAI, or why none could be.
+ */
+export type DmModelOffer =
+  Readonly<{ models: readonly string[] }> | Readonly<{ unavailable: string }>;
+
+/**
+ * How the Settings page shows the settings: each with its choices, in order.
+ * The DM model's choices are the offered models (#587), with the default and
+ * the current model always among them, shown as a menu.
+ */
+export function settingsView(settings: GameSettings, dmModels?: DmModelOffer) {
   return SETTING_IDS.map((id) => {
     const setting: SettingDefinition = SETTINGS[id];
+    const menu = id === "dmModel";
+    const choices: readonly SettingChoice[] = menu
+      ? [
+          ...new Set([
+            ...(dmModels !== undefined && "models" in dmModels
+              ? dmModels.models
+              : []),
+            String(setting.default),
+            String(settings[id]),
+          ]),
+        ].map((value) => ({ value, label: value }))
+      : setting.choices;
     return {
       id,
       name: setting.name,
       text: setting.text,
       value: settings[id],
-      choices: setting.choices.map(({ value, label }) => ({
+      choices: choices.map(({ value, label }) => ({
         value,
         label,
         ...(value === setting.default ? { default: true } : {}),
       })),
+      ...(menu ? { menu: true } : {}),
+      ...(menu && dmModels !== undefined && "unavailable" in dmModels
+        ? { note: dmModels.unavailable }
+        : {}),
     };
   });
 }

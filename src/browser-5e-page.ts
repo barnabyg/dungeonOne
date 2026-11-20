@@ -487,7 +487,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 }
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
-.masthead #open-settings{order:2;display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}#open-settings svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}#settings-sound-volume{width:10rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-ink);vertical-align:middle}#settings-sound-volume-value{display:inline-block;min-width:3em;font-variant-numeric:tabular-nums}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
+.masthead #open-settings{order:2;display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}#open-settings svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.masthead #open-settings:hover{background:var(--color-night-light)}.masthead:not(:has(#sound-controls)) #open-settings{margin-left:auto}#settings-list{display:grid;gap:var(--space-3);margin-bottom:var(--space-3)}.setting{border:1px solid var(--color-line);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-2) var(--space-3);margin:0}.setting legend{font:600 var(--text-md) var(--font-sans);padding:0 var(--space-1)}.setting .hint{margin:0 0 var(--space-2)}.setting-choices{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font:var(--text-sm) var(--font-sans)}.setting-choices label{display:flex;align-items:center;gap:6px}.setting-choices input{width:auto;margin:0;accent-color:var(--color-ink)}.setting-choices .tag{color:var(--color-text-muted)}.setting-choices select{width:auto;min-width:14rem}#settings-sound-volume{width:10rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-ink);vertical-align:middle}#settings-sound-volume-value{display:inline-block;min-width:3em;font-variant-numeric:tabular-nums}#settings-in-progress{border:1px solid var(--color-gold);border-left:4px solid var(--color-gold-text);border-radius:var(--radius-sm);background:var(--color-highlight);padding:var(--space-2) var(--space-3);font:600 var(--text-sm) var(--font-sans)}
 .masthead #open-map{margin-left:var(--space-2);padding:2px 14px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #open-map:hover{background:var(--color-night-light)}
 #sound-controls{order:1;display:flex;align-items:center;gap:var(--space-2);margin-left:auto}.masthead:has(#adventure-meta:not([hidden])) #sound-controls{margin-left:0}.masthead #sound-mute{display:grid;place-items:center;padding:2px 6px;color:var(--color-on-dark);border-color:var(--color-gold)}.masthead #sound-mute:hover{background:var(--color-night-light)}#sound-mute svg{width:20px;height:20px;fill:currentColor}#sound-mute :is(.waves,.cross){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}#sound-mute .cross,#sound-mute[aria-pressed=true] .waves{display:none}#sound-mute[aria-pressed=true] .cross{display:inline}#sound-volume{width:4rem;margin:0;padding:0;border:0;background:none;accent-color:var(--color-gold)}
 #map-dialog{width:min(1240px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:none;padding:var(--space-4)}#map-dialog[open]{display:flex;flex-direction:column}
@@ -5490,6 +5490,28 @@ function renderSettings(value) {
     help.id = "setting-" + setting.id + "-text";
     fieldset.setAttribute("aria-describedby", help.id);
     const choices = make("div", undefined, "setting-choices");
+    // A long list fetched from OpenAI, the DM's models (#587), is a menu.
+    if (setting.menu) {
+      const label = make("label");
+      const select = make("select");
+      select.id = "setting-" + setting.id + "-menu";
+      for (const choice of setting.choices) {
+        const option = make("option", choice.label + (choice.default ? " (default)" : ""));
+        option.value = String(choice.value);
+        option.selected = choice.value === setting.value;
+        select.append(option);
+      }
+      select.addEventListener("change", () => {
+        const choice = setting.choices.find((item) => String(item.value) === select.value);
+        if (choice) changeSetting(setting, choice);
+      });
+      label.append(make("span", setting.name, "visually-hidden"), select);
+      choices.append(label);
+      fieldset.append(make("legend", setting.name), help);
+      if (setting.note) fieldset.append(make("p", setting.note, "hint setting-note"));
+      fieldset.append(choices);
+      return fieldset;
+    }
     for (const choice of setting.choices) {
       const label = make("label");
       const input = make("input");
@@ -5528,7 +5550,7 @@ async function changeSetting(setting, choice) {
   } finally {
     list.removeAttribute("aria-busy");
   }
-  element("setting-" + setting.id + "-" + choice.value)?.focus();
+  (document.getElementById("setting-" + setting.id + "-" + choice.value) ?? document.getElementById("setting-" + setting.id + "-menu"))?.focus();
 }
 
 async function resetSettings() {

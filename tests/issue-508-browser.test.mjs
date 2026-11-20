@@ -81,7 +81,15 @@ test(
         legends.indexOf("Carrying capacity") < legends.indexOf(survival[0]),
       );
       for (const [id, value] of Object.entries(DEFAULT_SETTINGS)) {
-        assert.equal(await choice(page, id, value).isChecked(), true, id);
+        // The DM model is a menu (#587).
+        if (id === "dmModel") {
+          assert.equal(
+            await page.locator("#setting-dmModel-menu").inputValue(),
+            value,
+          );
+        } else {
+          assert.equal(await choice(page, id, value).isChecked(), true, id);
+        }
       }
       assert.equal(
         (

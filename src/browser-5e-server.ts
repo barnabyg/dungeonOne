@@ -37,8 +37,11 @@ import {
   type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
-import { createOpenAiDmModel } from "./openai-dm-model.js";
-import type { OpenAiDmModelId } from "./openai-dm-models.js";
+import { createOpenAiDmModel, listOpenAiModelIds } from "./openai-dm-model.js";
+import {
+  dmModelChoices,
+  type OpenAiReasoningEffort,
+} from "./openai-dm-models.js";
 
 import {
   FifthSession,
@@ -124,6 +127,7 @@ import {
   FifthSettingsStore,
   settingsPathFor,
   settingsView,
+  type DmModelOffer,
   type GameSettings,
 } from "./settings-5e.js";
 
@@ -138,7 +142,15 @@ export type FifthBrowserOptions = Readonly<{
    * Opens the DM for a model id in place of OpenAI's, for tests (#510): a
    * typed message uses the model its session's settings name.
    */
-  openDmModel?: (model: OpenAiDmModelId) => DmModel;
+  openDmModel?: (
+    model: string,
+    reasoningEffort: OpenAiReasoningEffort | undefined,
+  ) => DmModel;
+  /**
+   * Lists the model ids OpenAI offers the key, in place of OpenAI's model
+   * list, for tests (#587); the Settings page offers those the DM can use.
+   */
+  listDmModels?: () => Promise<readonly string[]>;
   /**
    * Which modules are offered; the balance gate at each module's declared
    * difficulty (its recorded verdict where one matches the module) unless
@@ -734,23 +746,63 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const apiKey = options.apiKey?.trim() ?? "";
   // The AI DM for each model a session's settings name (#510), opened when
   // a message first needs it and kept for the next; none without a key.
+  // Each model and thinking level pair is opened once (#587).
   const { dmModel } = options;
-  const open: ((model: OpenAiDmModelId) => DmModel) | undefined =
+  const open:
+    | ((
+        model: string,
+        reasoningEffort: OpenAiReasoningEffort | undefined,
+      ) => DmModel)
+    | undefined =
     dmModel !== undefined
       ? () => dmModel
       : (options.openDmModel ??
         (apiKey.length === 0
           ? undefined
-          : (model) => createOpenAiDmModel({ apiKey, model })));
-  const models = new Map<OpenAiDmModelId, DmModel>();
+          : (model, reasoningEffort) =>
+              createOpenAiDmModel({
+                apiKey,
+                model,
+                ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+              })));
+  const models = new Map<string, DmModel>();
   const modelFor =
     open &&
     ((session: FifthSession): DmModel => {
-      const id = session.settings.dmModel;
-      const model = models.get(id) ?? open(id);
-      models.set(id, model);
+      const { dmModel: id, dmReasoning } = session.settings;
+      const effort = dmReasoning === "default" ? undefined : dmReasoning;
+      const key = `${id} ${dmReasoning}`;
+      const model = models.get(key) ?? open(id, effort);
+      models.set(key, model);
       return model;
     });
+  // The models the Settings page offers the DM (#587), fetched from OpenAI
+  // when first needed and kept for the launch; a failed fetch is tried
+  // again the next time.
+  const listModels =
+    options.listDmModels ??
+    (apiKey.length === 0 ? undefined : () => listOpenAiModelIds(apiKey));
+  let offeredModels: readonly string[] | undefined;
+  const dmModelOffer = async (): Promise<DmModelOffer> => {
+    if (offeredModels !== undefined) {
+      return { models: offeredModels };
+    }
+    if (listModels === undefined) {
+      return {
+        unavailable:
+          "Set OPENAI_API_KEY and restart to choose from OpenAI's models.",
+      };
+    }
+    try {
+      offeredModels = dmModelChoices(await listModels());
+      return { models: offeredModels };
+    } catch {
+      return {
+        unavailable:
+          "OpenAI's model list could not be loaded. Open Settings again to retry.",
+      };
+    }
+  };
   // Only modules that qualify at their declared difficulty are offered or
   // can be started; a session already under way plays on. The shipped
   // modules' verdicts are recorded, so only a changed one is gated here.
@@ -766,7 +818,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const settingsResponse = async (current: GameSettings) => {
     const data = await library.read();
     return {
-      settings: settingsView(current),
+      settings: settingsView(current, await dmModelOffer()),
       adventureInProgress: data.characters.some(
         ({ session }) => session !== undefined,
       ),
@@ -1436,11 +1488,22 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (!hasExactKeys(body, ["id", "value"])) {
           throw new Error("Invalid settings request.");
         }
-        return serialized(async () =>
-          settingsResponse(
+        return serialized(async () => {
+          // A model must be one the Settings page offers (#587); the file
+          // itself takes any well-formed model id.
+          if (body.id === "dmModel") {
+            const offered = settingsView(
+              await readSettings(),
+              await dmModelOffer(),
+            ).find(({ id }) => id === "dmModel");
+            if (!offered?.choices.some(({ value }) => value === body.value)) {
+              throw new Error("Dungeon Master model has no such choice.");
+            }
+          }
+          return settingsResponse(
             (settings = await settingsStore.change(body.id, body.value)),
-          ),
-        );
+          );
+        });
       case "/api/5e/settings/reset":
         if (!hasExactKeys(body, [])) {
           throw new Error("Invalid settings request.");
