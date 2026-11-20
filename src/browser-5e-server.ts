@@ -37,7 +37,11 @@ import {
   type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
-import { createOpenAiDmModel, listOpenAiModelIds } from "./openai-dm-model.js";
+import {
+  createOpenAiDmModel,
+  listOpenAiModelIds,
+  probeReasoningEfforts,
+} from "./openai-dm-model.js";
 import {
   dmModelChoices,
   type OpenAiReasoningEffort,
@@ -125,8 +129,10 @@ import {
 import { readSound, soundAt, soundType } from "./sounds-5e.js";
 import {
   FifthSettingsStore,
+  SETTINGS,
   settingsPathFor,
   settingsView,
+  type DmEffortOffer,
   type DmModelOffer,
   type GameSettings,
 } from "./settings-5e.js";
@@ -151,6 +157,11 @@ export type FifthBrowserOptions = Readonly<{
    * list, for tests (#587); the Settings page offers those the DM can use.
    */
   listDmModels?: () => Promise<readonly string[]>;
+  /**
+   * Learns the reasoning efforts a model takes, in place of asking OpenAI,
+   * for tests (#589); undefined when they can't be learned.
+   */
+  probeDmEfforts?: (model: string) => Promise<readonly string[] | undefined>;
   /**
    * Which modules are offered; the balance gate at each module's declared
    * difficulty (its recorded verdict where one matches the module) unless
@@ -804,6 +815,35 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       };
     }
   };
+  // The thinking levels each model takes (#589), learned from OpenAI when a
+  // model is first shown or chosen and kept for the launch; a model whose
+  // levels couldn't be learned is tried again the next time.
+  const probeEfforts =
+    options.probeDmEfforts ??
+    (apiKey.length === 0
+      ? undefined
+      : (model: string) => probeReasoningEfforts(apiKey, model));
+  const efforts = new Map<string, Promise<readonly string[] | undefined>>();
+  const dmEffortOffer = async (
+    model: string,
+  ): Promise<DmEffortOffer | undefined> => {
+    if (probeEfforts === undefined) {
+      return undefined;
+    }
+    let pending = efforts.get(model);
+    if (pending === undefined) {
+      pending = probeEfforts(model).catch(() => undefined);
+      efforts.set(model, pending);
+    }
+    const learned = await pending;
+    if (learned === undefined) {
+      if (efforts.get(model) === pending) {
+        efforts.delete(model);
+      }
+      return { unknown: true };
+    }
+    return { efforts: learned };
+  };
   // Only modules that qualify at their declared difficulty are offered or
   // can be started; a session already under way plays on. The shipped
   // modules' verdicts are recorded, so only a changed one is gated here.
@@ -816,10 +856,15 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
    * The Settings page: every setting, whether an adventure is under way, and
    * the library, whose sheets show the settings of the moment.
    */
-  const settingsResponse = async (current: GameSettings) => {
+  const settingsResponse = async (current: GameSettings, notice?: string) => {
     const data = await library.read();
     return {
-      settings: settingsView(current, await dmModelOffer()),
+      settings: settingsView(
+        current,
+        await dmModelOffer(),
+        await dmEffortOffer(current.dmModel),
+      ),
+      ...(notice === undefined ? {} : { notice }),
       adventureInProgress: data.characters.some(
         ({ session }) => session !== undefined,
       ),
@@ -1490,15 +1535,46 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid settings request.");
         }
         return serialized(async () => {
+          const current = await readSettings();
           // A model must be one the Settings page offers (#587); the file
           // itself takes any well-formed model id.
           if (body.id === "dmModel") {
-            const offered = settingsView(
-              await readSettings(),
-              await dmModelOffer(),
-            ).find(({ id }) => id === "dmModel");
+            const offered = settingsView(current, await dmModelOffer()).find(
+              ({ id }) => id === "dmModel",
+            );
             if (!offered?.choices.some(({ value }) => value === body.value)) {
               throw new Error("Dungeon Master model has no such choice.");
+            }
+            // A level the new model doesn't take goes back to Model
+            // default with it (#589).
+            const offer = await dmEffortOffer(String(body.value));
+            const level = current.dmReasoning;
+            if (
+              offer !== undefined &&
+              "efforts" in offer &&
+              level !== "default" &&
+              !offer.efforts.includes(level)
+            ) {
+              await settingsStore.change("dmModel", body.value);
+              settings = await settingsStore.change("dmReasoning", "default");
+              const label = SETTINGS.dmReasoning.choices.find(
+                ({ value }) => value === level,
+              )?.label;
+              return settingsResponse(
+                settings,
+                `Dungeon Master model: ${String(body.value)}. Saved. It doesn't take ${String(label)}, so Dungeon Master thinking is back to Model default.`,
+              );
+            }
+          }
+          // A level must be one the model takes, when that is known (#589).
+          if (body.id === "dmReasoning" && body.value !== "default") {
+            const offer = await dmEffortOffer(current.dmModel);
+            if (
+              offer !== undefined &&
+              "efforts" in offer &&
+              !offer.efforts.includes(String(body.value))
+            ) {
+              throw new Error("Dungeon Master thinking has no such choice.");
             }
           }
           return settingsResponse(

@@ -231,7 +231,8 @@ export const SETTINGS = {
     accepts: isOpenAiModelId,
   },
   // How hard the DM's model reasons before it answers (#587); Model default
-  // sends no reasoning effort, so the model uses its own.
+  // sends no reasoning effort, so the model uses its own. The Settings page
+  // offers only the efforts the chosen model takes (#589).
   dmReasoning: {
     name: "Dungeon Master thinking",
     text: "How much the AI Dungeon Master thinks before it answers. More thinking can answer better, but takes longer and costs more. Model default leaves it to the model.",
@@ -242,6 +243,7 @@ export const SETTINGS = {
       { value: "medium", label: "Medium" },
       { value: "high", label: "High" },
       { value: "xhigh", label: "Extra high" },
+      { value: "max", label: "Maximum" },
     ],
     default: "default",
   },
@@ -426,11 +428,43 @@ export type DmModelOffer =
   Readonly<{ models: readonly string[] }> | Readonly<{ unavailable: string }>;
 
 /**
+ * The thinking levels the Settings page offers the chosen model (#589): the
+ * efforts it takes, or that they couldn't be learned.
+ */
+export type DmEffortOffer =
+  Readonly<{ efforts: readonly string[] }> | Readonly<{ unknown: true }>;
+
+/** The note under the thinking level, if any (#589). */
+function effortNote(
+  settings: GameSettings,
+  offer: DmEffortOffer | undefined,
+): string | undefined {
+  if (offer === undefined) {
+    return undefined;
+  }
+  if ("unknown" in offer) {
+    return "This model's thinking levels couldn't be checked; a level it doesn't take will stop the Dungeon Master answering.";
+  }
+  const level = settings.dmReasoning;
+  if (level === "default" || offer.efforts.includes(level)) {
+    return undefined;
+  }
+  const label = SETTINGS.dmReasoning.choices.find(
+    ({ value }) => value === level,
+  )?.label;
+  return `${settings.dmModel} doesn't take ${String(label)}: typed messages will fail until you choose another level.`;
+}
+
+/**
  * How the Settings page shows the settings: each with its choices, in order.
  * The DM model's choices are the offered models (#587), with the default and
  * the current model always among them, shown as a menu.
  */
-export function settingsView(settings: GameSettings, dmModels?: DmModelOffer) {
+export function settingsView(
+  settings: GameSettings,
+  dmModels?: DmModelOffer,
+  dmEfforts?: DmEffortOffer,
+) {
   return SETTING_IDS.map((id) => {
     const setting: SettingDefinition = SETTINGS[id];
     const menu = id === "dmModel";
@@ -444,7 +478,19 @@ export function settingsView(settings: GameSettings, dmModels?: DmModelOffer) {
             String(settings[id]),
           ]),
         ].map((value) => ({ value, label: value }))
-      : setting.choices;
+      : id === "dmReasoning" &&
+          dmEfforts !== undefined &&
+          "efforts" in dmEfforts
+        ? // Model default, what the model takes, and what is saved (#589).
+          setting.choices.filter(
+            ({ value }) =>
+              value === setting.default ||
+              value === settings[id] ||
+              dmEfforts.efforts.includes(String(value)),
+          )
+        : setting.choices;
+    const note =
+      id === "dmReasoning" ? effortNote(settings, dmEfforts) : undefined;
     return {
       id,
       name: setting.name,
@@ -459,6 +505,7 @@ export function settingsView(settings: GameSettings, dmModels?: DmModelOffer) {
       ...(menu && dmModels !== undefined && "unavailable" in dmModels
         ? { note: dmModels.unavailable }
         : {}),
+      ...(note === undefined ? {} : { note }),
     };
   });
 }

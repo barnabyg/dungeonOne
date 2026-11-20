@@ -169,12 +169,17 @@ test(
 );
 
 test(
-  "the DM model menu lists OpenAI's models, and a model and thinking level chosen there are saved (#587)",
+  "the DM model menu lists OpenAI's models, offers each only the levels it takes, and saves a model and level chosen there (#587, #589)",
   { timeout: 60000 },
   () =>
     withPage(async (page, libraryPath) => {
       const server = await serve(libraryPath, {
         listDmModels: async () => ["gpt-image-2", "gpt-6-luna", "gpt-6.2-sol"],
+        // gpt-6.2-sol doesn't take None (#589).
+        probeDmEfforts: async (model) =>
+          model === "gpt-6.2-sol"
+            ? ["low", "medium", "high", "xhigh", "max"]
+            : ["none", "low", "medium", "high", "xhigh", "max"],
       });
       try {
         await page.goto(server.url);
@@ -188,10 +193,26 @@ test(
           await page.locator("#setting-dmModel .setting-note").count(),
           0,
         );
-        await model.selectOption("gpt-6.2-sol");
+        await page.locator("#setting-dmReasoning-none").check();
         await page
-          .locator("#feedback", { hasText: "gpt-6.2-sol. Saved." })
+          .locator("#feedback", { hasText: "None. Saved." })
           .waitFor({ state: "attached" });
+        await model.selectOption("gpt-6.2-sol");
+        // The new model doesn't take None, so the level goes back (#589).
+        await page
+          .locator("#feedback", {
+            hasText:
+              "Dungeon Master model: gpt-6.2-sol. Saved. It doesn't take None, so Dungeon Master thinking is back to Model default.",
+          })
+          .waitFor({ state: "attached" });
+        assert.equal(
+          await page.locator("#setting-dmReasoning-default").isChecked(),
+          true,
+        );
+        assert.equal(
+          await page.locator("#setting-dmReasoning-none").count(),
+          0,
+        );
         await page.locator("#setting-dmReasoning-high").check();
         await page
           .locator("#feedback", { hasText: "High. Saved." })

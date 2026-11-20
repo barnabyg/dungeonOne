@@ -5525,7 +5525,10 @@ function renderSettings(value) {
       if (choice.default) label.append(" ", make("span", "Default", "tag"));
       choices.append(label);
     }
-    fieldset.append(make("legend", setting.name), help, choices);
+    fieldset.append(make("legend", setting.name), help);
+    // Why a choice may not work, such as the thinking levels (#589).
+    if (setting.note) fieldset.append(make("p", setting.note, "hint setting-note"));
+    fieldset.append(choices);
     return fieldset;
   }));
 }
@@ -5537,7 +5540,8 @@ async function changeSetting(setting, choice) {
   try {
     const value = await request("/api/5e/settings", { id: setting.id, value: choice.value });
     renderSettings(value);
-    feedback(setting.name + ": " + choice.label + ". Saved.");
+    // The server says when a change changed another setting too (#589).
+    feedback(value.notice ?? setting.name + ": " + choice.label + ". Saved.");
   } catch (error) {
     // Show what the file holds now, with the refusal.
     element("settings-error").textContent = error.message;

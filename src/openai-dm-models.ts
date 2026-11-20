@@ -7,17 +7,61 @@
  */
 export const OPENAI_DM_DEFAULT_MODEL = "gpt-6-luna";
 
-/** The reasoning efforts the Settings page offers, lowest first (#587). */
+/**
+ * The reasoning efforts the Settings page offers, lowest first (#587); each
+ * model is offered only those it takes (#589).
+ */
 export const OPENAI_DM_REASONING_EFFORTS = [
   "none",
   "low",
   "medium",
   "high",
   "xhigh",
+  "max",
 ] as const;
 
 export type OpenAiReasoningEffort =
   (typeof OPENAI_DM_REASONING_EFFORTS)[number];
+
+/** How players read each reasoning effort (#587, #589). */
+export const OPENAI_DM_REASONING_LABELS: Readonly<
+  Record<OpenAiReasoningEffort, string>
+> = {
+  none: "None",
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra high",
+  max: "Maximum",
+};
+
+/**
+ * The efforts tried, in order, to learn which a model takes (#589): each is
+ * a real effort some models reject, and the first rejection lists the ones
+ * the model takes. A value that is no effort at all is no use: OpenAI
+ * answers it with every effort it knows, not the model's.
+ */
+export const OPENAI_DM_EFFORT_PROBES = ["minimal", "none", "max"] as const;
+
+/**
+ * The offered efforts a model takes, from the message OpenAI rejects an
+ * effort it doesn't take with ("… Supported values are: 'low', 'medium',
+ * and 'high'."), or undefined when the message lists none (#589).
+ */
+export function supportedEffortsFrom(
+  message: string,
+): OpenAiReasoningEffort[] | undefined {
+  const list = /Supported values are: ([^.]*)\./u.exec(message)?.[1];
+  if (list === undefined) {
+    return undefined;
+  }
+  const named = new Set(
+    [...list.matchAll(/'([a-z]+)'/gu)].map((match) => match[1]),
+  );
+  return named.size === 0
+    ? undefined
+    : OPENAI_DM_REASONING_EFFORTS.filter((effort) => named.has(effort));
+}
 
 /** Whether `value` looks like an OpenAI model id (#587). */
 export function isOpenAiModelId(value: unknown): value is string {
