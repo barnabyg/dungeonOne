@@ -782,21 +782,22 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const listModels =
     options.listDmModels ??
     (apiKey.length === 0 ? undefined : () => listOpenAiModelIds(apiKey));
-  let offeredModels: readonly string[] | undefined;
+  // One fetch at a time is shared by every request that needs the list.
+  let offeredModels: Promise<readonly string[]> | undefined;
   const dmModelOffer = async (): Promise<DmModelOffer> => {
-    if (offeredModels !== undefined) {
-      return { models: offeredModels };
-    }
     if (listModels === undefined) {
       return {
         unavailable:
           "Set OPENAI_API_KEY and restart to choose from OpenAI's models.",
       };
     }
+    const pending = (offeredModels ??= listModels().then(dmModelChoices));
     try {
-      offeredModels = dmModelChoices(await listModels());
-      return { models: offeredModels };
+      return { models: await pending };
     } catch {
+      if (offeredModels === pending) {
+        offeredModels = undefined;
+      }
       return {
         unavailable:
           "OpenAI's model list could not be loaded. Open Settings again to retry.",
