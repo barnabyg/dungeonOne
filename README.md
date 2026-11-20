@@ -52,9 +52,9 @@ $env:OPENAI_API_KEY = "<your key>"
 To play, create a character (choose a class, place its rolled abilities and
 make its class's choices), then start one of the modules its sheet offers. In
 an adventure, click the actions the engine offers or type what you want to do
-to the Dungeon Master. The AI Dungeon Master uses the OpenAI model the Settings
-page chooses (default `gpt-6-luna`, the only one offered); each adventure keeps
-the model it started with. Treasure, gear, coin and XP are kept only by getting out alive. A
+to the Dungeon Master. The AI Dungeon Master uses the OpenAI model and thinking
+level the Settings page chooses (default `gpt-6-luna` at the model's own
+level); each adventure keeps the model and level it started with. Treasure, gear, coin and XP are kept only by getting out alive. A
 character at 0 HP is defeated for good, apart from
 [Last Stand](docs/rules/house-rules.md)'s single death saving throw.
 

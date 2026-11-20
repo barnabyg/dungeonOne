@@ -8,8 +8,22 @@ import type {
   DmToolCall,
 } from "./dm-turn.js";
 
+import type { OpenAiReasoningEffort } from "./openai-dm-models.js";
+
 export const OPENAI_DM_DEFAULT_TIMEOUT_MS = 30_000;
 export { OPENAI_DM_DEFAULT_MODEL } from "./openai-dm-models.js";
+
+/**
+ * A call's timeout at each reasoning effort (#587): more thinking takes
+ * longer, so High and Extra high wait longer than the default.
+ */
+export function openAiDmTimeoutMs(effort?: OpenAiReasoningEffort): number {
+  return effort === "xhigh"
+    ? 120_000
+    : effort === "high"
+      ? 60_000
+      : OPENAI_DM_DEFAULT_TIMEOUT_MS;
+}
 
 export const OPENAI_DM_ERROR_CODES = [
   "authentication",
@@ -63,6 +77,8 @@ type ResponsesClient = Readonly<{
 export type OpenAiDmModelConfig = Readonly<{
   apiKey: string;
   model: string;
+  /** Sent as `reasoning.effort`; left out, the model uses its own (#587). */
+  reasoningEffort?: OpenAiReasoningEffort;
   timeoutMs?: number;
   client?: ResponsesClient;
 }>;
@@ -311,7 +327,8 @@ function createSdkClient(apiKey: string, timeoutMs: number): ResponsesClient {
 }
 
 export function createOpenAiDmModel(config: OpenAiDmModelConfig): DmModel {
-  const timeoutMs = config.timeoutMs ?? OPENAI_DM_DEFAULT_TIMEOUT_MS;
+  const timeoutMs =
+    config.timeoutMs ?? openAiDmTimeoutMs(config.reasoningEffort);
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error("OpenAI timeout must be a positive finite number.");
   }
@@ -355,6 +372,9 @@ export function createOpenAiDmModel(config: OpenAiDmModelConfig): DmModel {
           client.responses.create(
             {
               model: config.model,
+              ...(config.reasoningEffort === undefined
+                ? {}
+                : { reasoning: { effort: config.reasoningEffort } }),
               instructions: instructions(request),
               input,
               tools: request.tools,
@@ -390,4 +410,20 @@ export function createOpenAiDmModel(config: OpenAiDmModelConfig): DmModel {
       return normalized.result;
     },
   };
+}
+
+/**
+ * The ids of every model the key can use, from OpenAI's model list (#587).
+ * Throws when the list can't be fetched.
+ */
+export async function listOpenAiModelIds(
+  apiKey: string,
+  timeoutMs = 10_000,
+): Promise<string[]> {
+  const sdk = new OpenAI({ apiKey, maxRetries: 0, timeout: timeoutMs });
+  const ids: string[] = [];
+  for await (const model of sdk.models.list()) {
+    ids.push(model.id);
+  }
+  return ids;
 }

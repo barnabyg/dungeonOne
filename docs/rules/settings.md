@@ -20,6 +20,19 @@ that isn't valid JSON, names an unknown setting, holds a value its setting
 doesn't offer or is in another format version is refused with a message naming
 it: move it aside to play at the defaults.
 
+**The Dungeon Master's model** is a menu of the models OpenAI's model list
+offers the launch's `OPENAI_API_KEY`, fetched when Settings first opens and
+kept for the launch. It offers the GPT 5 and later families and the o series,
+since they take a thinking level, and leaves out image, audio, realtime,
+transcription, speech, search, live, Codex, `-pro`, moderation and embedding
+models, aliases such as `chat-latest`, and dated snapshots. The default and the
+current model are always offered. Without a key, or when the list can't be
+fetched, the menu offers only those and says why. Since the list changes, the
+file may name any well-formed model id. The thinking level is sent as the
+model's reasoning effort, and Model default sends none; a model that rejects
+the chosen level can't answer typed messages until another level is chosen.
+A call waits 30 s, 60 s at High and 120 s at Extra high.
+
 | Setting                   | Choices                                                                          | Default         | Rules                                                                               |
 | ------------------------- | -------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------- |
 | Carrying capacity         | Strength × 5, × 10, × 15 or × 20 lb, or unlimited                                | × 15            | [Gear](gear.md#carrying-capacity)                                                   |
@@ -37,7 +50,8 @@ it: move it aside to play at the defaults.
 | Morale                    | Never flee, Normal or Flee easily (each DC +2)                                   | Normal          | [Morale](talk-and-stealth.md#morale-and-surrender)                                  |
 | Ability scores            | 4d6 drop lowest, standard array, point buy, or 4d6 drop lowest with one reroll   | 4d6 drop lowest | [Characters](characters.md#creating-a-character)                                    |
 | XP rate                   | × 0.5, × 1, × 1.5 or × 2                                                         | × 1             | [Characters](characters.md#experience-and-levels)                                   |
-| Dungeon Master model      | `gpt-6-luna`                                                                     | `gpt-6-luna`    | The OpenAI model the AI DM answers typed messages with; the session file records it |
+| Dungeon Master model      | OpenAI's listed models (see above)                                               | `gpt-6-luna`    | The OpenAI model the AI DM answers typed messages with; the session file records it |
+| Dungeon Master thinking   | Model default, None, Low, Medium, High or Extra high                             | Model default   | How hard the AI DM's model reasons before it answers; the session file records it   |
 
 **Sound** is on the Settings page too, but it is not a setting: it is the
 header's mute button and volume slider again, kept by the browser rather than in

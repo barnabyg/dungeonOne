@@ -333,3 +333,49 @@ test("a DM turn recovers after adapter failures before and after one committed a
     new RegExp(providerSecret),
   );
 });
+
+test("Responses adapter sends the chosen reasoning effort, and waits longer for more thinking (#587)", async () => {
+  const sent = [];
+  const client = {
+    responses: {
+      async create(body, options) {
+        sent.push({ body, options });
+        return completedResponse([
+          {
+            type: "message",
+            content: [{ type: "output_text", text: "Ok." }],
+          },
+        ]);
+      },
+    },
+  };
+  for (const reasoningEffort of [
+    undefined,
+    "none",
+    "medium",
+    "high",
+    "xhigh",
+  ]) {
+    await createOpenAiDmModel({
+      apiKey: "unused",
+      model: "test-model",
+      client,
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    }).respond(request());
+  }
+  assert.deepEqual(
+    sent.map(({ body }) => body.reasoning),
+    [
+      undefined,
+      { effort: "none" },
+      { effort: "medium" },
+      { effort: "high" },
+      { effort: "xhigh" },
+    ],
+  );
+  assert.ok(!("reasoning" in sent[0].body));
+  assert.deepEqual(
+    sent.map(({ options }) => options.timeout),
+    [OPENAI_DM_DEFAULT_TIMEOUT_MS, 30_000, 30_000, 60_000, 120_000],
+  );
+});
