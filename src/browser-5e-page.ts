@@ -375,6 +375,7 @@ ${SETTINGS_SOUND(sound)}
 <h4 id="level-choice-changes-title">What these choices change</h4><p id="level-choice-status" class="hint"></p><ul id="level-choice-changes" aria-labelledby="level-choice-changes-title"></ul>
 <p id="level-choice-error" class="error" role="alert"></p><div class="controls"><button id="confirm-level-choice" type="button" class="primary">Confirm level choices</button></div></section>
 <section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><div id="abandon-confirm" class="confirm" hidden><p id="abandon-question"></p><div class="controls"><button id="confirm-abandon" type="button" class="primary danger">Abandon adventure</button><button id="cancel-abandon" type="button" class="secondary">Keep going</button></div></div><p id="start-error" class="error" role="alert"></p></section>
+<div id="visited-adventures"></div>
 <div id="sheet-body"></div>
 <div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
@@ -1367,6 +1368,13 @@ function treasureItem(item) {
 }
 
 function renderAdventureChoices(entry) {
+  const history = element("visited-adventures");
+  history.replaceChildren();
+  if (entry.visitedAdventures.length) {
+    const list = make("ul");
+    list.append(...entry.visitedAdventures.map(({ title }) => make("li", title)));
+    history.append(disclosure("Visited adventures (" + entry.visitedAdventures.length + ")", list));
+  }
   element("start-error").textContent = "";
   element("abandon-confirm").hidden = true;
   const choices = element("adventure-choices");
@@ -1413,6 +1421,7 @@ function renderAdventureChoices(entry) {
     const box = make("div", undefined, "adventure-choice");
     const tags = make("p", undefined, "tags");
     tags.append(make("span", levelText(adventure.recommendedLevels), "tag level"), make("span", titleCase(adventure.difficulty), "tag " + adventure.difficulty));
+    if (entry.visitedAdventures.some(({ id }) => id === adventure.id)) tags.append(make("span", "Visited", "tag"));
     const button = make("button", "Start");
     button.type = "button";
     button.className = "start-adventure secondary";

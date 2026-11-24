@@ -59,6 +59,8 @@ level); each adventure keeps the model and level it started with. Treasure, gear
 character at 0 HP is defeated for good, apart from
 [Last Stand](docs/rules/house-rules.md)'s single death saving throw.
 
+The character sheet marks adventures that character has started as **Visited**. Expand **Visited adventures** to see the titles, including adventures the character abandoned. Repeat visits appear once. The list comes from the current adventure in the library and the readable, current-format session files beside it.
+
 On a character sheet, expand a feature to read its full rules or **Ability rolls** to see the original dice. A caster’s **Spellcasting** section lists its spells. Between adventures, change the ticked spells there and select **Prepare spells** to save the new selection.
 
 ## Adventure modules

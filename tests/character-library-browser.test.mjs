@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
-import { ratlessTunnels } from "./fixtures/modules.mjs";
+import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 import {
   createFighter,
   openCreation,
@@ -18,6 +18,68 @@ import {
 } from "./fixtures/browser-journey.mjs";
 
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
+
+test(
+  "a character's visited adventures survive abandonment, repeat visits and a restart",
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "visited-adventures-"));
+    const launchServer = () =>
+      startFifthBrowserServer({
+        adventures: [ratlessTunnels, loneGoblin],
+        qualifies: () => true,
+        libraryPath: join(directory, "characters.json"),
+        seed: 0,
+      });
+    let server = await launchServer();
+    const browser = await launch();
+    const page = await browser.newPage();
+    try {
+      await page.goto(server.url);
+      await createFighter(page);
+      const visitedCards = page
+        .locator(".adventure-choice")
+        .filter({ has: page.getByText("Visited", { exact: true }) });
+      assert.equal(await visitedCards.count(), 0);
+      for (let visit = 0; visit < 2; visit++) {
+        await startAdventure(page, ratlessTunnels.id);
+        await page.locator('#breadcrumb a[data-view="sheet"]').click();
+        await page.getByText("Visited adventures (1)", { exact: true }).click();
+        assert.deepEqual(
+          await page.locator("#visited-adventures li").allInnerTexts(),
+          [ratlessTunnels.title],
+        );
+        await page.locator("#abandon-adventure").click();
+        await page.locator("#confirm-abandon").click();
+        await visitedCards.waitFor();
+        assert.equal(
+          await visitedCards.locator("strong").innerText(),
+          ratlessTunnels.title,
+        );
+      }
+      await server.close();
+      server = await launchServer();
+      await page.goto(server.url);
+      await page.locator("#characters .open-character").click();
+      await visitedCards.waitFor();
+      assert.equal(
+        await visitedCards.locator("strong").innerText(),
+        ratlessTunnels.title,
+      );
+      await page.locator('#breadcrumb a[data-view="library"]').click();
+      await createFighter(page, "Bea");
+      assert.equal(await visitedCards.count(), 0);
+      assert.equal(
+        await page.locator("#visited-adventures summary").count(),
+        0,
+      );
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 /** Each library row: its controls, its tags and whether it is dimmed. */
 const rows = (page) =>

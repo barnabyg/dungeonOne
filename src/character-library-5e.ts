@@ -450,13 +450,17 @@ export class FifthCharacterLibrary {
     });
   }
 
+  get sessionDirectory(): string {
+    const name = basename(this.path, extname(this.path));
+    return join(dirname(this.path), `${name}-adventures`);
+  }
+
   /** Where the adventure session `id` is saved. */
   sessionPath(id: string): string {
     if (!SESSION_ID.test(id)) {
       throw new Error("Invalid adventure session id.");
     }
-    const name = basename(this.path, extname(this.path));
-    return join(dirname(this.path), `${name}-adventures`, `${id}.json`);
+    return join(this.sessionDirectory, `${id}.json`);
   }
 
   /**
