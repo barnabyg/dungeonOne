@@ -80,21 +80,23 @@ for (const [scenario, title, route, choice, alternative] of [
     async (t) => {
       const directory = await mkdtemp(join(tmpdir(), "cinder-mint-"));
       const libraryPath = join(directory, "characters.json");
-      t.after(() => rm(directory, { recursive: true, force: true }));
+      let server;
+      let browser;
+      t.after(async () => {
+        await browser?.close();
+        await server?.close();
+        await rm(directory, { recursive: true, force: true });
+      });
       await copyFile(
         new URL("./fixtures/libraries/level-5-ada.json", import.meta.url),
         libraryPath,
       );
-      const server = await startFifthBrowserServer({
+      server = await startFifthBrowserServer({
         libraryPath,
         seed: 24,
         qualifies: () => true,
       });
-      const browser = await launch();
-      t.after(async () => {
-        await browser.close();
-        await server.close();
-      });
+      browser = await launch();
       const page = await browser.newPage();
       page.setDefaultTimeout(12000);
       await page.goto(server.url);
