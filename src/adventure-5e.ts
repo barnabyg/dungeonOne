@@ -268,7 +268,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 46;
+export const FIFTH_ADVENTURE_FORMAT = 47;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -1188,6 +1188,8 @@ export type EndingKind = (typeof ENDING_KINDS)[number];
 export type FifthEnding = Readonly<{
   id: string;
   kind: EndingKind;
+  /** Leaving through an exit wins this victory once its flag is set. */
+  onEscapeWhen?: string;
   title: string;
   text: string;
   /** XP for reaching this ending; never on a defeat. */
@@ -2300,7 +2302,7 @@ function validateModule(
     const ending = knownKeys(
       entry,
       ["id", "kind", "title", "text"],
-      ["xp"],
+      ["xp", "onEscapeWhen"],
       where,
     );
     if (!isOneOf(ENDING_KINDS, ending.kind)) {
@@ -2309,9 +2311,15 @@ function validateModule(
     if (ending.kind === "defeat" && ending.xp !== undefined) {
       fail(`${where}: a defeat ending awards no XP.`);
     }
+    if (ending.onEscapeWhen !== undefined && ending.kind !== "victory") {
+      fail(`${where}: only a victory can have onEscapeWhen.`);
+    }
     return {
       id: id(ending.id, `${where} id`),
       kind: ending.kind,
+      ...(ending.onEscapeWhen === undefined
+        ? {}
+        : { onEscapeWhen: id(ending.onEscapeWhen, `${where} onEscapeWhen`) }),
       title: text(ending.title, `${where} title`, 80),
       text: text(ending.text, `${where} text`),
       ...(ending.xp === undefined
@@ -3516,6 +3524,21 @@ function validateModule(
   };
   const setters = new Set<string>();
   const flagUsers = new Set<string>();
+  const exitVictories = endings.filter(
+    (entry) => entry.onEscapeWhen !== undefined,
+  );
+  distinct(
+    exitVictories,
+    (entry) => entry.onEscapeWhen!,
+    (entry) => `more than one exit victory uses flag ${entry.onEscapeWhen}.`,
+  );
+  for (const entry of exitVictories) {
+    flagNamed(entry.onEscapeWhen!, `ending ${entry.id}`);
+    flagUsers.add(entry.onEscapeWhen!);
+    if (!rooms.some((room) => room.exit)) {
+      fail(`ending ${entry.id} needs an exit.`);
+    }
+  }
   // Only noise raises the alarm (#401): nothing else may set its flag.
   if (alarm !== undefined) {
     setters.add(alarm.flag);
@@ -4483,10 +4506,11 @@ function validateModule(
       }
     }
   }
-  for (const { id: endingId, kind } of endings) {
+  for (const { id: endingId, kind, onEscapeWhen } of endings) {
     if (
       kind !== "escape-with-loot" &&
       kind !== "escape-without-loot" &&
+      onEscapeWhen === undefined &&
       !encounters.some(
         ({ victoryEndingId, defeatEndingId }) =>
           victoryEndingId === endingId || defeatEndingId === endingId,
@@ -4888,6 +4912,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "abandoned-delve": "abandoned-delve.json",
   "bramblecote-cider-house": "bramblecote-cider-house.json",
   "coldwater-weirgate": "coldwater-weirgate.json",
+  "last-shift-at-cinder-mint": "last-shift-at-cinder-mint.json",
   "thornwood-lodge": "thornwood-lodge.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;

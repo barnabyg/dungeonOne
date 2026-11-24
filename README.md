@@ -65,14 +65,17 @@ On a character sheet, expand a feature to read its full rules or **Ability rolls
 
 ## Adventure modules
 
-| Module                      | File                                         | Levels | Difficulty |
-| --------------------------- | -------------------------------------------- | ------ | ---------- |
-| The Bramblecote Cider House | `adventures/5e/bramblecote-cider-house.json` | 1      | Medium     |
-| The Abandoned Delve         | `adventures/5e/abandoned-delve.json`         | 2      | Medium     |
-| The Coldwater Weirgate      | `adventures/5e/coldwater-weirgate.json`      | 3–4    | Medium     |
-| The Thornwood Lodge         | `adventures/5e/thornwood-lodge.json`         | 4–5    | Hard       |
+| Module                      | File                                           | Levels | Difficulty |
+| --------------------------- | ---------------------------------------------- | ------ | ---------- |
+| The Bramblecote Cider House | `adventures/5e/bramblecote-cider-house.json`   | 1      | Medium     |
+| The Abandoned Delve         | `adventures/5e/abandoned-delve.json`           | 2      | Medium     |
+| The Coldwater Weirgate      | `adventures/5e/coldwater-weirgate.json`        | 3–4    | Medium     |
+| The Thornwood Lodge         | `adventures/5e/thornwood-lodge.json`           | 4–5    | Hard       |
+| Last Shift at Cinder Mint   | `adventures/5e/last-shift-at-cinder-mint.json` | 5      | Easy       |
 
 A sheet offers only the modules that pass the balance gate.
+
+In the optional 28-room Cinder Mint capstone, follow the false payroll to a public hearing or steal the prison barge. Both routes lead to Third Bell, the night foreman's seven-charge Wand of Magic Missiles. [Play the level-5 capstone](docs/acceptance/cinder-mint.md).
 
 ## Saved files
 

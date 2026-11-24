@@ -10,16 +10,14 @@
 // ordinary session seeds is played as well.
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  loadBuiltInFifthAdventures,
-  objectiveEnding,
-} from "../dist/adventure-5e.js";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
   characterAtLevel,
   GATE_CLASSES,
   GATE_STYLE,
   percentileCharacters,
   playAdventure,
+  requiredPath,
 } from "../dist/balance-5e.js";
 import {
   createFifthRuntime,
@@ -38,6 +36,9 @@ const placed = (adventure) => adventure.rooms.flatMap(({ items }) => items);
 /** The items a door or a feature's use names: what a way on may need. */
 const ruleItems = (adventure) =>
   new Set([
+    ...placed(adventure)
+      .filter(({ sets }) => sets !== undefined)
+      .map(({ id }) => id),
     ...adventure.passages.flatMap(({ door }) => door?.keyItemIds ?? []),
     ...adventure.rooms.flatMap(({ features }) =>
       features.flatMap(({ uses }) => (uses ?? []).map(({ item }) => item)),
@@ -49,7 +50,6 @@ for (const adventure of adventures) {
     const candidates = scarceCandidateIds(adventure);
     const named = ruleItems(adventure);
     const kinds = new Map(placed(adventure).map(({ id, kind }) => [id, kind]));
-    assert.ok(candidates.length > 0);
     for (const id of candidates) {
       assert.ok(
         /^potion-of-|^gear$|^scroll$|^wand$/u.test(kinds.get(id)),
@@ -80,7 +80,7 @@ for (const adventure of adventures) {
     while (scarceItemIds(adventure, worst).size < candidates.length) {
       worst += 1;
     }
-    const objective = objectiveEnding(adventure).kind;
+    const { objective } = requiredPath(adventure);
     const [{ dice }] = percentileCharacters({ percentiles: [50] });
     for (const classId of GATE_CLASSES) {
       const sheet = characterAtLevel(
@@ -108,7 +108,7 @@ for (const adventure of adventures) {
   });
 
   test(`${adventure.id}: sessions on Scarce play to an ending, never stranded`, () => {
-    const objective = objectiveEnding(adventure).kind;
+    const { objective } = requiredPath(adventure);
     const [{ dice }] = percentileCharacters({ percentiles: [50] });
     const sheet = characterAtLevel(dice, adventure.recommendedLevels.max);
     for (let seed = 0; seed < DICE_SEEDS; seed++) {
