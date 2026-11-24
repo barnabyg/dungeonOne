@@ -1666,7 +1666,6 @@
           "id": "wharf-bow",
           "name": "Bow Watchman",
           "monster": "hobgoblin-warrior",
-          "reacts": true,
           "description": "A bonded hobgoblin watch veteran wears the mint's red enamel badge on a polished breastplate."
         },
         {
@@ -1682,26 +1681,6 @@
         }
       ],
       "defeatEndingId": "held-at-the-mint",
-      "reaction": {
-        "bands": {
-          "unfriendly": {
-            "options": ["attack"],
-            "text": "The wharf watch draws steel as the alarm bell rings."
-          },
-          "uncertain": {
-            "options": ["attack", "let-pass"],
-            "text": "The ferryman signals empty return. You can slip aboard with his crew before the cordon closes."
-          },
-          "indifferent": {
-            "options": ["attack", "let-pass"],
-            "text": "The watch searches for a drawn weapon. The ferryman taps empty return; walk with his crew or draw on the guards."
-          },
-          "friendly": {
-            "options": ["attack", "let-pass"],
-            "text": "The watch searches for a drawn weapon. The ferryman taps empty return; walk with his crew or draw on the guards."
-          }
-        }
-      },
       "presentWhile": "alarm-raised",
       "presentUntil": "crew-escorted"
     }

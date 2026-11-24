@@ -193,9 +193,7 @@ for (const [scenario, title, route, choice, alternative] of [
       }
       await act("move", "ash-wharf");
       if (choice === undefined) {
-        if (await actionButton(page, "react", "attack").count()) {
-          await act("react", "attack");
-        }
+        assert.match(await page.locator("#turn").innerText(), /Round/u);
         await castAt(page, "magic-missile", "wharf-bow", {
           item: `${mint}/foremans-wand`,
           slot: 3,
