@@ -72,10 +72,13 @@ On a character sheet, expand a feature to read its full rules or **Ability rolls
 | The Coldwater Weirgate      | `adventures/5e/coldwater-weirgate.json`        | 3–4    | Medium     |
 | The Thornwood Lodge         | `adventures/5e/thornwood-lodge.json`           | 4–5    | Hard       |
 | Last Shift at Cinder Mint   | `adventures/5e/last-shift-at-cinder-mint.json` | 5      | Medium     |
+| The Well of the Hollow Moon | `adventures/5e/well-of-the-hollow-moon.json`   | 5      | Medium     |
 
 A sheet offers only the modules that pass the balance gate.
 
 In the optional 28-room Cinder Mint capstone, follow the false payroll to a public hearing or steal the prison barge. Both routes lead to Third Bell, the night foreman's seven-charge Wand of Magic Missiles. [Play the level-5 capstone](docs/acceptance/cinder-mint.md).
+
+In The Well of the Hollow Moon, follow a silver crescent down four floors of an abandoned well. The first cache holds a few small coins. Far below, an owlbear sleeps on a gold star chart. [Play the 32-room expedition](docs/acceptance/hollow-moon.md).
 
 ## Saved files
 
