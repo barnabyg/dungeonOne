@@ -65,7 +65,7 @@ const barge = [
   ...moves("assay-chamber"),
 ];
 
-for (const [scenario, title, route, choice, alternative] of [
+for (const [scenario, title, route, choice, alternative, caches] of [
   ["hearing", "Six names restored", evidence, "enter-proof", "transfer-six"],
   ["barge", "The empty return", barge, "transfer-six", "enter-proof"],
   [
@@ -76,6 +76,28 @@ for (const [scenario, title, route, choice, alternative] of [
     "enter-proof",
   ],
   ["take the wand early", "A pocketful of mint money", evidence],
+  [
+    "guarded payroll caches",
+    "Six names restored",
+    evidence,
+    "enter-proof",
+    "transfer-six",
+    {
+      "weigh-house": ["dog-run", "clipped-weights"],
+      "acid-bench": ["silk-drain", "drain-stone"],
+    },
+  ],
+  [
+    "guarded barge caches",
+    "The empty return",
+    barge,
+    "transfer-six",
+    "enter-proof",
+    {
+      "cart-shed": ["gnawed-hamper", "grain-cup"],
+      "cooling-beds": ["quench-pen", "catchers-pay", "use-on"],
+    },
+  ],
 ]) {
   test(
     `Cinder Mint: ${scenario}, resume and keep Third Bell on Scarce`,
@@ -116,6 +138,26 @@ for (const [scenario, title, route, choice, alternative] of [
         settled(page, () => actionButton(page, action, target).first().click());
       for (const [action, target] of route) {
         await act(action, target);
+        if (caches?.[target]) {
+          const [feature, reward, action = "examine"] = caches[target];
+          assert.equal(await actionButton(page, "take", reward).count(), 0);
+          if (action === "use-on") {
+            await act("examine", feature);
+            assert.equal(await actionButton(page, "take", reward).count(), 0);
+          }
+          await act(action, feature);
+          assert.match(await page.locator("#turn").innerText(), /Round/u);
+          await fight(page);
+          await act("take", reward);
+        }
+        if (scenario === "hearing" && target === "paymasters-office") {
+          await act("examine", "sealing-stand");
+          await act("take", "stamp-fees");
+        }
+        if (scenario === "barge" && target === "lift-foot") {
+          await act("examine", "fire-bucket");
+          await act("take", "boat-fund");
+        }
         if (target === "records-landing" || target === "lift-foot") {
           const roomName = await page.locator("#room-title").innerText();
           await server.close();
