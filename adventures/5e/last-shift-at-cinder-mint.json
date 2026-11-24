@@ -550,7 +550,7 @@
         {
           "id": "collectors-key",
           "name": "Collector's chest key",
-          "description": "A filed iron key to the mess strongbox.",
+          "description": "A filed key to the mess strongbox, the retirement cabinet and the foreman's bond tin.",
           "kind": "key",
           "hiddenIn": "mess-collector"
         }
@@ -715,6 +715,33 @@
               ]
             }
           ]
+        },
+        {
+          "id": "bond-tin",
+          "name": "Foreman's bond tin",
+          "description": "A separate lockbox bears the mark of the mess collector. A garnet glints behind its inspection window.",
+          "discovery": "The foreman held one stone against the watch's surety. The collector is its key holder.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The collector's chest key has a second notch for this bond lock."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The filed notch engages a second tumbler. The garnet rolls out of the tin.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "foremans-garnet"
+                }
+              ]
+            }
+          ]
         }
       ],
       "items": [
@@ -733,7 +760,7 @@
           "description": "An assay slip identifies the foreman's cut garnet as released from bond for sale.",
           "kind": "treasure",
           "treasure": "gem-100gp",
-          "hiddenIn": "foremans-drawer"
+          "hiddenIn": "bond-tin"
         }
       ]
     },
@@ -906,8 +933,29 @@
         {
           "id": "retirement-cabinet",
           "name": "Retirement cabinet",
-          "description": "A red cord crosses a glass-fronted cabinet.",
-          "discovery": "A red cord identifies dies withdrawn from circulation. One is a presentation piece from the mint's founding."
+          "description": "The retired dies sit behind plate glass. An assay label names the mess collector as bond holder.",
+          "discovery": "A red cord identifies dies withdrawn from circulation. One is a presentation piece from the mint's founding.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "A second lock behind the glass takes the mess collector's filed chest key."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The collector's key opens the bond lock. You slide the retired master die out of its copper bed.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "founders-die"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "witness-summons",

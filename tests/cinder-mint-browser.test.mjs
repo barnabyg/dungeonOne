@@ -134,6 +134,13 @@ for (const [scenario, title, route, choice, alternative] of [
             0,
           );
         }
+        if (target === "die-room") {
+          await act("examine", "retirement-cabinet");
+          assert.equal(
+            await actionButton(page, "take", "founders-die").count(),
+            0,
+          );
+        }
         if (target === "sample-lock" && choice === undefined) {
           await act("examine", "sample-cases");
           assert.match(await page.locator("#turn").innerText(), /Round/u);
@@ -166,7 +173,11 @@ for (const [scenario, title, route, choice, alternative] of [
       await act("examine", "foremans-drawer");
       await act("take", "foremans-wand");
       if (choice === undefined) {
-        await act("take", "foremans-garnet");
+        await act("examine", "bond-tin");
+        assert.equal(
+          await actionButton(page, "take", "foremans-garnet").count(),
+          0,
+        );
       }
       assert.match(await page.locator("#inventory").innerText(), /Third Bell/u);
       await act("examine", "wharf-release");
