@@ -8,6 +8,10 @@
  */
 export const CONTENT_TESTS = new Map([
   [
+    "tests/cinder-mint-browser.test.mjs",
+    "both Cinder Mint endings and the wand retained in the library",
+  ],
+  [
     "tests/fixtures/content-tests.mjs",
     "this list: it names the content tests and what each reads",
   ],
@@ -41,7 +45,7 @@ export const CONTENT_TESTS = new Map([
   ],
   ["tests/issue-140.test.mjs", "the #140 release run of the Abandoned Delve"],
   [
-    "tests/issue-507-content.test.mjs",
+    "tests/scarce-items-content.test.mjs",
     "plays every shipped module with every item Scarce items found may take missing (#507)",
   ],
   [

@@ -1,0 +1,1770 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 47,
+  "id": "last-shift-at-cinder-mint",
+  "title": "Last Shift at Cinder Mint",
+  "objective": "Clear six apprentices by proving who ordered the false pennies, or send them to safety aboard the prison barge. Claim Third Bell from the Proof Vault before leaving.",
+  "recommendedLevels": {
+    "min": 5,
+    "max": 5
+  },
+  "difficulty": "easy",
+  "long": true,
+  "regions": [
+    {
+      "id": "mint",
+      "name": "The Counting Floor",
+      "backdrop": "hall"
+    },
+    {
+      "id": "works",
+      "name": "The Hot Works",
+      "backdrop": "cellar"
+    }
+  ],
+  "flags": [
+    "witness-ready",
+    "signal-known",
+    "lift-released",
+    "proof-ready",
+    "barge-ready",
+    "six-cleared",
+    "six-escaped",
+    "vault-opened",
+    "bell-claimed",
+    "alarm-raised",
+    "captain-stands-down",
+    "case-settled",
+    "crew-escorted",
+    "transfer-ordered",
+    "bond-broken"
+  ],
+  "alarm": {
+    "flag": "alarm-raised",
+    "text": "A mechanical bell wakes the three-person wharf watch."
+  },
+  "routes": [
+    {
+      "id": "payroll-hearing",
+      "name": "Reconstruct the payroll",
+      "rooms": [
+        "pay-window",
+        "paymasters-office",
+        "payroll-archive",
+        "witness-stair",
+        "records-landing",
+        "sample-lock",
+        "proofing-press",
+        "assay-chamber",
+        "proof-vault"
+      ]
+    },
+    {
+      "id": "prison-barge",
+      "name": "Steal the prison barge",
+      "rooms": [
+        "delivery-yard",
+        "coal-scales",
+        "watch-mess",
+        "winding-house",
+        "bullion-lift",
+        "lift-foot",
+        "stokers-refuge",
+        "casting-pit",
+        "ash-lock",
+        "assay-chamber",
+        "proof-vault"
+      ]
+    }
+  ],
+  "startRoomId": "petitioners-steps",
+  "rooms": [
+    {
+      "id": "petitioners-steps",
+      "name": "Petitioners' Steps",
+      "at": [0, 0],
+      "floor": 0,
+      "region": "mint",
+      "exit": true,
+      "description": "A baker's knife sticks in the steps between the two halves of a silver penny. Mara Venn stands beside it with flour on her cuffs. Behind the mint gates six voices call out six names for the arrest book.",
+      "features": [
+        {
+          "id": "bakers-knife",
+          "name": "Baker's knife",
+          "description": "A steel blade lies across two halves of a coin.",
+          "discovery": "The cut exposes a red copper heart beneath the silver skin."
+        },
+        {
+          "id": "delivery-plan",
+          "name": "Delivery plan",
+          "description": "This smudged plan is drawn on the back of a flour bill.",
+          "discovery": "Mara has drawn a line from the Pay Window to the Witness Stair and a second from the Delivery Yard to the Bullion Lift. Both end under the mint."
+        }
+      ],
+      "creatures": [
+        {
+          "id": "mara-venn",
+          "name": "Mara Venn",
+          "description": "An engraver holds out a penny cut cleanly in half. Her palms are black with silver polish.",
+          "topics": [
+            {
+              "id": "maras-bargain",
+              "name": "The price of bringing six people home",
+              "reply": "“My husband's wand is yours if you get Kit and the five others out. Third Bell. Seven charges of Magic Missile. He kept it in the Proof Vault. The pay window has the records; the delivery yard has their boat.”"
+            },
+            {
+              "id": "arrest-book",
+              "name": "Why the apprentices were arrested",
+              "reply": "“They signed for good silver. The baker cut my penny at breakfast and showed me copper. Six signatures, six arrests. The prison barge leaves at dawn.”"
+            }
+          ]
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "pay-window",
+      "name": "Pay Window",
+      "at": [1, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "A brass speaking trumpet hangs over a counter grooved by generations of thumbs. Someone has turned the paymaster's portrait to the wall.",
+      "features": [
+        {
+          "id": "foremans-portrait",
+          "name": "Foreman's portrait",
+          "description": "A family portrait hangs beside the pay window.",
+          "discovery": "Mara's husband wears a wand on his belt. Three little brass bells hang from its pommel; the leather case is stamped PROOF VAULT."
+        },
+        {
+          "id": "claim-tickets",
+          "name": "Claim tickets",
+          "description": "Six signatures show under a brass clip.",
+          "discovery": "Six apprentices collected silver blanks by weight. Their signatures survive on a detachable slip."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "weigh-house",
+      "name": "Weigh House",
+      "at": [2, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "A slate slab rings every time the weighing clerk drops a penny. One coin answers with a dull tap.",
+      "features": [
+        {
+          "id": "ringing-stone",
+          "name": "Ringing stone",
+          "description": "A flat black slate has a patch worn smooth.",
+          "discovery": "An honest penny sings. The plated penny thuds and leaves a red crescent beside the fresh cut."
+        },
+        {
+          "id": "balance-beam",
+          "name": "Balance beam",
+          "description": "The beam holds two equal stacks of pennies.",
+          "discovery": "The false batch weighs exactly what the apprentices signed for. Someone changed the metal after weighing."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "engravers-bench",
+      "name": "Engravers' Bench",
+      "at": [3, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "Warm beeswax and lampblack scent a screened alcove. A narrow pallet lies under the engravers' bench.",
+      "features": [
+        {
+          "id": "bench-screen",
+          "name": "Bench screen",
+          "description": "A leather screen makes a sleeping alcove.",
+          "discovery": "Night engravers sleep behind this folding leather screen. Its charcoal sketches show Kit learning to cut her first letter."
+        },
+        {
+          "id": "dumbwaiter-latch",
+          "name": "Dumbwaiter latch",
+          "description": "A metal tongue protrudes from the wood.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 10
+              },
+              {
+                "skill": "perception",
+                "dc": 10
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The latch comes free. The service opening is wide enough to climb through.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "engravers-bench-to-watch-mess"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The housing covers an old service opening."
+        }
+      ],
+      "restSite": true,
+      "items": []
+    },
+    {
+      "id": "paymasters-office",
+      "name": "Paymaster's Office",
+      "at": [4, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "Someone has tried to light a stove with a grain merchant's invoice. The room smells of singed paper and wet boots.",
+      "features": [
+        {
+          "id": "stove-fender",
+          "name": "Stove fender",
+          "description": "Charred scraps curl against the fender.",
+          "discovery": "One half-burned invoice is still legible. Orrel bought six wagonloads of rye the night the bridge fell."
+        },
+        {
+          "id": "sealing-stand",
+          "name": "Sealing stand",
+          "description": "Orrel's handstamp stands beside a pot of cold ink.",
+          "discovery": "A note in Orrel's hand orders the real die issued for copper blanks. The receiving clerk left space for a witness."
+        }
+      ],
+      "items": [
+        {
+          "id": "grain-invoice",
+          "name": "Signed grain invoice",
+          "description": "Orrel's singed receipt for six wagonloads of rye. The date matches the false payroll.",
+          "kind": "tool",
+          "hiddenIn": "stove-fender"
+        }
+      ]
+    },
+    {
+      "id": "payroll-archive",
+      "name": "Payroll Archive",
+      "at": [5, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "Payroll volumes stand spine-inward on a long shelf. The clerk has tied a handkerchief over the ink on his right thumb.",
+      "features": [
+        {
+          "id": "counterfoil-register",
+          "name": "Counterfoil register",
+          "description": "Bale's counterfoils are bound with numbered pins.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 12
+              },
+              {
+                "skill": "perception",
+                "dc": 12
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The pinholes line up. Bale initials the exposed issue order before your eyes.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "certified-order"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The witness line is still blank.",
+          "uses": [
+            {
+              "item": "grain-invoice",
+              "text": "Bale fits the invoice to the stubs. Six honest signatures, a different top sheet. He signs the issue order and signals the guards to admit its bearer.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "certified-order"
+                },
+                {
+                  "type": "set",
+                  "flag": "witness-ready"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "spare-blotter",
+          "name": "Spare blotter",
+          "description": "An ink-stiff sheet covers the desk.",
+          "discovery": "The pressure marks spell six names in one column. A thumbprint interrupts the place where the page number should be."
+        }
+      ],
+      "items": [
+        {
+          "id": "certified-order",
+          "name": "Certified issue order",
+          "description": "Orrel's order and the original counterfoil, initialled by the clerk. Take these to the wax press.",
+          "kind": "key",
+          "hiddenIn": "counterfoil-register",
+          "sets": "witness-ready"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "bale",
+          "name": "Bale, payroll clerk",
+          "description": "He has six thumb-sized scraps of paper arranged on his blotter.",
+          "topics": [
+            {
+              "id": "bales-testimony",
+              "name": "Stand witness to the issue order",
+              "reply": "“They'll ask who signed the counterfoil. I did.” Bale initials the issue order.",
+              "check": {
+                "skill": "persuasion",
+                "dc": 12,
+                "bands": {
+                  "success": {
+                    "text": "He lifts the certified order out of the register.",
+                    "effects": [
+                      {
+                        "type": "item",
+                        "item": "certified-order"
+                      }
+                    ]
+                  }
+                }
+              },
+              "failure": "“Bring me Orrel's grain invoice from the stove fender. Give me a piece of paper to stand behind.”"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "witness-stair",
+      "name": "Witness Stair",
+      "at": [6, 0],
+      "floor": 0,
+      "region": "mint",
+      "description": "A stair spirals round a wooden pipe. Every word from the pressroom below comes up it with a little metallic echo.",
+      "features": [
+        {
+          "id": "witness-rail",
+          "name": "Witness rail",
+          "description": "Letters are cut into a brass handrail.",
+          "discovery": "A guide for witnesses reads: take your certified order to the wax press, then bring the impression to the hearing."
+        },
+        {
+          "id": "landing-lamp",
+          "name": "Landing lamp",
+          "description": "A lamp with two wicks lights the stair.",
+          "discovery": "The first wick has burned down to its pin. The watch light the second before beginning the transfer."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "delivery-yard",
+      "name": "Delivery Yard",
+      "at": [0, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "A prison cart stands between two delivery tracks. Barge hooks swing from its roof. The driver has already chalked six strokes on the tailboard.",
+      "features": [
+        {
+          "id": "grain-sacks",
+          "name": "Grain sacks",
+          "description": "Split sacks smell of rye and woodsmoke.",
+          "discovery": "They bear the receiving stamp of the town soup kitchen. The six loads Orrel bought have already been eaten."
+        },
+        {
+          "id": "barge-bill",
+          "name": "Barge bill",
+          "description": "A strip of pink docket paper is pinned to the cart.",
+          "discovery": "The transport boat takes custody when the cart reaches the ash wharf. Upstream it passes a landing outside the county."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "coal-scales",
+      "name": "Coal Scales",
+      "at": [1, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "A coal tub creeps down on a practice chain. From the yard come two taps and a pause, and the chain stops.",
+      "features": [
+        {
+          "id": "signal-pegs",
+          "name": "Signal pegs",
+          "description": "Wooden pegs rest against a drum.",
+          "discovery": "Two short knocks and one long mean empty return. The watch lets that crew through without searching their sacks."
+        },
+        {
+          "id": "shift-diagram",
+          "name": "Shift diagram",
+          "description": "A brass card is hung on a chain peg.",
+          "discovery": "The diagram labels the crank socket at the winding house and the return notch at the ash lock. Lift off its brass copy to use below."
+        }
+      ],
+      "items": [
+        {
+          "id": "shift-card",
+          "name": "Brass shift diagram",
+          "description": "Its teeth fit the ash selector; the shift signal is punched along the edge.",
+          "kind": "tool",
+          "hiddenIn": "shift-diagram",
+          "sets": "signal-known"
+        }
+      ]
+    },
+    {
+      "id": "cart-shed",
+      "name": "Cart Shed",
+      "at": [2, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "The carts are stored nose to tail. One still carries a little rye in the seam of its tarpaulin.",
+      "features": [
+        {
+          "id": "chalk-wheel",
+          "name": "Chalk wheel",
+          "description": "One hub bears a red chalk slash.",
+          "discovery": "A red chalk slash lets a worker find the right cart in the smoke. Kit has marked the prison cart the same way."
+        },
+        {
+          "id": "stowage-pocket",
+          "name": "Stowage pocket",
+          "description": "A jacket is folded in the driver's pocket.",
+          "discovery": "A patched jacket has six crusts in its pockets. Someone was feeding the prisoners on shift."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "watch-mess",
+      "name": "Watch Mess",
+      "at": [3, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "Two hired watchmen eat standing up. Their stew bowls jump each time the press descends.",
+      "features": [
+        {
+          "id": "mess-strongbox",
+          "name": "Mess strongbox",
+          "description": "A small green box fits under the bench. The collector wears its key. Crews using the shift signal pass while the collector is away on rounds.",
+          "discovery": "The watch deducts broken bowls from the night crew's pay. The box bears the collectors' own seal.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The collector wears the only key. The lid covers the bond garnet and the watch surety."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The collector's key turns in the box. Inside are the garnet and the night watch's surety.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "pay-garnet"
+                },
+                {
+                  "type": "item",
+                  "item": "watch-gold"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "serving-hatch",
+          "name": "Serving hatch",
+          "description": "A stream of cold air flows through the hatch.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 10
+              },
+              {
+                "skill": "perception",
+                "dc": 10
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The latch comes free. The service opening is wide enough to climb through.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "engravers-bench-to-watch-mess"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The housing covers an old service opening."
+        }
+      ],
+      "items": [
+        {
+          "id": "pay-garnet",
+          "name": "Watch bond garnet",
+          "description": "An assay slip identifies the watch bond garnet as released from bond for sale.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "mess-strongbox"
+        },
+        {
+          "id": "watch-gold",
+          "name": "Watch surety",
+          "description": "A bag of night-watch security deposits.",
+          "kind": "coin",
+          "coins": {
+            "gp": 99,
+            "sp": 8
+          },
+          "hiddenIn": "mess-strongbox"
+        },
+        {
+          "id": "mess-silver",
+          "name": "Mess silver",
+          "description": "Two worn silver pieces from the mess collector's pocket.",
+          "kind": "coin",
+          "coins": {
+            "sp": 2
+          },
+          "hiddenIn": "mess-collector"
+        },
+        {
+          "id": "collectors-key",
+          "name": "Collector's chest key",
+          "description": "A filed key to the mess strongbox, the retirement cabinet and the foreman's bond tin.",
+          "kind": "key",
+          "hiddenIn": "mess-collector"
+        }
+      ],
+      "encounterId": "mess-watch"
+    },
+    {
+      "id": "chain-walk",
+      "name": "Chain Walk",
+      "at": [4, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "The floor hums under a pair of parallel chains. A rung painted white marks where a loader should stand.",
+      "features": [
+        {
+          "id": "chain-hooks",
+          "name": "Chain hooks",
+          "description": "Two iron hooks share a crosshead.",
+          "discovery": "The outer chain moves cargo. The inner chain moves the prison cart, including the men inside it."
+        },
+        {
+          "id": "pinned-mitten",
+          "name": "Pinned mitten",
+          "description": "A wool mitten is nailed to a rail.",
+          "discovery": "A stoker lost a finger to this clutch. An engraved arrow marks the safe side of the handle."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "winding-house",
+      "name": "Winding House",
+      "at": [5, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "The winding drum towers over a bench of neatly laid tools. The bell line trembles overhead.",
+      "features": [
+        {
+          "id": "crank-socket",
+          "name": "Crank socket",
+          "description": "A square socket protrudes from the drum.",
+          "uses": [
+            {
+              "item": "winding-crank",
+              "text": "The brake shoe lifts without touching the alarm line. A gate opens below the lift foot.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "lift-released"
+                }
+              ]
+            }
+          ],
+          "discovery": "The slot accepts a square crank. Seat it to lower the lift brake quietly."
+        },
+        {
+          "id": "brake-pawl",
+          "name": "Brake pawl",
+          "description": "Iron teeth run beneath a taut bell line.",
+          "check": {
+            "skill": "athletics",
+            "dc": 12,
+            "bands": {
+              "failure": {
+                "text": "The bell line catches. The teeth hold; the crank is still within reach.",
+                "noisy": true
+              },
+              "success": {
+                "text": "The teeth let go with a clang that carries down to the wharf.",
+                "noisy": true,
+                "effects": [
+                  {
+                    "type": "set",
+                    "flag": "lift-released"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The pawl can be forced clear by hand. Its teeth run against the alarm line; the shift crank leaves the line alone."
+        }
+      ],
+      "items": [
+        {
+          "id": "winding-crank",
+          "name": "Square winding crank",
+          "description": "A hand crank stamped with the same square as the brake socket.",
+          "kind": "tool"
+        }
+      ]
+    },
+    {
+      "id": "bullion-lift",
+      "name": "Bullion Lift",
+      "at": [6, 1],
+      "floor": 0,
+      "region": "mint",
+      "description": "An empty bullion cage hangs over an open shaft. A ladder disappears into black air beside its guide rail.",
+      "features": [
+        {
+          "id": "grease-pencil",
+          "name": "Grease pencil",
+          "description": "Someone has written figures on the lift post.",
+          "discovery": "Fresh figures give the next load as six passengers, no bullion."
+        },
+        {
+          "id": "cage-plate",
+          "name": "Cage plate",
+          "description": "A plate is riveted to the cage.",
+          "discovery": "The emergency ladder leads to the lift foot. The way past it opens when the winding brake is released."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "proof-vault",
+      "name": "Proof Vault",
+      "at": [0, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "A little brass bell rings as the proof vault door moves. There are three recesses in a leather-lined drawer and a fourth, long enough for a wand.",
+      "features": [
+        {
+          "id": "foremans-drawer",
+          "name": "Foreman's drawer",
+          "description": "Blue leather peeks through a gap in the drawer.",
+          "changed": {
+            "when": "bell-claimed",
+            "description": "Three small hollows show where the brass bells rested in the felt."
+          },
+          "discovery": "Third Bell lies in its faded blue holster, the brass bells wrapped in felt to keep them quiet."
+        },
+        {
+          "id": "wharf-release",
+          "name": "Wharf release",
+          "description": "A docket slot and a signal plate flank the gangway lever.",
+          "sets": "vault-opened",
+          "discovery": "You lower the gangway. An empty-return docket here releases the six cell pins; the brass shift diagram sends the crew signal.",
+          "uses": [
+            {
+              "item": "shift-card",
+              "text": "You tap two short knocks and one long against the gangway. The ferryman answers. The wharf watch lets your crew through, even under alarm.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "crew-escorted"
+                }
+              ]
+            },
+            {
+              "item": "transfer-docket",
+              "text": "You fit Penn's docket into the release, throw the lever and pull the pin. Six cell doors spring back. The cart rolls aboard; Kit hangs her apron on the mooring post before the ferryman casts off.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "six-escaped"
+                },
+                {
+                  "type": "set",
+                  "flag": "vault-opened"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "bond-tin",
+          "name": "Foreman's bond tin",
+          "description": "A separate lockbox bears the mark of the mess collector. A garnet glints behind its inspection window.",
+          "discovery": "The foreman held one stone against the watch's surety. The collector is its key holder.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The collector's chest key has a second notch for this bond lock."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The filed notch engages a second tumbler. The garnet rolls out of the tin.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "foremans-garnet"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "items": [
+        {
+          "id": "foremans-wand",
+          "name": "Third Bell",
+          "description": "Three brass bells hang from the blackthorn wand that Mara's husband carried. Seven charges send unerring darts of force.",
+          "kind": "wand",
+          "hiddenIn": "foremans-drawer",
+          "wand": "third-bell",
+          "sets": "bell-claimed"
+        },
+        {
+          "id": "foremans-garnet",
+          "name": "Foreman's cut garnet",
+          "description": "An assay slip identifies the foreman's cut garnet as released from bond for sale.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "bond-tin"
+        }
+      ]
+    },
+    {
+      "id": "assay-chamber",
+      "name": "Assay Chamber",
+      "at": [1, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "An assay table has been pushed up against the cart rail. Six names are written on its slate. At the far end of the room, the vault wheel gleams in lamplight.",
+      "features": [
+        {
+          "id": "hearing-table",
+          "name": "Hearing table",
+          "description": "The varnish has worn off a clerk's table.",
+          "discovery": "The rules permit a test strike and a signed issue order as evidence. The clerk can enter a finding here before the cart moves.",
+          "changed": {
+            "when": "six-cleared",
+            "description": "Penn's open register now records all six releases. The cart stands empty beside the table."
+          }
+        },
+        {
+          "id": "transfer-board",
+          "name": "Transfer board",
+          "description": "A chalk diagram shows the cart rail.",
+          "discovery": "With the barge rigged, the clerk can countersign an empty return and send the cart across. Once the entry is made, the other course is lost.",
+          "changed": {
+            "when": "transfer-ordered",
+            "description": "Penn has filed the transfer docket. Take it to the gangway release inside the Proof Vault to free the prisoners."
+          },
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The wicket marked EXECUTED holds only paperwork Penn has actually issued."
+              }
+            }
+          }
+        }
+      ],
+      "creatures": [
+        {
+          "id": "assay-clerk",
+          "name": "Deputy Clerk Penn",
+          "description": "The watch captain's countersignature lies on Penn's desk. As clerk of the hearing he can record a release or order a transfer.",
+          "topics": [
+            {
+              "id": "six-voices",
+              "name": "Hear the prisoners before deciding",
+              "reply": "Kit puts her apron down. “Read my name in the open. I want to go home.” A boy beside her says his little brother can meet a boat. Five hands go up for the boat; Kit squeezes the boy's hand.",
+              "offeredUntil": "case-settled"
+            },
+            {
+              "id": "enter-proof",
+              "name": "Enter the evidence and clear all six names",
+              "reply": "Penn reads Orrel's order against your test strike. All six names come off the warrant.",
+              "offeredWhile": "proof-ready",
+              "offeredUntil": "case-settled",
+              "check": {
+                "skill": "persuasion",
+                "dc": 10,
+                "bands": {
+                  "failure": {
+                    "text": "Penn balks. Bale stands and identifies his thumbprint in public. Penn strikes six names from the warrant.",
+                    "effects": [
+                      {
+                        "type": "set",
+                        "flag": "six-cleared"
+                      },
+                      {
+                        "type": "set",
+                        "flag": "case-settled"
+                      }
+                    ]
+                  },
+                  "success": {
+                    "text": "The captain's seal goes on the release. Bale asks that his own signature be entered in evidence.",
+                    "effects": [
+                      {
+                        "type": "set",
+                        "flag": "six-cleared"
+                      },
+                      {
+                        "type": "set",
+                        "flag": "case-settled"
+                      }
+                    ]
+                  }
+                }
+              },
+              "failure": "Penn pushes the impression back across the table. Bale rises to speak."
+            },
+            {
+              "id": "transfer-six",
+              "name": "Send all six down the empty-return rail",
+              "reply": "Penn stamps the transfer docket. The cell pin can only be pulled at the Proof Vault. Kit folds her apron while you take the paper.",
+              "offeredWhile": "barge-ready",
+              "offeredUntil": "case-settled",
+              "check": {
+                "skill": "persuasion",
+                "dc": 10,
+                "bands": {
+                  "failure": {
+                    "text": "The stokers countermark the docket themselves. You still need to draw the cell pin at the vault's wharf release.",
+                    "effects": [
+                      {
+                        "type": "set",
+                        "flag": "transfer-ordered"
+                      },
+                      {
+                        "type": "set",
+                        "flag": "case-settled"
+                      },
+                      {
+                        "type": "item",
+                        "item": "transfer-docket"
+                      }
+                    ]
+                  },
+                  "success": {
+                    "text": "The cart is booked as an empty return. Take the docket to the vault's wharf release before you leave.",
+                    "effects": [
+                      {
+                        "type": "set",
+                        "flag": "transfer-ordered"
+                      },
+                      {
+                        "type": "set",
+                        "flag": "case-settled"
+                      },
+                      {
+                        "type": "item",
+                        "item": "transfer-docket"
+                      }
+                    ]
+                  }
+                }
+              },
+              "failure": "Penn lowers his voice. The ferryman puts a thumb on the docket and waits."
+            }
+          ]
+        }
+      ],
+      "encounterId": "assay-watch",
+      "items": [
+        {
+          "id": "transfer-docket",
+          "name": "Cart transfer docket",
+          "description": "Slide the stamped edge into the vault's wharf release and pull to free all six.",
+          "kind": "tool",
+          "hiddenIn": "transfer-board"
+        }
+      ]
+    },
+    {
+      "id": "die-room",
+      "name": "Die Room",
+      "at": [2, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "Spent dies hang on hooks like a row of blunt teeth. One space in the rack is marked with Orrel's initials.",
+      "features": [
+        {
+          "id": "die-cradle",
+          "name": "Die cradle",
+          "description": "Die patterns are chalked around the empty hooks.",
+          "discovery": "The master die has a tiny nick in its rim. The same tiny defect survives in every coin it strikes."
+        },
+        {
+          "id": "retirement-cabinet",
+          "name": "Retirement cabinet",
+          "description": "The retired dies sit behind plate glass. An assay label names the mess collector as bond holder.",
+          "discovery": "A red cord identifies dies withdrawn from circulation. One is a presentation piece from the mint's founding.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "A second lock behind the glass takes the mess collector's filed chest key."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The collector's key opens the bond lock. You slide the retired master die out of its copper bed.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "founders-die"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "witness-summons",
+          "name": "Ring for a public hearing",
+          "description": "A brass summons button hangs under the master die rack.",
+          "discovery": "A porter brings chairs for witnesses. With the hearing now public, the captain puts her blades away and leaves Penn to take evidence.",
+          "sets": "captain-stands-down"
+        }
+      ],
+      "items": [
+        {
+          "id": "founders-die",
+          "name": "Founder's silver master die",
+          "description": "An assay slip identifies the founder's silver master die as released from bond for sale.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "retirement-cabinet"
+        }
+      ]
+    },
+    {
+      "id": "proofing-press",
+      "name": "Proofing Press",
+      "at": [3, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "A screw press stands over a cup of red wax. Freshly cut letters gleam in the jaws.",
+      "features": [
+        {
+          "id": "wax-press",
+          "name": "Wax press",
+          "description": "Red wax beads under a screw press.",
+          "uses": [
+            {
+              "item": "certified-order",
+              "text": "Bale's numbered seal fits the guide. The wax takes a nick identical to the one in the false pennies. You lift the proof, still attached to his signed order.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "proof-ready"
+                }
+              ]
+            }
+          ],
+          "discovery": "The assay sample fits the press guide. Use the clerk's certified order here to witness a test strike and sign the impression."
+        },
+        {
+          "id": "maintenance-shutter",
+          "name": "Maintenance shutter",
+          "description": "A lip of metal protrudes behind the press.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 10
+              },
+              {
+                "skill": "perception",
+                "dc": 10
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The latch comes free. The service opening is wide enough to climb through.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "proofing-press-to-casting-pit"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The housing covers an old service opening.",
+          "uses": [
+            {
+              "item": "certified-order",
+              "text": "The brass tab on the certified order fits the service latch. The shutter tips inward, connecting the press to the casting pit.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "proofing-press-to-casting-pit"
+                }
+              ]
+            },
+            {
+              "item": "shift-card",
+              "text": "The corner of the brass shift diagram fits under the worn latch. You raise the service shutter.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "proofing-press-to-casting-pit"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "acid-bench",
+      "name": "Acid Bench",
+      "at": [4, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "Wind from the furnace feathers the surface of three shallow bowls. There is a clean crescent on the worktop.",
+      "features": [
+        {
+          "id": "acid-bowls",
+          "name": "Acid bowls",
+          "description": "Three clay bowls stand against the wall.",
+          "discovery": "The liquid beads on silver. It eats a red stain into the cut side of Mara's penny."
+        },
+        {
+          "id": "numbered-sample",
+          "name": "Numbered sample",
+          "description": "A numbered wax seal caps the copper sample.",
+          "discovery": "Wax cup number six matches the guide on the proofing press. Its numbered seal is still intact."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "sample-lock",
+      "name": "Sample Lock",
+      "at": [5, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "Two bonded store guards sit on sample cases under a grill. A wicket leads round the cases to the acid bench.",
+      "features": [
+        {
+          "id": "sample-cases",
+          "name": "Break the bonded seal",
+          "description": "A red cord seals the sample cases. The guard docket grants witnesses passage; cutting the cord brings both guards.",
+          "discovery": "The cord snaps under your hand. The store guards bar the wicket and draw their blades.",
+          "sets": "bond-broken"
+        },
+        {
+          "id": "guard-docket",
+          "name": "Guard docket",
+          "description": "The week's duty list hangs on the wicket.",
+          "discovery": "A clerk's certification entitles a witness to walk straight through. The guards have signed to acknowledge it."
+        }
+      ],
+      "items": [
+        {
+          "id": "guild-chain",
+          "name": "Enamelled guild chain",
+          "description": "An assay slip identifies the enamelled guild chain as released from bond for sale.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "sample-cases"
+        },
+        {
+          "id": "bonded-gold",
+          "name": "Bonded gold",
+          "description": "Stamped gold from the bonded guards' own surety.",
+          "kind": "coin",
+          "coins": {
+            "gp": 200
+          },
+          "hiddenIn": "sample-cases"
+        }
+      ],
+      "encounterId": "store-guards"
+    },
+    {
+      "id": "records-landing",
+      "name": "Records Landing",
+      "at": [6, 0],
+      "floor": -1,
+      "region": "works",
+      "description": "A white stripe on the landing divides the payroll stairs from the bonded stores. A bell pull hangs inside the stripe.",
+      "features": [
+        {
+          "id": "admittance-slate",
+          "name": "Sign the witness slate",
+          "description": "Half-erased names cover a slate.",
+          "discovery": "You sign for responsibility as a witness. Beyond the Sample Lock a porter opens the wicket. The notice reminds you that only a certified payroll order can be used to strike a proof.",
+          "sets": "witness-ready"
+        },
+        {
+          "id": "speaking-pipe",
+          "name": "Speaking pipe",
+          "description": "A copper pipe has been flattened into a mouthpiece.",
+          "discovery": "A girl below says she would rather go home than disappear. A boy asks what home is worth in chains."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "ash-wharf",
+      "name": "Ash Wharf",
+      "at": [0, 1],
+      "floor": -1,
+      "region": "works",
+      "exit": true,
+      "description": "A flat black barge knocks on the quay. On the opposite bank, morning bread is already going into the ovens.",
+      "features": [
+        {
+          "id": "mooring-post",
+          "name": "Mooring post",
+          "description": "A parcel-sized dry patch marks the post.",
+          "changed": {
+            "when": "six-escaped",
+            "description": "The barge is gone. Kit has left a blue apron on the mooring post, folded into a neat parcel for Mara."
+          },
+          "discovery": "A loop of tarred rope and a clean patch of stone mark the ferry's berth."
+        },
+        {
+          "id": "customs-board",
+          "name": "Customs board",
+          "description": "A roll of brown notices hangs under glass.",
+          "changed": {
+            "when": "six-cleared",
+            "description": "Across the six names the captain's seal has stamped RELEASED. A little boy reads his sister's name aloud."
+          },
+          "discovery": "The notices have a space for six names under WANTED."
+        }
+      ],
+      "encounterId": "wharf-watch",
+      "items": []
+    },
+    {
+      "id": "ash-lock",
+      "name": "Ash Lock",
+      "at": [1, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "Three notches have been filed in the chain drum. The prison cart track meets the return rail here.",
+      "features": [
+        {
+          "id": "return-selector",
+          "name": "Return selector",
+          "description": "Three settings surround a greasy drum.",
+          "uses": [
+            {
+              "item": "shift-card",
+              "text": "The selector clicks into empty return. Through the slats you see the unscheduled barge slide under the cart rail.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "barge-ready"
+                }
+              ]
+            }
+          ],
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 12
+              },
+              {
+                "skill": "perception",
+                "dc": 12
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The worn notch is the empty return. The barge slides into place below the cart rail.",
+                "effects": [
+                  {
+                    "type": "set",
+                    "flag": "barge-ready"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "Set the drum to the empty-return notch with the shift diagram. The barge will lie under the cart rail."
+        },
+        {
+          "id": "service-hooks",
+          "name": "Service hooks",
+          "description": "An iron hook holds a key on a short chain.",
+          "discovery": "There is a key on the return hook. The captain expects the cart crew to use it at the proof vault."
+        }
+      ],
+      "items": [
+        {
+          "id": "service-key",
+          "name": "Cart crew's service key",
+          "description": "The watch captain's delegation is stamped into this brass service key. Wearing it identifies you as the cart crew's representative.",
+          "kind": "key",
+          "hiddenIn": "service-hooks",
+          "sets": "captain-stands-down"
+        }
+      ]
+    },
+    {
+      "id": "cooling-beds",
+      "name": "Cooling Beds",
+      "at": [2, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "Copper scales flake off a rack of cooling moulds. Six children's handprints are pressed into the old refractory tiles.",
+      "features": [
+        {
+          "id": "cooling-ledger",
+          "name": "Cooling ledger",
+          "description": "A wet ledger lies open beside a mould.",
+          "discovery": "Six trainees signed off this batch as copper for practice. None signed for a silver face."
+        },
+        {
+          "id": "water-trough",
+          "name": "Water trough",
+          "description": "Grit has settled in the watering trough.",
+          "discovery": "Kit's marked cart wheel left grit in the trough. The ash lock controls the cart's next turn."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "casting-pit",
+      "name": "Casting Pit",
+      "at": [3, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "Orange light wells up between the planks. An iron hatch rattles in time with the proofing press.",
+      "features": [
+        {
+          "id": "scorched-hatch",
+          "name": "Scorched hatch",
+          "description": "A steel handle gleams in the hot boards.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 10
+              },
+              {
+                "skill": "perception",
+                "dc": 10
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "The latch comes free. The service opening is wide enough to climb through.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "proofing-press-to-casting-pit"
+                  }
+                ]
+              }
+            }
+          },
+          "discovery": "The housing covers an old service opening.",
+          "uses": [
+            {
+              "item": "certified-order",
+              "text": "The brass tab on the certified order fits the service latch. The shutter tips inward, connecting the press to the casting pit.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "proofing-press-to-casting-pit"
+                }
+              ]
+            },
+            {
+              "item": "shift-card",
+              "text": "The corner of the brass shift diagram fits under the worn latch. You raise the service shutter.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "proofing-press-to-casting-pit"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "casting-lip",
+          "name": "Casting lip",
+          "description": "Red scrap has hardened on the lip of the pit.",
+          "discovery": "The copper scrap went through here in practice moulds. The silver plating happened upstairs, after the six went home."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "furnace-walk",
+      "name": "Furnace Walk",
+      "at": [4, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "Heat beats against the furnace walk in waves. The stokers have hung wet scarves along the rail.",
+      "features": [
+        {
+          "id": "kiln-account",
+          "name": "Kiln account",
+          "description": "A fuel account lies beneath a wet scarf.",
+          "discovery": "Orrel ordered the furnace lit after dismissal. Against the fuel charge he wrote the name of the grain merchant."
+        },
+        {
+          "id": "blast-screen",
+          "name": "Blast screen",
+          "description": "A screen of metal slats pivots on a foot pin.",
+          "discovery": "A hinged screen shelters a narrow tread. The workers used it to pass food through the grille."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "stokers-refuge",
+      "name": "Stokers' Refuge",
+      "at": [5, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "A trickle of cool air slips through a grille behind a bunk. A prison cart on the other side can stop here within earshot of the stokers.",
+      "features": [
+        {
+          "id": "refuge-bunk",
+          "name": "Refuge bunk",
+          "description": "Blankets are stacked neatly on a brick bunk.",
+          "discovery": "There is room to rest under the brick arch. The stokers keep the bed dry even when the ash lock floods."
+        },
+        {
+          "id": "cart-grille",
+          "name": "Cart grille",
+          "description": "A face appears against a grille at floor level.",
+          "discovery": "Five voices ask about the boat. Kit wants to know if anyone looked at the payroll. The press and casting pit share a maintenance hatch."
+        }
+      ],
+      "restSite": true,
+      "creatures": [
+        {
+          "id": "kit-venn",
+          "name": "Kit Venn",
+          "description": "Mara's daughter has scratched her name into the grille at the cart stop.",
+          "topics": [
+            {
+              "id": "kits-wish",
+              "name": "What Kit wants",
+              "reply": "“Mum thinks home means the kitchen. On the boat I'd be a forger for life. If there's a way to clear me, take it. But if you get us a boat, I'll get on. I won't leave the others.”",
+              "offeredUntil": "case-settled"
+            }
+          ]
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "lift-foot",
+      "name": "Lift Foot",
+      "at": [6, 1],
+      "floor": -1,
+      "region": "works",
+      "description": "The bottom of the bullion cage rests against a brake shoe. Beyond it the red light of the stokers' refuge shines through the gate.",
+      "features": [
+        {
+          "id": "brake-shoe",
+          "name": "Brake shoe",
+          "description": "The shoe has been stamped with a square.",
+          "discovery": "A released brake lifts the gate. Its crank sits by the winding drum upstairs."
+        },
+        {
+          "id": "fire-bucket",
+          "name": "Fire bucket",
+          "description": "A little drawing has been scratched into a bucket.",
+          "discovery": "Someone has scratched a little boat into the red paint, with six round heads poking out."
+        },
+        {
+          "id": "ladder-catch",
+          "name": "Lift the ladder catch",
+          "description": "A long counterweighted lever reaches down from the brake assembly.",
+          "discovery": "You lift the emergency catch. The brake releases, opening the gate toward the refuge.",
+          "sets": "lift-released"
+        }
+      ],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "petitioners-steps-to-pay-window",
+      "between": ["petitioners-steps", "pay-window"],
+      "description": "Silver shavings glitter on the steps leading to the counter."
+    },
+    {
+      "id": "pay-window-to-weigh-house",
+      "between": ["pay-window", "weigh-house"],
+      "description": "A scale pan swings above the narrow clerks' aisle."
+    },
+    {
+      "id": "weigh-house-to-engravers-bench",
+      "between": ["weigh-house", "engravers-bench"],
+      "description": "Chalk outlines of tools lead along the bench rail."
+    },
+    {
+      "id": "engravers-bench-to-paymasters-office",
+      "between": ["engravers-bench", "paymasters-office"],
+      "description": "A leather curtain divides the engravers' bench from Orrel's office."
+    },
+    {
+      "id": "paymasters-office-to-payroll-archive",
+      "between": ["paymasters-office", "payroll-archive"],
+      "description": "Paper labels line the passage between the office and the archive."
+    },
+    {
+      "id": "payroll-archive-to-witness-stair",
+      "between": ["payroll-archive", "witness-stair"],
+      "description": "The archive shelves end at the lip of the witness stair."
+    },
+    {
+      "id": "delivery-yard-to-coal-scales",
+      "between": ["delivery-yard", "coal-scales"],
+      "description": "Two wheel tracks run side by side across the coal yard."
+    },
+    {
+      "id": "coal-scales-to-cart-shed",
+      "between": ["coal-scales", "cart-shed"],
+      "description": "A loading ramp rises level with the coal scales."
+    },
+    {
+      "id": "cart-shed-to-watch-mess",
+      "between": ["cart-shed", "watch-mess"],
+      "description": "The mess door swings above a cart wheel used as a step."
+    },
+    {
+      "id": "watch-mess-to-chain-walk",
+      "between": ["watch-mess", "chain-walk"],
+      "description": "Hanging links brush against the shoulders of passing watchmen."
+    },
+    {
+      "id": "chain-walk-to-winding-house",
+      "between": ["chain-walk", "winding-house"],
+      "description": "A stripe of clean grease leads to the winding drum."
+    },
+    {
+      "id": "winding-house-to-bullion-lift",
+      "between": ["winding-house", "bullion-lift"],
+      "description": "A railed platform follows the lift cable to its cage."
+    },
+    {
+      "id": "proof-vault-to-assay-chamber",
+      "between": ["proof-vault", "assay-chamber"],
+      "door": {
+        "id": "proof-door",
+        "name": "Proof Vault Door",
+        "description": "Two keyways take a bonded issue order's key tab or a service key.",
+        "state": "locked",
+        "keyItemIds": ["certified-order", "service-key"],
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 14
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 14,
+          "bands": {
+            "failure": {
+              "text": "The wheel jams against the bell wire.",
+              "noisy": true
+            },
+            "success": {
+              "text": "The bolt shears and the assay bell rings.",
+              "noisy": true
+            }
+          }
+        }
+      },
+      "description": "A vault wheel fills the opening opposite the assay desk."
+    },
+    {
+      "id": "assay-chamber-to-die-room",
+      "between": ["assay-chamber", "die-room"],
+      "description": "Hooks for spent dies project from the brickwork."
+    },
+    {
+      "id": "die-room-to-proofing-press",
+      "between": ["die-room", "proofing-press"],
+      "description": "The press shakes the tiles beside the die racks."
+    },
+    {
+      "id": "proofing-press-to-acid-bench",
+      "between": ["proofing-press", "acid-bench"],
+      "description": "A painted groove carries drips away from the acid bench."
+    },
+    {
+      "id": "acid-bench-to-sample-lock",
+      "between": ["acid-bench", "sample-lock"],
+      "description": "A barred wicket separates the bench from the bonded samples."
+    },
+    {
+      "id": "sample-lock-to-records-landing",
+      "between": ["sample-lock", "records-landing"],
+      "openWhen": "witness-ready",
+      "description": "Cases fit exactly through the arch below the records stair."
+    },
+    {
+      "id": "ash-lock-to-cooling-beds",
+      "between": ["ash-lock", "cooling-beds"],
+      "description": "A low track follows the edge of the cooling tanks."
+    },
+    {
+      "id": "cooling-beds-to-casting-pit",
+      "between": ["cooling-beds", "casting-pit"],
+      "description": "A metal walkway skirts the casting pit."
+    },
+    {
+      "id": "casting-pit-to-furnace-walk",
+      "between": ["casting-pit", "furnace-walk"],
+      "description": "The glow of the furnace lights the rail above the pit."
+    },
+    {
+      "id": "furnace-walk-to-stokers-refuge",
+      "between": ["furnace-walk", "stokers-refuge"],
+      "description": "Behind the blast screen a dry step leads to the stokers' bunks."
+    },
+    {
+      "id": "stokers-refuge-to-lift-foot",
+      "between": ["stokers-refuge", "lift-foot"],
+      "openWhen": "lift-released",
+      "description": "The cage guide disappears behind a brick arch."
+    },
+    {
+      "id": "petitioners-steps-to-delivery-yard",
+      "between": ["petitioners-steps", "delivery-yard"],
+      "description": "Delivery tracks run alongside the petitioners' steps."
+    },
+    {
+      "id": "engravers-bench-to-watch-mess",
+      "between": ["engravers-bench", "watch-mess"],
+      "hidden": true,
+      "description": "The old serving basket slides along a short chute."
+    },
+    {
+      "id": "witness-stair-to-records-landing",
+      "between": ["witness-stair", "records-landing"],
+      "vertical": "stairs",
+      "description": "A speaking tube follows the witness stair to the landing."
+    },
+    {
+      "id": "bullion-lift-to-lift-foot",
+      "between": ["bullion-lift", "lift-foot"],
+      "vertical": "ladder",
+      "description": "Greased rungs descend beside the bullion cage."
+    },
+    {
+      "id": "assay-chamber-to-ash-lock",
+      "between": ["assay-chamber", "ash-lock"],
+      "description": "Cart tracks narrow to pass under the assay table."
+    },
+    {
+      "id": "proofing-press-to-casting-pit",
+      "between": ["proofing-press", "casting-pit"],
+      "hidden": true,
+      "description": "A maintenance opening joins the press to the casting pit."
+    },
+    {
+      "id": "proof-vault-to-ash-wharf",
+      "between": ["proof-vault", "ash-wharf"],
+      "openWhen": "vault-opened",
+      "description": "An iron gangway connects the vault to the ash quay."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "mess-watch",
+      "opponents": [
+        {
+          "id": "mess-collector",
+          "name": "Mess Collector",
+          "monster": "bandit",
+          "reacts": true
+        },
+        {
+          "id": "relief-watch",
+          "name": "Relief Watchman",
+          "monster": "hobgoblin-warrior",
+          "description": "A bonded hobgoblin watch veteran wears the mint's red enamel badge on a polished breastplate."
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "reaction": {
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "let-pass"],
+            "text": "The collector taps the table twice. Join the crew filing past, or face the watch."
+          },
+          "uncertain": {
+            "options": ["attack", "let-pass"],
+            "text": "The collector taps the table twice. Join the crew filing past, or face the watch."
+          },
+          "indifferent": {
+            "options": ["attack", "let-pass"],
+            "text": "The collector taps the table twice. Join the crew filing past, or face the watch."
+          },
+          "friendly": {
+            "options": ["attack", "let-pass"],
+            "text": "The collector taps the table twice. Join the crew filing past, or face the watch."
+          }
+        }
+      },
+      "presentUntil": "signal-known"
+    },
+    {
+      "id": "store-guards",
+      "opponents": [
+        {
+          "id": "store-sergeant",
+          "name": "Store Sergeant",
+          "monster": "bandit",
+          "description": "The store sergeant wears the mint's red badge and a heavy ring of keys on a belt over her blue coat."
+        },
+        {
+          "id": "bond-watch",
+          "name": "Bond Watchman",
+          "monster": "bandit"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "bond-broken"
+    },
+    {
+      "id": "assay-watch",
+      "opponents": [
+        {
+          "id": "bond-captain",
+          "name": "Bond Captain",
+          "monster": "bandit-captain",
+          "reacts": true
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "reaction": {
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "let-pass"],
+            "text": "The captain lays two drawn blades across the hearing table. “Business with the clerk? Walk through. Try for my purse and you answer to me.”"
+          },
+          "uncertain": {
+            "options": ["attack", "let-pass"],
+            "text": "The captain lays two drawn blades across the hearing table. “Business with the clerk? Walk through. Try for my purse and you answer to me.”"
+          },
+          "indifferent": {
+            "options": ["attack", "let-pass"],
+            "text": "The captain lays two drawn blades across the hearing table. “Business with the clerk? Walk through. Try for my purse and you answer to me.”"
+          },
+          "friendly": {
+            "options": ["attack", "let-pass"],
+            "text": "The captain lays two drawn blades across the hearing table. “Business with the clerk? Walk through. Try for my purse and you answer to me.”"
+          }
+        }
+      },
+      "presentUntil": "captain-stands-down"
+    },
+    {
+      "id": "wharf-watch",
+      "opponents": [
+        {
+          "id": "wharf-bow",
+          "name": "Bow Watchman",
+          "monster": "hobgoblin-warrior",
+          "description": "A bonded hobgoblin watch veteran wears the mint's red enamel badge on a polished breastplate."
+        },
+        {
+          "id": "wharf-stern",
+          "name": "Stern Watchman",
+          "monster": "hobgoblin-warrior",
+          "description": "A bonded hobgoblin watch veteran wears the mint's red enamel badge on a polished breastplate."
+        },
+        {
+          "id": "wharf-mate",
+          "name": "Wharf Mate",
+          "monster": "bandit"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "alarm-raised",
+      "presentUntil": "crew-escorted"
+    }
+  ],
+  "endings": [
+    {
+      "id": "names-restored",
+      "kind": "victory",
+      "onEscapeWhen": "six-cleared",
+      "title": "Six names restored",
+      "text": "Mara waits outside the mint. When Kit reaches her, she unfolds the release and reads all six names aloud. Through the open pay window, Bale sits down to give evidence against his own employer."
+    },
+    {
+      "id": "empty-return",
+      "kind": "victory",
+      "onEscapeWhen": "six-escaped",
+      "title": "The empty return",
+      "text": "The prison barge rounds the bend with all six apprentices aboard. Mara holds Kit's folded apron against her face. At noon six wanted notices go up on the quay. Downriver, six people step ashore."
+    },
+    {
+      "id": "left-with-pay",
+      "kind": "escape-with-loot",
+      "title": "A pocketful of mint money",
+      "text": "Your finds leave the mint with you. The six names are still in the arrest book, and the prison cart is still booked for dawn."
+    },
+    {
+      "id": "left-the-six",
+      "kind": "escape-without-loot",
+      "title": "Six names in the book",
+      "text": "Mara watches you leave. From beyond the mint wall comes the scrape of the prison cart being made ready."
+    },
+    {
+      "id": "held-at-the-mint",
+      "kind": "defeat",
+      "title": "The seventh entry",
+      "text": "A watchman catches you as your knees give way. The clerk takes up his pen once more."
+    }
+  ]
+}

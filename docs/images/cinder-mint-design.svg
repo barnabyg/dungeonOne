@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1262 1016" width="1262" height="1016" font-family="system-ui, 'Segoe UI', sans-serif">
+<title>Last Shift at Cinder Mint (last-shift-at-cinder-mint)</title>
+<rect width="1262" height="1016" fill="#ffffff"/>
+<text x="48" y="28" font-size="20" font-weight="700">Last Shift at Cinder Mint</text>
+<text x="48" y="46" font-size="12" fill="#666666">last-shift-at-cinder-mint · sketch · 28 rooms, 30 passages</text>
+<g class="floor" data-floor="0">
+<text x="48" y="80" font-size="16" font-weight="700">Floor 0</text>
+<text x="133" y="104" font-size="10" fill="#999999" text-anchor="middle">0</text>
+<rect class="cell" x="48" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="48" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="303" y="104" font-size="10" fill="#999999" text-anchor="middle">1</text>
+<rect class="cell" x="218" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="218" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="473" y="104" font-size="10" fill="#999999" text-anchor="middle">2</text>
+<rect class="cell" x="388" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="388" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="643" y="104" font-size="10" fill="#999999" text-anchor="middle">3</text>
+<rect class="cell" x="558" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="558" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="813" y="104" font-size="10" fill="#999999" text-anchor="middle">4</text>
+<rect class="cell" x="728" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="728" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="983" y="104" font-size="10" fill="#999999" text-anchor="middle">5</text>
+<rect class="cell" x="898" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="898" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="1153" y="104" font-size="10" fill="#999999" text-anchor="middle">6</text>
+<rect class="cell" x="1068" y="110" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="1068" y="230" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="40" y="174" font-size="10" fill="#999999" text-anchor="end">0</text>
+<text x="40" y="294" font-size="10" fill="#999999" text-anchor="end">1</text>
+<line class="passage" data-passage="petitioners-steps-to-pay-window" x1="133" y1="170" x2="303" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="pay-window-to-weigh-house" x1="303" y1="170" x2="473" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="weigh-house-to-engravers-bench" x1="473" y1="170" x2="643" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="engravers-bench-to-paymasters-office" x1="643" y1="170" x2="813" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="paymasters-office-to-payroll-archive" x1="813" y1="170" x2="983" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="payroll-archive-to-witness-stair" x1="983" y1="170" x2="1153" y2="170" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="delivery-yard-to-coal-scales" x1="133" y1="290" x2="303" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="coal-scales-to-cart-shed" x1="303" y1="290" x2="473" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="cart-shed-to-watch-mess" x1="473" y1="290" x2="643" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="watch-mess-to-chain-walk" x1="643" y1="290" x2="813" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="chain-walk-to-winding-house" x1="813" y1="290" x2="983" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="winding-house-to-bullion-lift" x1="983" y1="290" x2="1153" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="petitioners-steps-to-delivery-yard" x1="133" y1="170" x2="133" y2="290" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage hidden" data-passage="engravers-bench-to-watch-mess" x1="643" y1="170" x2="643" y2="290" stroke="#8e6fbf" stroke-dasharray="7 6" stroke-width="4" stroke-linecap="round"/>
+<g class="room start exit" data-room="petitioners-steps"><rect x="65" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#2e7d32" stroke-width="3"/><text x="71" y="142" font-size="9" font-weight="700" fill="#2e7d32">START · EXIT</text><text x="133" y="168" font-size="13" font-weight="600" text-anchor="middle">Petitioners' Steps</text><text x="133" y="184" font-size="10" fill="#666666" text-anchor="middle">petitioners-steps</text></g>
+<g class="room" data-room="pay-window"><rect x="235" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="303" y="168" font-size="13" font-weight="600" text-anchor="middle">Pay Window</text><text x="303" y="184" font-size="10" fill="#666666" text-anchor="middle">pay-window</text></g>
+<g class="room" data-room="weigh-house"><rect x="405" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="473" y="168" font-size="13" font-weight="600" text-anchor="middle">Weigh House</text><text x="473" y="184" font-size="10" fill="#666666" text-anchor="middle">weigh-house</text></g>
+<g class="room" data-room="engravers-bench"><rect x="575" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="643" y="168" font-size="13" font-weight="600" text-anchor="middle">Engravers' Bench</text><text x="643" y="184" font-size="10" fill="#666666" text-anchor="middle">engravers-bench</text></g>
+<g class="room" data-room="paymasters-office"><rect x="745" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="813" y="168" font-size="13" font-weight="600" text-anchor="middle">Paymaster's Office</text><text x="813" y="184" font-size="10" fill="#666666" text-anchor="middle">paymasters-office</text></g>
+<g class="room" data-room="payroll-archive"><rect x="915" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="983" y="168" font-size="13" font-weight="600" text-anchor="middle">Payroll Archive</text><text x="983" y="184" font-size="10" fill="#666666" text-anchor="middle">payroll-archive</text></g>
+<g class="room" data-room="witness-stair"><rect x="1085" y="130" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="1153" y="168" font-size="13" font-weight="600" text-anchor="middle">Witness Stair</text><text x="1153" y="184" font-size="10" fill="#666666" text-anchor="middle">witness-stair</text><text x="1153" y="200" font-size="10" font-weight="600" fill="#1d4f91" text-anchor="middle">▼ stairs</text></g>
+<g class="room" data-room="delivery-yard"><rect x="65" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="133" y="288" font-size="13" font-weight="600" text-anchor="middle">Delivery Yard</text><text x="133" y="304" font-size="10" fill="#666666" text-anchor="middle">delivery-yard</text></g>
+<g class="room" data-room="coal-scales"><rect x="235" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="303" y="288" font-size="13" font-weight="600" text-anchor="middle">Coal Scales</text><text x="303" y="304" font-size="10" fill="#666666" text-anchor="middle">coal-scales</text></g>
+<g class="room" data-room="cart-shed"><rect x="405" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="473" y="288" font-size="13" font-weight="600" text-anchor="middle">Cart Shed</text><text x="473" y="304" font-size="10" fill="#666666" text-anchor="middle">cart-shed</text></g>
+<g class="room" data-room="watch-mess"><rect x="575" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="643" y="288" font-size="13" font-weight="600" text-anchor="middle">Watch Mess</text><text x="643" y="304" font-size="10" fill="#666666" text-anchor="middle">watch-mess</text></g>
+<g class="room" data-room="chain-walk"><rect x="745" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="813" y="288" font-size="13" font-weight="600" text-anchor="middle">Chain Walk</text><text x="813" y="304" font-size="10" fill="#666666" text-anchor="middle">chain-walk</text></g>
+<g class="room" data-room="winding-house"><rect x="915" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="983" y="288" font-size="13" font-weight="600" text-anchor="middle">Winding House</text><text x="983" y="304" font-size="10" fill="#666666" text-anchor="middle">winding-house</text></g>
+<g class="room" data-room="bullion-lift"><rect x="1085" y="250" width="136" height="80" rx="6" fill="#dce9f9" stroke="#4a4a4a" stroke-width="1.5"/><text x="1153" y="288" font-size="13" font-weight="600" text-anchor="middle">Bullion Lift</text><text x="1153" y="304" font-size="10" fill="#666666" text-anchor="middle">bullion-lift</text><text x="1153" y="320" font-size="10" font-weight="600" fill="#1d4f91" text-anchor="middle">▼ ladder</text></g>
+</g>
+<g class="floor" data-floor="-1">
+<text x="48" y="380" font-size="16" font-weight="700">Floor -1</text>
+<text x="133" y="404" font-size="10" fill="#999999" text-anchor="middle">0</text>
+<rect class="cell" x="48" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="48" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="303" y="404" font-size="10" fill="#999999" text-anchor="middle">1</text>
+<rect class="cell" x="218" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="218" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="473" y="404" font-size="10" fill="#999999" text-anchor="middle">2</text>
+<rect class="cell" x="388" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="388" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="643" y="404" font-size="10" fill="#999999" text-anchor="middle">3</text>
+<rect class="cell" x="558" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="558" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="813" y="404" font-size="10" fill="#999999" text-anchor="middle">4</text>
+<rect class="cell" x="728" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="728" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="983" y="404" font-size="10" fill="#999999" text-anchor="middle">5</text>
+<rect class="cell" x="898" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="898" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="1153" y="404" font-size="10" fill="#999999" text-anchor="middle">6</text>
+<rect class="cell" x="1068" y="410" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<rect class="cell" x="1068" y="530" width="170" height="120" fill="none" stroke="#eeeeee"/>
+<text x="40" y="474" font-size="10" fill="#999999" text-anchor="end">0</text>
+<text x="40" y="594" font-size="10" fill="#999999" text-anchor="end">1</text>
+<line class="passage" data-passage="proof-vault-to-assay-chamber" x1="133" y1="470" x2="303" y2="470" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="assay-chamber-to-die-room" x1="303" y1="470" x2="473" y2="470" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="die-room-to-proofing-press" x1="473" y1="470" x2="643" y2="470" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="proofing-press-to-acid-bench" x1="643" y1="470" x2="813" y2="470" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="acid-bench-to-sample-lock" x1="813" y1="470" x2="983" y2="470" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage flagged" data-passage="sample-lock-to-records-landing" x1="983" y1="470" x2="1153" y2="470" stroke="#3f7fbf" stroke-dasharray="2 6" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="ash-lock-to-cooling-beds" x1="303" y1="590" x2="473" y2="590" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="cooling-beds-to-casting-pit" x1="473" y1="590" x2="643" y2="590" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="casting-pit-to-furnace-walk" x1="643" y1="590" x2="813" y2="590" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="furnace-walk-to-stokers-refuge" x1="813" y1="590" x2="983" y2="590" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage flagged" data-passage="stokers-refuge-to-lift-foot" x1="983" y1="590" x2="1153" y2="590" stroke="#3f7fbf" stroke-dasharray="2 6" stroke-width="4" stroke-linecap="round"/>
+<line class="passage" data-passage="assay-chamber-to-ash-lock" x1="303" y1="470" x2="303" y2="590" stroke="#777777" stroke-width="4" stroke-linecap="round"/>
+<line class="passage hidden" data-passage="proofing-press-to-casting-pit" x1="643" y1="470" x2="643" y2="590" stroke="#8e6fbf" stroke-dasharray="7 6" stroke-width="4" stroke-linecap="round"/>
+<line class="passage flagged" data-passage="proof-vault-to-ash-wharf" x1="133" y1="470" x2="133" y2="590" stroke="#3f7fbf" stroke-dasharray="2 6" stroke-width="4" stroke-linecap="round"/>
+<rect class="door locked" data-passage="proof-vault-to-assay-chamber" x="211" y="463" width="14" height="14" fill="#6d4c41" stroke="#6d4c41" stroke-width="2"/>
+<g class="room" data-room="proof-vault"><rect x="65" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="133" y="468" font-size="13" font-weight="600" text-anchor="middle">Proof Vault</text><text x="133" y="484" font-size="10" fill="#666666" text-anchor="middle">proof-vault</text></g>
+<g class="room" data-room="assay-chamber"><rect x="235" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="303" y="468" font-size="13" font-weight="600" text-anchor="middle">Assay Chamber</text><text x="303" y="484" font-size="10" fill="#666666" text-anchor="middle">assay-chamber</text></g>
+<g class="room" data-room="die-room"><rect x="405" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="473" y="468" font-size="13" font-weight="600" text-anchor="middle">Die Room</text><text x="473" y="484" font-size="10" fill="#666666" text-anchor="middle">die-room</text></g>
+<g class="room" data-room="proofing-press"><rect x="575" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="643" y="468" font-size="13" font-weight="600" text-anchor="middle">Proofing Press</text><text x="643" y="484" font-size="10" fill="#666666" text-anchor="middle">proofing-press</text></g>
+<g class="room" data-room="acid-bench"><rect x="745" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="813" y="468" font-size="13" font-weight="600" text-anchor="middle">Acid Bench</text><text x="813" y="484" font-size="10" fill="#666666" text-anchor="middle">acid-bench</text></g>
+<g class="room" data-room="sample-lock"><rect x="915" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="983" y="468" font-size="13" font-weight="600" text-anchor="middle">Sample Lock</text><text x="983" y="484" font-size="10" fill="#666666" text-anchor="middle">sample-lock</text></g>
+<g class="room" data-room="records-landing"><rect x="1085" y="430" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="1153" y="468" font-size="13" font-weight="600" text-anchor="middle">Records Landing</text><text x="1153" y="484" font-size="10" fill="#666666" text-anchor="middle">records-landing</text><text x="1153" y="500" font-size="10" font-weight="600" fill="#1d4f91" text-anchor="middle">▲ stairs</text></g>
+<g class="room exit" data-room="ash-wharf"><rect x="65" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="71" y="562" font-size="9" font-weight="700" fill="#2e7d32">EXIT</text><text x="133" y="588" font-size="13" font-weight="600" text-anchor="middle">Ash Wharf</text><text x="133" y="604" font-size="10" fill="#666666" text-anchor="middle">ash-wharf</text></g>
+<g class="room" data-room="ash-lock"><rect x="235" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="303" y="588" font-size="13" font-weight="600" text-anchor="middle">Ash Lock</text><text x="303" y="604" font-size="10" fill="#666666" text-anchor="middle">ash-lock</text></g>
+<g class="room" data-room="cooling-beds"><rect x="405" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="473" y="588" font-size="13" font-weight="600" text-anchor="middle">Cooling Beds</text><text x="473" y="604" font-size="10" fill="#666666" text-anchor="middle">cooling-beds</text></g>
+<g class="room" data-room="casting-pit"><rect x="575" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="643" y="588" font-size="13" font-weight="600" text-anchor="middle">Casting Pit</text><text x="643" y="604" font-size="10" fill="#666666" text-anchor="middle">casting-pit</text></g>
+<g class="room" data-room="furnace-walk"><rect x="745" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="813" y="588" font-size="13" font-weight="600" text-anchor="middle">Furnace Walk</text><text x="813" y="604" font-size="10" fill="#666666" text-anchor="middle">furnace-walk</text></g>
+<g class="room" data-room="stokers-refuge"><rect x="915" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="983" y="588" font-size="13" font-weight="600" text-anchor="middle">Stokers' Refuge</text><text x="983" y="604" font-size="10" fill="#666666" text-anchor="middle">stokers-refuge</text></g>
+<g class="room" data-room="lift-foot"><rect x="1085" y="550" width="136" height="80" rx="6" fill="#fbeccb" stroke="#4a4a4a" stroke-width="1.5"/><text x="1153" y="588" font-size="13" font-weight="600" text-anchor="middle">Lift Foot</text><text x="1153" y="604" font-size="10" fill="#666666" text-anchor="middle">lift-foot</text><text x="1153" y="620" font-size="10" font-weight="600" fill="#1d4f91" text-anchor="middle">▲ ladder</text></g>
+</g>
+<g class="legend">
+<text x="48" y="680" font-size="13" font-weight="700">Regions</text>
+<rect class="swatch" x="48" y="692" width="22" height="14" fill="#dce9f9" stroke="#4a4a4a"/>
+<text x="80" y="704" font-size="12">The Counting Floor</text>
+<rect class="swatch" x="48" y="712" width="22" height="14" fill="#fbeccb" stroke="#4a4a4a"/>
+<text x="80" y="724" font-size="12">The Hot Works</text>
+<text x="48" y="748" font-size="13" font-weight="700">Key</text>
+<rect x="48" y="760" width="22" height="14" rx="3" fill="#ffffff" stroke="#2e7d32" stroke-width="3"/>
+<text x="80" y="772" font-size="12">start room (START); exit room (EXIT)</text>
+<line x1="48" y1="788" x2="70" y2="788" stroke="#777777" stroke-width="4"/>
+<text x="80" y="792" font-size="12">passage</text>
+<line x1="48" y1="808" x2="70" y2="808" stroke="#8e6fbf" stroke-dasharray="7 6" stroke-width="4"/>
+<text x="80" y="812" font-size="12">hidden passage</text>
+<line x1="48" y1="828" x2="70" y2="828" stroke="#3f7fbf" stroke-dasharray="2 6" stroke-width="4"/>
+<text x="80" y="832" font-size="12">passage a flag opens or closes</text>
+<rect x="52" y="841" width="14" height="14" fill="#ffffff" stroke="#6d4c41" stroke-width="2"/>
+<text x="80" y="852" font-size="12">stuck door</text>
+<rect x="52" y="861" width="14" height="14" fill="#6d4c41" stroke="#6d4c41" stroke-width="2"/>
+<text x="80" y="872" font-size="12">locked door</text>
+<path d="M 59 881 L 66 894 L 52 894 Z" fill="#d32f2f"/>
+<text x="80" y="892" font-size="12">trap</text>
+<text x="48" y="912" font-size="12" font-weight="600" fill="#1d4f91">▲▼</text>
+<text x="80" y="912" font-size="12">stairs, a ladder or a shaft up or down (listed below)</text>
+<text x="48" y="936" font-size="13" font-weight="700">Between floors</text>
+<text x="48" y="960" font-size="12">Witness Stair ▼ stairs to Records Landing (floor -1)</text>
+<text x="48" y="980" font-size="12">Bullion Lift ▼ ladder to Lift Foot (floor -1)</text>
+</g>
+</svg>

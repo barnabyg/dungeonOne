@@ -20,6 +20,11 @@ file. The shape, in short:
   `routes` (1–6, each `id`, `name` and 1–20 `rooms` passed in order); and one
   `wanderingEncounter` (`{ encounterId, chance }`, rolled on each rest), not
   beside region tables.
+- **Victory on departure.** In adventure format 47, a victory ending can name
+  an `onEscapeWhen` flag. At an exit the first such victory whose flag is set
+  takes precedence over the ordinary loot and empty-handed endings. Make rival
+  resolutions mutually exclusive when a choice is final. The leave preview,
+  ending screen and settled adventure use the same ending.
 - **Room:** `id`, `name`, `description`, its map cell `at` (`[x, y]`, −50 to 50)
   and optional `floor` (−9 to 9); optional `region`, `backdrop` (in place of its
   region's), `exit`, `restSite: true` (where a long rest may be taken),
@@ -72,8 +77,9 @@ file. The shape, in short:
   `sneakAgain: true`, `lurking: true`, a `reaction` (each attitude's `options`
   and `text`, optional `peacefulXp`, `parley`, `toll` and `trade`; see
   [talk-and-stealth.md](talk-and-stealth.md#reaction-rolls)), `sets` (flags for
-  `won`, `bypassed`, `peaceful` and `fled`), and one of `presentWhile`,
-  `presentUntil` (a flag) and `movesTo` (`{ roomId, when }`).
+  `won`, `bypassed`, `peaceful` and `fled`). A stationary encounter can
+  appear on `presentWhile` and withdraw on a different `presentUntil` flag.
+  A moving encounter uses `movesTo` (`{ roomId, when }`).
 
 ## What the validator refuses
 

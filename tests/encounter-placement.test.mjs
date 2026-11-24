@@ -100,6 +100,10 @@ test("the validator refuses an encounter placed in an unknown room or its own", 
 
 test("the validator refuses an unknown flag, or more than one placement", () => {
   assert.throws(
+    () => alarmed({ presentWhile: "alarm", presentUntil: "alarm" }),
+    /present while and until the same flag/u,
+  );
+  assert.throws(
     () => alarmed({ presentWhile: "no-such-flag" }),
     /encounter cellar-rat names unknown flag no-such-flag\./u,
   );
@@ -109,7 +113,7 @@ test("the validator refuses an unknown flag, or more than one placement", () => 
         presentWhile: "alarm",
         movesTo: { roomId: "alcove", when: "alarm" },
       }),
-    /may have only one of presentWhile, presentUntil and movesTo\./u,
+    /cannot combine movesTo with presentWhile or presentUntil\./u,
   );
 });
 

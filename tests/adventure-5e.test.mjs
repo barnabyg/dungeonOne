@@ -23,6 +23,43 @@ const changed = (change) => {
   change(copy);
   return copy;
 };
+
+test("a departure victory needs an exit and a distinct, declared flag", () => {
+  const make = () => {
+    const file = moduleFile("quay-strongroom");
+    file.flags = ["case-heard"];
+    file.rooms[0].features[0].sets = "case-heard";
+    file.endings.push({
+      id: "acquittal",
+      kind: "victory",
+      title: "Acquitted",
+      text: "The hearing is over.",
+      onEscapeWhen: "case-heard",
+    });
+    return file;
+  };
+  assert.ok(validateModule(make()));
+  const duplicate = make();
+  duplicate.endings.push({
+    ...duplicate.endings.at(-1),
+    id: "another-verdict",
+  });
+  assert.throws(
+    () => validateModule(duplicate),
+    /more than one exit victory uses flag case-heard/u,
+  );
+  const unknown = make();
+  unknown.endings.at(-1).onEscapeWhen = "missing-flag";
+  assert.throws(() => validateModule(unknown), /unknown flag missing-flag/u);
+  const noExit = make();
+  for (const room of noExit.rooms) {
+    delete room.exit;
+  }
+  assert.throws(
+    () => validateModule(noExit),
+    /ending acquittal needs an exit/u,
+  );
+});
 /** Authors the lone goblin's bestiary stat block inline, and returns it. */
 const inline = (m) => {
   const [goblin] = m.encounters[0].opponents;

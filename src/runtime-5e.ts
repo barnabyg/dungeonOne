@@ -6517,6 +6517,14 @@ export function createFifthRuntime(
    * whose coin goes out.
    */
   const leavingEnding = (state: FifthState): FifthEnding => {
+    const victory = adventure.endings.find(
+      (ending) =>
+        ending.onEscapeWhen !== undefined &&
+        state.flags.includes(ending.onEscapeWhen),
+    );
+    if (victory !== undefined) {
+      return victory;
+    }
     const kind =
       carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
       coinFound(state).length > 0 ||
@@ -6555,6 +6563,7 @@ export function createFifthRuntime(
     if (
       objective === undefined ||
       objective === ending ||
+      ending.kind === "victory" ||
       sheet.xpAwards.includes(endingAwardId(objective))
     ) {
       return { ending: brings };
@@ -11468,7 +11477,7 @@ export function createFifthRuntime(
         return {
           state: {
             ...(slipped?.state ?? state),
-            status: "escaped",
+            status: ending.kind === "victory" ? "victory" : "escaped",
             endingId: ending.id,
           },
           events: [

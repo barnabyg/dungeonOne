@@ -150,15 +150,18 @@ export function isCasterItemId(value: unknown): value is CasterItemId {
 }
 
 /** SRD 5.2 wands. */
+const magicMissileWand = {
+  name: "Wand of Magic Missiles",
+  spell: "magic-missile",
+  charges: 7,
+  regain: { dice: 1, sides: 6, modifier: 1 },
+  rarity: "uncommon",
+  attunement: false,
+} as const satisfies WandData;
+
 export const WANDS = {
-  "wand-of-magic-missiles": {
-    name: "Wand of Magic Missiles",
-    spell: "magic-missile",
-    charges: 7,
-    regain: { dice: 1, sides: 6, modifier: 1 },
-    rarity: "uncommon",
-    attunement: false,
-  },
+  "wand-of-magic-missiles": magicMissileWand,
+  "third-bell": { ...magicMissileWand, name: "Third Bell" },
 } as const satisfies Record<string, WandData>;
 export type WandId = keyof typeof WANDS;
 

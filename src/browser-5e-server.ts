@@ -276,7 +276,9 @@ function sessionView(session: FifthSession) {
             title: ending.title,
             text: ending.text,
             // Whether it meets the module's objective, for its sound (#487).
-            objective: ending.id === objectiveEnding(adventure)?.id,
+            objective:
+              ending.kind === "victory" ||
+              ending.id === objectiveEnding(adventure)?.id,
             ...(rewards === undefined ? {} : { rewards }),
           },
         }),

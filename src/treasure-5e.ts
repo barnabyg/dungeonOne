@@ -95,6 +95,7 @@ export const MAGIC_ITEM_MIN_LEVEL: Readonly<
   Record<WandId | CasterItemId, number>
 > = {
   "wand-of-magic-missiles": 3,
+  "third-bell": 5,
   "wand-of-the-war-mage-plus-1": 3,
   "pearl-of-power": 3,
 };

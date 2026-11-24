@@ -2,19 +2,23 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "a2d4fd6dc3a505379fd95e06c356c2f061bcc764fdad0a3febec36608d003212",
+      "hash": "96f25e413982a84f60d1424ee429a4f0a42b1c1876ccbdf22ea831533aeb4b47",
       "qualified": true
     },
     "bramblecote-cider-house": {
-      "hash": "5ca7a87be9681928c2e58f29f40a2811ebd655147f42023f9aa71411a1c7460f",
+      "hash": "edacedcc763a40a5d48842aeab9800bfcb2555e4cd513f6762b5d1f00dbd49c0",
       "qualified": true
     },
     "coldwater-weirgate": {
-      "hash": "deef67021f58f754e1a271509abcc05b25709938661e7068315578c5c7fc654c",
+      "hash": "5c8a27b540b332cbad66dbf99dae4e72f9155df58d12f804ae82ffdddce09a85",
+      "qualified": true
+    },
+    "last-shift-at-cinder-mint": {
+      "hash": "0f3d2434f110dd7b5a0fc88f6a3cb2a17e2da4afeb70506f3afb6a6940b955c4",
       "qualified": true
     },
     "thornwood-lodge": {
-      "hash": "c0cf50eba853a9c9185311d88ee3799cac75d114b41ff4adea70ce6594fffa9d",
+      "hash": "fb6faf3905163f65204c963fd1221abcc21c333732c3c326aaf5c167eac023f5",
       "qualified": true
     }
   }

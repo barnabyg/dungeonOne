@@ -127,9 +127,11 @@ explains its output and the sketch format.
   ([ADR 0005](adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)). Name
   opponents by bestiary id. Content is original, and the game is single-player:
   design every module for one character.
-- **The four-module set.** Four long modules, one per level band (1, 2, 3–4 and
+- **The career and its capstone.** Four long modules, one per level band (1, 2, 3–4 and
   4–5), carry a character from level 1 to level 5. Each has 10–20 rooms and two
-  regions, each region with a rest site and an exit. The validator allows at
+  regions, each region with a rest site and an exit. The optional fifth module,
+  Last Shift at Cinder Mint, starts at level 5 and has 28 rooms. Its two
+  narrative victories award no additional ending XP. The validator allows at
   most 50 rooms, 100 passages and 30 encounters.
 - **The XP path.** The main endings' awards (escape with loot, or victory where
   the module has one), taken in level order, add up to SRD 5.2's thresholds for

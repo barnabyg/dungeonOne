@@ -84,13 +84,14 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the four shipped ones (#437, #446)", () => {
+test("the built-in modules include the four career adventures and the Cinder Mint capstone", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
       "bramblecote-cider-house",
       "coldwater-weirgate",
+      "last-shift-at-cinder-mint",
       "thornwood-lodge",
     ],
   );
@@ -127,6 +128,14 @@ test("leaving any shipped module at its start warns of the objective's award los
     const { leaving } = runtime
       .projectActions(begun)
       .find(({ action }) => action === "leave");
+    if (module.id === "last-shift-at-cinder-mint") {
+      assert.equal(leaving.ending.id, "left-the-six");
+      assert.equal(
+        leaving.warning,
+        `Objective not met: ${module.objective} You keep the XP for any fights you have won.`,
+      );
+      continue;
+    }
     const [unmet, title, xp] = objectives[module.id];
     assert.equal(
       leaving.warning,
@@ -648,6 +657,13 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
  * module of level 3 or more with such foes (#412): the Lockjaw bandits.
  */
 const HOLD_PERSON_FIGURES = {
+  "last-shift-at-cinder-mint": [
+    ["mess-collector", 42.2],
+    ["store-sergeant", 42.2],
+    ["bond-watch", 42.2],
+    ["bond-captain", 27.5],
+    ["wharf-mate", 42.2],
+  ],
   // At level 4 since #443 (27.5% each at level 3).
   "coldwater-weirgate": [
     ["sergeant-larrow", 34.3],
@@ -852,6 +868,8 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     "coldwater-weirgate/lookout-coins@lookout",
     "coldwater-weirgate/old-sullage-coins@old-sullage",
     "coldwater-weirgate/sergeant-larrow-coins@sergeant-larrow",
+    "last-shift-at-cinder-mint/collectors-key@mess-collector",
+    "last-shift-at-cinder-mint/mess-silver@mess-collector",
     "thornwood-lodge/captain-hesk-coins@captain-hesk",
     "thornwood-lodge/reavers-gaoler-coins@reavers-gaoler",
     "thornwood-lodge/reavers-gaoler-trinket@reavers-gaoler",
@@ -877,6 +895,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       // Levels 3–4 since #443 (level 3 before).
       ["coldwater-weirgate", "3–4", "medium"],
       ["thornwood-lodge", "4–5", "hard"],
+      ["last-shift-at-cinder-mint", "5–5", "easy"],
     ],
   );
 });
