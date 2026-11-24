@@ -134,9 +134,17 @@ for (const [scenario, title, route, choice, alternative] of [
       await act("examine", "wharf-release");
       await act("move", "ash-wharf");
       await page.locator("#leave-controls button").click();
-      await page.locator("#confirm-leave").click();
+      const [response] = await Promise.all([
+        page.waitForResponse("**/api/5e/session/explore"),
+        page.locator("#confirm-leave").click(),
+      ]);
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.equal(await page.locator("#ending-title").innerText(), title);
+      assert.equal(response.status(), 200);
+      assert.equal(
+        (await response.json()).session.ending.objective,
+        choice !== undefined,
+      );
       const { sheet, session } = await readAda(libraryPath);
       assert.equal(session, undefined);
       assert.deepEqual(
