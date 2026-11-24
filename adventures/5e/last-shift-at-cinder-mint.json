@@ -35,8 +35,9 @@
     "alarm-raised",
     "captain-stands-down",
     "case-settled",
+    "crew-escorted",
     "transfer-ordered",
-    "crew-escorted"
+    "bond-broken"
   ],
   "alarm": {
     "flag": "alarm-raised",
@@ -458,8 +459,33 @@
         {
           "id": "mess-strongbox",
           "name": "Mess strongbox",
-          "description": "A small green box fits under the bench.",
-          "discovery": "The watch deducts broken bowls from the night crew's pay. The box bears the collectors' own seal."
+          "description": "A small green box fits under the bench. The collector wears its key. Crews using the shift signal pass while the collector is away on rounds.",
+          "discovery": "The watch deducts broken bowls from the night crew's pay. The box bears the collectors' own seal.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The collector wears the only key. The lid covers the bond garnet and the watch surety."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "collectors-key",
+              "text": "The collector's key turns in the box. Inside are the garnet and the night watch's surety.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "pay-garnet"
+                },
+                {
+                  "type": "item",
+                  "item": "watch-gold"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "serving-hatch",
@@ -519,6 +545,13 @@
           "coins": {
             "sp": 2
           },
+          "hiddenIn": "mess-collector"
+        },
+        {
+          "id": "collectors-key",
+          "name": "Collector's chest key",
+          "description": "A filed iron key to the mess strongbox.",
+          "kind": "key",
           "hiddenIn": "mess-collector"
         }
       ],
@@ -1008,9 +1041,10 @@
       "features": [
         {
           "id": "sample-cases",
-          "name": "Sample cases",
-          "description": "Stamped cases sit beneath a counting grille.",
-          "discovery": "A locked till holds the bond company's deposits, separate from the apprentices' wages."
+          "name": "Break the bonded seal",
+          "description": "A red cord seals the sample cases. The guard docket grants witnesses passage; cutting the cord brings both guards.",
+          "discovery": "The cord snaps under your hand. The store guards bar the wicket and draw their blades.",
+          "sets": "bond-broken"
         },
         {
           "id": "guard-docket",
@@ -1580,9 +1614,8 @@
         {
           "id": "store-sergeant",
           "name": "Store Sergeant",
-          "monster": "hobgoblin-warrior",
-          "reacts": true,
-          "description": "A bonded hobgoblin watch veteran wears the mint's red enamel badge on a polished breastplate."
+          "monster": "bandit",
+          "description": "The store sergeant wears the mint's red badge and a heavy ring of keys on a belt over her blue coat."
         },
         {
           "id": "bond-watch",
@@ -1591,27 +1624,7 @@
         }
       ],
       "defeatEndingId": "held-at-the-mint",
-      "reaction": {
-        "bands": {
-          "unfriendly": {
-            "options": ["attack", "let-pass"],
-            "text": "The guards lift the wicket for witnesses. Their hands stay on their blades beside the sample cases."
-          },
-          "uncertain": {
-            "options": ["attack", "let-pass"],
-            "text": "The guards lift the wicket for witnesses. Their hands stay on their blades beside the sample cases."
-          },
-          "indifferent": {
-            "options": ["attack", "let-pass"],
-            "text": "The guards lift the wicket for witnesses. Their hands stay on their blades beside the sample cases."
-          },
-          "friendly": {
-            "options": ["attack", "let-pass"],
-            "text": "The guards lift the wicket for witnesses. Their hands stay on their blades beside the sample cases."
-          }
-        }
-      },
-      "presentUntil": "witness-ready"
+      "presentWhile": "bond-broken"
     },
     {
       "id": "assay-watch",

@@ -6,6 +6,8 @@ import test from "node:test";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   actionButton,
+  castAt,
+  fight,
   settled,
   startAdventure,
 } from "./fixtures/browser-journey.mjs";
@@ -111,6 +113,19 @@ for (const [scenario, title, route, choice, alternative] of [
         settled(page, () => actionButton(page, action, target).first().click());
       for (const [action, target] of route) {
         await act(action, target);
+        if (target === "watch-mess") {
+          await act("examine", "mess-strongbox");
+          assert.equal(
+            await actionButton(page, "take", "watch-gold").count(),
+            0,
+          );
+        }
+        if (target === "sample-lock" && choice === undefined) {
+          await act("examine", "sample-cases");
+          assert.match(await page.locator("#turn").innerText(), /Round/u);
+          await fight(page);
+          await act("take", "guild-chain");
+        }
       }
       await page.reload();
       if (choice !== undefined) {
@@ -127,7 +142,12 @@ for (const [scenario, title, route, choice, alternative] of [
           await act("take", "transfer-docket");
         }
       }
-      await act("unlock", "proof-door");
+      if (choice === undefined) {
+        await act("break", "proof-door");
+      }
+      if (await actionButton(page, "unlock", "proof-door").count()) {
+        await act("unlock", "proof-door");
+      }
       await act("move", "proof-vault");
       await act("examine", "foremans-drawer");
       await act("take", "foremans-wand");
@@ -158,6 +178,16 @@ for (const [scenario, title, route, choice, alternative] of [
         }
       }
       await act("move", "ash-wharf");
+      if (choice === undefined) {
+        if (await actionButton(page, "react", "attack").count()) {
+          await act("react", "attack");
+        }
+        await castAt(page, "magic-missile", "wharf-bow", {
+          item: `${mint}/foremans-wand`,
+          slot: 3,
+        });
+        await fight(page);
+      }
       await page.locator("#leave-controls button").click();
       const [response] = await Promise.all([
         page.waitForResponse("**/api/5e/session/explore"),

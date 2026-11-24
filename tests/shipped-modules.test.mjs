@@ -659,6 +659,7 @@ test("in every undead module the gate judges the Cleric's Turn Undead against th
 const HOLD_PERSON_FIGURES = {
   "last-shift-at-cinder-mint": [
     ["mess-collector", 42.2],
+    ["store-sergeant", 42.2],
     ["bond-watch", 42.2],
     ["bond-captain", 27.5],
     ["wharf-mate", 42.2],
@@ -867,6 +868,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     "coldwater-weirgate/lookout-coins@lookout",
     "coldwater-weirgate/old-sullage-coins@old-sullage",
     "coldwater-weirgate/sergeant-larrow-coins@sergeant-larrow",
+    "last-shift-at-cinder-mint/collectors-key@mess-collector",
     "last-shift-at-cinder-mint/mess-silver@mess-collector",
     "thornwood-lodge/captain-hesk-coins@captain-hesk",
     "thornwood-lodge/reavers-gaoler-coins@reavers-gaoler",
