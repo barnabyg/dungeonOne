@@ -77,8 +77,9 @@ file. The shape, in short:
   `sneakAgain: true`, `lurking: true`, a `reaction` (each attitude's `options`
   and `text`, optional `peacefulXp`, `parley`, `toll` and `trade`; see
   [talk-and-stealth.md](talk-and-stealth.md#reaction-rolls)), `sets` (flags for
-  `won`, `bypassed`, `peaceful` and `fled`), and one of `presentWhile`,
-  `presentUntil` (a flag) and `movesTo` (`{ roomId, when }`).
+  `won`, `bypassed`, `peaceful` and `fled`). A stationary encounter can
+  appear on `presentWhile` and withdraw on a different `presentUntil` flag.
+  A moving encounter uses `movesTo` (`{ roomId, when }`).
 
 ## What the validator refuses
 

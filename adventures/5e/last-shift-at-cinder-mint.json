@@ -35,7 +35,8 @@
     "alarm-raised",
     "captain-stands-down",
     "case-settled",
-    "transfer-ordered"
+    "transfer-ordered",
+    "crew-escorted"
   ],
   "alarm": {
     "flag": "alarm-raised",
@@ -652,10 +653,20 @@
         {
           "id": "wharf-release",
           "name": "Wharf release",
-          "description": "A docket slot and an iron lever flank the gangway.",
+          "description": "A docket slot and a signal plate flank the gangway lever.",
           "sets": "vault-opened",
-          "discovery": "You lower the gangway. An empty-return docket, slipped under this pin, lets the prisoners out of the cart.",
+          "discovery": "You lower the gangway. An empty-return docket here releases the six cell pins; the brass shift diagram sends the crew signal.",
           "uses": [
+            {
+              "item": "shift-card",
+              "text": "You tap two short knocks and one long against the gangway. The ferryman answers. The wharf watch lets your crew through, even under alarm.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "crew-escorted"
+                }
+              ]
+            },
             {
               "item": "transfer-docket",
               "text": "You fit Penn's docket into the release, throw the lever and pull the pin. Six cell doors spring back. The cart rolls aboard; Kit hangs her apron on the mooring post before the ferryman casts off.",
@@ -1678,7 +1689,8 @@
           }
         }
       },
-      "presentWhile": "alarm-raised"
+      "presentWhile": "alarm-raised",
+      "presentUntil": "crew-escorted"
     }
   ],
   "endings": [

@@ -52,6 +52,7 @@ const barge = [
   ["take", "shift-card"],
   ...moves("cart-shed", "watch-mess", "chain-walk", "winding-house"),
   ["take", "winding-crank"],
+  ["examine", "brake-pawl"],
   ["use-on", "crank-socket"],
   ...moves("bullion-lift", "lift-foot", "stokers-refuge"),
   ["talk", "kits-wish"],
@@ -146,7 +147,15 @@ for (const [scenario, title, route, choice, alternative] of [
         await act("move", "proof-vault");
       }
       if (choice === "transfer-six") {
-        await act("use-on", "wharf-release");
+        for (const item of ["transfer-docket", "shift-card"]) {
+          await settled(page, () =>
+            page
+              .locator(
+                `button.act[data-action="use-on"][data-target="wharf-release"][data-item="${item}"]`,
+              )
+              .click(),
+          );
+        }
       }
       await act("move", "ash-wharf");
       await page.locator("#leave-controls button").click();

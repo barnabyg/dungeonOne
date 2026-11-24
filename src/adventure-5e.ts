@@ -359,8 +359,8 @@ export type FifthEncounter = Readonly<{
    */
   sets?: Readonly<Partial<Record<FlagOutcome, string>>>;
   /**
-   * Its room holds it only once this flag is set (#398): it appears. At
-   * most one of `presentWhile`, `presentUntil` and `movesTo`.
+   * Its room holds it only once this flag is set (#398). A stationary
+   * encounter may also withdraw on a different `presentUntil` flag.
    */
   presentWhile?: string;
   /** Its room holds it only until this flag is set (#398): it vanishes. */
@@ -2409,13 +2409,19 @@ function validateModule(
         where,
       );
       if (
-        ["presentWhile", "presentUntil", "movesTo"].filter(
-          (field) => encounter[field] !== undefined,
-        ).length > 1
+        encounter.movesTo !== undefined &&
+        (encounter.presentWhile !== undefined ||
+          encounter.presentUntil !== undefined)
       ) {
         fail(
-          `${where} may have only one of presentWhile, presentUntil and movesTo.`,
+          `${where} cannot combine movesTo with presentWhile or presentUntil.`,
         );
+      }
+      if (
+        encounter.presentWhile !== undefined &&
+        encounter.presentWhile === encounter.presentUntil
+      ) {
+        fail(`${where} cannot be present while and until the same flag.`);
       }
       const movesTo =
         encounter.movesTo === undefined
@@ -4125,7 +4131,8 @@ function validateModule(
     fight.movesTo !== undefined
       ? reached.has(fight.movesTo.roomId) &&
         (flagged.has(fight.movesTo.when) || reached.has(own))
-      : fight.presentWhile !== undefined &&
+      : fight.presentUntil === undefined &&
+        fight.presentWhile !== undefined &&
         reached.has(own) &&
         flagged.has(fight.presentWhile);
   /** The rooms reached for sure, and the flags set for sure (#397). */
