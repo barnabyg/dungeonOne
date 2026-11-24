@@ -15,8 +15,8 @@
 import { isGameIconId } from "./icons-5e.js";
 import { isSoundId } from "./sounds-5e.js";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, readdir, readFile, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { adventureDigest, type FifthAdventure } from "./adventure-5e.js";
 import { writeFileAtomically } from "./atomic-file.js";
@@ -117,6 +117,76 @@ function invalid(path: string): Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+type Visit = Readonly<{ characterId: string; adventureId: string }>;
+
+/** The two identities are fixed when the session is created. Reading them
+ * does not require replaying its turns or having the module installed. */
+async function readVisit(
+  directory: string,
+  name: string,
+): Promise<Visit | undefined> {
+  const path = join(directory, name);
+  try {
+    if ((await stat(path)).size > MAX_SESSION_BYTES) {
+      return undefined;
+    }
+    const file = parseBoundedJson(await readFile(path), MAX_SESSION_BYTES, 64);
+    if (
+      isRecord(file) &&
+      file.kind === "dungeon-one-5e-session" &&
+      file.formatVersion === FIFTH_SESSION_FORMAT &&
+      file.id === name.slice(0, -5) &&
+      isRecord(file.character) &&
+      typeof file.character.id === "string" &&
+      isRecord(file.adventure) &&
+      typeof file.adventure.id === "string"
+    ) {
+      return { characterId: file.character.id, adventureId: file.adventure.id };
+    }
+  } catch {
+    // An unreadable archive must not prevent opening the character library.
+  }
+  return undefined;
+}
+
+/** Scan once per new adventure, reading only session identities we lack. */
+export function savedAdventureVisits(directory: string) {
+  const known = new Map<string, Visit>();
+  let cached:
+    { started: number; visits: Promise<Map<string, Set<string>>> } | undefined;
+  async function scan() {
+    const byCharacter = new Map<string, Set<string>>();
+    let files;
+    try {
+      files = await readdir(directory, { withFileTypes: true });
+    } catch {
+      // A missing or unreadable archive does not block the character sheet.
+      return byCharacter;
+    }
+    for (const file of files) {
+      if (!file.isFile() || !/^[a-f0-9]{32}\.json$/.test(file.name)) {
+        continue;
+      }
+      const visit =
+        known.get(file.name) ?? (await readVisit(directory, file.name));
+      if (visit === undefined) {
+        continue;
+      }
+      known.set(file.name, visit);
+      const ids = byCharacter.get(visit.characterId) ?? new Set<string>();
+      ids.add(visit.adventureId);
+      byCharacter.set(visit.characterId, ids);
+    }
+    return byCharacter;
+  }
+  return (started: number) => {
+    if (cached?.started !== started) {
+      cached = { started, visits: scan() };
+    }
+    return cached.visits;
+  };
 }
 
 function validRolls(value: unknown): value is RollRecord[] {

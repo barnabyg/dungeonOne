@@ -55,6 +55,7 @@ import {
 
 import {
   FifthSession,
+  savedAdventureVisits,
   settleFifthSession,
   startFifthAdventure,
 } from "./session-5e.js";
@@ -294,6 +295,8 @@ function libraryView(
   data: FifthLibraryData,
   adventures: readonly FifthAdventure[],
   settings: GameSettings,
+  visits: ReadonlyMap<string, ReadonlySet<string>>,
+  adventureTitles: ReadonlyMap<string, string>,
 ) {
   const pending = data.pendingCreation;
   return {
@@ -373,12 +376,19 @@ function libraryView(
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => {
+      const visited = new Set(visits.get(sheet.id));
+      if (session) {
+        visited.add(session.adventureId);
+      }
       const levelUp = pendingLevelUp(sheet);
       // The scrolls a Wizard may copy into its spellbook (#346).
       const copyable = copyableScrolls(sheet);
       const attuned = attunement(sheet);
       return {
         sheet,
+        visitedAdventures: [...visited]
+          .map((id) => ({ id, title: adventureTitles.get(id) ?? id }))
+          .sort((a, b) => a.title.localeCompare(b.title)),
         className: classOf(sheet).name,
         profile: characterProfile(sheet),
         purse: formatCoins(sheet.purse),
@@ -859,7 +869,18 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     adventures,
     options.qualifies ?? recordedOrGated(await loadGateVerdicts(), adventures),
   );
-  const view = (data: FifthLibraryData) => libraryView(data, offered, settings);
+  const readVisits = savedAdventureVisits(library.sessionDirectory);
+  const adventureTitles = new Map(
+    adventures.map(({ id, title }) => [id, title]),
+  );
+  const view = async (data: FifthLibraryData) =>
+    libraryView(
+      data,
+      offered,
+      settings,
+      await readVisits(data.sessionsStarted),
+      adventureTitles,
+    );
   /**
    * The Settings page: every setting, whether an adventure is under way, and
    * the library, whose sheets show the settings of the moment.
@@ -876,7 +897,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       adventureInProgress: data.characters.some(
         ({ session }) => session !== undefined,
       ),
-      library: view(data),
+      library: await view(data),
     };
   };
   const sound = options.sound ?? true;
@@ -1008,7 +1029,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   });
   /** The response to a session request: the library and the session. */
   const respondWith = async (session: FifthSession) => ({
-    library: view(await library.read()),
+    library: await view(await library.read()),
     session: projectSession(session),
   });
   /**
@@ -1026,7 +1047,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     } else if (session.state.visitedRoomIds.length > previouslyVisited) {
       beginArrival(session);
     }
-    return { library: view(data), session: projectSession(session) };
+    return { library: await view(data), session: projectSession(session) };
   };
   const requireCurrent = (session: FifthSession, sequence: unknown) => {
     if (sequence !== session.transitions.length) {
@@ -1749,7 +1770,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           break;
         case "/api/5e/library":
           try {
-            json(response, 200, view(await library.read()));
+            json(response, 200, await view(await library.read()));
           } catch (error) {
             json(response, 409, {
               error: playerMessage(
