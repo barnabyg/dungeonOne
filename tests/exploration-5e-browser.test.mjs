@@ -27,6 +27,82 @@ const ATTACK = { type: "attack", actorId: "pc", targetId: "giant-rat" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
 const DRINK = { type: "use-item", itemId: "healing-potion" };
 
+test(
+  "a typed move gets its own first impression while keeping the fight and its dice",
+  { timeout: 90_000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "arrival-fight-"));
+    const pending = new Map();
+    const server = await startFifthBrowserServer({
+      ...SERVER_OPTIONS,
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+      roomNarrator(facts) {
+        const request = Promise.withResolvers();
+        pending.set(facts.room, request);
+        return request.promise;
+      },
+      dmModel: {
+        async respond() {
+          return {
+            toolCalls: [
+              {
+                id: "move",
+                name: "move",
+                argumentsJson: '{"destination":"rat-cellar"}',
+              },
+            ],
+          };
+        },
+      },
+    });
+    const browser = await launch();
+    const page = await browser.newPage();
+    try {
+      await createAndStart(page, server.url, adventure.id);
+      await page.locator("#message").fill("Go to the cellar");
+      await page.locator("#send-message").click();
+      const fight = page.locator('#log [data-arrival="Rat-Gnawed Cellar"]');
+      await fight.waitFor();
+      const before = await sessionFile(directory);
+      const first = before.history[0];
+      const oldCard = before.history[1].cards[0];
+      const stale = page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/session/arrival") &&
+          response.request().postDataJSON().index === 0,
+      );
+      pending.get("Foot of the Stair").resolve("This reply arrived too late.");
+      await stale;
+      pending
+        .get("Rat-Gnawed Cellar")
+        .resolve("Chewed sacks slump against the cellar walls.");
+      await fight.filter({ hasText: "Chewed sacks slump" }).waitFor();
+      const after = await sessionFile(directory);
+      const entry = after.history[1];
+      const card = entry.cards[0];
+      assert.deepEqual(after.history[0], first);
+      assert.equal(entry.player, "Go to the cellar");
+      assert.equal(entry.reply, card.text);
+      assert.equal(card.kind, "result");
+      assert.match(card.lines[0].text, /A rat the size of a dog/u);
+      assert.deepEqual(card.lines.slice(1), oldCard.lines.slice(1));
+      assert.deepEqual(after.transitions, before.transitions);
+      assert.deepEqual(after.random, before.random);
+      await page.reload();
+      await fight.filter({ hasText: "Chewed sacks slump" }).waitFor();
+      assert.equal(await page.locator("#log .reply").count(), 0);
+    } finally {
+      for (const request of pending.values()) {
+        request.resolve();
+      }
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
 /**
  * Plays the journey on `seed` as the browser test does: the walk, then
  * attacks (or End turn once the action is spent) until the rat fight ends,

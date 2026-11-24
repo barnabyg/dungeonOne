@@ -478,7 +478,7 @@ test(
       await pad(page);
       const back = await arrival(page, stair.name);
       assert.ok(back.index > 0);
-      assert.equal(back.text, `${stair.name} — ${stair.description}`);
+      assert.equal(back.text, `${stair.name} — You’re back.`);
       const again = await jump(page, "top");
       assert.equal(again.focused, back.index);
       assert.equal(again.shown, true);

@@ -37,7 +37,12 @@ import {
   type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
-import { isLaneGate, narrateLaneGate } from "./lane-gate-5e.js";
+import {
+  arrivalFacts,
+  arrivalProse,
+  openRoomNarrator,
+  type RoomNarrator,
+} from "./room-narration-5e.js";
 import {
   createOpenAiDmModel,
   listOpenAiModelIds,
@@ -145,6 +150,8 @@ export type FifthBrowserOptions = Readonly<{
   apiKey?: string;
   /** Replaces the OpenAI DM for every model, for tests. */
   dmModel?: DmModel;
+  /** Replaces the independent, tool-free room description request for tests. */
+  roomNarrator?: RoomNarrator;
   /**
    * Opens the DM for a model id in place of OpenAI's, for tests (#510): a
    * typed message uses the model its session's settings name.
@@ -943,49 +950,61 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     }
   };
   const dmAvailable = modelFor !== undefined;
-  const openings = new WeakMap<FifthSession, Promise<void>>();
-  function beginOpening(session: FifthSession) {
-    if (
-      !open ||
-      !isLaneGate(session.adventure.id, session.adventure.startRoomId) ||
-      session.history[0]?.cards[0]?.kind !== "narration"
-    ) {
+  const narrator =
+    options.roomNarrator ?? (apiKey ? openRoomNarrator(apiKey) : undefined);
+  const arrivals = new WeakMap<
+    FifthSession,
+    { index: number; done: Promise<void> }
+  >();
+  function beginArrival(session: FifthSession) {
+    const index = session.history.length - 1;
+    const entry = session.history[index]!;
+    const card = session.arrivalCard;
+    if (!narrator || !card || !entry.cards.includes(card.original)) {
       return;
     }
     const { dmModel: id, dmReasoning } = session.settings;
-    // The DM adapter holds a conversation in progress. Give this background
-    // request its own adapter so a player can type while it is running.
+    const facts = arrivalFacts(session);
     const generate = async () => {
-      const entry = await narrateLaneGate(
-        session,
-        open!(id, dmReasoning === "default" ? undefined : dmReasoning),
-      );
-      if (!entry) {
+      const prose = arrivalProse(await narrator(facts, id, dmReasoning));
+      if (!prose) {
         return;
       }
       await serialized(async () => {
         if (
           sessions.get(session.id) !== session ||
-          session.history.length !== 1
+          session.history.at(-1) !== entry
         ) {
           return;
         }
-        session.history[0] = entry;
+        const revised = card.describe(prose);
+        session.history[index] = {
+          ...entry,
+          reply:
+            entry.reply === card.original.text ? revised.text : entry.reply,
+          cards: entry.cards.map((part) =>
+            part === card.original ? revised : part,
+          ),
+        };
         await persist(session);
       });
     };
-    openings.set(
-      session,
-      generate()
-        .catch(() => undefined)
-        .finally(() => openings.delete(session)),
-    );
+    const done = generate()
+      .catch(() => undefined)
+      .finally(() => {
+        if (arrivals.get(session)?.index === index) {
+          arrivals.delete(session);
+        }
+      });
+    arrivals.set(session, { index, done });
   }
   /** The session view, with whether the player can type to the AI DM. */
   const projectSession = (session: FifthSession) => ({
     ...sessionView(session),
     dmAvailable,
-    ...(openings.has(session) ? { openingPending: true } : {}),
+    ...(arrivals.get(session)?.index === session.history.length - 1
+      ? { pendingArrival: session.history.length - 1 }
+      : {}),
   });
   /** The response to a session request: the library and the session. */
   const respondWith = async (session: FifthSession) => ({
@@ -996,11 +1015,16 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
    * Saves the session, then settles its character if it ended: keeping what
    * it holds after a victory or escape, or recording a defeat.
    */
-  const save = async (session: FifthSession) => {
+  const save = async (
+    session: FifthSession,
+    previouslyVisited = session.state.visitedRoomIds.length,
+  ) => {
     await persist(session);
     const data = await settleFifthSession(library, session);
     if (session.state.status !== "playing") {
       sessions.delete(session.id);
+    } else if (session.state.visitedRoomIds.length > previouslyVisited) {
+      beginArrival(session);
     }
     return { library: view(data), session: projectSession(session) };
   };
@@ -1017,6 +1041,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     serialized(async () => {
       const session = await openSession(body.sessionId);
       requireCurrent(session, body.sequence);
+      const previouslyVisited = session.state.visitedRoomIds.length;
       const { result, rolls } = session.act(action, "click");
       if (result.rejection !== undefined) {
         return {
@@ -1028,7 +1053,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         reply: "",
         cards: [session.card(result, rolls)],
       });
-      return save(session);
+      return save(session, previouslyVisited);
     });
 
   let url = "";
@@ -1058,7 +1083,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           );
           if (session.state.status === "playing") {
             sessions.set(session.id, session);
-            beginOpening(session);
+            beginArrival(session);
           }
           return respondWith(session);
         });
@@ -1103,15 +1128,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           return view(data);
         });
       }
-      case "/api/5e/session/opening": {
-        if (!hasExactKeys(body, ["sessionId"])) {
+      case "/api/5e/session/arrival": {
+        const index = body.index;
+        if (
+          !hasExactKeys(body, ["sessionId", "index"]) ||
+          typeof index !== "number" ||
+          !Number.isSafeInteger(index) ||
+          index < 0
+        ) {
           throw new Error("Invalid adventure request.");
         }
         const session = await serialized(() => openSession(body.sessionId));
         // Waiting for prose must never hold the action queue.
-        await openings.get(session);
+        const pending = arrivals.get(session);
+        if (pending?.index === index) {
+          await pending.done;
+        }
         return serialized(async () => ({
-          opening: (await openSession(body.sessionId)).history[0],
+          entry: (await openSession(body.sessionId)).history[index],
         }));
       }
       case "/api/5e/session":
@@ -1344,11 +1378,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           requireCurrent(session, body.sequence);
           // Save each committed action, and settle the character if it
           // ended the fight, before the reply is written.
+          const previouslyVisited = session.state.visitedRoomIds.length;
           await session.converse(message, modelFor(session), async () => {
             await persist(session);
             await settleFifthSession(library, session);
           });
-          return save(session);
+          return save(session, previouslyVisited);
         });
       }
       case "/api/5e/creation":
