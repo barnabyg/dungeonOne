@@ -1,5 +1,19 @@
 # Playing Last Shift at Cinder Mint
 
+## Browser playtest record
+
+On 24 November 2026 the authored routes were played from fresh copies of the same level-5 Ada library, at seed 0 and default settings, with browser buttons and the AI DM off. Timing ran from the opening room to the ending card. The Lodge comparison followed its published bear-feeding route through to the King's Hanger. Actions include combat turns and departure. These timings measure automated input and rendering; a human two-sitting duration still needs player testing.
+
+| Route | Distinct rooms visited | Game actions | Automated elapsed time |
+| --- | ---: | ---: | ---: |
+| Thornwood Lodge, feed the bear | 4 | 25 | 1.4 s |
+| Cinder Mint, public hearing | 15 | 28 | 1.2 s |
+| Cinder Mint, quiet barge rescue | 17 | 34 | 1.5 s |
+
+The seed-24 acceptance scenarios also cover a server restart at the first descent, switching from evidence to the barge, leaving with loot before resolving the arrests, breaking a guarded bond seal, and firing Third Bell during an alarmed departure.
+
+## Play it
+
 Use a level-5 character or start with the supplied level-5 Fighter, Ada. From the repository root in PowerShell 7, the following command prepares the game and launches it with a fresh character library. Each run creates a separate playthrough. Node.js and npm requirements are in the README. Set `OPENAI_API_KEY` for the AI Dungeon Master.
 
 ```powershell
