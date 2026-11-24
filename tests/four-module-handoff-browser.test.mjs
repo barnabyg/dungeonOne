@@ -56,11 +56,11 @@ const levelTwoVex = () => ({
 });
 
 /** A browser on a server for `libraryPath` on `seed`, and its page. */
-async function open(libraryPath, seed, dmModel) {
+async function open(libraryPath, seed, roomNarrator) {
   const server = await startFifthBrowserServer({
     libraryPath,
     seed,
-    dmModel,
+    roomNarrator,
     // shipped-modules.test.mjs gates every shipped module; skip it here.
     qualifies: () => true,
   });
@@ -241,11 +241,11 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
       const { page, close } = await open(
         join(directory, "characters.json"),
         outcome === "failed" ? 4 : CIDER_SEED,
-        {
-          respond(request) {
-            requests.push(request);
-            return reply.promise;
-          },
+        (facts) => {
+          requests.push(facts);
+          return facts.room === "Lane Gate"
+            ? reply.promise
+            : Promise.resolve("You arrive in the farmhouse kitchen.");
         },
       );
       try {
@@ -255,19 +255,25 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
         const authored = await text(opening);
         assert.match(authored, /windfall apples/u);
         assert.equal(requests.length, 1);
-        assert.deepEqual(requests[0].tools, []);
-        assert.ok(
-          requests[0].playerInput.endsWith(
-            outcome === "failed" ? "Widow Ressa Pell." : "Cart Ruts.",
-          ),
+        assert.deepEqual(Object.keys(requests[0]).sort(), [
+          "description",
+          "focus",
+          "room",
+        ]);
+        assert.deepEqual(Object.keys(requests[0].focus).sort(), [
+          "description",
+          "name",
+        ]);
+        assert.equal(
+          requests[0].focus.name,
+          outcome === "failed" ? "Widow Ressa Pell" : "Cart Ruts",
         );
-        assert.match(JSON.stringify(requests[0].scene), /a heavy cart/u);
         assert.doesNotMatch(
           JSON.stringify(requests[0]),
           /small bare feet|spare key|behind the pendulum/iu,
         );
         const settledOpening = page.waitForResponse((response) =>
-          response.url().endsWith("/api/5e/session/opening"),
+          response.url().endsWith("/api/5e/session/arrival"),
         );
         if (outcome === "player acted") {
           await clickAction(page, "examine", "cart-ruts");
@@ -275,9 +281,7 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
         if (outcome === "failed") {
           reply.reject(new Error("provider unavailable"));
         } else {
-          reply.resolve({
-            text: "Soft apples scent the lane beside the muddy ruts.",
-          });
+          reply.resolve("Soft apples scent the lane beside the muddy ruts.");
         }
         await settledOpening;
         if (outcome === "narrated") {
@@ -289,9 +293,14 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
         }
         if (outcome === "narrated") {
           await clickAction(page, "move", "kitchen");
+          await page
+            .locator("#log li")
+            .last()
+            .filter({ hasText: "You arrive in the farmhouse kitchen." })
+            .waitFor();
           await clickAction(page, "move", "lane-gate");
           const revisit = await text(page.locator("#log li").last());
-          assert.match(revisit, /back at the open five-bar gate/u);
+          assert.match(revisit, /You’re back/u);
           assert.doesNotMatch(revisit, /small bare feet/u);
         }
         if (outcome !== "player acted") {
@@ -304,7 +313,7 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
         await clickAction(page, "move", "kitchen");
         await clickAction(page, "move", "lane-gate");
         const revisit = await text(page.locator("#log li").last());
-        assert.match(revisit, /back at the open five-bar gate/u);
+        assert.match(revisit, /You’re back/u);
         assert.match(revisit, /small bare feet/u);
         const file = await sessionFile(directory);
         assert.equal(file.transitions.length, outcome === "narrated" ? 6 : 4);
@@ -312,9 +321,12 @@ for (const outcome of ["narrated", "failed", "player acted"]) {
         await page.reload();
         await opening.waitFor();
         assert.equal(await text(opening), first);
-        assert.equal(requests.length, 1);
+        assert.deepEqual(
+          requests.map(({ room }) => room),
+          ["Lane Gate", "Kitchen"],
+        );
       } finally {
-        reply.resolve({ text: "" });
+        reply.resolve("");
         await close();
         await rm(directory, { recursive: true, force: true });
       }

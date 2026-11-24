@@ -243,6 +243,11 @@ function validRollGroup(value: unknown): boolean {
 
 export class FifthSession {
   readonly runtime: FifthRuntime;
+  /** The latest arrival can be rendered again with new prose and the original events and dice. */
+  arrivalCard?: Readonly<{
+    original: HistoryCard;
+    describe: (prose: string) => HistoryCard;
+  }>;
   private readonly random: ReturnType<typeof createSeededRandom>;
   private position = 0;
   private drawn: RollRecord[] = [];
@@ -429,6 +434,33 @@ export class FifthSession {
 
   /** The engine-authored card for a resolved action and the dice it drew. */
   card(result: FifthResult, rolls: readonly RollRecord[]): HistoryCard {
+    const original = this.renderCard(result, rolls);
+    const arrival = result.events?.find(({ type }) => type === "entered");
+    if (arrival && result.events) {
+      const { events, state } = result;
+      this.arrivalCard = {
+        original,
+        describe: (description) =>
+          this.renderCard(
+            {
+              state,
+              events: events.map((event) =>
+                event === arrival ? { ...arrival, description } : event,
+              ),
+            },
+            rolls,
+          ),
+      };
+    } else {
+      delete this.arrivalCard;
+    }
+    return original;
+  }
+
+  private renderCard(
+    result: FifthResult,
+    rolls: readonly RollRecord[],
+  ): HistoryCard {
     const lines = describeFifthResult(
       result,
       rolls,

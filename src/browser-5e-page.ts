@@ -1560,16 +1560,15 @@ function showAdventure(value) {
   // The latest turn shows from its top (#529).
   followHistory = true;
   followTurn();
-  if (value.openingPending) void refreshOpening(value.id, routeTicket);
+  if (value.pendingArrival !== undefined) void refreshArrival(value.id, value.pendingArrival, routeTicket);
 }
 
-// Only replace the first card. A late reply cannot restore an older session
-// snapshot or interrupt a player typing or acting.
-async function refreshOpening(sessionId, ticket) {
+// Update only the matching turn, without disturbing a player typing or acting.
+async function refreshArrival(sessionId, index, ticket) {
   try {
-    const { opening } = await request("/api/5e/session/opening", { sessionId });
-    if (ticket !== routeTicket || session.id !== sessionId || session.history.length !== 1) return;
-    session.history[0] = opening;
+    const { entry } = await request("/api/5e/session/arrival", { sessionId, index });
+    if (!entry || ticket !== routeTicket || session.id !== sessionId || session.history.length !== index + 1) return;
+    session.history[index] = entry;
     if (!acting) renderHistory();
   } catch {
     // The authored arrival is already on screen and saved.
@@ -2255,19 +2254,25 @@ function onLatestTurn() {
   return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < turnRest + 24;
 }
 
-let renderedOpening;
+let renderedTailText;
 function renderHistory() {
   const log = element("log");
   for (const pending of log.querySelectorAll(":scope > li[data-pending]")) pending.remove();
-  const opening = session.history[0]?.cards[0]?.text;
-  const rebuilt = log.dataset.session !== session.id || log.children.length > session.history.length || opening !== renderedOpening;
-  renderedOpening = opening;
+  const rebuilt = log.dataset.session !== session.id || log.children.length > session.history.length;
   if (rebuilt) {
     log.dataset.session = session.id;
     log.replaceChildren();
+  } else if (log.lastElementChild) {
+    const tail = session.history[log.children.length - 1];
+    if (tail.cards.at(-1)?.text !== renderedTailText) {
+      const replacement = historyEntry(tail);
+      if (turnStart === log.lastElementChild) turnStart = replacement;
+      log.lastElementChild.replaceWith(replacement);
+    }
   }
   const added = session.history.slice(log.children.length).map(historyEntry);
   log.append(...added);
+  renderedTailText = session.history.at(-1)?.cards.at(-1)?.text;
   // A whole history shows its latest entry as the turn; otherwise the
   // turn starts with the first entry it added.
   if (rebuilt) turnStart = log.lastElementChild ?? undefined;
@@ -3057,6 +3062,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
     acting = false;
     renderAdventure();
     if (answered) {
+      if (session.pendingArrival !== undefined) void refreshArrival(session.id, session.pendingArrival, routeTicket);
       playSounds(resultSounds({
         character: findEntry(session.characterId)?.sheet.name ?? "",
         cards: session.history.slice(earlier.length).flatMap(({ cards }) => cards),

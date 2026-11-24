@@ -28,6 +28,8 @@ separate ticket from the approved sketch.
 
 ## Writing good rooms
 
+Every room automatically gets a first impression from its description and one visible feature, creature or item when the browser has an AI key. Write the room description as something a player can perceive on arrival. Keep secrets in discoveries, checks or dialogue topics. The engine uses revealed discoveries for return visits.
+
 - **2–4 finds per room.** Give a room two to four things to search or examine
   (hidden loot, a clue, a hazard) and a sensory line before adding rooms or
   fights.
