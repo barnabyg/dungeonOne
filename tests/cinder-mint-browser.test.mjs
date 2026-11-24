@@ -122,6 +122,9 @@ for (const [scenario, title, route, choice, alternative] of [
         }
         await act("talk", choice);
         assert.equal(await actionButton(page, "talk", alternative).count(), 0);
+        if (choice === "transfer-six") {
+          await act("take", "transfer-docket");
+        }
       }
       await act("unlock", "proof-door");
       await act("move", "proof-vault");
@@ -132,6 +135,19 @@ for (const [scenario, title, route, choice, alternative] of [
       }
       assert.match(await page.locator("#inventory").innerText(), /Third Bell/u);
       await act("examine", "wharf-release");
+      if (scenario === "change course") {
+        await act("move", "ash-wharf");
+        await page.locator("#leave-controls button").click();
+        assert.match(
+          await page.locator("#leave-warning").innerText(),
+          /Objective not met/u,
+        );
+        await page.locator("#cancel-leave").click();
+        await act("move", "proof-vault");
+      }
+      if (choice === "transfer-six") {
+        await act("use-on", "wharf-release");
+      }
       await act("move", "ash-wharf");
       await page.locator("#leave-controls button").click();
       const [response] = await Promise.all([

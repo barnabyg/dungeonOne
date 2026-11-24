@@ -34,7 +34,8 @@
     "bell-claimed",
     "alarm-raised",
     "captain-stands-down",
-    "case-settled"
+    "case-settled",
+    "transfer-ordered"
   ],
   "alarm": {
     "flag": "alarm-raised",
@@ -651,9 +652,25 @@
         {
           "id": "wharf-release",
           "name": "Wharf release",
-          "description": "A lever protrudes beside the gangway.",
+          "description": "A docket slot and an iron lever flank the gangway.",
           "sets": "vault-opened",
-          "discovery": "Draw the private gangway release to open the way to the Ash Wharf."
+          "discovery": "You lower the gangway. An empty-return docket, slipped under this pin, lets the prisoners out of the cart.",
+          "uses": [
+            {
+              "item": "transfer-docket",
+              "text": "You fit Penn's docket into the release, throw the lever and pull the pin. Six cell doors spring back. The cart rolls aboard; Kit hangs her apron on the mooring post before the ferryman casts off.",
+              "effects": [
+                {
+                  "type": "set",
+                  "flag": "six-escaped"
+                },
+                {
+                  "type": "set",
+                  "flag": "vault-opened"
+                }
+              ]
+            }
+          ]
         }
       ],
       "items": [
@@ -700,8 +717,17 @@
           "description": "A chalk diagram shows the cart rail.",
           "discovery": "With the barge rigged, the clerk can countersign an empty return and send the cart across. Once the entry is made, the other course is lost.",
           "changed": {
-            "when": "six-escaped",
-            "description": "A docket marked EMPTY RETURN hangs on the board. The cart and its six passengers have gone."
+            "when": "transfer-ordered",
+            "description": "Penn has filed the transfer docket. Take it to the gangway release inside the Proof Vault to free the prisoners."
+          },
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The wicket marked EXECUTED holds only paperwork Penn has actually issued."
+              }
+            }
           }
         }
       ],
@@ -760,7 +786,7 @@
             {
               "id": "transfer-six",
               "name": "Send all six down the empty-return rail",
-              "reply": "The cart rolls to the waiting boat. Kit climbs aboard last and leaves her folded apron for Mara.",
+              "reply": "Penn stamps the transfer docket. The cell pin can only be pulled at the Proof Vault. Kit folds her apron while you take the paper.",
               "offeredWhile": "barge-ready",
               "offeredUntil": "case-settled",
               "check": {
@@ -768,40 +794,56 @@
                 "dc": 10,
                 "bands": {
                   "failure": {
-                    "text": "Penn refuses to sign. The stokers push the cart down the rail anyway. Kit leaves her apron on the wharf.",
+                    "text": "The stokers countermark the docket themselves. You still need to draw the cell pin at the vault's wharf release.",
                     "effects": [
                       {
                         "type": "set",
-                        "flag": "six-escaped"
+                        "flag": "transfer-ordered"
                       },
                       {
                         "type": "set",
                         "flag": "case-settled"
+                      },
+                      {
+                        "type": "item",
+                        "item": "transfer-docket"
                       }
                     ]
                   },
                   "success": {
-                    "text": "Penn waves the cart clear. The six sail under a warrant that still bears their names.",
+                    "text": "The cart is booked as an empty return. Take the docket to the vault's wharf release before you leave.",
                     "effects": [
                       {
                         "type": "set",
-                        "flag": "six-escaped"
+                        "flag": "transfer-ordered"
                       },
                       {
                         "type": "set",
                         "flag": "case-settled"
+                      },
+                      {
+                        "type": "item",
+                        "item": "transfer-docket"
                       }
                     ]
                   }
                 }
               },
-              "failure": "Penn keeps his hands in his pockets. The ferryman looks to you instead."
+              "failure": "Penn lowers his voice. The ferryman puts a thumb on the docket and waits."
             }
           ]
         }
       ],
       "encounterId": "assay-watch",
-      "items": []
+      "items": [
+        {
+          "id": "transfer-docket",
+          "name": "Cart transfer docket",
+          "description": "Slide the stamped edge into the vault's wharf release and pull to free all six.",
+          "kind": "tool",
+          "hiddenIn": "transfer-board"
+        }
+      ]
     },
     {
       "id": "die-room",
