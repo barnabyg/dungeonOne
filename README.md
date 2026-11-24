@@ -71,7 +71,7 @@ On a character sheet, expand a feature to read its full rules or **Ability rolls
 | The Abandoned Delve         | `adventures/5e/abandoned-delve.json`           | 2      | Medium     |
 | The Coldwater Weirgate      | `adventures/5e/coldwater-weirgate.json`        | 3–4    | Medium     |
 | The Thornwood Lodge         | `adventures/5e/thornwood-lodge.json`           | 4–5    | Hard       |
-| Last Shift at Cinder Mint   | `adventures/5e/last-shift-at-cinder-mint.json` | 5      | Easy       |
+| Last Shift at Cinder Mint   | `adventures/5e/last-shift-at-cinder-mint.json` | 5      | Medium     |
 
 A sheet offers only the modules that pass the balance gate.
 

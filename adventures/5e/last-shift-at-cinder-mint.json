@@ -8,7 +8,7 @@
     "min": 5,
     "max": 5
   },
-  "difficulty": "easy",
+  "difficulty": "medium",
   "long": true,
   "regions": [
     {
@@ -37,7 +37,11 @@
     "case-settled",
     "crew-escorted",
     "transfer-ordered",
-    "bond-broken"
+    "bond-broken",
+    "run-unbolted",
+    "hamper-tipped",
+    "basket-raised",
+    "pen-opened"
   ],
   "alarm": {
     "flag": "alarm-raised",
@@ -164,9 +168,28 @@
           "name": "Balance beam",
           "description": "The beam holds two equal stacks of pennies.",
           "discovery": "The false batch weighs exactly what the apprentices signed for. Someone changed the metal after weighing."
+        },
+        {
+          "id": "dog-run",
+          "name": "Unbolt the dog run",
+          "description": "A mastiff sleeps across a split leather purse inside the wire run. The way to the engravers is clear. The dog raises its lip when you touch the bolt.",
+          "discovery": "The bolt scrapes back. The dog clears the sill in one bound.",
+          "sets": "run-unbolted"
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "clipped-weights",
+          "name": "Clerk's short-weight fines",
+          "description": "A clipped brass tag on the purse records fines paid by merchants with light weights.",
+          "kind": "coin",
+          "hiddenIn": "dog-run",
+          "coins": {
+            "gp": 25
+          }
+        }
+      ],
+      "encounterId": "scale-hound"
     },
     {
       "id": "engravers-bench",
@@ -213,7 +236,15 @@
         }
       ],
       "restSite": true,
-      "items": []
+      "items": [
+        {
+          "id": "engravers-draught",
+          "name": "Potion of Healing",
+          "description": "A stoppered red vial hangs from a leather loop beside the pallet.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "bench-screen"
+        }
+      ]
     },
     {
       "id": "paymasters-office",
@@ -243,6 +274,16 @@
           "description": "Orrel's singed receipt for six wagonloads of rye. The date matches the false payroll.",
           "kind": "tool",
           "hiddenIn": "stove-fender"
+        },
+        {
+          "id": "stamp-fees",
+          "name": "Stamp fees",
+          "description": "Five gold pieces for each of four stamped freight bills sit under the ink tray.",
+          "kind": "coin",
+          "hiddenIn": "sealing-stand",
+          "coins": {
+            "gp": 20
+          }
         }
       ]
     },
@@ -444,9 +485,26 @@
           "name": "Stowage pocket",
           "description": "A jacket is folded in the driver's pocket.",
           "discovery": "A patched jacket has six crusts in its pockets. Someone was feeding the prisoners on shift."
+        },
+        {
+          "id": "gnawed-hamper",
+          "name": "Tip the gnawed hamper",
+          "description": "A long pink tail slips between the ribs of a wicker hamper. Under the wicker a silver rim shows through the grain. There is room to wheel a cart past.",
+          "discovery": "The grain spills across the track. A rat the length of your arm lands on its feet between you and the silver cup.",
+          "sets": "hamper-tipped"
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "grain-cup",
+          "name": "Silver grain measure",
+          "description": "A thumb fits the dent on the rim of this silver measuring cup.",
+          "kind": "treasure",
+          "hiddenIn": "gnawed-hamper",
+          "treasure": "art-25gp"
+        }
+      ],
+      "encounterId": "hamper-vermin"
     },
     {
       "id": "watch-mess",
@@ -532,7 +590,7 @@
           "description": "A bag of night-watch security deposits.",
           "kind": "coin",
           "coins": {
-            "gp": 99,
+            "gp": 49,
             "sp": 8
           },
           "hiddenIn": "mess-strongbox"
@@ -578,7 +636,15 @@
           "discovery": "A stoker lost a finger to this clutch. An engraved arrow marks the safe side of the handle."
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "riggers-draught",
+          "name": "Potion of Healing",
+          "description": "A red vial sits in the cuff, wound round with lint for dressing a crushed hand.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "pinned-mitten"
+        }
+      ]
     },
     {
       "id": "winding-house",
@@ -1075,9 +1141,26 @@
           "name": "Numbered sample",
           "description": "A numbered wax seal caps the copper sample.",
           "discovery": "Wax cup number six matches the guide on the proofing press. Its numbered seal is still intact."
+        },
+        {
+          "id": "silk-drain",
+          "name": "Haul up the webbed drain basket",
+          "description": "A blue stone glints in the drain basket. Its lifting ring trails a silk line down to a spider as wide as the bench. The bowls stand well clear.",
+          "discovery": "The line goes taut. Eight hooked feet come over the lip of the drain.",
+          "sets": "basket-raised"
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "drain-stone",
+          "name": "Assayer's blue spinel",
+          "description": "A chip on one facet fits the jaw of an assay clamp.",
+          "kind": "treasure",
+          "hiddenIn": "silk-drain",
+          "treasure": "gem-50gp"
+        }
+      ],
+      "encounterId": "drain-spider"
     },
     {
       "id": "sample-lock",
@@ -1116,7 +1199,7 @@
           "description": "Stamped gold from the bonded guards' own surety.",
           "kind": "coin",
           "coins": {
-            "gp": 200
+            "gp": 65
           },
           "hiddenIn": "sample-cases"
         }
@@ -1266,9 +1349,52 @@
           "name": "Water trough",
           "description": "Grit has settled in the watering trough.",
           "discovery": "Kit's marked cart wheel left grit in the trough. The ash lock controls the cart's next turn."
+        },
+        {
+          "id": "quench-pen",
+          "name": "Quench pen winch",
+          "description": "A dire wolf paces behind a grate with a square winch socket. A wolf-catcher's pay bag hangs inside. The cart rails skirt the pen.",
+          "discovery": "The winding crank fits the socket. Raising the grate will loose the wolf and put the pay bag within reach.",
+          "check": {
+            "skill": "investigation",
+            "dc": 10,
+            "bands": {
+              "success": {
+                "text": "The bag strap loops around the back of the grate. You can only slip it free once the grate is up."
+              }
+            }
+          },
+          "uses": [
+            {
+              "item": "winding-crank",
+              "text": "You wind the grate clear. The wolf shoulders through, dragging a length of chain.",
+              "effects": [
+                {
+                  "type": "item",
+                  "item": "catchers-pay"
+                },
+                {
+                  "type": "set",
+                  "flag": "pen-opened"
+                }
+              ]
+            }
+          ]
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "catchers-pay",
+          "name": "Wolf-catcher's fee",
+          "description": "Gold crowns wrapped in a scrap of hide with a tooth hole through it.",
+          "kind": "coin",
+          "hiddenIn": "quench-pen",
+          "coins": {
+            "gp": 40
+          }
+        }
+      ],
+      "encounterId": "quench-wolf"
     },
     {
       "id": "casting-pit",
@@ -1398,7 +1524,15 @@
           ]
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "burn-draught",
+          "name": "Potion of Healing",
+          "description": "A flat bottle of red liquid fits in a hollow scooped out of the bunk brick.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "refuge-bunk"
+        }
+      ]
     },
     {
       "id": "lift-foot",
@@ -1428,7 +1562,18 @@
           "sets": "lift-released"
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "boat-fund",
+          "name": "Ferryman's change",
+          "description": "A waxed roll of silver rests inside the hollow bucket handle, ready to pay for a crossing.",
+          "kind": "coin",
+          "hiddenIn": "fire-bucket",
+          "coins": {
+            "sp": 250
+          }
+        }
+      ]
     }
   ],
   "passages": [
@@ -1731,6 +1876,54 @@
       "defeatEndingId": "held-at-the-mint",
       "presentWhile": "alarm-raised",
       "presentUntil": "crew-escorted"
+    },
+    {
+      "id": "scale-hound",
+      "opponents": [
+        {
+          "id": "scale-mastiff",
+          "name": "Scale House Mastiff",
+          "monster": "mastiff"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "run-unbolted"
+    },
+    {
+      "id": "hamper-vermin",
+      "opponents": [
+        {
+          "id": "hamper-rat",
+          "name": "Yellow-tooth",
+          "monster": "giant-rat"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "hamper-tipped"
+    },
+    {
+      "id": "drain-spider",
+      "opponents": [
+        {
+          "id": "vat-spider",
+          "name": "Vat Spider",
+          "monster": "giant-spider"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "basket-raised"
+    },
+    {
+      "id": "quench-wolf",
+      "opponents": [
+        {
+          "id": "quench-wolfhound",
+          "name": "Quench Pen Dire Wolf",
+          "monster": "dire-wolf"
+        }
+      ],
+      "defeatEndingId": "held-at-the-mint",
+      "presentWhile": "pen-opened"
     }
   ],
   "endings": [

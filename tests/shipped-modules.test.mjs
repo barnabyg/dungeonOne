@@ -675,8 +675,18 @@ const HOLD_PERSON_FIGURES = {
   ],
 };
 
+// At Medium the four ordinary mint bandits exceed the 40% cap.
+const mintHoldPerson = [
+  ["mess-collector", "hold-person"],
+  ["store-sergeant", "hold-person"],
+  ["bond-watch", "hold-person"],
+  ["wharf-mate", "hold-person"],
+];
+
 /** The ordinary foes one control takes out over the cap, by module and class. */
 const CONTROL_OVER_CAP = {
+  "last-shift-at-cinder-mint cleric": mintHoldPerson,
+  "last-shift-at-cinder-mint wizard": mintHoldPerson,
   // At level 4 since #443, Sleep takes the kobolds and Old Sullage out
   // 41.0% of the time: four of fifteen foes, no more than half.
   "coldwater-weirgate wizard": [
@@ -895,7 +905,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       // Levels 3–4 since #443 (level 3 before).
       ["coldwater-weirgate", "3–4", "medium"],
       ["thornwood-lodge", "4–5", "hard"],
-      ["last-shift-at-cinder-mint", "5–5", "easy"],
+      ["last-shift-at-cinder-mint", "5–5", "medium"],
     ],
   );
 });
