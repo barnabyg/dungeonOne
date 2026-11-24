@@ -1,0 +1,1550 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 47,
+  "id": "well-of-the-hollow-moon",
+  "title": "The Well of the Hollow Moon",
+  "objective": "Recover the hollow silver moon from the stone cup beneath the well and carry it out to daylight.",
+  "recommendedLevels": {
+    "min": 5,
+    "max": 5
+  },
+  "difficulty": "medium",
+  "long": true,
+  "regions": [
+    {
+      "id": "the-wellhead",
+      "name": "The Wellhead",
+      "backdrop": "ruin"
+    },
+    {
+      "id": "the-chalk-siphons",
+      "name": "The Chalk Siphons",
+      "backdrop": "culvert"
+    },
+    {
+      "id": "the-ribbed-caves",
+      "name": "The Ribbed Caves",
+      "backdrop": "ruin"
+    },
+    {
+      "id": "the-drowned-orrery",
+      "name": "The Drowned Orrery",
+      "backdrop": "cellar"
+    }
+  ],
+  "flags": ["lure-wound", "moon-claimed", "hatch-released", "nest-cleared"],
+  "routes": [
+    {
+      "id": "gauge-walk",
+      "name": "The gauge walk",
+      "rooms": [
+        "split-basin",
+        "tilted-gauge",
+        "lip-stair",
+        "drip-landing",
+        "white-seam",
+        "silk-curtain",
+        "chalk-shelf",
+        "siphon-bell",
+        "sluice-stair",
+        "sluice-foot",
+        "rib-bridge",
+        "high-rib",
+        "daylight-fissure",
+        "chain-stair",
+        "chain-foot",
+        "stillwater-cell",
+        "moon-dial",
+        "balance-tube",
+        "moon-cup"
+      ]
+    },
+    {
+      "id": "filter-walk",
+      "name": "The filter walk",
+      "rooms": [
+        "split-basin",
+        "dry-niche",
+        "rope-rack",
+        "lip-stair",
+        "drip-landing",
+        "white-seam",
+        "blind-spout",
+        "spider-loom",
+        "sluice-stair",
+        "sluice-foot",
+        "rib-bridge",
+        "high-rib",
+        "wind-pocket",
+        "chain-stair",
+        "chain-foot",
+        "stillwater-cell",
+        "moon-dial",
+        "balance-tube",
+        "moon-cup"
+      ]
+    }
+  ],
+  "startRoomId": "well-mouth",
+  "rooms": [
+    {
+      "id": "well-mouth",
+      "name": "Well Mouth",
+      "at": [0, 1],
+      "floor": 0,
+      "region": "the-wellhead",
+      "exit": true,
+      "description": "Daylight whitens the broken well curb. Dry steps spiral down the inside of the shaft, level with the water's black mirror.",
+      "features": [
+        {
+          "id": "drop-a-pebble",
+          "name": "Drop a pebble",
+          "description": "A thin silver moon hangs far below the rim, even at noon. Loose pebbles lie within reach.",
+          "discovery": "A falling pebble breaks the reflection of the sky into rings. Watch what stays still as the ripples pass.",
+          "changed": {
+            "when": "moon-claimed",
+            "description": "The water reflects the sky all the way across. The hollow moon rests in your pack."
+          }
+        },
+        {
+          "id": "chain-groove",
+          "name": "Chain groove",
+          "description": "Twin grooves cut across the rim.",
+          "discovery": "The grooves run down the inside wall beside a flight of dry steps."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "echo-lip",
+      "name": "Echo Lip",
+      "at": [1, 1],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "Wind whistles through two holes in the limestone parapet.",
+      "features": [
+        {
+          "id": "listen-at-the-vents",
+          "name": "Listen at the vents",
+          "description": "One hole smells of leather, the other of wet stone.",
+          "discovery": "Claws scratch behind the northern vent. The other carries the sound of water slapping a basin."
+        },
+        {
+          "id": "broken-parapet",
+          "name": "Broken parapet",
+          "description": "Through the broken parapet you can see the round belly beneath the silver crescent.",
+          "discovery": "A sight line along the shaft points to a stone cradle far below.",
+          "changed": {
+            "when": "moon-claimed",
+            "description": "The gap gives a clear view of an empty stone cradle."
+          }
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "gnawed-tithe-box",
+      "name": "Gnawed Tithe Box",
+      "at": [1, 0],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "Splinters cover the floor under an oak drawer. Two rat runs meet at its foot.",
+      "features": [
+        {
+          "id": "chewed-drawer",
+          "name": "Chewed drawer",
+          "description": "Two wet grooves run from the drawer into a torn purse.",
+          "discovery": "Eight coppers and two thin silver pieces have rolled under the runner."
+        },
+        {
+          "id": "tooth-marks",
+          "name": "Tooth marks",
+          "description": "Paired grooves score the back panel.",
+          "discovery": "The rats ate through from opposite sides and met in the purse."
+        }
+      ],
+      "items": [
+        {
+          "id": "rat-purse",
+          "name": "Rat purse",
+          "description": "Chewed leather holds a few brown coins and two thin silver pieces.",
+          "hiddenIn": "chewed-drawer",
+          "kind": "coin",
+          "coins": {
+            "cp": 8,
+            "sp": 2
+          }
+        }
+      ],
+      "encounterId": "drawer-rats"
+    },
+    {
+      "id": "split-basin",
+      "name": "Split Basin",
+      "at": [2, 1],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "Water drips into a waist-high model of the well, split down its centre.",
+      "features": [
+        {
+          "id": "fill-the-model-basin",
+          "name": "Model basin",
+          "description": "A horn scoop hangs beside the intact half.",
+          "discovery": "The scoop holds just enough water to lift the little float against its catch.",
+          "uses": [
+            {
+              "item": "horn-scoop",
+              "text": "Water lifts the model float. A pin draws back. Beside you a full-sized slab slides aside to reveal the Lip Stair.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "split-basin-to-lip-stair"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cutaway-basin",
+          "name": "Cutaway basin",
+          "description": "A crack exposes the underside of the other cup.",
+          "discovery": "A bright pin on the rising float draws a bolt sideways. The real well used the same linkage."
+        }
+      ],
+      "items": [
+        {
+          "id": "horn-scoop",
+          "name": "Horn scoop",
+          "description": "A scoop worn thin from lifting water into the model.",
+          "kind": "tool"
+        }
+      ]
+    },
+    {
+      "id": "dry-niche",
+      "name": "Dry Niche",
+      "at": [2, 2],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "A shelf of dry stone sits above a tide of brittle leaves.",
+      "features": [
+        {
+          "id": "sleeping-shelf",
+          "name": "Sleeping shelf",
+          "description": "The chalk above the shelf is powder dry.",
+          "discovery": "The highest flood stopped a hand below this ledge. There is room to stretch out."
+        },
+        {
+          "id": "spindle-notch",
+          "name": "Spindle notch",
+          "description": "One wall bears a deep circular rub.",
+          "discovery": "Through the notch you can see a spindle still hanging from the rope pegs next door."
+        }
+      ],
+      "items": [],
+      "restSite": true
+    },
+    {
+      "id": "rope-rack",
+      "name": "Rope Rack",
+      "at": [3, 2],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "Only the ends of the old ropes survive, neatly wound on their pegs.",
+      "features": [
+        {
+          "id": "turn-the-spindle",
+          "name": "Turn the spindle",
+          "description": "One spindle turns freely in its socket.",
+          "discovery": "Something tugs back from deep below. A little rust sifts down the shaft."
+        },
+        {
+          "id": "empty-peg-hole",
+          "name": "Empty peg hole",
+          "description": "A square of grey light shows through the wall.",
+          "discovery": "Through the hole you see the Lip Stair and the back of a sliding slab."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "tilted-gauge",
+      "name": "Tilted Gauge",
+      "at": [3, 0],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "A stone gauge leans into the shaft. Two white lines cross its face.",
+      "features": [
+        {
+          "id": "read-the-water-marks",
+          "name": "Read the water marks",
+          "description": "One stripe is chalk, the other a hard crust.",
+          "discovery": "The lower chalk stripe marks a safe working level. At the crusted line the inspection floors tilt and spill their load."
+        },
+        {
+          "id": "sight-along-the-index",
+          "name": "Sight along the index",
+          "description": "The bent pointer still aims down the well.",
+          "discovery": "A matching white stripe cuts across a treadle deep below."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "lip-stair",
+      "name": "Lip Stair",
+      "at": [3, 1],
+      "floor": 0,
+      "region": "the-wellhead",
+      "description": "Cold air pulls down the spiral. Spent fly husks collect against the first riser.",
+      "features": [
+        {
+          "id": "slab-joint",
+          "name": "Slab joint",
+          "description": "A hairline seam outlines a slab beside the stair.",
+          "discovery": "A rod runs from the slab towards the split basin. The regular stair goes down beside it."
+        },
+        {
+          "id": "empty-husks",
+          "name": "Empty husks",
+          "description": "The translucent shells stick to your fingertips.",
+          "discovery": "A single fine thread joins every husk to the stair below."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "drip-landing",
+      "name": "Drip Landing",
+      "at": [3, 1],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "Water gathers on a low ceiling and falls in fat drops onto grey silk.",
+      "features": [
+        {
+          "id": "watch-the-falling-drops",
+          "name": "Watch the falling drops",
+          "description": "Each falling drop plucks a strand along the direct passage.",
+          "discovery": "A hairy foot darts out at each vibration. The north shelf leads to White Seam above the web.",
+          "changed": {
+            "when": "lure-wound",
+            "description": "Drops pluck the slack strand. Nothing stirs above the curtain."
+          }
+        },
+        {
+          "id": "dry-shelf",
+          "name": "Dry shelf",
+          "description": "Chalk crumbles under a clean strip of stone.",
+          "discovery": "The shelf runs underneath a wooden bobbin without touching a strand."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "silk-curtain",
+      "name": "Silk Curtain",
+      "at": [2, 1],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "Silk hangs in long sheets between the pillars. One taut strand leads north.",
+      "features": [
+        {
+          "id": "woven-knot",
+          "name": "Woven knot",
+          "description": "A tight knot sags under the thickest line.",
+          "discovery": "Five gold pieces spill from the web around a long-empty beetle shell."
+        },
+        {
+          "id": "signal-strand",
+          "name": "Signal strand",
+          "description": "A single dark strand rises out of reach.",
+          "discovery": "It leads back to the chalk spool at White Seam. The direct causeway beyond it has a loose lip."
+        }
+      ],
+      "items": [
+        {
+          "id": "web-gold",
+          "name": "Web gold",
+          "description": "Tiny gold coins stick together in a wad of grey silk.",
+          "hiddenIn": "woven-knot",
+          "kind": "coin",
+          "coins": {
+            "gp": 5
+          }
+        }
+      ],
+      "encounterId": "curtain-hunter"
+    },
+    {
+      "id": "white-seam",
+      "name": "White Seam",
+      "at": [2, 0],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "A chalk seam rises past a wooden spool. An empty shell dangles from its thread.",
+      "features": [
+        {
+          "id": "wind-the-lure",
+          "name": "Wind the lure",
+          "description": "The spool pulls a husk towards a crack above the curtain.",
+          "discovery": "The husk jerks into the crack. Anything following that signal will hunt up there, away from the curtain.",
+          "sets": "lure-wound",
+          "changed": {
+            "when": "lure-wound",
+            "description": "The spool is wound tight. The lure hangs deep in the ceiling crack."
+          }
+        },
+        {
+          "id": "air-channel",
+          "name": "Air channel",
+          "description": "White dust skims along a groove.",
+          "discovery": "The current comes from a discharge pipe towards the Blind Spout."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "spider-loom",
+      "name": "Spider Loom",
+      "at": [1, 1],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "Layers of web stretch across a bronze filter. The bars sing under the tension.",
+      "features": [
+        {
+          "id": "outer-filter",
+          "name": "Outer filter",
+          "description": "A red glint shines behind the loose first layer.",
+          "discovery": "A banded agate drops into your palm when you tease the silk aside."
+        },
+        {
+          "id": "inner-filter",
+          "name": "Inner filter",
+          "description": "The inner threads glint in even rows.",
+          "discovery": "The teeth of a fine silver mesh comb have held this web for years."
+        }
+      ],
+      "items": [
+        {
+          "id": "banded-agate",
+          "name": "Banded agate",
+          "description": "A red agate striped with milky quartz.",
+          "hiddenIn": "outer-filter",
+          "kind": "treasure",
+          "treasure": "gem-10gp"
+        },
+        {
+          "id": "silver-mesh-comb",
+          "name": "Silver mesh comb",
+          "description": "A fine-toothed silver comb chased with reeds.",
+          "hiddenIn": "inner-filter",
+          "kind": "treasure",
+          "treasure": "art-25gp"
+        }
+      ],
+      "encounterId": "filter-hunter"
+    },
+    {
+      "id": "blind-spout",
+      "name": "Blind Spout",
+      "at": [1, 0],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "exit": true,
+      "description": "A pale circle shines at the far end of a discharge pipe.",
+      "features": [
+        {
+          "id": "discharge-pipe",
+          "name": "Discharge pipe",
+          "description": "Wind blows in past a fringe of fine roots.",
+          "discovery": "The pipe slopes gently towards a daylight opening in the ravine wall."
+        },
+        {
+          "id": "silken-fringe",
+          "name": "Silken fringe",
+          "description": "The silk towards Spider Loom quivers against the floor.",
+          "discovery": "A large weight moves overhead on the other side of the filter."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "chalk-shelf",
+      "name": "Chalk Shelf",
+      "at": [2, 2],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "A dry chalk overhang juts above the stream. Little white shells roll across the floor.",
+      "features": [
+        {
+          "id": "overhang",
+          "name": "Overhang",
+          "description": "A bed of dry flakes crumbles softly underfoot.",
+          "discovery": "The shelf stays dry between draws of the siphon. You can rest here."
+        },
+        {
+          "id": "rolling-husks",
+          "name": "Rolling husks",
+          "description": "The line of husks moves a finger's width at a time.",
+          "discovery": "Each intake carries the husks towards Siphon Bell and away from the web."
+        }
+      ],
+      "items": [],
+      "restSite": true
+    },
+    {
+      "id": "siphon-bell",
+      "name": "Siphon Bell",
+      "at": [1, 2],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "Air sighs through the flared mouth of a stone siphon.",
+      "features": [
+        {
+          "id": "bell-mouth",
+          "name": "Bell mouth",
+          "description": "The mouth frames a narrow view of the sluice.",
+          "discovery": "Dry flagstones run all the way to Sluice Stair outside the silk."
+        },
+        {
+          "id": "flood-rings",
+          "name": "Flood rings",
+          "description": "Two rings of brown husks cling inside the bell.",
+          "discovery": "The lower ring meets the chalk stripe. The upper ring lies above the passage floor."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "sluice-stair",
+      "name": "Sluice Stair",
+      "at": [0, 1],
+      "floor": -1,
+      "region": "the-chalk-siphons",
+      "description": "Water seeps down a smooth stair into a cave that smells of wet dog.",
+      "features": [
+        {
+          "id": "overlapping-prints",
+          "name": "Overlapping prints",
+          "description": "Broad pads overprint a smaller set.",
+          "discovery": "At least two animals use the crossing below. Only the smallest tracks can be seen from the landing."
+        },
+        {
+          "id": "dry-stain",
+          "name": "Dry stain",
+          "description": "A crooked rust stain crosses the ceiling.",
+          "discovery": "The streak points back to Siphon Bell, a landmark visible even from the lower steps."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "sluice-foot",
+      "name": "Sluice Foot",
+      "at": [0, 1],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "The sluice empties into knee-deep water. Across it a spine of limestone rises into the dark.",
+      "features": [
+        {
+          "id": "ford-ripples",
+          "name": "Ford ripples",
+          "description": "A set of prints ends abruptly at the waterline.",
+          "discovery": "Beyond the ford a second, much larger animal has flattened the grass on the opposite bank."
+        },
+        {
+          "id": "limestone-spine",
+          "name": "Limestone spine",
+          "description": "One rib stands clear of the current.",
+          "discovery": "The stone stays dry from here to Rib Bridge, above both banks."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "rib-bridge",
+      "name": "Rib Bridge",
+      "at": [1, 1],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "Stone ribs fan across a gap. One tread shifts as spray strikes its underside.",
+      "features": [
+        {
+          "id": "test-the-tread",
+          "name": "Test the tread",
+          "description": "A loose stone sits at the edge of the direct crossing.",
+          "discovery": "The stone makes the tread seesaw. The upper rib reaches Wind Pocket by a longer way."
+        },
+        {
+          "id": "upper-rail",
+          "name": "Upper rail",
+          "description": "Claw marks stop below the top of the rail.",
+          "discovery": "From here you can follow the dry rib all the way past the dens."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "furrowed-ford",
+      "name": "Furrowed Ford",
+      "at": [1, 2],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "A rippled ford cuts between two banks of damp gravel. A broken saddlebag hangs in the reeds.",
+      "features": [
+        {
+          "id": "split-saddlebag",
+          "name": "Split saddlebag",
+          "description": "The strap is wedged in a forked root.",
+          "discovery": "Forty stamped gold pieces gleam through a split in the lining."
+        },
+        {
+          "id": "far-bank",
+          "name": "Far bank",
+          "description": "Deep pads press water up between the stones.",
+          "discovery": "The two sets of tracks follow opposite banks, converging at the shallowest step."
+        }
+      ],
+      "items": [
+        {
+          "id": "ford-gold",
+          "name": "Ford gold",
+          "description": "Heavy coins rubbed smooth by the ford.",
+          "hiddenIn": "split-saddlebag",
+          "kind": "coin",
+          "coins": {
+            "gp": 40
+          }
+        }
+      ],
+      "avoidable": true,
+      "encounterId": "ford-pack"
+    },
+    {
+      "id": "winter-den",
+      "name": "Winter Den",
+      "at": [2, 2],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "The cave floor rises in ridges of shed fur. The musk catches at the back of your throat.",
+      "features": [
+        {
+          "id": "copper-catches",
+          "name": "Copper catches",
+          "description": "Two tooth-scored catches show through the matted fur.",
+          "discovery": "An old chest holds a wine-red garnet and a pale moonstone wrapped separately in felt."
+        },
+        {
+          "id": "bedding-hollows",
+          "name": "Bedding hollows",
+          "description": "Two broad hollows dent the ridge.",
+          "discovery": "The hollows are equally deep. Both wolves sleep here."
+        }
+      ],
+      "items": [
+        {
+          "id": "den-garnet",
+          "name": "Den garnet",
+          "description": "A wine-red garnet in a square of felt.",
+          "hiddenIn": "copper-catches",
+          "kind": "treasure",
+          "treasure": "gem-100gp"
+        },
+        {
+          "id": "pale-moonstone",
+          "name": "Pale moonstone",
+          "description": "A round stone with a floating blue sheen.",
+          "hiddenIn": "copper-catches",
+          "kind": "treasure",
+          "treasure": "gem-50gp"
+        }
+      ],
+      "avoidable": true,
+      "encounterId": "winter-pack"
+    },
+    {
+      "id": "high-rib",
+      "name": "High Rib",
+      "at": [2, 0],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "A wrinkle in the limestone lifts the passage above the caves. Tiny shells stripe the wall.",
+      "features": [
+        {
+          "id": "read-the-seam",
+          "name": "Read the seam",
+          "description": "Shells disappear under a fold of banded stone.",
+          "discovery": "The deposit pinches around an old pocket in the rock.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "nature",
+                "dc": 12
+              },
+              {
+                "skill": "survival",
+                "dc": 12
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "A pale snail track curls around a loose stone. The pocket behind it holds a striped jasper.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "seam-jasper"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "stone-shoulder",
+          "name": "Stone shoulder",
+          "description": "A hump of limestone hides the ford from view.",
+          "discovery": "From its crest you can count the beds in Winter Den without entering either hunting ground."
+        }
+      ],
+      "items": [
+        {
+          "id": "seam-jasper",
+          "name": "Seam jasper",
+          "description": "A jasper striped with the colours of the high-water stain.",
+          "hiddenIn": "read-the-seam",
+          "kind": "treasure",
+          "treasure": "gem-50gp"
+        }
+      ]
+    },
+    {
+      "id": "daylight-fissure",
+      "name": "Daylight Fissure",
+      "at": [3, 0],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "exit": true,
+      "description": "A wedge of daylight shines through roots embedded in the rock.",
+      "features": [
+        {
+          "id": "root-chimney",
+          "name": "Root chimney",
+          "description": "Fine green roots sway in an uphill draught.",
+          "discovery": "The chimney opens on a steep hillside well above the floodwater."
+        },
+        {
+          "id": "fissure-elbow",
+          "name": "Fissure elbow",
+          "description": "A shelf turns back towards the shaft.",
+          "discovery": "The shelf meets Chain Stair without dropping to the den floor."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "wind-pocket",
+      "name": "Wind Pocket",
+      "at": [2, 1],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "A crosswind whistles through a dry ledge high above the ford.",
+      "features": [
+        {
+          "id": "windbreak",
+          "name": "Windbreak",
+          "description": "A stone lip shelters a flat patch of sand.",
+          "discovery": "No tracks cross this sand. There is room for a dry bed behind the lip."
+        },
+        {
+          "id": "listen-at-the-bridge",
+          "name": "Listen at the bridge",
+          "description": "An uneven tapping comes through a narrow slit.",
+          "discovery": "There is a hollow note every time the bridge tread drops."
+        }
+      ],
+      "items": [],
+      "restSite": true
+    },
+    {
+      "id": "chain-stair",
+      "name": "Chain Stair",
+      "at": [3, 1],
+      "floor": -2,
+      "region": "the-ribbed-caves",
+      "description": "A long chain taps the wall one link below a chalk stripe.",
+      "features": [
+        {
+          "id": "knocking-link",
+          "name": "Knocking link",
+          "description": "One link is polished bright on its outer face.",
+          "discovery": "A wedge of fallen limestone has sheared the pin that joined the chain to the float. Half the pin still rattles in the last link."
+        },
+        {
+          "id": "hooked-feather",
+          "name": "Hooked feather",
+          "description": "A white feather as wide as your palm catches on the grate.",
+          "discovery": "One end has been crushed between beak and claw. Deep gouges run down the stairs."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "chain-foot",
+      "name": "Chain Foot",
+      "at": [3, 1],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "At the foot of the chain, white scratches curve through the silt towards a dial. Air stirs from a side cell.",
+      "features": [
+        {
+          "id": "floor-gouges",
+          "name": "Floor gouges",
+          "description": "Three hooked lines score each side of a wide trail.",
+          "discovery": "An animal too broad for the side cell dragged a large bone towards the dry arch."
+        },
+        {
+          "id": "bench-marks",
+          "name": "Bench marks",
+          "description": "A curved brass stain marks the side-cell threshold.",
+          "discovery": "The stain matches the little float and cradle in the model upstairs."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "stillwater-cell",
+      "name": "Stillwater Cell",
+      "at": [3, 2],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "A dry stone bench faces a brass cradle. A ball the size of a plum rattles in its forks.",
+      "features": [
+        {
+          "id": "stone-bench",
+          "name": "Stone bench",
+          "description": "The bench sits above a stripe of old flood silt.",
+          "discovery": "Even at high water this was a dry place to wait for the river to turn."
+        },
+        {
+          "id": "float-cradle",
+          "name": "Float cradle",
+          "description": "The forks hold a hollow brass ball on a short stem.",
+          "discovery": "Its stem fits the pilot cup at Moon Dial. The striking face has been polished by years of releasing the catch."
+        }
+      ],
+      "items": [
+        {
+          "id": "brass-pilot-float",
+          "name": "Brass pilot float",
+          "description": "A small stemmed float for the empty pilot cup.",
+          "hiddenIn": "float-cradle",
+          "kind": "tool"
+        }
+      ],
+      "restSite": true
+    },
+    {
+      "id": "shed-skin-gallery",
+      "name": "Shed-Skin Gallery",
+      "at": [2, 2],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "A hanging moult nearly fills the arch. Beyond it, one of the flagstones tilts in a bed of silt.",
+      "features": [
+        {
+          "id": "mineral-crust",
+          "name": "Mineral crust",
+          "description": "A patch of white crust bulges around a smooth bead.",
+          "discovery": "A lustrous pearl comes free when the brittle crust breaks."
+        },
+        {
+          "id": "split-moult",
+          "name": "Split moult",
+          "description": "The back of the husk divides at an odd angle.",
+          "discovery": "These are two skins with their legs caught together. Two lines of fresh silk lead overhead."
+        }
+      ],
+      "items": [
+        {
+          "id": "sump-pearl",
+          "name": "Sump pearl",
+          "description": "A single heavy river pearl.",
+          "hiddenIn": "mineral-crust",
+          "kind": "treasure",
+          "treasure": "gem-100gp"
+        }
+      ],
+      "avoidable": true,
+      "encounterId": "gallery-pair"
+    },
+    {
+      "id": "moon-dial",
+      "name": "Moon Dial",
+      "at": [2, 1],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "Water ticks around a bronze dial. Through the wide dry arch an owlbear's nest of white quills nearly blocks the way.",
+      "features": [
+        {
+          "id": "pilot-cup",
+          "name": "Pilot cup",
+          "description": "A palm-sized cup sits beneath two water marks.",
+          "discovery": "The empty cup is missing the brass pilot float. Its catch points towards Balance Tube. The dry arch is wide enough to admit an owlbear. A hooked feather is still wedged in the stone.",
+          "uses": [
+            {
+              "item": "brass-pilot-float",
+              "consumes": true,
+              "text": "The brass float lifts in the pilot cup. The hatch opens onto Balance Tube and the latch falls into place.",
+              "effects": [
+                {
+                  "type": "open",
+                  "passage": "moon-dial-to-balance-tube"
+                },
+                {
+                  "type": "set",
+                  "flag": "hatch-released"
+                }
+              ]
+            }
+          ],
+          "changed": {
+            "when": "hatch-released",
+            "description": "The latch rests behind its tooth. The way to Balance Tube stands open."
+          }
+        },
+        {
+          "id": "worn-pivot",
+          "name": "Worn pivot",
+          "description": "A bright hinge projects under the silt beside the dial.",
+          "discovery": "The two water marks cross the pivot at different angles.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "investigation",
+                "dc": 14
+              },
+              {
+                "skill": "perception",
+                "dc": 14
+              }
+            ],
+            "bands": {
+              "success": {
+                "text": "Your fingers follow the clean arc under the silt. The catch drops behind its tooth and the inspection hatch swings free.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "moon-dial-to-balance-tube"
+                  },
+                  {
+                    "type": "set",
+                    "flag": "hatch-released"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "dry-arch",
+          "name": "Look through the dry arch",
+          "description": "An owlbear sits on flattened reeds, cracking a long bone in its beak.",
+          "discovery": "The arch passes right through the nest. A glint of gold shows between two reeds.",
+          "changed": {
+            "when": "nest-cleared",
+            "description": "The cleared nest lies open. Bone splinters litter the arch."
+          }
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "blind-overflow",
+      "name": "Blind Overflow",
+      "at": [2, 0],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "exit": true,
+      "description": "A cold draught carries the smell of wet leaves into a low spillway.",
+      "features": [
+        {
+          "id": "floating-seeds",
+          "name": "Floating seeds",
+          "description": "Tiny winged seeds drift along the wall.",
+          "discovery": "The water carries them under a curtain of hanging moss and out into daylight."
+        },
+        {
+          "id": "spillway-lip",
+          "name": "Spillway lip",
+          "description": "The stone lip is smooth under the moss.",
+          "discovery": "You can walk out here into the ravine with whatever you carry."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "nest-of-white-feathers",
+      "name": "Nest of White Feathers",
+      "at": [1, 1],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "The floor gives under a mound of reeds and white feathers. Broad gouges cut into the rock around it.",
+      "features": [
+        {
+          "id": "reed-bed",
+          "name": "Reed bed",
+          "description": "A hard corner protrudes from under a tightly woven mat.",
+          "discovery": "Beneath the nest is a hinged chart of hammered gold. Pinholes in its leaves trace the stars."
+        },
+        {
+          "id": "cracked-bones",
+          "name": "Cracked bones",
+          "description": "A split thighbone juts out of the reeds.",
+          "discovery": "The outer shell has been clipped straight through by a beak wider than your hand."
+        }
+      ],
+      "items": [
+        {
+          "id": "gold-star-chart",
+          "name": "Gold star chart",
+          "description": "Two hinged gold leaves pierced with the stars of the summer sky.",
+          "hiddenIn": "reed-bed",
+          "kind": "treasure",
+          "treasure": "art-250gp"
+        }
+      ],
+      "avoidable": true,
+      "encounterId": "nest-keeper"
+    },
+    {
+      "id": "balance-tube",
+      "name": "Balance Tube",
+      "at": [1, 2],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "A bronze tube runs through the wall. Its bore smells of river mud and cold metal.",
+      "features": [
+        {
+          "id": "sight-through-the-pivot",
+          "name": "Sight through the pivot",
+          "description": "A circle of silver shines at the end of the bore.",
+          "discovery": "The bore points straight at the cup around the bend. The pivot and the cradle belong to the same instrument.",
+          "changed": {
+            "when": "moon-claimed",
+            "description": "A circle of bare black stone fills the far end of the bore."
+          }
+        },
+        {
+          "id": "inspection-hatch",
+          "name": "Inspection hatch",
+          "description": "A bar runs from the hatch into the wall of Moon Dial.",
+          "discovery": "When tripped, the latch drops behind a tooth. The way back stays open."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "moon-cup",
+      "name": "Moon Cup",
+      "at": [0, 1],
+      "floor": -3,
+      "region": "the-drowned-orrery",
+      "description": "Water ticks into a polished cup of black stone. A wide arch to the side smells of feathers and old blood.",
+      "features": [
+        {
+          "id": "stone-cup",
+          "name": "Lift the float from the stone cup",
+          "description": "A thread of water turns a melon-sized silver sphere between the black stone lips.",
+          "discovery": "The cup's lifting fork rolls back against a padded stop. Two sockets in the bed of the cradle come into view.",
+          "changed": {
+            "when": "moon-claimed",
+            "description": "An empty cup of polished black stone rests below the dripping pipe."
+          }
+        },
+        {
+          "id": "twin-sockets",
+          "name": "Socket plate",
+          "description": "A bronze tongue projects from under the lifting fork.",
+          "discovery": "The fork and socket plate move together. Lifting the float exposes the two jewel bearings."
+        }
+      ],
+      "items": [
+        {
+          "id": "hollow-moon",
+          "name": "Hollow moon",
+          "description": "A silver float as big as a melon, hammered from two thin shells.",
+          "hiddenIn": "stone-cup",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "sets": "moon-claimed"
+        },
+        {
+          "id": "socket-coral",
+          "name": "Socket coral",
+          "description": "A pink coral button cut to the curve of the silver float.",
+          "hiddenIn": "stone-cup",
+          "kind": "treasure",
+          "treasure": "gem-100gp"
+        },
+        {
+          "id": "socket-tourmaline",
+          "name": "Socket tourmaline",
+          "description": "A watermelon-green tourmaline from the second bezel.",
+          "hiddenIn": "stone-cup",
+          "kind": "treasure",
+          "treasure": "gem-100gp"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "well-mouth-to-echo-lip",
+      "between": ["well-mouth", "echo-lip"],
+      "description": "Dry steps descend inside the broken curb."
+    },
+    {
+      "id": "echo-lip-to-gnawed-tithe-box",
+      "between": ["echo-lip", "gnawed-tithe-box"],
+      "description": "Small claws scrape at a splintered doorframe."
+    },
+    {
+      "id": "echo-lip-to-split-basin",
+      "between": ["echo-lip", "split-basin"],
+      "description": "Drops follow a stone gutter into the basin."
+    },
+    {
+      "id": "split-basin-to-dry-niche",
+      "between": ["split-basin", "dry-niche"],
+      "description": "A line of old leaves rims the dry passage."
+    },
+    {
+      "id": "dry-niche-to-rope-rack",
+      "between": ["dry-niche", "rope-rack"],
+      "description": "Rope fibres cling to the peg-lined wall."
+    },
+    {
+      "id": "rope-rack-to-lip-stair",
+      "between": ["rope-rack", "lip-stair"],
+      "description": "A broad walk skirts the back of the slab."
+    },
+    {
+      "id": "split-basin-to-tilted-gauge",
+      "between": ["split-basin", "tilted-gauge"],
+      "description": "A white chalk stripe climbs the sloping wall."
+    },
+    {
+      "id": "tilted-gauge-to-lip-stair",
+      "between": ["tilted-gauge", "lip-stair"],
+      "description": "The passage curls around the gauge shaft."
+    },
+    {
+      "id": "split-basin-to-lip-stair",
+      "between": ["split-basin", "lip-stair"],
+      "hidden": true,
+      "description": "The model's slab has slid into a wall pocket."
+    },
+    {
+      "id": "lip-descent",
+      "between": ["lip-stair", "drip-landing"],
+      "vertical": "stairs",
+      "description": "Stone stairs spiral down beside the chain groove."
+    },
+    {
+      "id": "drip-landing-to-silk-curtain",
+      "between": ["drip-landing", "silk-curtain"],
+      "description": "A dark web strand crosses the direct passage."
+    },
+    {
+      "id": "drip-landing-to-white-seam",
+      "between": ["drip-landing", "white-seam"],
+      "description": "A dry chalk shelf passes above the web."
+    },
+    {
+      "id": "white-seam-to-blind-spout",
+      "between": ["white-seam", "blind-spout"],
+      "description": "A chalk channel angles towards a patch of daylight."
+    },
+    {
+      "id": "blind-spout-to-spider-loom",
+      "between": ["blind-spout", "spider-loom"],
+      "description": "Filter bars hum as silk rubs against them."
+    },
+    {
+      "id": "silk-curtain-to-spider-loom",
+      "between": ["silk-curtain", "spider-loom"],
+      "trap": {
+        "id": "silk-treadle",
+        "name": "Silk treadle",
+        "description": "A loose stone lip sticks up through the silk on the causeway.",
+        "find": {
+          "dc": 11
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 11
+            },
+            {
+              "ability": "dexterity",
+              "dc": 11
+            }
+          ]
+        },
+        "trigger": "The silk pulls tight at your ankle and tips you onto stone.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 11
+        },
+        "damage": {
+          "dice": 1,
+          "sides": 4,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "lost-below"
+      },
+      "description": "A loose stone lip sticks up through the silk on the causeway."
+    },
+    {
+      "id": "silk-curtain-to-chalk-shelf",
+      "between": ["silk-curtain", "chalk-shelf"],
+      "description": "The fringe of the curtain gives way to open chalk."
+    },
+    {
+      "id": "chalk-shelf-to-siphon-bell",
+      "between": ["chalk-shelf", "siphon-bell"],
+      "description": "Shells roll down the grade with each breath of air."
+    },
+    {
+      "id": "siphon-bell-to-sluice-stair",
+      "between": ["siphon-bell", "sluice-stair"],
+      "description": "Dry flagstones curve outside the reach of the web."
+    },
+    {
+      "id": "spider-loom-to-sluice-stair",
+      "between": ["spider-loom", "sluice-stair"],
+      "description": "The stone filter ends at the head of a stair."
+    },
+    {
+      "id": "white-seam-to-silk-curtain",
+      "between": ["white-seam", "silk-curtain"],
+      "description": "A dark strand leads from the spool to the curtain."
+    },
+    {
+      "id": "sluice-descent",
+      "between": ["sluice-stair", "sluice-foot"],
+      "vertical": "stairs",
+      "description": "Shallow water runs beside the descending stair."
+    },
+    {
+      "id": "sluice-foot-to-rib-bridge",
+      "between": ["sluice-foot", "rib-bridge"],
+      "description": "Bare limestone rises above the surface of the ford."
+    },
+    {
+      "id": "sluice-foot-to-furrowed-ford",
+      "between": ["sluice-foot", "furrowed-ford"],
+      "description": "Tracks of two sizes enter the reeds on opposite banks."
+    },
+    {
+      "id": "rib-bridge-to-high-rib",
+      "between": ["rib-bridge", "high-rib"],
+      "description": "A stone rail follows the high side of the crossing."
+    },
+    {
+      "id": "high-rib-to-daylight-fissure",
+      "between": ["high-rib", "daylight-fissure"],
+      "description": "Stiff roots lean towards a finger of daylight."
+    },
+    {
+      "id": "daylight-fissure-to-chain-stair",
+      "between": ["daylight-fissure", "chain-stair"],
+      "description": "A sheltered ledge runs from the fissure to the chain."
+    },
+    {
+      "id": "high-rib-to-wind-pocket",
+      "between": ["high-rib", "wind-pocket"],
+      "description": "Wind scours the upper rib clean of prints."
+    },
+    {
+      "id": "rib-bridge-to-wind-pocket",
+      "between": ["rib-bridge", "wind-pocket"],
+      "trap": {
+        "id": "hollow-tread",
+        "name": "Hollow tread",
+        "description": "One tread of the direct bridge rocks in its socket.",
+        "find": {
+          "dc": 13
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 13
+            },
+            {
+              "ability": "dexterity",
+              "dc": 13
+            }
+          ]
+        },
+        "trigger": "The tread turns under your heel. You strike the stone rib below.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 13
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 6,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "lost-below"
+      },
+      "description": "One tread of the direct bridge rocks in its socket."
+    },
+    {
+      "id": "furrowed-ford-to-winter-den",
+      "between": ["furrowed-ford", "winter-den"],
+      "description": "The damp gravel gives way to flattened ridges of fur."
+    },
+    {
+      "id": "winter-den-to-chain-stair",
+      "between": ["winter-den", "chain-stair"],
+      "description": "Two beds of coarse grey fur block the lower path."
+    },
+    {
+      "id": "wind-pocket-to-chain-stair",
+      "between": ["wind-pocket", "chain-stair"],
+      "description": "A draught passes the ledge and rattles the chain."
+    },
+    {
+      "id": "chain-descent",
+      "between": ["chain-stair", "chain-foot"],
+      "vertical": "stairs",
+      "description": "A stair turns beneath a ceiling scored by hanging links."
+    },
+    {
+      "id": "chain-foot-to-stillwater-cell",
+      "between": ["chain-foot", "stillwater-cell"],
+      "description": "A dry threshold rises above the old water mark."
+    },
+    {
+      "id": "chain-foot-to-moon-dial",
+      "between": ["chain-foot", "moon-dial"],
+      "description": "Three parallel gouges lead around the curve of the shaft."
+    },
+    {
+      "id": "stillwater-cell-to-shed-skin-gallery",
+      "between": ["stillwater-cell", "shed-skin-gallery"],
+      "description": "Two fresh threads stretch from the arch to the ceiling."
+    },
+    {
+      "id": "shed-skin-gallery-to-balance-tube",
+      "between": ["shed-skin-gallery", "balance-tube"],
+      "trap": {
+        "id": "sump-treadle",
+        "name": "Sump treadle",
+        "description": "A rocking slab spans the sump under the gallery.",
+        "find": {
+          "dc": 15
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 15,
+              "advantage": [
+                {
+                  "type": "discovered",
+                  "feature": "read-the-water-marks",
+                  "name": "You recognise the working mark"
+                }
+              ]
+            },
+            {
+              "ability": "dexterity",
+              "dc": 15,
+              "advantage": [
+                {
+                  "type": "discovered",
+                  "feature": "read-the-water-marks",
+                  "name": "You recognise the working mark"
+                }
+              ]
+            }
+          ]
+        },
+        "trigger": "The slab pivots and drops you hard into the stone sump.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 15
+        },
+        "damage": {
+          "dice": 3,
+          "sides": 6,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "lost-below"
+      },
+      "description": "A rocking slab spans the sump under the gallery."
+    },
+    {
+      "id": "moon-dial-to-blind-overflow",
+      "between": ["moon-dial", "blind-overflow"],
+      "description": "A trickle runs along a low spillway towards the ravine."
+    },
+    {
+      "id": "moon-dial-to-nest-of-white-feathers",
+      "between": ["moon-dial", "nest-of-white-feathers"],
+      "description": "White quills fill the arch. An enormous hooked beak has bitten clean through a bone here."
+    },
+    {
+      "id": "nest-of-white-feathers-to-moon-cup",
+      "between": ["nest-of-white-feathers", "moon-cup"],
+      "description": "Crushed reeds and split bones cover the threshold of the owlbear's nest."
+    },
+    {
+      "id": "moon-dial-to-balance-tube",
+      "between": ["moon-dial", "balance-tube"],
+      "hidden": true,
+      "description": "An inspection hatch opens wide enough to crawl through."
+    },
+    {
+      "id": "balance-tube-to-moon-cup",
+      "between": ["balance-tube", "moon-cup"],
+      "description": "A bronze sleeve runs from the pivot to a polished cup."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "drawer-rats",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "drawer-rats-1",
+          "monster": "giant-rat",
+          "name": "Split-ear Rat"
+        },
+        {
+          "id": "drawer-rats-2",
+          "monster": "giant-rat",
+          "name": "White-pawed Rat"
+        }
+      ]
+    },
+    {
+      "id": "curtain-hunter",
+      "defeatEndingId": "lost-below",
+      "presentUntil": "lure-wound",
+      "opponents": [
+        {
+          "id": "curtain-hunter-1",
+          "monster": "giant-spider"
+        }
+      ]
+    },
+    {
+      "id": "filter-hunter",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "filter-hunter-1",
+          "monster": "giant-spider"
+        }
+      ]
+    },
+    {
+      "id": "ford-pack",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "ford-pack-1",
+          "monster": "wolf"
+        },
+        {
+          "id": "ford-pack-2",
+          "monster": "dire-wolf"
+        }
+      ]
+    },
+    {
+      "id": "winter-pack",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "winter-pack-1",
+          "monster": "dire-wolf",
+          "name": "Brindle Dire Wolf"
+        },
+        {
+          "id": "winter-pack-2",
+          "monster": "dire-wolf",
+          "name": "Grey Dire Wolf"
+        }
+      ]
+    },
+    {
+      "id": "gallery-pair",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "gallery-pair-1",
+          "monster": "giant-spider",
+          "name": "Ash Spider"
+        },
+        {
+          "id": "gallery-pair-2",
+          "monster": "giant-spider",
+          "name": "Ivory Spider"
+        }
+      ]
+    },
+    {
+      "id": "nest-keeper",
+      "defeatEndingId": "lost-below",
+      "opponents": [
+        {
+          "id": "nest-keeper-1",
+          "monster": "owlbear"
+        }
+      ],
+      "sets": {
+        "won": "nest-cleared"
+      }
+    }
+  ],
+  "endings": [
+    {
+      "id": "moon-in-daylight",
+      "kind": "victory",
+      "onEscapeWhen": "moon-claimed",
+      "title": "A moon in daylight",
+      "text": "Daylight finds the silver ball dented and surprisingly light in your hands. Behind you the well holds only the sky. A last drop strikes the empty cup, four floors down."
+    },
+    {
+      "id": "lesser-finds",
+      "kind": "escape-with-loot",
+      "title": "The well keeps its moon",
+      "text": "You reach daylight with your finds. Looking over the well curb, you can still pick out that thin silver crescent."
+    },
+    {
+      "id": "dry-hands",
+      "kind": "escape-without-loot",
+      "title": "Back at the rim",
+      "text": "You emerge with empty hands. The still crescent waits at the bottom of the well."
+    },
+    {
+      "id": "lost-below",
+      "kind": "defeat",
+      "title": "Under the chalk line",
+      "text": "The sound of the river fills your ears. Far overhead the circle of daylight shrinks to a point."
+    }
+  ]
+}

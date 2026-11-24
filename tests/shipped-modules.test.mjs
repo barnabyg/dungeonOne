@@ -84,7 +84,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules include the four career adventures and the Cinder Mint capstone", () => {
+test("the built-in modules include the four career adventures and both level-5 expeditions", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
@@ -93,6 +93,7 @@ test("the built-in modules include the four career adventures and the Cinder Min
       "coldwater-weirgate",
       "last-shift-at-cinder-mint",
       "thornwood-lodge",
+      "well-of-the-hollow-moon",
     ],
   );
 });
@@ -128,8 +129,12 @@ test("leaving any shipped module at its start warns of the objective's award los
     const { leaving } = runtime
       .projectActions(begun)
       .find(({ action }) => action === "leave");
-    if (module.id === "last-shift-at-cinder-mint") {
-      assert.equal(leaving.ending.id, "left-the-six");
+    const emptyEnding = {
+      "last-shift-at-cinder-mint": "left-the-six",
+      "well-of-the-hollow-moon": "dry-hands",
+    }[module.id];
+    if (emptyEnding !== undefined) {
+      assert.equal(leaving.ending.id, emptyEnding);
       assert.equal(
         leaving.warning,
         `Objective not met: ${module.objective} You keep the XP for any fights you have won.`,
@@ -906,6 +911,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["coldwater-weirgate", "3–4", "medium"],
       ["thornwood-lodge", "4–5", "hard"],
       ["last-shift-at-cinder-mint", "5–5", "medium"],
+      ["well-of-the-hollow-moon", "5–5", "medium"],
     ],
   );
 });

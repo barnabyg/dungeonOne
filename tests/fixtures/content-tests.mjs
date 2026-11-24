@@ -8,6 +8,10 @@
  */
 export const CONTENT_TESTS = new Map([
   [
+    "tests/hollow-moon-browser.test.mjs",
+    "plays the Hollow Moon expedition through the browser and checks the carried-out treasure",
+  ],
+  [
     "tests/cinder-mint-browser.test.mjs",
     "both Cinder Mint endings and the wand retained in the library",
   ],

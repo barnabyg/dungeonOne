@@ -4921,6 +4921,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "coldwater-weirgate": "coldwater-weirgate.json",
   "last-shift-at-cinder-mint": "last-shift-at-cinder-mint.json",
   "thornwood-lodge": "thornwood-lodge.json",
+  "well-of-the-hollow-moon": "well-of-the-hollow-moon.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 

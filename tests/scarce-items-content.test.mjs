@@ -46,6 +46,15 @@ const ruleItems = (adventure) =>
   ]);
 
 for (const adventure of adventures) {
+  const { objective } = requiredPath(adventure);
+  // A conditional victory can take precedence when the harness carries loot out.
+  const completions = new Set([objective]);
+  if (
+    objective === "escape-with-loot" &&
+    adventure.endings.some((ending) => ending.onEscapeWhen)
+  ) {
+    completions.add("victory");
+  }
   test(`${adventure.id}: only potions, gear, scrolls and wands no rule names may go missing`, () => {
     const candidates = scarceCandidateIds(adventure);
     const named = ruleItems(adventure);
@@ -80,7 +89,6 @@ for (const adventure of adventures) {
     while (scarceItemIds(adventure, worst).size < candidates.length) {
       worst += 1;
     }
-    const { objective } = requiredPath(adventure);
     const [{ dice }] = percentileCharacters({ percentiles: [50] });
     for (const classId of GATE_CLASSES) {
       const sheet = characterAtLevel(
@@ -98,24 +106,23 @@ for (const adventure of adventures) {
         // action left that leads on or out.
         const { outcome } = playAdventure(runtime, GATE_STYLE, seed);
         assert.ok(
-          outcome === objective || outcome === "defeat",
+          completions.has(outcome) || outcome === "defeat",
           `${classId} on dice seed ${seed} ended in ${outcome}`,
         );
-        finished += outcome === objective ? 1 : 0;
+        finished += completions.has(outcome) ? 1 : 0;
       }
       assert.ok(finished > 0, `${classId} never reached the ${objective}`);
     }
   });
 
   test(`${adventure.id}: sessions on Scarce play to an ending, never stranded`, () => {
-    const { objective } = requiredPath(adventure);
     const [{ dice }] = percentileCharacters({ percentiles: [50] });
     const sheet = characterAtLevel(dice, adventure.recommendedLevels.max);
     for (let seed = 0; seed < DICE_SEEDS; seed++) {
       const runtime = createFifthRuntime(adventure, sheet, {}, SCARCE, seed);
       const { outcome } = playAdventure(runtime, GATE_STYLE, seed);
       assert.ok(
-        outcome === objective || outcome === "defeat",
+        completions.has(outcome) || outcome === "defeat",
         `session seed ${seed} ended in ${outcome}`,
       );
     }

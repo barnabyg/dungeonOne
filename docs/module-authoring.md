@@ -131,7 +131,9 @@ explains its output and the sketch format.
   4–5), carry a character from level 1 to level 5. Each has 10–20 rooms and two
   regions, each region with a rest site and an exit. The optional fifth module,
   Last Shift at Cinder Mint, starts at level 5 and has 28 rooms. Its two
-  narrative victories award no additional ending XP. The validator allows at
+  narrative victories award no additional ending XP. The Well of the Hollow
+  Moon is a second optional level-5 module, with 32 rooms on four floors and
+  a victory for carrying its silver float out. The validator allows at
   most 50 rooms, 100 passages and 30 encounters.
 - **The XP path.** The main endings' awards (escape with loot, or victory where
   the module has one), taken in level order, add up to SRD 5.2's thresholds for
