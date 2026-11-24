@@ -1560,6 +1560,20 @@ function showAdventure(value) {
   // The latest turn shows from its top (#529).
   followHistory = true;
   followTurn();
+  if (value.openingPending) void refreshOpening(value.id, routeTicket);
+}
+
+// Only replace the first card. A late reply cannot restore an older session
+// snapshot or interrupt a player typing or acting.
+async function refreshOpening(sessionId, ticket) {
+  try {
+    const { opening } = await request("/api/5e/session/opening", { sessionId });
+    if (ticket !== routeTicket || session.id !== sessionId || session.history.length !== 1) return;
+    session.history[0] = opening;
+    if (!acting) renderHistory();
+  } catch {
+    // The authored arrival is already on screen and saved.
+  }
 }
 
 function renderAdventure() {
@@ -2241,10 +2255,13 @@ function onLatestTurn() {
   return !turnStart || turnStart.getBoundingClientRect().top - log.getBoundingClientRect().top < turnRest + 24;
 }
 
+let renderedOpening;
 function renderHistory() {
   const log = element("log");
   for (const pending of log.querySelectorAll(":scope > li[data-pending]")) pending.remove();
-  const rebuilt = log.dataset.session !== session.id || log.children.length > session.history.length;
+  const opening = session.history[0]?.cards[0]?.text;
+  const rebuilt = log.dataset.session !== session.id || log.children.length > session.history.length || opening !== renderedOpening;
+  renderedOpening = opening;
   if (rebuilt) {
     log.dataset.session = session.id;
     log.replaceChildren();

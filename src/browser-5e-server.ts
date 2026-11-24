@@ -37,6 +37,7 @@ import {
   type PendingCreation,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
+import { isLaneGate, narrateLaneGate } from "./lane-gate-5e.js";
 import {
   createOpenAiDmModel,
   listOpenAiModelIds,
@@ -942,10 +943,49 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     }
   };
   const dmAvailable = modelFor !== undefined;
+  const openings = new WeakMap<FifthSession, Promise<void>>();
+  function beginOpening(session: FifthSession) {
+    if (
+      !open ||
+      !isLaneGate(session.adventure.id, session.adventure.startRoomId) ||
+      session.history[0]?.cards[0]?.kind !== "narration"
+    ) {
+      return;
+    }
+    const { dmModel: id, dmReasoning } = session.settings;
+    // The DM adapter holds a conversation in progress. Give this background
+    // request its own adapter so a player can type while it is running.
+    const generate = async () => {
+      const entry = await narrateLaneGate(
+        session,
+        open!(id, dmReasoning === "default" ? undefined : dmReasoning),
+      );
+      if (!entry) {
+        return;
+      }
+      await serialized(async () => {
+        if (
+          sessions.get(session.id) !== session ||
+          session.history.length !== 1
+        ) {
+          return;
+        }
+        session.history[0] = entry;
+        await persist(session);
+      });
+    };
+    openings.set(
+      session,
+      generate()
+        .catch(() => undefined)
+        .finally(() => openings.delete(session)),
+    );
+  }
   /** The session view, with whether the player can type to the AI DM. */
   const projectSession = (session: FifthSession) => ({
     ...sessionView(session),
     dmAvailable,
+    ...(openings.has(session) ? { openingPending: true } : {}),
   });
   /** The response to a session request: the library and the session. */
   const respondWith = async (session: FifthSession) => ({
@@ -1018,6 +1058,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           );
           if (session.state.status === "playing") {
             sessions.set(session.id, session);
+            beginOpening(session);
           }
           return respondWith(session);
         });
@@ -1061,6 +1102,17 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           }
           return view(data);
         });
+      }
+      case "/api/5e/session/opening": {
+        if (!hasExactKeys(body, ["sessionId"])) {
+          throw new Error("Invalid adventure request.");
+        }
+        const session = await serialized(() => openSession(body.sessionId));
+        // Waiting for prose must never hold the action queue.
+        await openings.get(session);
+        return serialized(async () => ({
+          opening: (await openSession(body.sessionId)).history[0],
+        }));
       }
       case "/api/5e/session":
         if (!hasExactKeys(body, ["sessionId"])) {

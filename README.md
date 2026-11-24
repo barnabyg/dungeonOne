@@ -18,12 +18,14 @@ the house rules and the rules left out.
 - npm 11.6.4 (pinned by `packageManager`)
 - A desktop browser. The browser tests use Microsoft Edge on Windows and the
   pinned Playwright Chromium elsewhere.
-- `OPENAI_API_KEY`, only to type to the AI Dungeon Master. Without it the game
-  is fully playable with its buttons.
+- `OPENAI_API_KEY` enables typed messages to the AI Dungeon Master and an AI
+  first impression at Bramblecote’s Lane Gate. The game is fully playable with its buttons.
 
 ## Playing
 
 The map below **What happened** shows explored rooms and the ways out of your current room. Select an adjacent room to travel, select **Key** for the symbols, or press **M** for a larger map.
+
+To try the narration experiment, start **The Bramblecote Cider House** with a new level-1 character. The authored Lane Gate description appears immediately. With the AI enabled, a short first impression replaces it in **What happened** if you are still on the opening turn. Choose something that catches your eye. Try going to the kitchen and back before and after examining the cart ruts. On your return the gate is familiar, and the description recalls what you found.
 
 From the repository root in PowerShell, or by double-clicking `run.bat`:
 

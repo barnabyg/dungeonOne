@@ -84,6 +84,7 @@ import {
   WAND_ICON,
 } from "./icons-5e.js";
 import type { Backdrop } from "./backdrops-5e.js";
+import { isLaneGate } from "./lane-gate-5e.js";
 import { exitDirection } from "./map-5e.js";
 import type { Cell, Direction, VerticalKind } from "./map-5e.js";
 import { castSound, type SoundId } from "./sounds-5e.js";
@@ -9440,6 +9441,16 @@ export function createFifthRuntime(
     const next: FifthState = lurked.hidden
       ? cleared(lurked.state, "unseenBy")
       : lurked.state;
+    let description = destination.description;
+    if (
+      isLaneGate(adventure.id, destination.id) &&
+      state.visitedRoomIds.includes(destination.id)
+    ) {
+      const ruts = describedFeatures(next).find(({ id }) => id === "cart-ruts");
+      description = ["You’re back at the open five-bar gate.", ruts?.discovery]
+        .filter(Boolean)
+        .join(" ");
+    }
     const events: readonly FifthEvent[] = [
       ...before,
       ...sprung.events,
@@ -9454,7 +9465,7 @@ export function createFifthRuntime(
         type: "entered",
         roomId: destination.id,
         name: destination.name,
-        description: destination.description,
+        description,
         opponents: metHere.map(({ description }) => description),
         opponentIds: metHere.map(({ id }) => id),
       },

@@ -35,7 +35,7 @@ import {
   text,
 } from "./fixtures/browser-journey.mjs";
 import { journey } from "./fixtures/module-journey.mjs";
-import { readAda } from "./fixtures/save-files.mjs";
+import { readAda, sessionFile } from "./fixtures/save-files.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 const input = (path) =>
@@ -56,10 +56,11 @@ const levelTwoVex = () => ({
 });
 
 /** A browser on a server for `libraryPath` on `seed`, and its page. */
-async function open(libraryPath, seed) {
+async function open(libraryPath, seed, dmModel) {
   const server = await startFifthBrowserServer({
     libraryPath,
     seed,
+    dmModel,
     // shipped-modules.test.mjs gates every shipped module; skip it here.
     qualifies: () => true,
   });
@@ -228,6 +229,98 @@ async function scenario({
 }
 
 const CIDER_SEED = 138;
+
+for (const outcome of ["narrated", "failed", "player acted"]) {
+  test(
+    `Lane Gate first impression: ${outcome}`,
+    { timeout: 90_000 },
+    async () => {
+      const directory = await mkdtemp(join(tmpdir(), "lane-gate-"));
+      const reply = Promise.withResolvers();
+      const requests = [];
+      const { page, close } = await open(
+        join(directory, "characters.json"),
+        outcome === "failed" ? 4 : CIDER_SEED,
+        {
+          respond(request) {
+            requests.push(request);
+            return reply.promise;
+          },
+        },
+      );
+      try {
+        await createFighter(page);
+        await startAdventure(page, "bramblecote-cider-house");
+        const opening = page.locator("#log [data-arrival]").first();
+        const authored = await text(opening);
+        assert.match(authored, /windfall apples/u);
+        assert.equal(requests.length, 1);
+        assert.deepEqual(requests[0].tools, []);
+        assert.ok(
+          requests[0].playerInput.endsWith(
+            outcome === "failed" ? "Widow Ressa Pell." : "Cart Ruts.",
+          ),
+        );
+        assert.match(JSON.stringify(requests[0].scene), /a heavy cart/u);
+        assert.doesNotMatch(
+          JSON.stringify(requests[0]),
+          /small bare feet|spare key|behind the pendulum/iu,
+        );
+        const settledOpening = page.waitForResponse((response) =>
+          response.url().endsWith("/api/5e/session/opening"),
+        );
+        if (outcome === "player acted") {
+          await clickAction(page, "examine", "cart-ruts");
+        }
+        if (outcome === "failed") {
+          reply.reject(new Error("provider unavailable"));
+        } else {
+          reply.resolve({
+            text: "Soft apples scent the lane beside the muddy ruts.",
+          });
+        }
+        await settledOpening;
+        if (outcome === "narrated") {
+          await opening.filter({ hasText: "Soft apples scent" }).waitFor();
+        }
+        const first = await text(opening);
+        if (outcome !== "narrated") {
+          assert.equal(first, authored);
+        }
+        if (outcome === "narrated") {
+          await clickAction(page, "move", "kitchen");
+          await clickAction(page, "move", "lane-gate");
+          const revisit = await text(page.locator("#log li").last());
+          assert.match(revisit, /back at the open five-bar gate/u);
+          assert.doesNotMatch(revisit, /small bare feet/u);
+        }
+        if (outcome !== "player acted") {
+          await clickAction(page, "examine", "cart-ruts");
+        }
+        assert.match(
+          await text(page.locator("#log li").last()),
+          /small bare feet/u,
+        );
+        await clickAction(page, "move", "kitchen");
+        await clickAction(page, "move", "lane-gate");
+        const revisit = await text(page.locator("#log li").last());
+        assert.match(revisit, /back at the open five-bar gate/u);
+        assert.match(revisit, /small bare feet/u);
+        const file = await sessionFile(directory);
+        assert.equal(file.transitions.length, outcome === "narrated" ? 6 : 4);
+        assert.ok(first.includes(file.history[0].cards[0].text));
+        await page.reload();
+        await opening.waitFor();
+        assert.equal(await text(opening), first);
+        assert.equal(requests.length, 1);
+      } finally {
+        reply.resolve({ text: "" });
+        await close();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+}
 
 test(
   `four-module handoff 1: a new Fighter takes Wick's key in the Bramblecote Cider House and leaves with the Pells' goods (seed ${CIDER_SEED})`,
