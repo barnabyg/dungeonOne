@@ -94,13 +94,14 @@ for (const [scenario, title, route, choice, alternative] of [
         new URL("./fixtures/libraries/level-5-ada.json", import.meta.url),
         libraryPath,
       );
-      const startServer = () =>
-        startFifthBrowserServer({
+      const startServer = async () => {
+        server = await startFifthBrowserServer({
           libraryPath,
           seed: 24,
           qualifies: () => true,
         });
-      server = await startServer();
+      };
+      await startServer();
       browser = await launch();
       const page = await browser.newPage();
       page.setDefaultTimeout(12000);
@@ -118,7 +119,7 @@ for (const [scenario, title, route, choice, alternative] of [
         if (target === "records-landing" || target === "lift-foot") {
           const roomName = await page.locator("#room-title").innerText();
           await server.close();
-          server = await startServer();
+          await startServer();
           await page.goto(server.url);
           await page.locator("#characters .continue-adventure").click();
           await page
