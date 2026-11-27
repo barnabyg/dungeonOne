@@ -13,6 +13,10 @@ modules that form a career from level 1 to level 5 (#437–#447):
 This ticket adds the handoff and its browser test and changes no code or
 content.
 
+Since #601 (27 November 2026) the Delve tells a story, The Unrelieved Watch:
+its dead garrison is still on duty and was never paid. Scenario 2 is now its
+two story runs, the reliever (2) and the robber (2b).
+
 ## Automated evidence
 
 - `npm.cmd run verify` passes with zero warnings; CI reruns it on the PR.
@@ -22,7 +26,7 @@ content.
   `tests/shipped-modules.test.mjs` pins the figures and
   `adventures/5e/gate-verdicts.json` records the verdicts.
 - **The handoff journeys** (`tests/four-module-handoff-browser.test.mjs`) play
-  scenarios 1–4 below in a real browser on their seeds, check each against
+  scenarios 1–4 and 2b below in a real browser on their seeds, check each against
   an engine journey with the same clicks and against the library file, and
   assert the lines, fight-end HP and endings quoted here.
 
@@ -45,8 +49,8 @@ game. Press Ctrl+C to stop; rerunning `.\run` continues where you left off.
 ## Seeded scenarios
 
 These replay fixed dice, so each has its own command with a seed and a
-fresh library under `.scratch\release-448\`; to retry, delete that
-scenario's folder and start again. They use the buttons only. Once `.\run`
+fresh library under `.scratch\release-448\` (`.scratch\release-601\` for
+the Delve's two); to retry, delete that scenario's folder and start again. They use the buttons only. Once `.\run`
 has installed the dependencies, build and clear the key in this window (it
 stays set elsewhere):
 
@@ -59,7 +63,8 @@ The dice are seeded, so the results hold only if you take **exactly** the
 listed actions in order. In every fight, press the first enabled button in
 the **Attack** row (for Vex, her shortsword and then her dagger's extra
 attack); otherwise press **End turn**. Never drink a potion, use Second
-Wind or Action Surge, or Hide.
+Wind or Action Surge, or Hide. Scenario 2 names the one fight action it
+takes.
 
 ### 1. Level 1: a new Fighter in the Bramblecote Cider House
 
@@ -88,33 +93,109 @@ New-Item -ItemType Directory -Force .\.scratch\release-448\cider | Out-Null; npm
    with Wick spared, +300 for the ending; the cup kept. Ada has 400 XP and
    is level 2 (13 → 22 HP, Action Surge and Tactical Mind).
 
-### 2. Level 2: a Rogue down the Abandoned Delve's well
+### 2. Level 2: the reliever pays the Abandoned Delve's dead
 
 ```powershell
-New-Item -ItemType Directory -Force .\.scratch\release-448\delve | Out-Null; Copy-Item .\tests\fixtures\libraries\level-2-vex.json .\.scratch\release-448\delve\characters.json; npm.cmd run browser -- --seed 190 --characters .\.scratch\release-448\delve\characters.json
+New-Item -ItemType Directory -Force .\.scratch\release-601\reliever | Out-Null; Copy-Item .\tests\fixtures\libraries\level-2-ada.json .\.scratch\release-601\reliever\characters.json; npm.cmd run browser -- --seed 0 --characters .\.scratch\release-601\reliever\characters.json
 ```
 
-Vex is a level-2 Rogue (15 HP, AC 15) with a shortsword and a dagger.
+Ada is a level-2 Fighter with 300 XP (20 HP, AC 14) and a mace.
+
+1. Choose Ada and **Start** _The Abandoned Delve_. Expect the objective
+   "Bring up what you can of the old lord's hoard from under the ruined
+   keep, and get out alive."
+2. **Go** Gate Hall. **Examine** Standing Orders: the watch is relieved
+   "when the lord's order is read at the muster bell and each man has his
+   pay in his hand". Leave the Muster Bell alone: examining it rings it.
+3. **Go** Porter's Lodge. **Examine** Peg Rail; **Take** the Coil of Rope. In
+   the "Ask Hedda the Pedlar about" row, press **the garrison**: forty men,
+   never relieved, never paid.
+4. **Go** Gate Hall, Guard Post. The dead guard "finds no badge there" and
+   fights. Its Undead Fortitude holds it up once, then fails. Ada wins at
+   20/20.
+5. **Go** Dry Well. In the Well Head's row, press **Use Coil of Rope**: the
+   goblin climbs out, and "The way to the Well Bottom is open."
+6. In the "Ask Goblin about" row, press **the woman**, **the tomb** and
+   **the bell**. Mags cut his rope; the lord's box opens by the carved hand;
+   the dead are waiting for the bell, their roll and their pay.
+7. **Go** Well Bottom, Flooded Cistern, Ossuary. Mags Corrow sees Ada:
+   expect "Reaction roll: 2d6 (5 + 4) − 1 Charisma = 8: uncertain" and her
+   price, two gold. Press **Attack**. Ada wins at 20/20.
+8. **Go** Lord's Tomb. The Crowned-Skull Ward wails and Ada's Wisdom save
+   fails: 3 psychic, 17/20. **Examine** Sarcophagus Lid with
+   **Investigation**: expect advantage from "The goblin's directions" and
+   "Success by 5 or more". Under the lord's hands is the order, never
+   opened: "read this at the muster bell: the watch is relieved. Pay each
+   man what he is owed from the vault, by the roll, and let them go."
+   **Take** the Silver Death Mask and the Grave Coins (7 gp).
+9. **Go** Ossuary, Shaft Bottom. In the "Ask Voice at the Grille about" row,
+   press **the relief** and **his offer**. He holds the roll, and offers the
+   chest for the chaplain's key passed through the bars.
+10. **Go** Shrine. **Examine** Altar; **Take** the Bronze Key. **Examine**
+    Offering Box: the chaplain "turned the key on him and on the men's pay
+    together".
+11. **Go** Shaft Bottom. Refuse the deal: do **not** press Use Bronze Key on
+    the Door Grille. **Unlock** the Vault Door instead, and **Go** Vault.
+12. The Castellan fights and goes first: his claw misses. On Ada's turn,
+    press the fight action that uses the **Iron Chest** with **Religion**
+    (the garrison's oath): expect "Success by 5 or more" and "Castellan is
+    paralysed … for 3 turns." Then attack as usual. Ada wins at 17/20.
+13. **Examine** the Castellan's body; **Take** the Pay Roll. **Examine** Iron
+    Chest; **Take** the Garrison's Pay (45 gp) and the Garnet.
+14. **Go** Shaft Bottom, Ossuary, Flooded Cistern, Well Bottom, Dry Well,
+    Guard Post, Gate Hall.
+15. In the Muster Bell's row, press **Use Pay Roll (22 gp 5 sp)**. Expect
+    "You use the Pay Roll on the Muster Bell, paying 22 gp 5 sp.", the dead
+    falling in to be paid and told "that the watch is relieved", and "The
+    Pay Roll is used up."
+16. **Go** Broken Gate, then **Leave** and confirm.
+17. Expect **The watch stands down**: +50 XP for the zombie, +25 for Mags,
+    +200 for the Castellan, +600 for the ending. Ada has 1,175 XP and is
+    level 3; her purse holds 29 gp 5 sp, and she keeps the Silver Death Mask
+    and the Garnet.
+
+### 2b. Level 2: the robber takes the Castellan's deal
+
+```powershell
+New-Item -ItemType Directory -Force .\.scratch\release-601\robber | Out-Null; Copy-Item .\tests\fixtures\libraries\level-2-vex.json .\.scratch\release-601\robber\characters.json; npm.cmd run browser -- --seed 3 --characters .\.scratch\release-601\robber\characters.json
+```
+
+Vex is a level-2 Rogue with 300 XP (15 HP, AC 15) with a shortsword and a
+dagger. No fight is fought in this run.
 
 1. Choose Vex and **Start** _The Abandoned Delve_.
-2. **Go** Gate Hall, Porter's Lodge. **Examine** Peg Rail; **Take** the Coil
-   of Rope.
-3. **Go** Gate Hall, Guard Post. The zombie fights; its Undead Fortitude
-   save fails on the last blow. Vex wins at 15/15.
-4. **Go** Dry Well. In the Well Head's row, press **Use Coil of Rope**.
-   Expect the goblin to climb out, "The Coil of Rope is used up." and "The
-   way to the Well Bottom is open."
-5. In the "Ask Goblin about" row, press **the woman**, then **the tomb**.
-   The goblin names Mags in the bone room, and tells how the old lord's box
-   opens.
-6. **Go** Well Bottom: **Examine** Silted Floor, **Take** the Wishing Coins
-   (6 gp). **Go** Flooded Cistern: **Examine** Drowned Delver, **Take** the
-   Jasper.
-7. **Go** Ossuary. Mags Corrow fights; Vex wins at 15/15. **Examine** Mags's
-   Satchel; **Take** both finds (15 gp and the Turquoise).
-8. **Go** Shaft Bottom, then **Leave** and confirm.
-9. Expect **Out with the loot**: +50 XP for the zombie, +25 for Mags, +600
-   for the ending. Vex has 975 XP and is level 3; her purse holds 21 gp.
+2. **Go** Gate Hall. **Examine** Standing Orders: "No one passes a post who
+   does not wear the garrison's badge."
+3. **Force** the Swollen Door: expect "d20 17 − 1 + 2 proficiency = 18
+   against DC 12. Success." and "The alarm is raised by forcing the Swollen
+   Door (success)."
+4. **Go** Storeroom. **Examine** Old Barrel; **Take** the Garrison Badge.
+5. **Go** Gate Hall, Barracks. No fight: the skeletons stand guard and let
+   Vex by. **Examine** Footlocker; **Take** the Soldier's Silver (2 gp 5 sp).
+6. **Go** Gate Hall, Guard Post. No fight: the dead guard stands at its
+   post. **Examine** Overturned Table; **Take** the Guard's Purse (1 gp
+   8 sp).
+7. **Go** Dry Well. **Search**: Vex finds the Loose Step on the way to the
+   Shrine. **Disarm** it with **Thieves' tools**: "You disarm the Loose
+   Step."
+8. **Go** Shrine. **Examine** Altar; **Take** the Bronze Key.
+9. **Go** Shaft Bottom. The alarm has brought Mags Corrow here: expect
+   "Reaction roll: 2d6 (3 + 4) − 1 Charisma = 6: uncertain" and "Two gold
+   says we don't have to argue about it." Press **Pay the toll (2 gp)**:
+   "Mags Corrow lets you pass: the encounter ends peacefully."
+10. **Go** Ossuary. In the "Ask Mags Corrow about" row, press **the badge**
+    and **the voice**.
+11. **Go** Shaft Bottom. In the "Ask Voice at the Grille about" row, press
+    **his offer**. Then, in the Door Grille's row, press **Use Bronze Key**:
+    "Something thin in the rags of a steward's gown slips out with a roll of
+    parchment under its arm".
+12. **Unlock** the Vault Door and **Go** Vault. No fight: the vault is empty.
+    **Examine** Iron Chest; **Take** the Garrison's Pay (45 gp) and the
+    Garnet. There is no Pay Roll to find.
+13. **Go** Shaft Bottom, then **Leave** and confirm.
+14. Expect **Out with the garrison's pay**: +25 XP for parting peacefully
+    with Mags, +600 for the ending. Vex has 925 XP and is level 3; her purse
+    holds 47 gp 3 sp, and she keeps the Garnet.
 
 ### 3. Level 4: the salt pork and the ogre in the Coldwater Weirgate
 
@@ -172,7 +253,8 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 | Scenario                | Date | Result | Notes |
 | ----------------------- | ---- | ------ | ----- |
 | 1. Cider House, level 1 |      |        |       |
-| 2. Delve, level 2       |      |        |       |
+| 2. Delve, the reliever  |      |        |       |
+| 2b. Delve, the robber   |      |        |       |
 | 3. Weirgate, level 4    |      |        |       |
 | 4. Lodge, level 5       |      |        |       |
 | Free play: Cleric       |      |        |       |
@@ -184,6 +266,13 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 - **Article slips.** Two finds read with a doubled or misplaced article:
   "You take the The King's Hanger and stow it." and "You take the Mags's
   Takings". The handoff test doesn't pin either wording.
+- **The Delve's Leave warning** (#601). A module's objective is its victory
+  when it has one, so leaving the Delve before the watch is relieved warns
+  "Objective not met" and names "The watch stands down", the robber's run
+  included: it earns its 600 XP all the same.
+- **The Door Grille after the fight** (#601). A use can't be withdrawn, so
+  the grille still offers Use Bronze Key once the Castellan is dead, with
+  the deal's words.
 - **Fragile seeds.** A change to these modules' foes, the fight rules, the
   wandering tables or the dice order moves the seeds; the handoff test fails
   when it does.
