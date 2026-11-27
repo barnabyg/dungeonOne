@@ -1752,3 +1752,18 @@ test("the delve's sounds and guards go with their fights (#621)", () => {
     ),
   );
 });
+
+// #622: carrying a garrison badge is enough, and its words say so.
+test("a garrison badge's words say carrying it is enough (#622)", () => {
+  const badges = delve.rooms
+    .flatMap(({ items }) => items)
+    .filter(({ name }) => name === "Garrison Badge");
+  assert.equal(badges.length, 2);
+  for (const { description } of badges) {
+    assert.match(
+      description,
+      /Carrying it marks you as one of the garrison\.$/u,
+    );
+    assert.doesNotMatch(description, /pinned|wearer/iu);
+  }
+});

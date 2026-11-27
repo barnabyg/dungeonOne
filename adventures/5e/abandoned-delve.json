@@ -239,7 +239,7 @@
         {
           "id": "garrison-badge",
           "name": "Garrison Badge",
-          "description": "A tin badge stamped with a tower, bright from its oilcloth. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "description": "A tin badge stamped with a tower, bright from its oilcloth. Carrying it marks you as one of the garrison.",
           "kind": "key",
           "hiddenIn": "old-barrel",
           "sets": "posts-stand-aside"
@@ -774,7 +774,7 @@
           "id": "drowned-delver",
           "name": "Drowned Delver",
           "description": "A body in a delver's coat lies face down on the walkway, a pack still on its back.",
-          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver, and a page of notes gone soft with damp: \"Bought a tin badge off the pedlar. Pinned it on and walked through the guard post, and the dead man looked straight through me. Dropped the cursed thing in the cistern. Going in after it.\""
+          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver, and a page of notes gone soft with damp: \"Bought a tin badge off the pedlar. Kept it in my pocket and walked through the guard post, and the dead man looked straight through me. Dropped the cursed thing in the cistern. Going in after it.\""
         }
       ],
       "items": [
@@ -789,7 +789,7 @@
         {
           "id": "drowned-badge",
           "name": "Garrison Badge",
-          "description": "A tin badge stamped with a tower, green from the cistern. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "description": "A tin badge stamped with a tower, green from the cistern. Carrying it marks you as one of the garrison.",
           "kind": "key",
           "hiddenIn": "black-water",
           "sets": "posts-stand-aside"
@@ -845,7 +845,7 @@
             {
               "id": "the-badge",
               "name": "the badge",
-              "reply": "\"The dead look for one thing: a tin badge with a tower on it, the garrison's. I watched a man walk through the guard post with one pinned to his coat, and the dead thing there never turned its head. Wear a badge and every post in this keep stands aside for you.\"",
+              "reply": "\"The dead look for one thing: a tin badge with a tower on it, the garrison's. I watched a man walk through the guard post with one in his pocket, and the dead thing there never turned its head. Carry a badge and every post in this keep stands aside for you.\"",
               "offeredWhile": "mags-dealt",
               "offeredUntil": "goblin-freed"
             },
