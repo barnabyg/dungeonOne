@@ -138,9 +138,12 @@ explains its output and the sketch format.
 - **The XP path.** The main endings' awards (escape with loot, or victory where
   the module has one), taken in level order, add up to SRD 5.2's thresholds for
   levels 2 to 5 (`LEVEL_XP`), so each award carries the whole step to the next
-  module's level on its own, and fight XP is slack. Other endings pay nothing. A
-  career plays a module only once it reaches the module's minimum level, so a
-  career that falls short of a level stalls.
+  module's level on its own, and fight XP is slack. A module whose story ends
+  two ways may pay two endings, a victory and the escape with loot, each the
+  same full step: the Delve's 600 XP for paying the dead, or for carrying the
+  hoard out. A run earns one of them. Other endings pay nothing. A career
+  plays a module only once it reaches the module's minimum level, so a career
+  that falls short of a level stalls.
 - **No loot in the start or exit room.** The gate's cautious run takes it and
   leaves, which flatters the module. Put the first loot behind a fight.
 - **Treasure.** Low levels are mostly copper and silver; from level 3, give a
@@ -174,15 +177,20 @@ The four modules are the agreed set for exercising the engine's mechanics. A
 module change that drops a mechanic only one or two modules carry should move
 it to another module, or keep a fixture for it in `tests/fixtures/`.
 
-- **One module:** reaction rolls, parley, tolls and
-  reaction trade (Weirgate); lurking (Weirgate); sneaking past with bypass XP
-  and sneaking again (Weirgate); surrender and `gives` (Cider House); a
-  wandering encounter only on rests (Delve); +1 gear (Lodge); spell scrolls
-  (Delve); wands (Weirgate); retries (Lodge); Remarkable Athlete's lever
-  (Lodge); a victory ending on a fight (Weirgate).
-- **Two modules:** a key carried by an opponent (Cider House, Weirgate; no
-  fixture); region wandering tables (Weirgate, Lodge); talk-only passages
-  (Weirgate, Lodge); alarms (Delve, Weirgate); merchant trade (Delve, Lodge).
+- **One module:** reaction trade (Weirgate); lurking (Weirgate); sneaking past
+  with bypass XP and sneaking again (Weirgate); surrender and `gives` (Cider
+  House); a wandering encounter only on rests (Delve); +1 gear (Lodge); spell
+  scrolls (Delve); wands (Weirgate); retries (Lodge); Remarkable Athlete's
+  lever (Lodge); a victory ending on a fight (Weirgate); a victory on
+  departure (Delve); a use that costs coin, of an item an opponent carries
+  (Delve); a fight action that gives a condition lasting more than a turn
+  (Delve).
+- **Two modules:** reaction rolls, parley and tolls (Weirgate, Delve); a key
+  carried by an opponent (Cider House, Weirgate; no fixture); an encounter
+  that withdraws on a flag (Delve, Lodge); a topic offered while one flag is
+  set and until another is (Delve, Weirgate); region wandering tables
+  (Weirgate, Lodge); talk-only passages (Weirgate, Lodge); alarms (Delve,
+  Weirgate); merchant trade (Delve, Lodge).
 - **Three or four:** undead to turn (Delve, Weirgate, Lodge), morale and fled carriers, monster loot, rest sites,
   thieves' tools, stuck and locked doors, graded checks, several approaches,
   circumstances, hidden passages with open and close effects, flags, items used

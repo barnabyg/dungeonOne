@@ -138,7 +138,7 @@ test(
           await entry.getByText("Items found", { exact: true }).click();
           assert.match(
             await entry.innerText(),
-            /You find the Potion of Healing, Oiled Shortsword and Storeroom Shield\./u,
+            /You find the Potion of Healing, Oiled Shortsword, Storeroom Shield and Garrison Badge\./u,
           );
           const barrel = page.locator('#features li[data-id="old-barrel"]');
           assert.doesNotMatch(await barrel.innerText(), /Packed in straw/u);
@@ -147,7 +147,7 @@ test(
           assert.match(recall, /Packed in straw/u);
           assert.match(
             recall,
-            /Potion of Healing, Oiled Shortsword and Storeroom Shield/u,
+            /Potion of Healing, Oiled Shortsword, Storeroom Shield and Garrison Badge/u,
           );
         }
       }
@@ -199,7 +199,7 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.equal(
         await page.locator("#ending-title").textContent(),
-        "Out with the loot",
+        "Out with the garrison's pay",
       );
 
       // No horizontal scroll, even with a wide font as CI's Linux one is.

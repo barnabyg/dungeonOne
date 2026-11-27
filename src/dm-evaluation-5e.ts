@@ -189,6 +189,16 @@ const cryptsRoused = [
   { type: "move", destinationId: "shaft-bottom" },
   { type: "break", doorId: "vault-door" },
 ] as const;
+// #601. Seed 0: Ada beats the zombie, takes the chaplain's key from the
+// shrine altar and stands at the vault door's grille, where the Castellan
+// offers his deal.
+const atTheGrille = [
+  ...toWell,
+  { type: "move", destinationId: "shrine" },
+  { type: "examine", targetId: "altar" },
+  { type: "take", itemId: "bronze-key" },
+  { type: "move", destinationId: "shaft-bottom" },
+] as const;
 // Seed 0: Ada's Stealth beats the zombie's passive Perception, so she is
 // unseen in the guard post (#302); seed 7: it notices her, and the fight is
 // on.
@@ -666,7 +676,8 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     setup: toHall,
     playerInput: "What can I see in this hall?",
     name: "look",
-    reply: "Fallen banners, a swollen door, and an arch to the barracks.",
+    reply:
+      "Fallen banners, a bronze muster bell, a swollen door, and an arch to the barracks.",
     dimensions: ["narration-fidelity"],
     manualJudgments: ["no-fabricated-outcomes"],
   }),
@@ -700,7 +711,7 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     setup: cryptsRoused,
     playerInput: "That door rang like a bell. Did anything hear it?",
     reply:
-      "Something did: somewhere ahead, boots crunch over bone toward the shaft.",
+      "Something did: somewhere in the dark, boots crunch over bone toward the shaft.",
     recalls: ["boots"],
     dimensions: ["narration-fidelity"],
     manualJudgments: [],
@@ -715,6 +726,19 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     reply:
       "They heard it: boots are crunching over bone toward the shaft, and nothing you say quiets them.",
     dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  // The Unrelieved Watch (#601): the Castellan's deal is struck by using
+  // the chaplain's key on the door grille, never by unlocking the door.
+  actionCase({
+    id: "deal-through-the-grille",
+    seed: 0,
+    setup: atTheGrille,
+    playerInput:
+      "I take the deal: I pass the bronze key through the bars of the grille.",
+    name: "use_on",
+    arguments: { use: "door-grille:bronze-key" },
+    dimensions: ["synonym-accuracy"],
     manualJudgments: [],
   }),
 ]);

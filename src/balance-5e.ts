@@ -2032,6 +2032,13 @@ type FightTally = {
 /** One playthrough, to its ending. */
 export type RunRecord = Readonly<{
   outcome: EndingKind;
+  /** The ending the run reached (#601): a module may have two of a kind. */
+  endingId: string;
+  /**
+   * The items the run used on features (#601), each as `feature:item`, in
+   * the order used: the choices a run that uses everything makes.
+   */
+  uses: readonly string[];
   /** Rooms in the order first entered. */
   roomIds: readonly string[];
   encounters: readonly FightRecord[];
@@ -3183,6 +3190,10 @@ export function playAdventure(
   const settlement = runtime.projectSettlement(state);
   return {
     outcome: ending.kind,
+    endingId: ending.id,
+    uses: (state.featureUses ?? []).map(
+      ({ featureId, itemId }) => `${featureId}:${itemId}`,
+    ),
     roomIds,
     encounters: fights,
     healing,

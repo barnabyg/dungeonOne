@@ -6,9 +6,15 @@
 //   Snagtooth in the Bramblecote Cider House, takes the strongroom key from
 //   Wick when he surrenders, empties the Pells' strongroom and leaves by the
 //   river door at level 2.
-// - Scenario 2: the level-2 Rogue Vex lowers the porter's rope down the
-//   Abandoned Delve's old well, frees the goblin and asks it about the tomb,
-//   beats Mags in the ossuary and climbs out of the shaft at level 3.
+// - Scenario 2 (#601, the reliever): the level-2 Fighter Ada fetches the
+//   goblin up the Abandoned Delve's old well, reads the lord's order in the
+//   tomb, refuses the Castellan's deal, holds him with the garrison's oath
+//   and kills him, pays the dead at the muster bell and leaves by the gate
+//   at level 3.
+// - Scenario 2b (#601, the robber): the level-2 Rogue Vex takes a garrison
+//   badge from the storeroom, walks past the posts, comes to terms with
+//   Mags, takes the Castellan's deal and climbs out with the chest at
+//   level 3, without a fight.
 // - Scenario 3: the level-4 Fighter Ada (4,100 XP) wins the Coldwater
 //   Weirgate's salt pork from Brindle, drains the culvert with the crank,
 //   lures Old Sullage away with the pork, takes the wand and beats Grisk.
@@ -79,15 +85,28 @@ async function open(libraryPath, seed, roomNarrator) {
   };
 }
 
-/** The button for a route step, as the handoff lists it. */
-function button(page, [action, target, item]) {
+/**
+ * The button for a route step, as the handoff lists it: a step's third
+ * part is the item a `use` uses, or else the approach of a check (#601);
+ * a `use-feature` step names the feature, the opponent and the approach.
+ */
+function button(page, [action, target, item, approach]) {
   if (action === "use") {
     return page.locator(
       `button.act[data-action="use-on"][data-target="${target}"][data-item="${item}"]`,
     );
   }
+  if (action === "use-feature") {
+    return page.locator(
+      `button.act[data-action="use-feature"][data-target="${item}"][data-feature="${target}"][data-approach="${approach}"]`,
+    );
+  }
   return page
-    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
+    .locator(
+      `button.act[data-action="${action}"][data-target="${target}"]${
+        item === undefined ? "" : `[data-approach="${item}"]`
+      }`,
+    )
     .first();
 }
 
@@ -120,17 +139,21 @@ const hp = async (page) =>
 /**
  * Clicks each step of `route` but a closing `leave`, fighting each fight a
  * step starts to its end by the handoff's rule, and returns the HP each
- * fight ended at; a `leave` is answered Yes.
+ * fight ended at; a `leave` is answered Yes. A fight is left for a
+ * `use-feature` step after the one that starts it (#601), which opens it.
  */
 async function play(page, route) {
   const ends = [];
-  for (const step of route) {
+  for (const [index, step] of route.entries()) {
     if (step[0] === "leave") {
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
       continue;
     }
     await settled(page, () => button(page, step).click());
+    if (route[index + 1]?.[0] === "use-feature") {
+      continue;
+    }
     let fought = false;
     while (await fighting(page)) {
       fought = true;
@@ -406,72 +429,226 @@ test(
   },
 );
 
-const DELVE_SEED = 190;
+const RELIEVER_SEED = 0;
 
+// #601, The Unrelieved Watch: the reliever takes up with the goblin, reads
+// the lord's order, refuses the Castellan and pays the dead.
 test(
-  `four-module handoff 2: a level-2 Rogue goes down the Abandoned Delve's well, beats Mags and climbs out at level 3 (seed ${DELVE_SEED})`,
-  { timeout: 180000 },
+  `four-module handoff 2: a level-2 Fighter relieves the Abandoned Delve's watch and leaves by the gate at level 3 (seed ${RELIEVER_SEED})`,
+  { timeout: 240000 },
   async () => {
-    const data = levelTwoVex();
+    const data = libraryAt(2);
     const { log, card, ends, record } = await scenario({
-      name: "delve",
+      name: "delve-reliever",
       moduleId: "abandoned-delve",
-      seed: DELVE_SEED,
-      library: { path: "level-2-vex.json", data },
-      start: [15, 15],
+      seed: RELIEVER_SEED,
+      library: { path: "level-2-ada.json", data },
+      start: [20, 14],
       route: [
         ["move", "gate-hall"],
+        ["examine", "standing-orders"],
         ["move", "porters-lodge"],
         ["examine", "peg-rail"],
         ["take", "coil-of-rope"],
+        ["talk", "the-garrison"],
         ["move", "gate-hall"],
         ["move", "guard-post"],
         ["move", "dry-well"],
         ["use", "well-head", "coil-of-rope"],
         ["talk", "the-woman"],
         ["talk", "the-tomb"],
+        ["talk", "the-bell"],
         ["move", "well-bottom"],
-        ["examine", "silted-floor"],
-        ["take", "wishing-coins"],
         ["move", "flooded-cistern"],
-        ["examine", "drowned-delver"],
-        ["take", "delvers-savings"],
         ["move", "ossuary"],
-        ["examine", "mags-satchel"],
-        ["take", "satchel-gold"],
+        ["react", "attack"],
+        ["move", "lords-tomb"],
+        ["examine", "sarcophagus-lid", "investigation"],
+        ["take", "death-mask"],
+        ["take", "grave-coins"],
+        ["move", "ossuary"],
+        ["move", "shaft-bottom"],
+        ["talk", "the-relief"],
+        ["talk", "his-offer"],
+        ["move", "shrine"],
+        ["examine", "altar"],
+        ["take", "bronze-key"],
+        ["examine", "offering-box"],
+        ["move", "shaft-bottom"],
+        // Refusing the deal: the door, not the grille.
+        ["unlock", "vault-door"],
+        ["move", "vault"],
+        ["use-feature", "iron-chest", "ghoul", "religion"],
+        ["examine", "ghoul"],
+        ["take", "pay-roll"],
+        ["examine", "iron-chest"],
+        ["take", "coin-chest"],
+        ["take", "vault-garnet"],
+        ["move", "shaft-bottom"],
+        ["move", "ossuary"],
+        ["move", "flooded-cistern"],
+        ["move", "well-bottom"],
+        ["move", "dry-well"],
+        ["move", "guard-post"],
+        ["move", "gate-hall"],
+        ["use", "muster-bell", "pay-roll"],
+        ["move", "broken-gate"],
+        ["leave", "broken-gate"],
+      ],
+      endingId: "the-watch-stands-down",
+    });
+    // The zombie, Mags, then the Castellan, after the tomb's ward (3).
+    assert.deepEqual(ends, ["20/20", "20/20", "17/20"]);
+    says(log, [
+      /Standing Orders: [^\n]*The watch is relieved when the lord's order is read at the muster bell and each man has his pay in his hand\./u,
+      /You take the Coil of Rope\./u,
+      /Hedda the Pedlar: "Forty men, told to hold till they were relieved\./u,
+      /finds no badge there, and it comes at you with its fists\./u,
+      /Zombie is defeated\./u,
+      /You use the Coil of Rope on the Well Head\./u,
+      /The way to the Well Bottom is open\./u,
+      /Goblin: "Mags\. I showed her the way in for a fee/u,
+      /Goblin: "The old lord's box opens if you press the carved hand on its side\./u,
+      /Goblin: "The big bell in the hall is what they're waiting for\./u,
+      /Mags Corrow sees you\. Reaction roll: [^\n]* = 8: uncertain\./u,
+      /You attack Mags Corrow\./u,
+      /Mags Corrow is defeated\./u,
+      /Crowned-Skull Ward: [^\n]*wail fills your head\./u,
+      /read this at the muster bell: the watch is relieved\. Pay each man what he is owed from the vault, by the roll, and let them go\./u,
+      /Voice at the Grille: "I have it by heart\./u,
+      /Voice at the Grille: "You have the chaplain's key\./u,
+      /I have turned the key on him and on the men's pay together/u,
+      /You unlock the Vault Door with the Bronze Key\./u,
+      /"I kept it," it says, and springs\./u,
+      /You use the Iron Chest against Castellan\./u,
+      /Castellan is paralysed by Ada's Iron Chest: [^\n]* for 3 turns\./u,
+      /Castellan is defeated\./u,
+      /You take the Pay Roll\./u,
+      /You take the Garrison's Pay and put 45 gp in your purse\./u,
+      /You use the Pay Roll on the Muster Bell, paying 22 gp 5 sp\./u,
+      /tell them, in the old lord's name, that the watch is relieved\./u,
+      /The Pay Roll is used up\./u,
+      /The watch stands down\./u,
+    ]);
+    assert.match(card, /^The watch stands down\nVictory\n/u);
+    assert.ok(
+      card.includes(
+        "Defeated Zombie: +50 XP\nDefeated Mags Corrow: +25 XP\nDefeated Castellan: +200 XP\nThe watch stands down: +600 XP",
+      ),
+      card,
+    );
+    assert.match(card, /Level up: Ada is now level 3/u);
+    assert.equal(record.session, undefined);
+    // 7 gp of grave coins and the chest's 45 gp, less the 22 gp 5 sp paid out.
+    assert.deepEqual(
+      [record.sheet.level, record.sheet.xp, record.sheet.purse],
+      [3, 1175, 2950],
+    );
+    assert.deepEqual(
+      record.sheet.treasure.map(({ name }) => name),
+      ["Silver Death Mask", "Garnet"],
+    );
+  },
+);
+
+const ROBBER_SEED = 3;
+
+// #601: the robber wears a badge past the posts, comes to terms with Mags
+// and takes the Castellan's deal. No fight is fought.
+test(
+  `four-module handoff 2b: a level-2 Rogue walks past the Abandoned Delve's posts with a badge, takes the Castellan's deal and climbs out with the chest at level 3 (seed ${ROBBER_SEED})`,
+  { timeout: 240000 },
+  async () => {
+    const data = levelTwoVex();
+    const { log, card, ends, record } = await scenario({
+      name: "delve-robber",
+      moduleId: "abandoned-delve",
+      seed: ROBBER_SEED,
+      library: { path: "level-2-vex.json", data },
+      start: [15, 15],
+      route: [
+        ["move", "gate-hall"],
+        ["examine", "standing-orders"],
+        ["force", "swollen-door"],
+        ["move", "storeroom"],
+        ["examine", "old-barrel"],
+        ["take", "garrison-badge"],
+        ["move", "gate-hall"],
+        ["move", "barracks"],
+        ["examine", "footlocker"],
+        ["take", "soldiers-pay"],
+        ["move", "gate-hall"],
+        ["move", "guard-post"],
+        ["examine", "overturned-table"],
+        ["take", "guard-purse"],
+        ["move", "dry-well"],
+        ["search", "dry-well"],
+        ["disarm", "loose-step", "thieves-tools"],
+        ["move", "shrine"],
+        ["examine", "altar"],
+        ["take", "bronze-key"],
+        ["move", "shaft-bottom"],
+        ["react", "toll"],
+        ["move", "ossuary"],
+        ["talk", "the-badge"],
+        ["talk", "the-voice"],
+        ["move", "shaft-bottom"],
+        ["talk", "his-offer"],
+        ["use", "door-grille", "bronze-key"],
+        ["unlock", "vault-door"],
+        ["move", "vault"],
+        ["examine", "iron-chest"],
+        ["take", "coin-chest"],
+        ["take", "vault-garnet"],
         ["move", "shaft-bottom"],
         ["leave", "shaft-bottom"],
       ],
       endingId: "out-with-the-loot",
     });
-    // The zombie, then Mags.
-    assert.deepEqual(ends, ["15/15", "15/15"]);
+    assert.deepEqual(ends, []);
+    assert.doesNotMatch(log, /Initiative/u);
     says(log, [
-      /You take the Coil of Rope\./u,
-      /Undead Fortitude: [^\n]*Failure: Zombie stays down\./u,
-      /Zombie is defeated\./u,
-      /You use the Coil of Rope on the Well Head\./u,
-      /The Coil of Rope is used up\./u,
-      /The way to the Well Bottom is open\./u,
-      /Goblin: "One came down the shaft rope yesterday\. Mags, she called herself\./u,
-      /Goblin: "The old lord's box opens if you press the carved hand on its side\./u,
-      /Mags Corrow is defeated\./u,
-      /Out with the loot\./u,
+      /No one passes a post who does not wear the garrison's badge\./u,
+      /You force the Swollen Door open\./u,
+      /The alarm is raised by forcing the Swollen Door \(success\)\./u,
+      /You take the Garrison Badge\./u,
+      /Barracks — [^\n]*Two skeletons in rusted mail stand guard/u,
+      /You take the Soldier's Silver and put 2 gp 5 sp in your purse\./u,
+      /Guard Post — [^\n]*A dead guard stands at its post/u,
+      /You take the Guard's Purse and put 1 gp 8 sp in your purse\./u,
+      /You find a Loose Step on the way to the Shrine/u,
+      /You disarm the Loose Step\./u,
+      /You take the Bronze Key\./u,
+      /Mags Corrow sees you\. Reaction roll: [^\n]* = 6: uncertain\./u,
+      /You pay the toll of 2 gp\./u,
+      /Mags Corrow lets you pass: the encounter ends peacefully\./u,
+      /Mags Corrow: "The dead look for one thing: a tin badge with a tower on it/u,
+      /Mags Corrow: "There's something behind the bronze door that talks\./u,
+      /Voice at the Grille: "You have the chaplain's key\./u,
+      /You use the Bronze Key on the Door Grille\./u,
+      /Something thin in the rags of a steward's gown slips out with a roll of parchment under its arm/u,
+      /You unlock the Vault Door with the Bronze Key\./u,
+      /You take the Garrison's Pay and put 45 gp in your purse\./u,
+      /Out with the garrison's pay\./u,
     ]);
-    assert.match(card, /^Out with the loot\nEscaped with loot\n/u);
+    assert.match(card, /^Out with the garrison's pay\nEscaped with loot\n/u);
     assert.ok(
       card.includes(
-        "Defeated Zombie: +50 XP\nDefeated Mags Corrow: +25 XP\nOut with the loot: +600 XP",
+        "Parted peacefully with Mags Corrow: +25 XP\nOut with the garrison's pay: +600 XP",
       ),
       card,
     );
     assert.match(card, /Level up: Vex is now level 3/u);
     assert.equal(record.session, undefined);
+    // 2 gp 5 sp, 1 gp 8 sp and the chest's 45 gp, less Mags's 2 gp.
     assert.deepEqual(
       [record.sheet.level, record.sheet.xp, record.sheet.purse],
-      [3, 975, 1510],
+      [3, 925, 4730],
     );
-    assert.deepEqual(record.sheet.treasure, []);
+    assert.deepEqual(
+      record.sheet.treasure.map(({ name }) => name),
+      ["Garnet"],
+    );
   },
 );
 
