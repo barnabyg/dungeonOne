@@ -14,14 +14,14 @@ A module is designed story first, and so is a rework of a shipped one. Each
 stage is a short proposal the owner approves before the next begins. Stages 1 to
 4 name no cell, DC or coin.
 
-| Stage                 | Propose                                                                                                                             | Done when                                                                                                                 |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1. Premise            | Three pitches of a paragraph each: who wants what, what happens if the character does nothing, and the one question play answers.   | Each pitch can be told without naming a room, and the owner has picked one.                                               |
-| 2. Cast and secret    | Three to five actors, each with what it wants, what it knows and what it will do; one secret that changes how the premise reads.    | Every actor can end for the character or against it, depending on play.                                                   |
-| 3. Beats and choices  | Five to seven beats; two or three choices, each with what it changes in later rooms and in the ending.                              | Two players who choose differently get summaries that read as different adventures.                                       |
-| 4. Clue web           | Each revelation with its sources; every feature with its tag (see [Features and words](#features-and-words)).                       | Every revelation has three sources or more, and the best ending needs a costly act that only the clues explain.           |
-| 5. Design ticket      | The map and the numbers (see [The design ticket](#the-design-ticket)).                                                              | The layout, estimator and validator pass, and the owner has made the ticket's decisions.                                  |
-| 6. Build and playtest | The module, in its own ticket.                                                                                                      | Its tests and [the clicker test](#the-clicker-test) pass, and the owner has played it through with a fresh character.     |
+| Stage                 | Propose                                                                                                                           | Done when                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1. Premise            | Three pitches of a paragraph each: who wants what, what happens if the character does nothing, and the one question play answers. | Each pitch can be told without naming a room, and the owner has picked one.                                           |
+| 2. Cast and secret    | Three to five actors, each with what it wants, what it knows and what it will do; one secret that changes how the premise reads.  | Every actor can end for the character or against it, depending on play.                                               |
+| 3. Beats and choices  | Five to seven beats; two or three choices, each with what it changes in later rooms and in the ending.                            | Two players who choose differently get summaries that read as different adventures.                                   |
+| 4. Clue web           | Each revelation with its sources; every feature with its tag (see [Features and words](#features-and-words)).                     | Every revelation has three sources or more, and the best ending needs a costly act that only the clues explain.       |
+| 5. Design ticket      | The map and the numbers (see [The design ticket](#the-design-ticket)).                                                            | The layout, estimator and validator pass, and the owner has made the ticket's decisions.                              |
+| 6. Build and playtest | The module, in its own ticket.                                                                                                    | Its tests and [the clicker test](#the-clicker-test) pass, and the owner has played it through with a fresh character. |
 
 The objective text is the job as the character is told it. The best ending is
 left to be found (see the objective rule under
@@ -87,6 +87,10 @@ Every room automatically gets a first impression from its description and one vi
 - **Three sources for every revelation,** in more than one region and of more
   than one kind: a feature, a creature's topic, the way an actor behaves. Put a
   source for what the best ending needs in the first rooms.
+- **A clue decides what it is a clue to.** When a discovery says where
+  something is, give the search it points at `noRollWhen` with that discovery:
+  the character who found the clue looks and finds, with no roll, and one who
+  didn't still searches by a check.
 - **A risk makes a thoughtless click cost.** A feature's check is rolled the
   first time it is examined, so looking is trying: a noisy band raises the
   alarm, and a failure by 5 can hurt.

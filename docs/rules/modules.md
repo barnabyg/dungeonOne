@@ -74,8 +74,9 @@ file. The shape, in short:
   `"tool": "thieves-tools"`, only on a pick or a disarm. A Strength approach
   (Athletics or Strength) may be marked `"movement": "climb"` or `"jump"`, which
   a Thief makes with Dexterity (Second-Story Work). A check may have a `retry`:
-  a damage cost, an item cost (a tool) or `after` a circumstance. Any check but
-  a trap's find may have `bands`: any of `failure-by-5`, `failure`, `success`
+  a damage cost, an item cost (a tool) or `after` a circumstance. A feature's
+  check may have `noRollWhen`, a circumstance that decides it (format 51). Any
+  check but a trap's find may have `bands`: any of `failure-by-5`, `failure`, `success`
   and `success-by-5`, each with optional `text`, `noisy: true` (raises the
   alarm) and up to six `effects`: `discovery`, `item` (reveals a hidden item),
   `damage`, `open` or `close` (a passage) and `set` (a flag).
@@ -171,8 +172,9 @@ These are the design constraints behind the rest:
 - **Doors, traps and tools.** A stuck door takes only a force check; a locked
   one any of a key, a pick and a break, never a force. A pick is a Dexterity
   check with thieves' tools, and only a pick or a disarm may name them. A
-  retry's `after` can't be `not` (it could never change back); its item cost is
-  a tool the check's own advantage doesn't need; its damage ending is a defeat.
+  retry's `after`, and a `noRollWhen`, can't be `not` (it could never change
+  back); a retry's item cost is a tool the check's own advantage doesn't need;
+  its damage ending is a defeat.
 - **Ids and names.** No id may be a catalogue item's (such as `longsword`), as
   those name the character's own gear. Features, items, doors, traps, creatures
   and topics have unique ids. Names the player types must be unique ignoring

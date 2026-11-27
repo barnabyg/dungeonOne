@@ -308,7 +308,7 @@ test("a potion drunk after a fight heals 2d4 + 2, never above the maximum, and i
   );
   assert.equal(
     runtime.renderResult(drunk),
-    "You drink the Potion of Healing: 3 + 4 + 2 = 9; you regain 7 HP and have 12/12 HP.",
+    "You drink the Potion of Healing: 3 + 4 + 2 = 9; you regain 7 of the 9 HP, stopping at full health, and have 12/12 HP.",
   );
   state = drunk.state;
   assert.equal(state.character.hp, 12);

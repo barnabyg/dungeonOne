@@ -270,7 +270,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 50;
+export const FIFTH_ADVENTURE_FORMAT = 51;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -760,6 +760,12 @@ export type AuthoredCheck = (
   Readonly<{
     bands?: Readonly<Partial<Record<Band, CheckBand>>>;
     retry?: RetryPolicy;
+    /**
+     * A feature's check needs no roll while this circumstance holds (#629):
+     * a clue read elsewhere decides it. Examining the feature then makes its
+     * success band, unless the check already succeeded.
+     */
+    noRollWhen?: Circumstance;
   }>;
 
 /** The approaches an authored check can be made with, one or several. */
@@ -1880,11 +1886,26 @@ function approaches(
  * `retry` (#284).
  */
 function check(value: unknown, where: string): AuthoredCheck {
-  const { retry: again, ...rest } = isRecord(value) ? value : { value };
+  const {
+    retry: again,
+    noRollWhen: known,
+    ...rest
+  } = isRecord(value) ? value : { value };
   const made = gradedCheck(rest, where);
-  return again === undefined
-    ? made
-    : { ...made, retry: retry(again, `${where} retry`) };
+  const retried =
+    again === undefined
+      ? made
+      : { ...made, retry: retry(again, `${where} retry`) };
+  if (known === undefined) {
+    return retried;
+  }
+  const noRollWhen = circumstance(known, `${where} noRollWhen`);
+  if (noRollWhen.not === true) {
+    fail(
+      `${where} noRollWhen can't be a circumstance with not: a clue once known stays known.`,
+    );
+  }
+  return { ...retried, noRollWhen };
 }
 
 /** A check's approaches and its optional `bands` (#281). */
@@ -4046,6 +4067,14 @@ function validateModule(
         );
       }
     });
+    // Only examining a feature can be decided by a clue (#629).
+    const known = site.check.noRollWhen;
+    if (known !== undefined) {
+      if (site.kind !== "examine") {
+        fail(`${label} has noRollWhen; only a feature's check may have one.`);
+      }
+      named(known, `${label}'s noRollWhen`);
+    }
     const again = site.check.retry;
     if (again?.after !== undefined) {
       named(again.after, `${label}'s retry`);

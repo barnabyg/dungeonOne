@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 50,
+  "formatVersion": 51,
   "id": "bramblecote-cider-house",
   "title": "The Bramblecote Cider House",
   "objective": "Get back what you can of the Pell family's goods from the goblins in the cider house, and come out alive.",
@@ -615,27 +615,18 @@
             "approaches": [
               {
                 "skill": "investigation",
-                "dc": 15,
-                "advantage": [
-                  {
-                    "type": "discovered",
-                    "feature": "cider-press",
-                    "name": "Goblin tally"
-                  }
-                ]
+                "dc": 15
               },
               {
                 "skill": "perception",
-                "dc": 16,
-                "advantage": [
-                  {
-                    "type": "discovered",
-                    "feature": "cider-press",
-                    "name": "Goblin tally"
-                  }
-                ]
+                "dc": 16
               }
             ],
+            "noRollWhen": {
+              "type": "discovered",
+              "feature": "cider-press",
+              "name": "the goblin tally"
+            },
             "bands": {
               "failure": {
                 "text": "Cask after cask, the same chalk mark. Nothing stands out."

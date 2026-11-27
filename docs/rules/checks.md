@@ -61,6 +61,12 @@
     item keeps its retry.
   - A check with several approaches offers one retry per approach. A DM tool
     call asking for a retry where none is offered is refused without a roll.
+- **A clue decides it.** A feature's check may name a circumstance that makes
+  it needless (`noRollWhen`), such as a discovery that says where to look.
+  While that holds, examining the feature rolls nothing: its success band
+  applies, said as "No roll needed: you know what to look for (name).", and the
+  check is remembered as a success. It also applies after a failure made before
+  the clue was found. The examine action offers no approaches then.
 - **Circumstances.** Each approach may name circumstances that give it
   **advantage** or **disadvantage**: the character holds a named item, has made
   a named discovery, has won a named encounter, or a named flag is set (with

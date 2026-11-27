@@ -12,6 +12,10 @@ export const CONTENT_TESTS = new Map([
     "plays the Hollow Moon expedition through the browser and checks the carried-out treasure",
   ],
   [
+    "tests/cinder-mint.test.mjs",
+    "Last Shift at Cinder Mint's content: Bale's testimony and the Wharf release (#628)",
+  ],
+  [
     "tests/cinder-mint-browser.test.mjs",
     "both Cinder Mint endings and the wand retained in the library",
   ],
