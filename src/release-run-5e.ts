@@ -295,6 +295,39 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   );
 
 /**
+ * `step` as `view` offers it. An examination the harness made by one
+ * approach may be a plain look here, or the reverse, when a clue that
+ * decides its check (#629) was found on one run and not the other: then it
+ * takes the examination this room offers for the same feature.
+ */
+const offeredStep = (
+  view: ReleaseSessionView,
+  step: ReleaseStep,
+): ReleaseStep => {
+  if (step.action !== "examine" || findAction(view, step) !== undefined) {
+    return step;
+  }
+  const other = view.actions.find(
+    ({ action, target, retry, available }) =>
+      action === "examine" &&
+      target?.id === step.target &&
+      retry === undefined &&
+      available,
+  );
+  if (other === undefined || step.retry === true) {
+    return step;
+  }
+  const plain: ReleaseStep = {
+    action: step.action,
+    ...(step.target === undefined ? {} : { target: step.target }),
+    ...(step.say === undefined ? {} : { say: step.say }),
+  };
+  return other.approach === undefined
+    ? plain
+    : { ...plain, approach: other.approach.id };
+};
+
+/**
  * Whether `step` is done in `after`: a move or a sneak is done in its
  * destination; an examination (which stays offered, to read again) once the
  * room shows what it found; anything else once its action is no longer
@@ -468,7 +501,7 @@ export async function playReleaseRun(options: {
     if (view.status !== "playing" || turns.length >= maxTurns) {
       break;
     }
-    view = await takeStep(view, step, "explore");
+    view = await takeStep(view, offeredStep(view, step), "explore");
     while (
       view.status === "playing" &&
       inFight(view) &&

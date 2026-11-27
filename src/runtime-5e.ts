@@ -7226,6 +7226,29 @@ export function createFifthRuntime(
     }
     return { reason: `costs ${damageWords(cost)}`, cost };
   };
+  /** `state`'s examined features, with `featureId` among them. */
+  const markExamined = (state: FifthState, featureId: string) => ({
+    examinedFeatureIds: state.examinedFeatureIds.includes(featureId)
+      ? state.examinedFeatureIds
+      : [...state.examinedFeatureIds, featureId],
+  });
+  /**
+   * Whether a clue decides the check at `site` now (#629): its `noRollWhen`
+   * holds and the check hasn't already succeeded.
+   */
+  const waived = (
+    state: FifthState,
+    check: AuthoredCheck | undefined,
+    site: CheckSite,
+  ): boolean => {
+    const known = check?.noRollWhen;
+    const last = outcomeAt(state, site);
+    return (
+      known !== undefined &&
+      holds(state, known) &&
+      (last === undefined || !isSuccess(last.band))
+    );
+  };
   /**
    * Whether an action at `site` may make its check (#284): with `retry`, only
    * when another try is offered, which it returns; without, the site refuses
@@ -11101,6 +11124,31 @@ export function createFifthRuntime(
             description: feature.description,
             found: [],
           };
+          // A clue that decides the check (#629): no roll, its success band.
+          if (waived(state, authored.check, site)) {
+            const band = authoredBand(authored.check, "success");
+            const graded = bandOutcome(
+              {
+                ...state,
+                ...markExamined(state, feature.id),
+                checks: [...state.checks, { id: checkSiteId(site), band }],
+              },
+              authored.check.bands?.[band],
+              { name: feature.name },
+              need(random, "A check"),
+            );
+            return {
+              state: graded.state,
+              events: [
+                {
+                  type: "outcome",
+                  text: `No roll needed: you know what to look for (${authored.check.noRollWhen!.name}).`,
+                },
+                looked,
+                ...graded.events,
+              ],
+            };
+          }
           const again = tryAgain(
             state,
             site,
@@ -11153,11 +11201,7 @@ export function createFifthRuntime(
           const resolved = resolveCheck(
             {
               ...paid.state,
-              examinedFeatureIds: paid.state.examinedFeatureIds.includes(
-                feature.id,
-              )
-                ? paid.state.examinedFeatureIds
-                : [...paid.state.examinedFeatureIds, feature.id],
+              ...markExamined(paid.state, feature.id),
             },
             site,
             authored.check,
@@ -12184,14 +12228,22 @@ export function createFifthRuntime(
           : each(authored, offer.reason)),
       ];
     };
-    const examine = (target: Named) =>
-      tries(
-        "examine",
-        { type: "examine", targetId: target.id },
-        target,
-        featureById.get(target.id)?.check,
-        { kind: "examine", id: target.id },
-      );
+    const examine = (target: Named) => {
+      const site: CheckSite = { kind: "examine", id: target.id };
+      const check = featureById.get(target.id)?.check;
+      // A check a clue decides (#629) is a plain look, with nothing to try.
+      return waived(state, check, site)
+        ? asked("examine") && (targets === undefined || targets.has(target.id))
+          ? [view("examine", { type: "examine", targetId: target.id }, target)]
+          : []
+        : tries(
+            "examine",
+            { type: "examine", targetId: target.id },
+            target,
+            check,
+            site,
+          );
+    };
     /**
      * The character's own gear: Unequip on armour, a shield and a second
      * weapon; Wield on a stowed weapon, Equip on stowed armour, a shield or a
