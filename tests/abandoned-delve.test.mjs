@@ -47,7 +47,7 @@ import {
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
-import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
@@ -827,6 +827,42 @@ const TO_THE_GRILLE = [
   ["move", "shaft-bottom"],
   ["talk", "his-offer"],
 ];
+
+// The owner reached the Shaft Bottom by the old well, with no key, and the
+// voice said "You have the chaplain's key": there was nothing to pass through
+// the bars. The offer now holds either way, and says where the key is.
+test("the Castellan's offer never says the character holds the key, and says where it is", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_WELL,
+      ["move", "flooded-cistern"],
+      ["move", "ossuary"],
+      ["react", "let-pass"],
+      ["move", "shaft-bottom"],
+    ],
+    ({ status }) => status === "playing",
+    { limit: 400 },
+  );
+  assert.equal(state.inventory.includes("bronze-key"), false);
+  const offer = runtime.handleAction(state, {
+    type: "talk",
+    topicId: "his-offer",
+  });
+  assert.equal(offer.rejection, undefined);
+  const said = renderFifthResult(offer);
+  assert.match(said, /He left it on his altar/u);
+  assert.match(said, /Bring it here, pass it through/u);
+  assert.doesNotMatch(said, /You have the chaplain's key/u);
+  // Without the key there is nothing to use on the grille.
+  assert.deepEqual(
+    runtime
+      .projectActions(offer.state)
+      .filter(({ action }) => action === "use-on"),
+    [],
+  );
+});
 
 test("the Castellan's deal: the chaplain's key through the grille lets him out with the Pay Roll, and the chest is left unguarded", () => {
   assert.deepEqual(topicsOf("shaft-bottom"), [
