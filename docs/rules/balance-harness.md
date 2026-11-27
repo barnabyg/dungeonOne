@@ -152,3 +152,34 @@ each difficulty. A module with more rooms, potions or other fights will measure
 differently. The estimate counts every monster as ordinary: mark a boss in the
 module to exempt it from the cap. An unknown id fails as `unknown-monster`, and
 an unsimulated trait as `unsimulated-trait`.
+
+## Blind play
+
+`npm.cmd run blind-play -- --module <id> --model <model-id> --live`
+(`src/blind-play-5e.ts`) has a live model play one module as a player who has
+never seen it, and keep a journal. It answers what the gate can't: whether the
+story can be worked out from the screen, where the words confuse, and which
+steps tell the player nothing.
+
+- **Only when asked for.** It calls the provider, so it needs `--live` and
+  `OPENAI_API_KEY`, and no test suite, gate or CI job runs it. Its tests drive
+  the loop with a scripted player.
+- **What the player sees.** The job as told, the room as the page shows it (its
+  description, ways on, features with what examining revealed, creatures and
+  items), the action bar, its last six steps and its own notes. The AI DM is
+  off, so the module's own words are what is tested. It chooses one available
+  action a turn.
+- **The journal.** With each choice the player says what it thinks is going on,
+  what it wants next and why, what puzzled it, and whether its last step told
+  it anything new. At the end it is asked what was really going on, why it
+  ended as it did, and what confused it most.
+- **The report** is written to `.scratch/blind-play/`, or `--output`:
+  `journal.md` to read, `report.json`, and `trace.json`, which
+  `npm.cmd run cli -- --replay` reproduces. The journal leads with what the
+  player made of it, each moment it was puzzled, and the rooms where steps
+  taught it nothing.
+- **A report, not a verdict.** Runs differ from one to the next. Read two or
+  three before changing a module on what one says.
+- **The character** is the test Fighter at `--level` (the module's lowest
+  recommended level unless given), or the first character in `--library`. A
+  run stops at an ending or after `--max-actions` steps (150 unless given).

@@ -111,6 +111,10 @@ These are for development, not play. Run each with `--help` for its options.
   errors (see [module authoring](docs/module-authoring.md)).
 - `npm.cmd run eval:dm` evaluates the live AI DM on scripted cases.
 - `npm.cmd run smoke:ai` asks the live AI DM one question.
+- `npm.cmd run blind-play` has a live model play a module as a first-time
+  player and keep a journal (see
+  [blind play](docs/rules/balance-harness.md#blind-play)). It runs only when
+  asked for.
 - `node scripts/qualify-delve-live.mjs` and
   `node scripts/qualify-release-live.mjs` play a module through the browser
   server with the live AI DM, or offline with `--dry-run`, and write a report

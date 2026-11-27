@@ -65,3 +65,7 @@ _Avoid_: Expected item, Carried item
 **Class parity**:
 The gate's check of a weak caster's survival against a weak Fighter's; see [the gate](../rules/balance-gate.md).
 _Avoid_: Class balance, Fairness
+
+**Blind play**:
+A run in which a live model plays a module as a first-time player, from the screen alone, and keeps a journal of what it thinks is going on. It is a report the owner reads, made only when asked for.
+_Avoid_: AI playtest, Walkthrough, Release run (a fixed script of steps)
