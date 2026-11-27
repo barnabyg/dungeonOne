@@ -668,6 +668,20 @@ test("scripted DM: a typed Second Wind resolves through the engine, which writes
   ]);
 });
 
+test("Second Wind that rolls more than is missing says it stopped at full health (#630)", () => {
+  const { runtime, state } = hurt();
+  const result = runtime.handleAction(
+    state,
+    { type: "second-wind", actorId: "pc" },
+    dice(9),
+  );
+  assert.equal(result.state.encounter.combatants[0].hp, 12);
+  assert.match(
+    runtime.renderResult(result),
+    /^Ada uses Second Wind: 9 \+ 1 = 10; Ada regains 5 of the 10 HP, stopping at full health, and has 12\/12 HP\. 1 use left\./,
+  );
+});
+
 test("scripted DM: the AI cannot grant Second Wind, advantage or extra actions", async () => {
   const cases = [
     // At full health Second Wind is not offered, and the engine refuses it.

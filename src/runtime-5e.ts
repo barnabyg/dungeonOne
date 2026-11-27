@@ -2377,6 +2377,23 @@ function uses(count: number, of?: string): string {
   return `${count} ${count === 1 ? "use" : "uses"}${of === undefined ? "" : ` of ${of}`} left`;
 }
 
+/**
+ * What a heal gave (#630): "you regain 4 HP and have 20/28 HP". A heal
+ * that rolled more than was missing says it stopped at full health, so the
+ * smaller number after the roll reads as capped, not lost to a mistake.
+ */
+function healedText(
+  who: string,
+  self: boolean,
+  healing: number,
+  rolled: number,
+  hpAfter: number,
+  maxHp: number,
+): string {
+  const capped = healing < rolled && hpAfter === maxHp;
+  return `${who} ${self ? "regain" : "regains"} ${capped ? `${healing} of the ${rolled} HP, stopping at full health,` : `${healing} HP`} and ${self ? "have" : "has"} ${hpAfter}/${maxHp} HP`;
+}
+
 function signed(value: number): string {
   return value >= 0 ? `+ ${value}` : `− ${-value}`;
 }
@@ -3072,7 +3089,7 @@ function spellText(
         event.modifier +
         disciple;
       const self = event.targetId === PLAYER_ID;
-      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
+      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${healedText(self ? "you" : name(event.targetId), self, event.healing, rolled, event.hpAfter, event.maxHp)}.`;
     }
   }
 }
@@ -3099,7 +3116,7 @@ function channelText(
       const left = uses(event.usesLeft, "Channel Divinity");
       const rolled = `${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}`;
       if (event.mode === "heal") {
-        return `Divine Spark: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
+        return `Divine Spark: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}; ${healedText(name(event.targetId), false, event.healing, event.total, event.hpAfter, event.maxHp)}. ${left}.`;
       }
       const { save } = event;
       const target = name(event.targetId);
@@ -3315,7 +3332,7 @@ export function renderFifthEvent(
       return `${name(event.targetId)} is vexed: ${name(event.sourceId)} has advantage on the next attack roll against it before the end of ${name(event.sourceId)}'s next turn.`;
     case "second-wind": {
       const self = combatant(state.encounter!, event.combatantId);
-      return `${self.name} uses Second Wind: ${event.roll} ${signed(event.modifier)} = ${event.roll + event.modifier}; ${self.name} regains ${event.healing} HP and has ${event.hpAfter}/${self.maxHp} HP. ${uses(event.usesLeft)}.`;
+      return `${self.name} uses Second Wind: ${event.roll} ${signed(event.modifier)} = ${event.roll + event.modifier}; ${healedText(self.name, false, event.healing, event.roll + event.modifier, event.hpAfter, self.maxHp)}. ${uses(event.usesLeft)}.`;
     }
     case "action-surge":
       return `${name(event.combatantId)} uses Action Surge: one more action this turn. ${uses(event.usesLeft)}.`;
@@ -3361,7 +3378,7 @@ export function renderFifthEvent(
       if (event.lastStand === true) {
         return `Last Stand: you drink the ${event.name} with your reaction: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you rise again with ${event.hpAfter}/${event.maxHp} HP.`;
       }
-      return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
+      return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; ${healedText("you", true, event.healing, rolled, event.hpAfter, event.maxHp)}.`;
     }
     case "scroll-check":
       // A scroll above the reader's slots (#346).
@@ -3587,7 +3604,7 @@ export function renderFifthEvent(
     }
     case "hit-die": {
       const rolled = event.value + event.modifier;
-      return `You spend a hit die: d${event.sides} ${event.value} ${signed(event.modifier)} = ${rolled < 0 ? `−${-rolled}, at least 0` : rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
+      return `You spend a hit die: d${event.sides} ${event.value} ${signed(event.modifier)} = ${rolled < 0 ? `−${-rolled}, at least 0` : rolled}; ${healedText("you", true, event.healing, rolled, event.hpAfter, event.maxHp)}.`;
     }
     case "long-rest": {
       const { healing, hpAfter, maxHp, regainedHitDice, hitDice, longRests } =

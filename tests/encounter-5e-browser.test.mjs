@@ -532,7 +532,7 @@ test(
             usedSecondWind = true;
             assert.match(
               await page.locator("#log li").last().textContent(),
-              /^Ada uses Second Wind: \d+ \+ 1 = \d+; Ada regains \d+ HP and has \d+\/\d+ HP\. 1 use left\./,
+              /^Ada uses Second Wind: \d+ \+ 1 = \d+; Ada regains \d+ (?:of the \d+ HP, stopping at full health,|HP) and has \d+\/\d+ HP\. 1 use left\./,
             );
             // Shown compactly (#186): the healing in bold, its die beside it.
             assert.match(

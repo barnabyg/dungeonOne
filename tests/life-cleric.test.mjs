@@ -285,7 +285,7 @@ test("Prayer of Healing outside a fight heals and gives back a Channel Divinity 
   assert.equal(prayed.state.shortRests, 0);
   assert.match(
     renderFifthResult(prayed),
-    /Prayer of Healing: 5 \+ 6 \+ 0 \+ 4 \(Disciple of Life\) = 15; you regain 14 HP and have 24\/24 HP\./u,
+    /Prayer of Healing: 5 \+ 6 \+ 0 \+ 4 \(Disciple of Life\) = 15; you regain 14 of the 15 HP, stopping at full health, and have 24\/24 HP\./u,
   );
   const hurt = {
     ...prayed.state,
