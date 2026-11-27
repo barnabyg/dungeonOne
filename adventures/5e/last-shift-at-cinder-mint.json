@@ -24,6 +24,7 @@
   ],
   "flags": [
     "witness-ready",
+    "order-certified",
     "signal-known",
     "lift-released",
     "proof-ready",
@@ -317,6 +318,10 @@
                   {
                     "type": "item",
                     "item": "certified-order"
+                  },
+                  {
+                    "type": "set",
+                    "flag": "order-certified"
                   }
                 ]
               }
@@ -335,6 +340,10 @@
                 {
                   "type": "set",
                   "flag": "witness-ready"
+                },
+                {
+                  "type": "set",
+                  "flag": "order-certified"
                 }
               ]
             }
@@ -366,6 +375,7 @@
             {
               "id": "bales-testimony",
               "name": "Stand witness to the issue order",
+              "offeredUntil": "order-certified",
               "reply": "“They'll ask who signed the counterfoil. I did.” Bale initials the issue order.",
               "check": {
                 "skill": "persuasion",
@@ -377,12 +387,16 @@
                       {
                         "type": "item",
                         "item": "certified-order"
+                      },
+                      {
+                        "type": "set",
+                        "flag": "order-certified"
                       }
                     ]
                   }
                 }
               },
-              "failure": "“Bring me Orrel's grain invoice from the stove fender. Give me a piece of paper to stand behind.”"
+              "failure": "“My name on an order no one has tested against the stubs? Put something honest beside the register first, and I'll stand behind it.”"
             }
           ]
         }
@@ -754,7 +768,7 @@
           "name": "Wharf release",
           "description": "A docket slot and a signal plate flank the gangway lever.",
           "sets": "vault-opened",
-          "discovery": "You lower the gangway. An empty-return docket here releases the six cell pins; the brass shift diagram sends the crew signal.",
+          "discovery": "You lower the gangway. The docket slot takes a release for the six cell pins, and the signal plate passes a crew's knock to the ferryman.",
           "uses": [
             {
               "item": "shift-card",
