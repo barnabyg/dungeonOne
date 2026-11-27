@@ -191,6 +191,11 @@ for (const [scenario, title, route, choice, alternative, caches] of [
         }
       }
       await page.reload();
+      // The page fetches the session after it loads. Until its history is
+      // shown, `settled` would count from an empty log and return on the old
+      // entries, before its own action has been answered.
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      await page.locator("#log li").first().waitFor();
       if (choice !== undefined) {
         await act("talk", "six-voices");
         if (scenario === "change course") {

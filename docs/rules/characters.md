@@ -91,7 +91,10 @@ with each discarded die struck through.
 - **The ledger.** Each XP award and each find (treasure, coin or gear) is earned
   once per character. The sheet's ledger records them apart from what the
   character holds, and a find in the ledger is not there to find on a later
-  visit, even once the character no longer holds it.
+  visit, even once the character no longer holds it. A feature's words may
+  still describe it, so examining the feature that hid it says the find is gone
+  and why ("The Lost Purse is gone: you carried it off on an earlier visit."),
+  as does a check's band that would have revealed it. A body says nothing of it.
 - **XP rate.** Every award credited when the adventure settles (encounters,
   partial XP, sparing and ending XP) is multiplied by the XP rate setting (×
   0.5, × 1 by default, × 1.5 or × 2) and rounded down, each award on its own.

@@ -1244,6 +1244,11 @@ export type FifthEvent =
       discovery?: string;
       /** Items found by this examination, by name. */
       found: readonly string[];
+      /**
+       * The finds hidden here that the character carried off on an earlier
+       * visit, by name: its words may still describe them.
+       */
+      gone?: readonly string[];
     }>
   | Readonly<{
       type: "taken";
@@ -1288,7 +1293,11 @@ export type FifthEvent =
       discovery: string;
     }>
   /** An item a check's band revealed, now there to take (#281). */
-  | Readonly<{ type: "revealed"; itemId: string; name: string }>
+  /**
+   * An item a band or a use reveals; `gone` when the character carried it
+   * off on an earlier visit, so it is named and not there.
+   */
+  | Readonly<{ type: "revealed"; itemId: string; name: string; gone?: true }>
   /**
    * A passage a check's band opened or closed (#282), named by the room it
    * leads to from the character's room, or by both its rooms when it is
@@ -1885,6 +1894,17 @@ const featureDescriptions = (
 
 /** What searching a body that carried nothing finds. */
 const NOTHING_OF_VALUE = "Nothing of value.";
+
+/**
+ * What examining says of finds the character carried off on an earlier
+ * visit: the feature's words may still describe them, and they are not
+ * there.
+ */
+function goneText(names: readonly string[]): string {
+  return names.length === 1
+    ? `The ${names[0]!} is gone: you carried it off on an earlier visit.`
+    : `The ${listed(names, "and")} are gone: you carried them off on an earlier visit.`;
+}
 
 const EMPTY_PARAMETERS = {
   type: "object",
@@ -3472,13 +3492,17 @@ export function renderFifthEvent(
       const described = [`${event.name}: ${event.description}`, event.discovery]
         .filter(Boolean)
         .join(" ");
+      const said =
+        event.gone === undefined
+          ? described
+          : `${described} ${goneText(event.gone)}`;
       if (event.found.length === 0) {
-        return described;
+        return said;
       }
       // A separate item list lets the browser fold it under the authored
       // discovery while keeping the full names and icon positions in history.
       const items = `You find the ${listed(event.found, "and")}.`;
-      return described + (event.discovery === undefined ? " " : "\n") + items;
+      return said + (event.discovery === undefined ? " " : "\n") + items;
     }
     case "taken":
       return event.coin !== undefined
@@ -3503,7 +3527,9 @@ export function renderFifthEvent(
     case "discovered":
       return event.discovery;
     case "revealed":
-      return `You find the ${event.name}.`;
+      return event.gone === true
+        ? goneText([event.name])
+        : `You find the ${event.name}.`;
     case "route": {
       const way =
         event.rooms.length === 1
@@ -4021,7 +4047,9 @@ function lineSound(
     case "talked":
       return found(event.given.map((name) => lookup.itemSortNamed(name)));
     case "revealed":
-      return found([lookup.itemSort(event.itemId)]);
+      return event.gone === true
+        ? undefined
+        : found([lookup.itemSort(event.itemId)]);
     case "taken":
       return ITEM_SOUNDS[
         event.coin === undefined
@@ -6508,6 +6536,14 @@ export function createFifthRuntime(
   const present = (item: FifthItem) =>
     !scarce.has(item.id) &&
     (!FOUND_ONCE_KINDS.includes(item.kind) || !found.has(treasureId(item)));
+  /**
+   * Whether the character carried `item` off on an earlier visit: a find in
+   * its ledger, which is not one missing on Scarce.
+   */
+  const carriedOff = (item: FifthItem) =>
+    !scarce.has(item.id) &&
+    FOUND_ONCE_KINDS.includes(item.kind) &&
+    found.has(treasureId(item));
   /** The coin found in this adventure, emptied into the purse. */
   const coinFound = (state: FifthState): readonly FifthItem[] =>
     state.usedItemIds
@@ -8717,6 +8753,14 @@ export function createFifthRuntime(
               type: "revealed",
               itemId: item.id,
               name: item.name,
+            });
+          } else if (carriedOff(item)) {
+            // Its band's words may describe it: say it is gone, and why.
+            effects.push({
+              type: "revealed",
+              itemId: item.id,
+              name: item.name,
+              gone: true,
             });
           }
           break;
@@ -10986,6 +11030,16 @@ export function createFifthRuntime(
             feature.body && first && found.length === 0
               ? NOTHING_OF_VALUE
               : feature.discovery;
+          // What was hidden here and carried off on an earlier visit: the
+          // feature's words may still describe it. A body says nothing of
+          // it, as it is another visit's body.
+          const gone = feature.body
+            ? []
+            : itemsHere(state)
+                .filter(
+                  (item) => item.hiddenIn === feature.id && carriedOff(item),
+                )
+                .map(({ name }) => name);
           return {
             state: first
               ? {
@@ -11001,6 +11055,7 @@ export function createFifthRuntime(
                 description: feature.description,
                 ...(discovery === undefined ? {} : { discovery }),
                 found: found.map(({ name }) => name),
+                ...(gone.length === 0 ? {} : { gone }),
               },
             ],
           };
