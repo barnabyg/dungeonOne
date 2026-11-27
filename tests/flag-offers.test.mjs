@@ -316,7 +316,7 @@ test("the AI DM's scene carries the current description and only offered topics"
 });
 
 test("a reload shows the changed feature and the topics offered now", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "issue-399-"));
+  const directory = await mkdtemp(join(tmpdir(), "flag-offers-"));
   try {
     const path = join(directory, "session.json");
     const run = new FifthTraceRun(
@@ -347,4 +347,39 @@ test("a reload shows the changed feature and the topics offered now", async () =
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// #608: a creature with nothing to say now is not listed.
+
+/** The hermit's tunnels with the hermit's winch topic his only one. */
+const quietHermit = () => {
+  const file = structuredClone(hermitTunnelsFile);
+  const hermit = room(file, "stair-foot").creatures[0];
+  hermit.topics = hermit.topics.filter(({ id }) => id === "hermit-winch");
+  return validateModule(file);
+};
+
+test("a creature whose every topic is withdrawn is not listed, nor talked to (#608)", () => {
+  const runtime = createFifthRuntime(quietHermit(), TEST_FIGHTER);
+  const start = runtime.createSession();
+  assert.deepEqual(hermitTopics(runtime, start), ["hermit-winch"]);
+  const asked = accepted(runtime, start, TALK("hermit-winch")).state;
+  const alcove = accepted(runtime, asked, MOVE("alcove")).state;
+  const pulled = accepted(runtime, alcove, EXAMINE("rusted-winch")).state;
+  const after = accepted(runtime, pulled, MOVE("stair-foot")).state;
+  // Even asked before, he has nothing to say now: he is not here.
+  assert.deepEqual(runtime.projectRoom(after).creatures, []);
+  assert.deepEqual(offeredTalk(runtime, after), []);
+  assert.equal(
+    runtime.handleAction(after, TALK("hermit-winch")).rejection.code,
+    "no-topic",
+  );
+});
+
+test("a creature with a topic still offered stays listed (#608)", () => {
+  const runtime = createFifthRuntime(hermitTunnels, TEST_FIGHTER);
+  assert.deepEqual(
+    runtime.projectRoom(raised(runtime)).creatures.map(({ id }) => id),
+    ["hermit"],
+  );
 });

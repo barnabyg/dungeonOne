@@ -122,12 +122,20 @@ with each discarded die struck through.
   leave the adventure; the player confirms first. Leaving ends it in the
   module's escape-with-loot ending when the character carries treasure, coin
   found there or sold treasure found there, and in its escape-without-loot
-  ending otherwise. The confirmation names that ending and its XP, unless
-  already credited. When the ending falls short of the module's objective (its
-  victory if it has one, or else getting out with loot) and the objective's
-  award was not credited before, it also warns what is unmet, the award given
-  up, and that the XP for fights won is kept. The warning comes from a fixed
-  template; modules author no text for it. The AI DM has no tool to leave.
+  ending otherwise. An escape with loot that names a `needsItem` is reached
+  only once that item was found there; any other loot is an escape without
+  loot. The confirmation names that ending and its XP, unless already
+  credited. When the ending falls short of the module's objective (the ending
+  marked `objective`, or else its victory if it has one, or else getting out
+  with loot) and the objective's award was not credited before, it also warns
+  what is unmet, the award given up, and that the XP for fights won is kept.
+  It never names a victory the objective doesn't mark, so a victory found in
+  play stays unannounced. The warning comes from a fixed template; modules
+  author no text for it. The AI DM has no tool to leave.
+- **One main ending award.** A module's victories and escape with loot share
+  one award: once the character's sheet holds any of them, none of them pays
+  again, though a replay may reach another. Other endings' awards are their
+  own.
 - **Coin.** Coin is SRD 5.2 copper, silver and gold pieces. A purse is held in
   copper and shown in mixed denominations. A new character's purse holds the
   starting coin setting's 0 (the default), 10, 25 or 50 gp, as the settings are

@@ -873,7 +873,10 @@ type UseOpening = Readonly<{
   roomId: string;
   itemId: string;
   passageId: string;
-  /** Whether the use costs coin (#600): no plan counts on one that does. */
+  /**
+   * Whether the use costs coin (#600) or is offered only on a flag (#608):
+   * no plan counts on one that is.
+   */
   costed: boolean;
 }>;
 
@@ -891,20 +894,24 @@ function useOpenings(adventure: FifthAdventure): readonly UseOpening[] {
 function findUseOpenings(adventure: FifthAdventure): readonly UseOpening[] {
   return adventure.rooms.flatMap(({ id: roomId, features }) =>
     features.flatMap(({ id: featureId, uses }) =>
-      (uses ?? []).flatMap(({ item, effects, coins }) =>
-        effects.flatMap((effect) =>
-          effect.type === "open"
-            ? [
-                {
-                  featureId,
-                  roomId,
-                  itemId: item,
-                  passageId: effect.passage,
-                  costed: coins !== undefined,
-                },
-              ]
-            : [],
-        ),
+      (uses ?? []).flatMap(
+        ({ item, effects, coins, offeredWhile, offeredUntil }) =>
+          effects.flatMap((effect) =>
+            effect.type === "open"
+              ? [
+                  {
+                    featureId,
+                    roomId,
+                    itemId: item,
+                    passageId: effect.passage,
+                    costed:
+                      coins !== undefined ||
+                      offeredWhile !== undefined ||
+                      offeredUntil !== undefined,
+                  },
+                ]
+              : [],
+          ),
       ),
     ),
   );
@@ -1374,13 +1381,27 @@ function victoryRooms(adventure: FifthAdventure): ReadonlySet<string> {
   );
 }
 
-/** The rooms with loot to find: treasure or coin. */
+/**
+ * The rooms with loot to find: treasure or coin, or only the item the
+ * escape with loot needs (#611).
+ */
 function lootRooms(adventure: FifthAdventure): ReadonlySet<string> {
+  const needed = neededLoot(adventure);
   return new Set(
     adventure.rooms.flatMap(({ id, items }) =>
-      items.some(({ kind }) => LOOT_KINDS.includes(kind)) ? [id] : [],
+      items.some(({ id: itemId, kind }) =>
+        needed === undefined ? LOOT_KINDS.includes(kind) : itemId === needed,
+      )
+        ? [id]
+        : [],
     ),
   );
+}
+
+/** The item the escape with loot needs (#611), if it needs one. */
+function neededLoot(adventure: FifthAdventure): string | undefined {
+  return adventure.endings.find(({ kind }) => kind === "escape-with-loot")
+    ?.needsItem;
 }
 
 function exitRooms(adventure: FifthAdventure): ReadonlySet<string> {
@@ -2814,10 +2835,16 @@ export function playAdventure(
     );
   };
 
-  /** Whether the character carries loot: treasure, or coin found here. */
+  /**
+   * Whether the character carries loot: treasure, or coin found here; or
+   * the item the escape with loot needs (#611), found here.
+   */
+  const needed = neededLoot(adventure);
   const carriesLoot = () =>
-    state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
-    state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
+    needed === undefined
+      ? state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
+        state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin")
+      : state.inventory.includes(needed) || state.usedItemIds.includes(needed);
   /**
    * How an item an opponent carries left with it (#324), if it did: the
    * opponent fled (#237) or surrendered (#238; no style talks, so it never
@@ -2887,7 +2914,9 @@ export function playAdventure(
     }
     const unfound = new Set(
       [...items.values()].flatMap(({ item, roomId }) =>
-        LOOT_KINDS.includes(item.kind) &&
+        (needed === undefined
+          ? LOOT_KINDS.includes(item.kind)
+          : item.id === needed) &&
         !state.inventory.includes(item.id) &&
         !state.usedItemIds.includes(item.id) &&
         whyLost(item.id, item.hiddenIn) === undefined

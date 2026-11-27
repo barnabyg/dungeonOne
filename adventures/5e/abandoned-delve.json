@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 48,
+  "formatVersion": 49,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Bring up what you can of the old lord's hoard from under the ruined keep, and get out alive.",
@@ -522,11 +522,12 @@
           "discovery": "Scratched into the bronze under the bars, small and neat, over and over: \"I kept it. I kept it. I kept it.\"",
           "changed": {
             "when": "castellan-silent",
-            "description": "A barred grille in the vault door, no wider than a hand. Nothing listens behind it now."
+            "description": "A barred grille in the vault door, no wider than a hand. No voice comes through it now."
           },
           "uses": [
             {
               "item": "bronze-key",
+              "offeredUntil": "castellan-silent",
               "text": "You pass the chaplain's key through the bars. A grey hand takes it, and the lock turns from the inside. \"Stand away,\" says the voice, and you stand away. Something thin in the rags of a steward's gown slips out with a roll of parchment under its arm, bows to you, and goes up into the dark toward the keep without a sound. The door has swung shut behind it. The key is left hanging on the grille, and you take it back.",
               "effects": [
                 { "type": "set", "flag": "castellan-freed" },
@@ -578,7 +579,6 @@
       "floor": -1,
       "description": "The lord's vault: a stone room with an iron chest against the far wall and a tall stack of coffers on a shelf above it. Split bones litter the floor, and the lid of the chest is worn bright where something has lain across it for years.",
       "region": "crypts",
-      "avoidable": true,
       "encounterId": "vault-ghoul",
       "features": [
         {
@@ -1201,7 +1201,7 @@
       ],
       "defeatEndingId": "lost-in-the-delve",
       "presentUntil": "castellan-freed",
-      "sets": { "won": "castellan-silent" }
+      "sets": { "won": "castellan-silent", "fled": "castellan-silent" }
     },
     {
       "id": "ossuary-rival",
@@ -1293,6 +1293,8 @@
     {
       "id": "out-with-the-loot",
       "kind": "escape-with-loot",
+      "objective": true,
+      "needsItem": "coin-chest",
       "title": "Out with the garrison's pay",
       "text": "You climb back into the daylight with what you took from under the keep on your back. Below you, the watch still stands.",
       "xp": 600
@@ -1300,8 +1302,8 @@
     {
       "id": "out-empty-handed",
       "kind": "escape-without-loot",
-      "title": "Out empty-handed",
-      "text": "You climb back into the daylight alive, with nothing to show for it."
+      "title": "Out without the pay",
+      "text": "You climb back into the daylight alive. Whatever you carry, the garrison's pay is still under the keep, and below you the watch still stands."
     },
     {
       "id": "lost-in-the-delve",

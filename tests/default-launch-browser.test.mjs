@@ -1,8 +1,9 @@
 // #137: the critical journey under the default launch command, browser →
-// API → storage. Create a Fighter, start The Abandoned Delve, move between
-// views with Back and Forward, continue from the library row, fight the
-// barracks' two Skeletons, reload and restart the launcher mid-fight, then
-// escape with loot and see the level-up.
+// API → storage. Create a Fighter, start The Bramblecote Cider House, move
+// between views with Back and Forward, continue from the library row, fight
+// Nib in the press house, reload and restart the launcher mid-fight, then
+// escape with loot and see the level-up. (The Abandoned Delve until #611
+// made its escape with loot need the vault's chest.)
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -28,19 +29,19 @@ import {
 } from "./fixtures/browser-journey.mjs";
 import { endTurnOrFall } from "./fixtures/last-stand.mjs";
 
-const delve = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "abandoned-delve",
+const bramblecote = (await loadBuiltInFifthAdventures()).find(
+  ({ id }) => id === "bramblecote-cider-house",
 );
 
 const TO_THE_FIGHT = [
-  ["move", "gate-hall"],
-  ["move", "barracks"],
+  ["move", "kitchen"],
+  ["move", "press-house"],
 ];
 const AFTER_THE_FIGHT = [
-  ["examine", "footlocker"],
-  ["take", "soldiers-pay"],
-  ["move", "gate-hall"],
-  ["move", "broken-gate"],
+  ["examine", "pomace-heap"],
+  ["take", "nibs-hoard"],
+  ["move", "kitchen"],
+  ["move", "lane-gate"],
 ];
 const ENGINE = {
   examine: (id) => ({ type: "examine", targetId: id }),
@@ -48,10 +49,10 @@ const ENGINE = {
   take: (id) => ({ type: "take", itemId: id }),
 };
 
-/** A seed on which Ada beats both Skeletons, as the browser plays it. */
+/** A seed on which Ada beats Nib, as the browser plays it. */
 function findSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(delve, firstFighter(seed));
+    const runtime = createFifthRuntime(bramblecote, firstFighter(seed));
     const random = createSeededRandom(sessionSeed(seed, 1));
     const run = (state, action) =>
       runtime.handleAction(state, action, random).state;
@@ -78,7 +79,7 @@ function findSeed() {
       return seed;
     }
   }
-  throw new Error("no seed where Ada beats the Skeletons");
+  throw new Error("no seed where Ada beats Nib");
 }
 
 /** What the adventure shows: room, HP, whose turn and the history. */
@@ -98,7 +99,7 @@ test(
   { timeout: 360000 },
   async () => {
     const seed = String(findSeed());
-    const directory = await mkdtemp(join(tmpdir(), "issue-137-browser-"));
+    const directory = await mkdtemp(join(tmpdir(), "default-launch-browser-"));
     // The player's command: npm.cmd run browser -- --seed <seed> --characters <path>
     const libraryPath = join(directory, "characters.json");
     const args = ["--seed", seed, "--characters", libraryPath];
@@ -121,10 +122,13 @@ test(
       assert.equal(new URL(page.url()).hash, `#character-${sheet.id}`);
       assert.equal(await page.title(), "Ada · Dungeon One");
 
-      await startAdventure(page, "abandoned-delve");
+      await startAdventure(page, "bramblecote-cider-house");
       const { session } = (await libraryFile(libraryPath)).characters[0];
       assert.equal(new URL(page.url()).hash, `#adventure-${session.id}`);
-      assert.equal(await page.title(), "The Abandoned Delve · Dungeon One");
+      assert.equal(
+        await page.title(),
+        "The Bramblecote Cider House · Dungeon One",
+      );
       const started = await shown(page);
       // Without a key the composer tells the player typing is off.
       assert.equal(
@@ -153,7 +157,10 @@ test(
       for (const [action, target] of TO_THE_FIGHT) {
         await explore(page, action, target);
       }
-      assert.equal(await page.locator("#room-title").textContent(), "Barracks");
+      assert.equal(
+        await page.locator("#room-title").textContent(),
+        "Press House",
+      );
       await fightOn(page);
       assert.notEqual(
         await page.locator("#turn").textContent(),
@@ -199,22 +206,22 @@ test(
         "Escaped with loot",
       );
       const ending = await page.locator("#ending").innerText();
-      assert.match(ending, /Ada has 700 XP\./);
+      assert.match(ending, /Ada has 325 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
 
       // Storage holds the settled character.
       const [record] = (await libraryFile(libraryPath)).characters;
       assert.equal(record.session, undefined);
       assert.equal(record.sheet.level, 2);
-      assert.equal(record.sheet.xp, 700);
-      // The footlocker's 25 sp went into the purse.
+      assert.equal(record.sheet.xp, 325);
+      // Nib's 30 sp went into the purse.
       assert.deepEqual(record.sheet.treasure, []);
-      assert.equal(record.sheet.purse, 250);
+      assert.equal(record.sheet.purse, 300);
       await page.locator("#ending-next").click();
       await page.locator("#sheet").waitFor({ state: "visible" });
       assert.match(
         await page.locator("#sheet-body").innerText(),
-        /^Level 2 Fighter · 700 XP/,
+        /^Level 2 Fighter · 325 XP/,
       );
     } finally {
       await browser.close();

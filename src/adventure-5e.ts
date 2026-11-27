@@ -270,7 +270,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 48;
+export const FIFTH_ADVENTURE_FORMAT = 49;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -621,13 +621,17 @@ export const removes = (action: FeatureFightAction): boolean =>
  * item is used up, and the effects, as a band's: a discovery, an item
  * revealed, damage, a passage opened or closed, or a flag set. Each use is
  * made once. A use may cost coin (#600), spent from the purse as a toll
- * is: a way only such a use opens is never counted on.
+ * is: a way only such a use opens is never counted on. A use may be offered
+ * only while a flag is set (`offeredWhile`) or only until one is
+ * (`offeredUntil`, #608), as a topic is.
  */
 export type FeatureUse = Readonly<{
   item: string;
   text: string;
   consumes?: true;
   coins?: Coins;
+  offeredWhile?: string;
+  offeredUntil?: string;
   effects: readonly CheckEffect[];
 }>;
 
@@ -1196,19 +1200,32 @@ export type FifthEnding = Readonly<{
   onEscapeWhen?: string;
   title: string;
   text: string;
-  /** XP for reaching this ending; never on a defeat. */
+  /**
+   * XP for reaching this ending; never on a defeat. A module's victories and
+   * escape with loot share one award (#610): once any of them is credited,
+   * none pays again.
+   */
   xp?: number;
+  /** The ending the module's objective names (#607). */
+  objective?: true;
+  /**
+   * An escape with loot only once this item has been found here (#611):
+   * leaving without it is an escape without loot.
+   */
+  needsItem?: string;
 }>;
 
 /**
- * The ending that meets a module's objective (#475), as
- * docs/rules/balance-harness.md has it: its victory, if it has one, or else getting
- * out with loot.
+ * The ending that meets a module's objective (#475), as Leave warns of it
+ * (docs/rules/characters.md): the ending marked `objective` (#607), or else
+ * its victory, if it has one, or else getting out with loot. The gate plans
+ * for its own objective (docs/rules/balance-harness.md).
  */
 export function objectiveEnding(
   adventure: Pick<FifthAdventure, "endings">,
 ): FifthEnding | undefined {
   return (
+    adventure.endings.find(({ objective }) => objective === true) ??
     adventure.endings.find(({ kind }) => kind === "victory") ??
     adventure.endings.find(({ kind }) => kind === "escape-with-loot")
   );
@@ -2306,7 +2323,7 @@ function validateModule(
     const ending = knownKeys(
       entry,
       ["id", "kind", "title", "text"],
-      ["xp", "onEscapeWhen"],
+      ["xp", "onEscapeWhen", "objective", "needsItem"],
       where,
     );
     if (!isOneOf(ENDING_KINDS, ending.kind)) {
@@ -2317,6 +2334,19 @@ function validateModule(
     }
     if (ending.onEscapeWhen !== undefined && ending.kind !== "victory") {
       fail(`${where}: only a victory can have onEscapeWhen.`);
+    }
+    if (ending.objective !== undefined) {
+      if (ending.objective !== true) {
+        fail(`${where} objective must be true, or left out.`);
+      }
+      if (ending.kind !== "victory" && ending.kind !== "escape-with-loot") {
+        fail(
+          `${where}: only a victory or an escape with loot can be the objective.`,
+        );
+      }
+    }
+    if (ending.needsItem !== undefined && ending.kind !== "escape-with-loot") {
+      fail(`${where}: only an escape with loot can have needsItem.`);
     }
     return {
       id: id(ending.id, `${where} id`),
@@ -2329,9 +2359,16 @@ function validateModule(
       ...(ending.xp === undefined
         ? {}
         : { xp: integer(ending.xp, `${where} xp`, 1, 10000) }),
+      ...(ending.objective === true ? { objective: true as const } : {}),
+      ...(ending.needsItem === undefined
+        ? {}
+        : { needsItem: id(ending.needsItem, `${where} needsItem`) }),
     };
   });
   unique(endings, "ending");
+  if (endings.filter(({ objective }) => objective === true).length > 1) {
+    fail("more than one ending is marked objective.");
+  }
   if (!endings.some(({ kind }) => kind !== "defeat")) {
     fail("missing a victory or escape ending.");
   }
@@ -2743,11 +2780,17 @@ function validateModule(
                 const use = knownKeys(
                   value,
                   ["item", "text", "effects"],
-                  ["consumes", "coins"],
+                  ["consumes", "coins", "offeredWhile", "offeredUntil"],
                   on,
                 );
                 if (use.consumes !== undefined && use.consumes !== true) {
                   fail(`${on} consumes must be true, or left out.`);
+                }
+                if (
+                  use.offeredWhile !== undefined &&
+                  use.offeredWhile === use.offeredUntil
+                ) {
+                  fail(`${on} is offered while and until the same flag.`);
                 }
                 return {
                   item: id(use.item, `${on} item`),
@@ -2756,6 +2799,22 @@ function validateModule(
                   ...(use.coins === undefined
                     ? {}
                     : { coins: coins(use.coins, `${on} coins`) }),
+                  ...(use.offeredWhile === undefined
+                    ? {}
+                    : {
+                        offeredWhile: id(
+                          use.offeredWhile,
+                          `${on} offeredWhile`,
+                        ),
+                      }),
+                  ...(use.offeredUntil === undefined
+                    ? {}
+                    : {
+                        offeredUntil: id(
+                          use.offeredUntil,
+                          `${on} offeredUntil`,
+                        ),
+                      }),
                   effects: list(use.effects, `${on} effects`, MAX_EFFECTS).map(
                     (entry, number) =>
                       effect(entry, `${on} effect ${number + 1}`),
@@ -3630,6 +3689,17 @@ function validateModule(
       }
     }
   }
+  // So does a use's offer (#608).
+  for (const { id: featureId, uses } of featureById.values()) {
+    for (const { item, offeredWhile, offeredUntil } of uses ?? []) {
+      for (const flag of [offeredWhile, offeredUntil]) {
+        if (flag !== undefined) {
+          flagNamed(flag, `feature ${featureId}'s use of ${item}`);
+          flagUsers.add(flag);
+        }
+      }
+    }
+  }
   /** Hidden passages some band opens, and who can close each passage. */
   const openable = new Set<string>();
   const closers = new Map<string, string[]>();
@@ -4187,9 +4257,14 @@ function validateModule(
             (entry.door === undefined || keyed(entry.door))));
       for (let grew = true; grew;) {
         grew = false;
+        // A use withdrawn once a flag is set may be gone before it is
+        // made, and one offered only once a flag is set waits for it (#608).
         const sureUses = sureUseSites.filter(
-          ({ roomId, itemRoomId }) =>
-            reached.has(roomId) && reached.has(itemRoomId),
+          ({ roomId, itemRoomId, use }) =>
+            reached.has(roomId) &&
+            reached.has(itemRoomId) &&
+            use.offeredUntil === undefined &&
+            (use.offeredWhile === undefined || flagged.has(use.offeredWhile)),
         );
         for (const { use } of sureUses) {
           for (const entry of use.effects) {
@@ -4493,6 +4568,20 @@ function validateModule(
       if (kind === "escape-with-loot" && !hasTreasure) {
         fail(
           `escape-with-loot ending ${endingId} cannot be reached: there is no treasure or coin.`,
+        );
+      }
+    }
+  }
+  // The item an escape with loot needs (#611) is treasure or coin placed here.
+  for (const { id: endingId, needsItem } of endings) {
+    if (needsItem !== undefined) {
+      const placed = itemRooms.get(needsItem)?.item;
+      if (placed === undefined) {
+        fail(`ending ${endingId} needs unknown item ${needsItem}.`);
+      }
+      if (!LOOT_KINDS.includes(placed.kind)) {
+        fail(
+          `ending ${endingId} needs ${needsItem}, which is ${placed.kind}: it must be treasure or coin.`,
         );
       }
     }

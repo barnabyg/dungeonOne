@@ -141,9 +141,16 @@ explains its output and the sketch format.
   module's level on its own, and fight XP is slack. A module whose story ends
   two ways may pay two endings, a victory and the escape with loot, each the
   same full step: the Delve's 600 XP for paying the dead, or for carrying the
-  hoard out. A run earns one of them. Other endings pay nothing. A career
-  plays a module only once it reaches the module's minimum level, so a career
-  that falls short of a level stalls.
+  garrison's pay out. They share one award, so a character earns it once,
+  whichever it reaches. Other endings pay nothing. A career plays a module
+  only once it reaches the module's minimum level, so a career that falls
+  short of a level stalls.
+- **An objective that leaves the best ending to be found.** Mark the ending
+  the objective text names with `objective: true`. The Leave warning compares
+  only against it, so a victory found in play is never announced. An escape
+  with loot that should mean one prize, not any coin, names it with
+  `needsItem`: the Delve's needs the vault's chest, so the easy road still
+  leads to the Castellan and his deal.
 - **No loot in the start or exit room.** The gate's cautious run takes it and
   leaves, which flatters the module. Put the first loot behind a fight.
 - **Treasure.** Low levels are mostly copper and silver; from level 3, give a

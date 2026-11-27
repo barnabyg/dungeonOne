@@ -6554,10 +6554,14 @@ export function createFifthRuntime(
     state.usedItemIds
       .map((id) => items.get(id)!)
       .filter((item) => item.kind === "treasure");
+  /** Whether item `id` was found here: carried, emptied or sold. */
+  const foundHere = (state: FifthState, id: string) =>
+    state.inventory.includes(id) || state.usedItemIds.includes(id);
   /**
    * The ending leaving now brings: carrying any treasure, or coin found
    * here, out is escaping with loot; so is selling treasure found here,
-   * whose coin goes out.
+   * whose coin goes out. An escape with loot that needs an item (#611) is
+   * one only once that item was found here.
    */
   const leavingEnding = (state: FifthState): FifthEnding => {
     const victory = adventure.endings.find(
@@ -6568,10 +6572,16 @@ export function createFifthRuntime(
     if (victory !== undefined) {
       return victory;
     }
+    const withLoot = adventure.endings.find(
+      (candidate) => candidate.kind === "escape-with-loot",
+    );
     const kind =
-      carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
-      coinFound(state).length > 0 ||
-      treasureSold(state).length > 0
+      withLoot !== undefined &&
+      (withLoot.needsItem === undefined
+        ? carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
+          coinFound(state).length > 0 ||
+          treasureSold(state).length > 0
+        : foundHere(state, withLoot.needsItem))
         ? "escape-with-loot"
         : "escape-without-loot";
     return adventure.endings.find((candidate) => candidate.kind === kind)!;
@@ -6583,9 +6593,23 @@ export function createFifthRuntime(
     `${adventure.id}/ending/${ending.id}`;
   /** XP at the adventure's XP rate (#509): scaled, rounded down. */
   const scaled = (xp: number) => scaleXp(xp, settings.xpRate);
+  /**
+   * The module's main endings, its victories and escape with loot, share one
+   * award (#610): once the sheet was credited any of them, none pays again.
+   */
+  const mainEnding = ({ kind }: FifthEnding) =>
+    kind === "victory" || kind === "escape-with-loot";
+  const mainCredited = adventure.endings.some(
+    (ending) =>
+      mainEnding(ending) && sheet.xpAwards.includes(endingAwardId(ending)),
+  );
+  /** Whether the sheet was credited an ending's XP before. */
+  const endingCredited = (ending: FifthEnding) =>
+    sheet.xpAwards.includes(endingAwardId(ending)) ||
+    (mainEnding(ending) && mainCredited);
   /** An ending's XP, unless the sheet was credited it before. */
   const endingAward = (ending: FifthEnding) =>
-    sheet.xpAwards.includes(endingAwardId(ending)) || ending.xp === undefined
+    endingCredited(ending) || ending.xp === undefined
       ? undefined
       : scaled(ending.xp);
   /**
@@ -6607,12 +6631,12 @@ export function createFifthRuntime(
       objective === undefined ||
       objective === ending ||
       ending.kind === "victory" ||
-      sheet.xpAwards.includes(endingAwardId(objective))
+      endingCredited(objective)
     ) {
       return { ending: brings };
     }
     const unmet =
-      objective.kind === "victory"
+      objective.kind === "victory" || objective.needsItem !== undefined
         ? `Objective not met: ${adventure.objective}`
         : "You have found no treasure or coin here to carry out.";
     const award =
@@ -7145,40 +7169,58 @@ export function createFifthRuntime(
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
   /**
-   * Whether a topic is offered now (#399): once its `offeredWhile` flag is
-   * set, and until its `offeredUntil` flag is.
+   * Whether a topic, or a use of an item on a feature (#608), is offered
+   * now (#399): once its `offeredWhile` flag is set, and until its
+   * `offeredUntil` flag is.
    */
-  const offeredNow = (state: FifthState, topic: FifthTopic) =>
-    (topic.offeredWhile === undefined ||
-      state.flags.includes(topic.offeredWhile)) &&
-    (topic.offeredUntil === undefined ||
-      !state.flags.includes(topic.offeredUntil));
+  const offeredNow = (
+    state: FifthState,
+    offer: Pick<FifthTopic, "offeredWhile" | "offeredUntil">,
+  ) =>
+    (offer.offeredWhile === undefined ||
+      state.flags.includes(offer.offeredWhile)) &&
+    (offer.offeredUntil === undefined ||
+      !state.flags.includes(offer.offeredUntil));
   /**
    * The creatures to talk to: the room's, then its surrendered opponents,
    * each with the topics offered now (#399); with `asked`, also those
-   * already asked about, for what the creature said.
+   * already asked about, for what the creature said. One with nothing to
+   * say now is left out (#608), unless `silent`.
    */
   const creaturesHere = (
     state: FifthState,
     asked = false,
+    silent = false,
   ): readonly FifthCreature[] => {
     // While opponents react, those trading are a creature here too (#305).
     const trader = traderHere(state);
-    return [
-      ...room(state).creatures,
-      ...captives(state),
-      ...(trader === undefined ? [] : [trader]),
-    ].map((creature) =>
-      creature.topics.every((topic) => offeredNow(state, topic))
-        ? creature
-        : {
-            ...creature,
-            topics: creature.topics.filter(
-              (topic) =>
-                offeredNow(state, topic) ||
-                (asked && state.talkedTopicIds.includes(topic.id)),
-            ),
-          },
+    return (
+      [
+        ...room(state).creatures,
+        ...captives(state),
+        ...(trader === undefined ? [] : [trader]),
+      ]
+        // A creature with topics, none offered now, and no shop has nothing
+        // to say: it is not listed (#608), unless `silent` asks for it too.
+        .filter(
+          (creature) =>
+            silent ||
+            creature.merchant !== undefined ||
+            creature.topics.length === 0 ||
+            creature.topics.some((topic) => offeredNow(state, topic)),
+        )
+        .map((creature) =>
+          creature.topics.every((topic) => offeredNow(state, topic))
+            ? creature
+            : {
+                ...creature,
+                topics: creature.topics.filter(
+                  (topic) =>
+                    offeredNow(state, topic) ||
+                    (asked && state.talkedTopicIds.includes(topic.id)),
+                ),
+              },
+        )
     );
   };
   /**
@@ -8595,7 +8637,7 @@ export function createFifthRuntime(
       }
       case "talk": {
         // Its band may have withdrawn the topic itself (#399).
-        const creature = creaturesHere(state, true).find(({ topics }) =>
+        const creature = creaturesHere(state, true, true).find(({ topics }) =>
           topics.some((topic) => topic.id === site.id),
         )!;
         const topic = creature.topics.find((entry) => entry.id === site.id)!;
@@ -10845,7 +10887,7 @@ export function createFifthRuntime(
           return reject("not-carried", "You don't carry that.");
         }
         const use = useOf(feature.id, item.id);
-        if (use === undefined) {
+        if (use === undefined || !offeredNow(state, use)) {
           return reject(
             "wrong-item",
             `The ${item.name} is no use on the ${feature.name}.`,
@@ -12382,8 +12424,8 @@ export function createFifthRuntime(
       ...(!asked("examine") ? [] : searchable(state)).flatMap(examine),
       // Each item the character carries that a feature here accepts (#400).
       ...(!asked("use-on") ? [] : here.features).flatMap((feature) =>
-        (feature.uses ?? []).flatMap(({ item }) =>
-          state.inventory.includes(item)
+        (feature.uses ?? []).flatMap(({ item, ...use }) =>
+          state.inventory.includes(item) && offeredNow(state, use)
             ? [
                 view(
                   "use-on",
@@ -12881,15 +12923,18 @@ export function createFifthRuntime(
       discoveries: describedFeatures(there).flatMap(({ name, discovery }) =>
         discovery === undefined ? [] : [{ name, discovery }],
       ),
-      creatures: creaturesHere(there, true).flatMap(({ name, topics }) => {
-        const answers = topics.flatMap((topic) => {
-          const words = said(there, topic);
-          return words === undefined
-            ? []
-            : [{ topic: topic.name, said: words }];
-        });
-        return answers.length === 0 ? [] : [{ name, said: answers }];
-      }),
+      // What a creature now silent said is still on record (#608).
+      creatures: creaturesHere(there, true, true).flatMap(
+        ({ name, topics }) => {
+          const answers = topics.flatMap((topic) => {
+            const words = said(there, topic);
+            return words === undefined
+              ? []
+              : [{ topic: topic.name, said: words }];
+          });
+          return answers.length === 0 ? [] : [{ name, said: answers }];
+        },
+      ),
       doors: exitsThere.flatMap(({ passage: { door }, to }) =>
         door === undefined
           ? []
@@ -14360,7 +14405,7 @@ export function createFifthRuntime(
               },
             ];
       }),
-      ...(ending?.xp === undefined
+      ...(ending?.xp === undefined || endingCredited(ending)
         ? []
         : [
             {

@@ -100,11 +100,11 @@ test("the built-in modules include the four career adventures and both level-5 e
 
 test("leaving any shipped module at its start warns of the objective's award lost (#475)", () => {
   const objectives = {
-    // Its objective is its victory since #601, paying the dead at the
-    // muster bell; carrying the hoard out pays the same 600 XP.
+    // Its objective names carrying the garrison's pay out (#607, #611):
+    // paying the dead at the muster bell is found in play, never named.
     "abandoned-delve": [
       "Objective not met: Bring up what you can of the old lord's hoard from under the ruined keep, and get out alive.",
-      "The watch stands down",
+      "Out with the garrison's pay",
       600,
     ],
     "bramblecote-cider-house": [
@@ -309,24 +309,24 @@ test("every shipped module declares the strictest difficulty every class passes 
  */
 const QUOTED_FIGURES = {
   // Long and level 2 (#442): Medium since Last Stand (#499). Since The
-  // Unrelieved Watch (#601) the Rogue's weakest is 95.0% overall and 93.5%
-  // on each route: 97.0% with the gate's 2-point allowance, over the 88%
-  // Medium needs with its slack and a point under Easy's 98% (93.5% and
-  // 93.0% before, the Fighter's 95.5%). A badge from the storeroom stands
-  // the guard post's zombie aside in the runs that force its door, and the
-  // muster bell, examined, rouses the delve in every run, so Mags waits at
-  // the shaft. When every check fails the door stays shut and the
-  // cistern's black water costs 1d6 cold: the Rogue's 87.5% (90.5% before),
-  // 84.0% on each route, a point over Medium's 85% with the allowance.
-  // The Vault became avoidable when its ghoul held the Crypts sweep to
-  // 68.5%.
+  // Unrelieved Watch (#601) the Rogue's weakest is 93.5% overall and on
+  // each route: 95.5% with the gate's 2-point allowance, over the 88%
+  // Medium needs with its slack and under Easy's 98%. A badge from the
+  // storeroom stands the guard post's zombie aside in the runs that force
+  // its door, and the muster bell, examined, rouses the delve in every run,
+  // so Mags waits at the shaft. When every check fails the door stays shut
+  // and the cistern's black water costs 1d6 cold: the Rogue's 84.0%, a
+  // point over Medium's 85% with the allowance.
+  // Since #611 the escape with loot needs the vault's chest, so every run
+  // goes to the vault and its Castellan, and the vault is no longer
+  // avoidable (95.0% and 87.5% before).
   // The two skeletons of seven ordinary foes are over the cap. Every
   // fight's XP, the wandering zombie's included, and one ending's 600: the
-  // victory and the escape with loot each pay it.
+  // victory and the escape with loot share it (#610).
   "abandoned-delve": {
     fighter: {
       survival: [2, "mace", 0.985],
-      alwaysFail: [2, 0.95],
+      alwaysFail: [2, 0.94],
       overCap: ["skeleton-sergeant", "skeleton-guard"],
       enemyCount: 7,
       xp: 50 + 100 + 50 + 200 + 200 + 25 + 50 + 600,
@@ -335,13 +335,13 @@ const QUOTED_FIGURES = {
         ["old-well", 2, "mace", 0.985],
       ],
       sweeps: [
-        ["cellars", 2, "mace", 0.97],
+        ["cellars", 2, "two-daggers", 0.96],
         ["crypts", 2, "mace", 0.985],
       ],
     },
     rogue: {
-      survival: [2, "shortsword-and-dagger", 0.95],
-      alwaysFail: [2, 0.875],
+      survival: [2, "shortsword-and-dagger", 0.935],
+      alwaysFail: [2, 0.84],
       overCap: [],
       xp: 1275,
       routes: [
@@ -349,7 +349,7 @@ const QUOTED_FIGURES = {
         ["old-well", 2, "shortsword-and-dagger", 0.935],
       ],
       sweeps: [
-        ["cellars", 2, "shortsword", 0.895],
+        ["cellars", 2, "shortsword", 0.87],
         ["crypts", 2, "shortsword-and-dagger", 0.935],
       ],
     },

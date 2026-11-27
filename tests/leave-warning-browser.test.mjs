@@ -16,7 +16,7 @@ test(
   "leaving the barrow empty-handed warns of the award lost, then settles Out empty-handed",
   { timeout: 120000 },
   async () => {
-    const directory = await mkdtemp(join(tmpdir(), "issue-475-browser-"));
+    const directory = await mkdtemp(join(tmpdir(), "leave-warning-browser-"));
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
       libraryPath,

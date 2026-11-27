@@ -776,3 +776,93 @@ test("the harness pays for a use it can afford, and passes one it can't", () => 
   // Too poor, the harness never tries it.
   assert.deepEqual(paying(POOR), []);
 });
+
+// #608: a use offered only while, or until, a flag is set.
+
+/** The snake door whose use waits on (or ends with) the lantern's flag. */
+function flaggedDoorFile(condition) {
+  return withUse((use, module) => {
+    module.flags = ["lantern-shaken"];
+    room(module, "stair-foot").features.find(
+      ({ id }) => id === "rusted-lantern",
+    ).sets = "lantern-shaken";
+    use[condition] = "lantern-shaken";
+  });
+}
+
+test("a use's flag conditions are read, and an unknown flag or one flag for both refused (#608)", () => {
+  const door = room(
+    validateModule(flaggedDoorFile("offeredUntil")),
+    "stair-foot",
+  ).features.at(-1);
+  assert.equal(door.uses[0].offeredUntil, "lantern-shaken");
+  assert.throws(
+    () => validateModule(withUse((use) => (use.offeredWhile = "nowhere"))),
+    /feature stone-door's use of stone-snake names unknown flag nowhere\./u,
+  );
+  assert.throws(
+    () =>
+      validateModule(
+        withUse((use, module) => {
+          module.flags = ["lantern-shaken"];
+          use.offeredWhile = "lantern-shaken";
+          use.offeredUntil = "lantern-shaken";
+        }),
+      ),
+    /use 1 is offered while and until the same flag\./u,
+  );
+});
+
+test("a use withdrawn once its flag is set is neither offered nor accepted (#608)", () => {
+  const runtime = createFifthRuntime(
+    validateModule(flaggedDoorFile("offeredUntil")),
+    TEST_FIGHTER,
+  );
+  const state = carrying(runtime);
+  assert.deepEqual(uses(runtime, state), [
+    { feature: "stone-door", item: "stone-snake", available: true },
+  ]);
+  const shaken = accepted(runtime, state, EXAMINE("rusted-lantern")).state;
+  assert.deepEqual(shaken.flags, ["lantern-shaken"]);
+  assert.deepEqual(uses(runtime, shaken), []);
+  const refused = runtime.handleAction(
+    shaken,
+    USE_ON("stone-door", "stone-snake"),
+  );
+  assert.equal(refused.rejection.code, "wrong-item");
+  assert.deepEqual(refused.state, shaken);
+});
+
+test("a use offered only while its flag is set waits for it (#608)", () => {
+  const runtime = createFifthRuntime(
+    validateModule(flaggedDoorFile("offeredWhile")),
+    TEST_FIGHTER,
+  );
+  const state = carrying(runtime);
+  assert.deepEqual(uses(runtime, state), []);
+  assert.equal(
+    runtime.handleAction(state, USE_ON("stone-door", "stone-snake")).rejection
+      .code,
+    "wrong-item",
+  );
+  const shaken = accepted(runtime, state, EXAMINE("rusted-lantern")).state;
+  assert.deepEqual(uses(runtime, shaken), [
+    { feature: "stone-door", item: "stone-snake", available: true },
+  ]);
+  accepted(runtime, shaken, USE_ON("stone-door", "stone-snake"));
+});
+
+test("a way only a use withdrawn on a flag opens is never counted on (#608)", () => {
+  const flagged = vaultDenFile((module) => {
+    module.flags = ["lantern-shaken"];
+    room(module, "stair-foot").features.find(
+      ({ id }) => id === "rusted-lantern",
+    ).sets = "lantern-shaken";
+    room(module, "stair-foot").features.at(-1).uses[0].offeredUntil =
+      "lantern-shaken";
+  });
+  assert.throws(
+    () => validateModule(flagged),
+    /room den is essential, but every route to it needs a check or passes a trap \(stair-to-vault\)\./u,
+  );
+});

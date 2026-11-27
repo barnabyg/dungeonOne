@@ -110,7 +110,7 @@ const seed = findSeed();
 
 const viewport = { width: 1280, height: 850 };
 test(
-  `the Abandoned Delve plays through the action bar to an escape with loot (${viewport.width}px)`,
+  `the Abandoned Delve plays through the action bar to an escape without the garrison's pay (${viewport.width}px)`,
   { timeout: 120000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-136-"));
@@ -199,7 +199,8 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.equal(
         await page.locator("#ending-title").textContent(),
-        "Out with the garrison's pay",
+        // The barracks' silver alone is not the garrison's pay (#611).
+        "Out without the pay",
       );
 
       // No horizontal scroll, even with a wide font as CI's Linux one is.

@@ -143,7 +143,7 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
       ["web-crypt", "crypts", false, false, true],
       ["shaft-bottom", "crypts", true, false, false],
       // Avoidable since #442: its ghoul held the Crypts sweep to 68.5%.
-      ["vault", "crypts", false, false, true],
+      ["vault", "crypts", false, false, false],
       ["well-bottom", "crypts", false, false, false],
       ["flooded-cistern", "crypts", false, false, false],
       ["ossuary", "crypts", false, false, false],
@@ -151,13 +151,17 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
     ],
   );
   assert.deepEqual(
-    delve.endings.map(({ id, kind, title, xp, onEscapeWhen }) => [
-      id,
-      kind,
-      title,
-      xp,
-      onEscapeWhen,
-    ]),
+    delve.endings.map(
+      ({ id, kind, title, xp, onEscapeWhen, objective, needsItem }) => [
+        id,
+        kind,
+        title,
+        xp,
+        onEscapeWhen,
+        objective,
+        needsItem,
+      ],
+    ),
     [
       [
         "the-watch-stands-down",
@@ -165,6 +169,8 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
         "The watch stands down",
         600,
         "watch-relieved",
+        undefined,
+        undefined,
       ],
       [
         "out-with-the-loot",
@@ -172,11 +178,17 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
         "Out with the garrison's pay",
         600,
         undefined,
+        // The objective names the escape with the vault's chest (#607,
+        // #611), so the relief is found in play.
+        true,
+        "coin-chest",
       ],
       [
         "out-empty-handed",
         "escape-without-loot",
-        "Out empty-handed",
+        "Out without the pay",
+        undefined,
+        undefined,
         undefined,
         undefined,
       ],
@@ -184,6 +196,8 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
         "lost-in-the-delve",
         "defeat",
         "Lost in the delve",
+        undefined,
+        undefined,
         undefined,
         undefined,
       ],
@@ -282,7 +296,11 @@ test("its fights: the Castellan is the only boss, the posts and the Castellan wi
     ],
   );
   assert.equal(fight("vault-ghoul").opponents[0].name, "Castellan");
-  assert.deepEqual(fight("vault-ghoul").sets, { won: "castellan-silent" });
+  // A Castellan fought, won or fled, bargains no more (#609).
+  assert.deepEqual(fight("vault-ghoul").sets, {
+    won: "castellan-silent",
+    fled: "castellan-silent",
+  });
   assert.equal(delve.alarm.flag, "delve-roused");
   assert.deepEqual(delve.alarm.fights, [{ region: "crypts", round: 4 }]);
   // Nothing closes: the alarm only moves Mags, so no exit is cut off.
@@ -302,6 +320,7 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
           "dry-well",
           "shrine",
           "shaft-bottom",
+          "vault",
         ],
       ],
       [
@@ -316,6 +335,7 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
           "flooded-cistern",
           "ossuary",
           "shaft-bottom",
+          "vault",
         ],
       ],
     ],
@@ -340,6 +360,7 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
         [
           "shrine",
           "shaft-bottom",
+          "vault",
           "well-bottom",
           "flooded-cistern",
           "ossuary",
@@ -625,7 +646,7 @@ const TO_THE_WELL = [
   ["move", "well-bottom"],
 ];
 
-test("down the old well with the porter's rope: the goblin goes free and talks, Mags falls in the ossuary, and the shaft pays 600 XP", () => {
+test("down the old well with the porter's rope: the goblin goes free and talks, Mags falls in the ossuary, and coin without the vault's chest is not the garrison's pay (#611)", () => {
   const { state, runtime } = firstJourney(
     delve,
     level2,
@@ -646,7 +667,7 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
     ],
     ({ status }) => status === "escaped",
   );
-  assert.equal(state.endingId, "out-with-the-loot");
+  assert.equal(state.endingId, "out-empty-handed");
   assert.ok(state.flags.includes("goblin-freed"));
   assert.ok(!state.inventory.includes("coil-of-rope"));
   assert.deepEqual(state.clearedEncounterIds, [
@@ -656,7 +677,6 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
   assert.deepEqual(xpOf(runtime, state), [
     ["Defeated Zombie", 50],
     ["Defeated Mags Corrow", 25],
-    ["Out with the garrison's pay", 600],
   ]);
 });
 
@@ -681,7 +701,7 @@ test("with the goblin's directions, the sarcophagus gives up the death mask and 
 });
 
 // #601: the posts.
-test("a garrison badge stands the posts aside: the Guard Post and the Barracks are walked through unfought, for no XP", () => {
+test("a garrison badge stands the posts aside: the Guard Post and the Barracks are walked through unfought, for no XP, and their coin is not the garrison's pay (#611)", () => {
   const badges = delve.rooms.flatMap(({ items }) =>
     items.filter(({ sets }) => sets === "posts-stand-aside"),
   );
@@ -718,10 +738,9 @@ test("a garrison badge stands the posts aside: the Guard Post and the Barracks a
   assert.ok(state.flags.includes("posts-stand-aside"));
   assert.deepEqual(state.clearedEncounterIds, []);
   assert.equal(state.possessions.purse, 250 + 180);
-  // Withdrawn posts pay nothing.
-  assert.deepEqual(xpOf(runtime, state), [
-    ["Out with the garrison's pay", 600],
-  ]);
+  assert.equal(state.endingId, "out-empty-handed");
+  // Withdrawn posts pay nothing, and nor does leaving without the chest.
+  assert.deepEqual(xpOf(runtime, state), []);
 });
 
 test("the second badge lies under the cistern's black water: a dive or a sharp eye brings it up, and a bad failure costs cold damage", () => {
@@ -939,6 +958,147 @@ test("the Castellan's deal: the chaplain's key through the grille lets him out w
       { type: "talk", topicId: "who-he-is" },
     ),
   );
+});
+
+// #608, #609: a Castellan fought bargains no more, and no one speaks at
+// the grille.
+
+/** The names on the Here list of the room the state is in. */
+const hereNames = (runtime, state) =>
+  runtime.projectRoom(state).creatures.map(({ name }) => name);
+const usesOffered = (runtime, state) =>
+  runtime
+    .projectActions(state)
+    .filter(({ action }) => action === "use-on")
+    .map(({ target, item }) => [target.id, item.id]);
+
+test("the deal is offered only until the Castellan is silent, and the Voice at the Grille goes with it (#608, #609)", () => {
+  const grille = feature("shaft-bottom", "door-grille");
+  assert.equal(grille.uses[0].offeredUntil, "castellan-silent");
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    TO_THE_GRILLE,
+    ({ status }) => status === "playing",
+  );
+  assert.deepEqual(hereNames(runtime, state), ["Voice at the Grille"]);
+  assert.deepEqual(usesOffered(runtime, state), [
+    ["door-grille", "bronze-key"],
+  ]);
+  const dealt = runtime.handleAction(state, {
+    type: "use-on",
+    featureId: "door-grille",
+    itemId: "bronze-key",
+  }).state;
+  assert.deepEqual(hereNames(runtime, dealt), []);
+  assert.deepEqual(usesOffered(runtime, dealt), []);
+});
+
+test("after the vault fight is won, the grille offers no deal and no voice answers (#608)", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_GRILLE,
+      ["unlock", "vault-door"],
+      ["move", "vault"],
+      ["move", "shaft-bottom"],
+    ],
+    ({ status, clearedEncounterIds }) =>
+      status === "playing" && clearedEncounterIds.includes("vault-ghoul"),
+    { limit: 400 },
+  );
+  assert.ok(state.flags.includes("castellan-silent"));
+  assert.deepEqual(hereNames(runtime, state), []);
+  assert.deepEqual(usesOffered(runtime, state), []);
+  assert.ok(
+    refused(runtime, state, {
+      type: "use-on",
+      featureId: "door-grille",
+      itemId: "bronze-key",
+    }),
+  );
+});
+
+test("a Castellan fought and fled bargains no more: the grille offers no deal (#609)", () => {
+  const { state: atDoor, runtime } = firstJourney(
+    delve,
+    level2,
+    [...TO_THE_GRILLE, ["unlock", "vault-door"]],
+    ({ status }) => status === "playing",
+  );
+  let fled;
+  for (let seed = 0; seed < 200 && fled === undefined; seed += 1) {
+    const random = createSeededRandom(seed);
+    let state = runtime.handleAction(
+      atDoor,
+      { type: "move", destinationId: "vault" },
+      random,
+    ).state;
+    for (
+      let turn = 0;
+      turn < 20 && state.encounter?.outcome === "ongoing";
+      turn += 1
+    ) {
+      const away = runtime.handleAction(
+        state,
+        { type: "flee", destinationId: "shaft-bottom" },
+        random,
+      );
+      state = (
+        away.rejection === undefined
+          ? away
+          : runtime.handleAction(
+              state,
+              { type: "end-turn", actorId: "pc" },
+              random,
+            )
+      ).state;
+    }
+    if (
+      state.status === "playing" &&
+      (state.fledEncounterIds ?? []).includes("vault-ghoul") &&
+      state.roomId === "shaft-bottom"
+    ) {
+      fled = state;
+    }
+  }
+  assert.ok(fled, "no seed below 200 flees the vault fight");
+  assert.ok(fled.flags.includes("castellan-silent"));
+  assert.ok(!fled.flags.includes("castellan-freed"));
+  assert.ok(fled.inventory.includes("bronze-key"));
+  assert.deepEqual(usesOffered(runtime, fled), []);
+  assert.deepEqual(hereNames(runtime, fled), []);
+});
+
+// #610: the victory and the escape with loot share one award.
+
+test("a character credited the relief is paid nothing more for carrying the chest out (#610)", () => {
+  const veteran = {
+    ...level2,
+    xpAwards: [
+      ...level2.xpAwards,
+      "abandoned-delve/ending/the-watch-stands-down",
+    ],
+  };
+  const { state, runtime } = firstJourney(
+    delve,
+    veteran,
+    [
+      ...TO_THE_GRILLE,
+      ["use", "door-grille", "bronze-key"],
+      ["unlock", "vault-door"],
+      ["move", "vault"],
+      ["examine", "iron-chest"],
+      ["take", "coin-chest"],
+      ["move", "shaft-bottom"],
+      ["leave", "shaft-bottom"],
+    ],
+    ({ status }) => status === "escaped",
+  );
+  assert.equal(state.endingId, "out-with-the-loot");
+  // Only the zombie on the stair pays: the ending's 600 XP was had.
+  assert.deepEqual(xpOf(runtime, state), [["Defeated Zombie", 50]]);
 });
 
 // #601: the muster. The owner's price (#601): half the vault's coin, so
