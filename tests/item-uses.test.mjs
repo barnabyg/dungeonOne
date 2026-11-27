@@ -7,7 +7,7 @@
 // features, items never carried, and counts a way a use opens only when its
 // item is surely reached. The harness uses an item as soon as it can, and
 // the AI DM has a use_on tool. Adventure 36, session 57, trace 51, prompt
-// v37.
+// v37. A use may cost coin (#600), at the end of this file.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -441,7 +441,7 @@ test("a use's damage can end the adventure in its defeat", () => {
 });
 
 test("a reload replays the use, and a trace records it", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "issue-400-"));
+  const directory = await mkdtemp(join(tmpdir(), "item-uses-"));
   try {
     const path = join(directory, "session.json");
     const run = new FifthTraceRun(
@@ -589,4 +589,190 @@ test("an AI DM call with the wrong item, or one not carried, is refused without 
     assert.equal(result.modelOutput.ok, false, use);
     assert.equal(result.state, state, use);
   }
+});
+
+// A use's coin cost (#600): a use may cost coin, spent from the purse as a
+// toll is. Too little coin refuses it without effect; the price is shown
+// with the item's name wherever the use is offered; a way only a costed use
+// opens is never counted on; and the harness pays what it can afford.
+// Adventure 48, prompt v50.
+
+/** The snake door, fitting the snake costing 2 gp. */
+const costedDoorFile = () =>
+  withUse((use) => {
+    use.coins = { gp: 2 };
+  });
+
+const RICH = { ...TEST_FIGHTER, purse: 500 };
+const POOR = { ...TEST_FIGHTER, purse: 150 };
+
+test("a use's coin cost is read, and an empty or unknown one refused", () => {
+  const door = room(validateModule(costedDoorFile()), "stair-foot").features.at(
+    -1,
+  );
+  assert.deepEqual(door.uses[0].coins, { gp: 2 });
+  assert.throws(
+    () => validateModule(withUse((use) => (use.coins = {}))),
+    /use 1 coins must hold at least one coin\./u,
+  );
+  assert.throws(
+    () => validateModule(withUse((use) => (use.coins = { gp: 0 }))),
+    /use 1 coins must hold at least one coin\./u,
+  );
+  assert.throws(
+    () => validateModule(withUse((use) => (use.coins = { pp: 1 }))),
+    /use 1 coins may have only /u,
+  );
+});
+
+test("a way only a costed use opens is never counted on", () => {
+  // The den is reached only through the Stone Door: free, that is a way;
+  // at a price the character may not have, it is not.
+  assert.doesNotThrow(() => validateModule(vaultDenFile()));
+  const costed = vaultDenFile((module) => {
+    room(module, "stair-foot").features.at(-1).uses[0].coins = { cp: 1 };
+  });
+  assert.throws(
+    () => validateModule(costed),
+    /room den is essential, but every route to it needs a check or passes a trap \(stair-to-vault\)\./u,
+  );
+});
+
+test("a costed use shows its price, spends the coin and applies its effects", () => {
+  const runtime = createFifthRuntime(validateModule(costedDoorFile()), RICH);
+  const state = carrying(runtime);
+  assert.equal(state.possessions.purse, 500);
+  const offered = runtime
+    .projectActions(state)
+    .find(({ action }) => action === "use-on");
+  assert.deepEqual(
+    [offered.item, offered.target.name, offered.available],
+    [{ id: "stone-snake", name: "Stone Snake (2 gp)" }, "Stone Door", true],
+  );
+  const used = accepted(runtime, state, USE_ON("stone-door", "stone-snake"));
+  assert.deepEqual(
+    used.events.map(({ type }) => type),
+    ["used-on", "used-up", "route"],
+  );
+  assert.deepEqual(used.events[0].cost, { price: 200, purse: 300 });
+  assert.equal(used.state.possessions.purse, 300);
+  assert.equal(
+    renderFifthResult(used),
+    [
+      "You use the Stone Snake on the Stone Door, paying 2 gp. The carving fits the hollow. With a grinding of stone, the door swings inward. Purse: 3 gp.",
+      "The Stone Snake is used up.",
+      "The way to the Snake Vault is open.",
+    ].join("\n"),
+  );
+  assert.equal(
+    accepted(runtime, used.state, MOVE("vault")).state.roomId,
+    "vault",
+  );
+});
+
+test("a free use says nothing of coin", () => {
+  const runtime = createFifthRuntime(snakeDoor, RICH);
+  const used = accepted(
+    runtime,
+    carrying(runtime),
+    USE_ON("stone-door", "stone-snake"),
+  );
+  assert.equal(used.events[0].cost, undefined);
+  assert.equal(used.state.possessions.purse, 500);
+});
+
+test("with too little coin a costed use is refused without effect", () => {
+  const runtime = createFifthRuntime(validateModule(costedDoorFile()), POOR);
+  const state = carrying(runtime);
+  assert.deepEqual(uses(runtime, state), [
+    {
+      feature: "stone-door",
+      item: "stone-snake",
+      available: false,
+      reason: "Too little coin",
+    },
+  ]);
+  const refused = runtime.handleAction(
+    state,
+    USE_ON("stone-door", "stone-snake"),
+  );
+  assert.deepEqual(refused.rejection, {
+    code: "too-little-coin",
+    reason:
+      "Using the Stone Snake on the Stone Door costs 2 gp, and you have 1 gp 5 sp.",
+  });
+  assert.equal(refused.state, state);
+  assert.equal(state.inventory.includes("stone-snake"), true);
+  // The AI DM is offered only a use the purse can pay for.
+  const tool = (playing, at) =>
+    playing.getGameToolDefinitions(at).find(({ name }) => name === "use_on");
+  assert.equal(tool(runtime, state), undefined);
+  const rich = createFifthRuntime(validateModule(costedDoorFile()), RICH);
+  const offered = tool(rich, carrying(rich));
+  assert.match(
+    offered.description,
+    /the Stone Snake \(2 gp\) on the Stone Door/u,
+  );
+  assert.match(offered.description, /never lower or waive/u);
+});
+
+test("the same actions spend the same coin again", () => {
+  const runtime = createFifthRuntime(validateModule(costedDoorFile()), RICH);
+  const play = () =>
+    accepted(runtime, carrying(runtime), USE_ON("stone-door", "stone-snake"))
+      .state;
+  assert.deepEqual(play(), play());
+  assert.equal(play().possessions.purse, 300);
+});
+
+/**
+ * The snake door with an offering bowl in the alcove, where the snake is
+ * found: laying the snake in it costs 2 gp and reveals the lantern's secret.
+ */
+function offeringBowlFile() {
+  const module = structuredClone(snakeDoorFile);
+  room(module, "alcove").features.push({
+    id: "offering-bowl",
+    name: "Offering Bowl",
+    description: "A stone bowl, its rim worn by coins.",
+    uses: [
+      {
+        item: "stone-snake",
+        text: "You lay the snake in the bowl with your coin. Something clicks.",
+        coins: { gp: 2 },
+        effects: [{ type: "discovery", feature: "rusted-lantern" }],
+      },
+    ],
+  });
+  return module;
+}
+
+test("the harness pays for a use it can afford, and passes one it can't", () => {
+  const module = validateModule(offeringBowlFile());
+  const paying = (sheet) => {
+    const runtime = createFifthRuntime(module, sheet);
+    const paid = [];
+    const watching = {
+      ...runtime,
+      handleAction(state, action, random) {
+        const result = runtime.handleAction(state, action, random);
+        if (action.type === "use-on" && action.featureId === "offering-bowl") {
+          paid.push(result.rejection?.code ?? "paid");
+        }
+        return result;
+      },
+    };
+    for (const style of ["direct", "cautious", "avoid-optional"]) {
+      for (const seed of [0, 1, 2]) {
+        // A run that stalled would never return.
+        playAdventure(watching, style, seed);
+      }
+    }
+    return paid;
+  };
+  const rich = paying(RICH);
+  assert.ok(rich.length > 0);
+  assert.ok(rich.every((outcome) => outcome === "paid"));
+  // Too poor, the harness never tries it.
+  assert.deepEqual(paying(POOR), []);
 });

@@ -873,6 +873,8 @@ type UseOpening = Readonly<{
   roomId: string;
   itemId: string;
   passageId: string;
+  /** Whether the use costs coin (#600): no plan counts on one that does. */
+  costed: boolean;
 }>;
 
 const USE_OPENINGS = new WeakMap<FifthAdventure, readonly UseOpening[]>();
@@ -889,10 +891,18 @@ function useOpenings(adventure: FifthAdventure): readonly UseOpening[] {
 function findUseOpenings(adventure: FifthAdventure): readonly UseOpening[] {
   return adventure.rooms.flatMap(({ id: roomId, features }) =>
     features.flatMap(({ id: featureId, uses }) =>
-      (uses ?? []).flatMap(({ item, effects }) =>
+      (uses ?? []).flatMap(({ item, effects, coins }) =>
         effects.flatMap((effect) =>
           effect.type === "open"
-            ? [{ featureId, roomId, itemId: item, passageId: effect.passage }]
+            ? [
+                {
+                  featureId,
+                  roomId,
+                  itemId: item,
+                  passageId: effect.passage,
+                  costed: coins !== undefined,
+                },
+              ]
             : [],
         ),
       ),
@@ -994,10 +1004,18 @@ function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
       ),
     ),
   );
-  const openings = useOpenings(adventure).filter(
+  const useOpened = useOpenings(adventure).filter(
     ({ passageId }) => !bandOpened.has(passageId),
   );
+  const openings = useOpened.filter(({ costed }) => !costed);
   const useOnly = new Set(openings.map(({ passageId }) => passageId));
+  // The ways only a use that costs coin opens (#600): the character may not
+  // have the coin, so no plan goes that way until the use has been made.
+  const paidOnly = new Set(
+    useOpened.flatMap(({ passageId, costed }) =>
+      costed && !useOnly.has(passageId) ? [passageId] : [],
+    ),
+  );
   const itemRoom = new Map(
     adventure.rooms.flatMap(({ id, items }) =>
       items.map((item) => [item.id, id] as const),
@@ -1161,6 +1179,8 @@ function newRoutePlanner(adventure: FifthAdventure, talking: boolean) {
             position.flags.includes(passage.closeWhen)) ||
           (keys === "carried" && unflagged(position, passage)) ||
           (keys === "carried" && unused(position, passage)) ||
+          (paidOnly.has(passage.id) &&
+            !position.usedOpen.includes(passage.id)) ||
           (locked &&
             (keys === "carried" ||
               keyIds.every((keyId) => position.lostKeyIds.includes(keyId))))
@@ -1477,8 +1497,9 @@ export function requiredPath(
       .get(adventure.startRoomId)!
       .items.map(({ id }) => id),
   };
-  // The items a use needs are carried, as keys are (#400).
-  const openings = useOpenings(adventure);
+  // The items a use needs are carried, as keys are (#400); a use that
+  // costs coin is never counted on (#600).
+  const openings = useOpenings(adventure).filter(({ costed }) => !costed);
   const useItems = new Set(openings.map(({ itemId }) => itemId));
   /** `position` with the uses its room's features accept made (#400). */
   const usingItems = (at: Position): Position => ({

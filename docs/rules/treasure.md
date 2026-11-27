@@ -28,7 +28,8 @@ module's level.
   uncommon, 4d4 + 4 HP, 200 gp (half an uncommon magic item's 400 gp, as for
   every consumable). No merchant buys a potion.
 - **Never used up.** Treasure is sold or carried out: the validator refuses a
-  feature use that consumes it.
+  feature use that consumes it. A use may cost coin, which is spent from the
+  purse (see [Using an item on a feature](checks.md#using-an-item-on-a-feature)).
 - **Budget.** The coin, gems and art objects a module hides are totalled;
   potions, scrolls, gear and magic items are outside the budget, limited by
   their tiers. The validator refuses more than **50 gp at maximum recommended

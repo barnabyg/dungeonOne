@@ -34,7 +34,7 @@ file. The shape, in short:
   [the authoring guide](../module-authoring.md).
 - **Feature:** optional `discovery`, `check`, `sets` (a flag), `changed`
   (`{ when, description }`), `uses` (up to four `{ item, text, effects }`,
-  optionally `consumes: true`) and `fightAction` (`{ once, check, bands }`,
+  optionally `consumes: true` and `coins`, a price paid from the purse) and `fightAction` (`{ once, check, bands }`,
   `once` being `fight` or `adventure`).
 - **Item:** `kind` is a potion (Healing or Greater Healing), `key`, `tool`,
   `treasure` (a catalogue gem or art object), `coin` (`coins` in gp, sp and cp),
@@ -99,8 +99,10 @@ These are the design constraints behind the rest:
   on, as the character may carry none. A way a use opens counts only once the
   feature's room and the item are reached for sure: the item in plain sight or
   hidden in a feature with no check, not carried by an opponent, and not used up
-  first. An item hidden in a feature with a check must be revealed by some band,
-  and a hidden passage opened by a band or a use.
+  first. A way only a use that costs coin opens is never counted on, as the
+  character may not have the coin. An item hidden in a feature with a check
+  must be revealed by some band, and a hidden passage opened by a band or a
+  use.
 - **Sure flags.** Rooms reached and flags set for sure are grown together until
   neither changes, and the reachability rules are checked over them. A flag is
   set for sure by entering a room reached, examining its features, taking its

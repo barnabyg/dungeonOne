@@ -355,7 +355,7 @@ export { PLAYER_ID };
 export { LONG_RESTS_PER_ADVENTURE } from "./rest-5e.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v49";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v50";
 
 /** What the character has left: it lasts from fight to fight. */
 export type CharacterResources = Readonly<{
@@ -1185,7 +1185,8 @@ export type FifthEvent =
     }>
   /**
    * An item used on a feature (#400), with the module's words: its effects
-   * follow as a band's do, and the item, when it is used up.
+   * follow as a band's do, and the item, when it is used up. A use that
+   * costs coin (#600) gives the copper paid and the purse after it.
    */
   | Readonly<{
       type: "used-on";
@@ -1194,6 +1195,7 @@ export type FifthEvent =
       itemId: string;
       item: string;
       text: string;
+      cost?: Readonly<{ price: number; purse: number }>;
     }>
   /**
    * A fight action (#402): the character uses a feature against an
@@ -3461,7 +3463,9 @@ export function renderFifthEvent(
         " ",
       );
     case "used-on":
-      return `You use the ${event.item} on the ${event.feature}. ${event.text}`;
+      return event.cost === undefined
+        ? `You use the ${event.item} on the ${event.feature}. ${event.text}`
+        : `You use the ${event.item} on the ${event.feature}, paying ${formatCoins(event.cost.price)}. ${event.text} Purse: ${formatCoins(event.cost.purse)}.`;
     case "alarm":
       return `The alarm is raised by ${event.cause}. ${event.text}`;
     case "examined": {
@@ -4029,6 +4033,9 @@ function lineSound(
       return ITEM_SOUNDS.coin;
     case "reacted":
       return event.toll === undefined ? undefined : ITEM_SOUNDS.coin;
+    case "used-on":
+      // A use that costs coin (#600) sounds as a toll does.
+      return event.cost === undefined ? undefined : ITEM_SOUNDS.coin;
     case "cast":
       return isSpellId(event.spellId) ? castSound(event.spellId) : undefined;
     case "door":
@@ -10812,10 +10819,24 @@ export function createFifthRuntime(
             `You already used the ${item.name} on the ${feature.name}.`,
           );
         }
+        // A use's price (#600) comes from the purse, as a toll does, and
+        // rolls back with the adventure like any other spending.
+        const price = use.coins === undefined ? 0 : coinsInCopper(use.coins);
+        const held = state.possessions.purse;
+        if (held < price) {
+          return reject(
+            "too-little-coin",
+            `Using the ${item.name} on the ${feature.name} costs ${formatCoins(price)}, and you have ${formatCoins(held)}.`,
+          );
+        }
+        const purse = held - price;
         // Remembered, so its revelations follow from it; then its effects
         // as a band's, and the item, when it is used up.
         const used: FifthState = {
           ...state,
+          ...(price === 0
+            ? {}
+            : { possessions: { ...state.possessions, purse } }),
           featureUses: [...made, { featureId: feature.id, itemId: item.id }],
           ...(use.consumes === true
             ? {
@@ -10846,6 +10867,7 @@ export function createFifthRuntime(
               itemId: item.id,
               item: item.name,
               text: use.text,
+              ...(price === 0 ? {} : { cost: { price, purse } }),
             },
             ...(use.consumes === true
               ? [
@@ -11593,11 +11615,17 @@ export function createFifthRuntime(
           name: featureById.get(action.featureId)!.name,
         };
       }
-      // The item an item's use names (#400).
+      // The item an item's use names (#400), with the use's price (#600)
+      // after its name, as a toll's is after its option's.
       if (action.type === "use-on") {
+        const cost = useOf(action.featureId, action.itemId)?.coins;
+        const { name } = items.get(action.itemId)!;
         entry.item = {
           id: action.itemId,
-          name: items.get(action.itemId)!.name,
+          name:
+            cost === undefined
+              ? name
+              : `${name} (${formatCoins(coinsInCopper(cost))})`,
         };
       }
       if (approach !== undefined) {
@@ -13623,7 +13651,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "use_on",
-        "Use an item the character carries on a feature in the room, only when the player asks to (fit it, pour it, throw it, put it in or on something); the engine decides what it does. Only the items each feature accepts, each once:",
+        "Use an item the character carries on a feature in the room, only when the player asks to (fit it, pour it, throw it, put it in or on something); the engine decides what it does. A price after an item's name is coin the use costs, paid from the purse: say so, and never lower or waive it. Only the items each feature accepts, each once:",
         actions.flatMap(({ action, target, item, available }) =>
           action === "use-on" && available
             ? [
