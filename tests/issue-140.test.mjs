@@ -25,8 +25,13 @@ import {
 import { libraryAt } from "../dist/test-fighter-5e.js";
 import { narratingDm } from "./fixtures/session-layout.mjs";
 
-/** The seed the release run is qualified on: Ada escapes with loot. */
-const RELEASE_SEED = 2;
+/**
+ * The seed the release run is qualified on: Ada escapes with loot. On it
+ * she fails to force the storeroom door, so she finds no garrison badge
+ * and fights the guard post's zombie (#601: with a badge the generated run
+ * meets no fight; seed 2 before).
+ */
+const RELEASE_SEED = 13;
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
 );

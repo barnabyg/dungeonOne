@@ -25,9 +25,12 @@ const PLAYER = "pc";
  * `["equip", itemId]` or `["swap", itemId]` (#350) wielding found gear and
  * `["read", itemId, spellId]` (#350) reading a held scroll on oneself, and
  * `["use", featureId, itemId]` (#412) using a carried item on a feature,
- * and `["search", roomId]` and `["disarm", trapId]` (#445) finding and
- * disarming a trap, and `["buy", itemId]` and `["sell-treasure", itemId]`
- * (#512) trading with the merchant here.
+ * and `["search", roomId]` and `["disarm", trapId, approach]` (#445)
+ * finding and disarming a trap, and `["buy", itemId]` and `["sell-treasure", itemId]`
+ * (#512) trading with the merchant here, and
+ * `["use-feature", featureId, opponentId, approach]` (#601) using a
+ * feature's fight action against an opponent, on the character's turn in
+ * the fight the step before began.
  */
 export function routeAction([type, target, approach, retry]) {
   switch (type) {
@@ -63,9 +66,20 @@ export function routeAction([type, target, approach, retry]) {
     case "search":
       return { type, roomId: target };
     case "disarm":
-      return { type, trapId: target };
+      return {
+        type,
+        trapId: target,
+        ...(approach === undefined ? {} : { approach }),
+      };
     case "use":
       return { type: "use-on", featureId: target, itemId: approach };
+    case "use-feature":
+      return {
+        type,
+        featureId: target,
+        targetId: approach,
+        ...(retry === undefined ? {} : { approach: retry }),
+      };
     case "leave":
     case "ambush":
       return { type, roomId: target };
@@ -159,7 +173,8 @@ function fightTurn(runtime, state, random, maxHp, potions, heal, cast) {
  * is clicked as `fight` in browser-journey.mjs clicks it, attacking the
  * first target or ending the turn, never healing. With `cast`, each fight
  * turn first casts the first spell offered, or what a `cast` function picks
- * (#350).
+ * (#350). A fight a step begins is left for a `use-feature` step after it
+ * (#601), which opens the fight.
  */
 export function journey(
   adventure,
@@ -191,7 +206,7 @@ export function journey(
     { type: "begin" },
     random,
   ).state;
-  for (const step of route) {
+  for (const [index, step] of route.entries()) {
     if (state.status !== "playing") {
       break;
     }
@@ -199,7 +214,10 @@ export function journey(
     if (result.rejection !== undefined) {
       throw new Error(`${step.join(" ")}: ${result.rejection.reason}`);
     }
-    state = fight(result.state);
+    state =
+      route[index + 1]?.[0] === "use-feature"
+        ? result.state
+        : fight(result.state);
   }
   return { state, runtime };
 }

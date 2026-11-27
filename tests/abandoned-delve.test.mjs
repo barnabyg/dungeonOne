@@ -4,10 +4,15 @@
 // rope that frees the goblin and opens the well, Mags Corrow the rival, the
 // crypts' alarm, the vault's coffer stack, the lord's sarcophagus and a
 // wandering dead delver on rests, and, since #512, Hedda the Pedlar trading
-// in the porter's lodge. Scripted-DM journeys reach each of its
-// endings; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty, with its quoted figures. The DM evaluation's cases and the
-// live qualification, both written for it (#138), are checked here too.
+// in the porter's lodge. Since #601 it tells a story, The Unrelieved Watch,
+// as the owner approved it on #599: the dead garrison is still on duty and
+// unpaid, a garrison badge makes its posts stand aside, Mags and the goblin
+// each tell half of it, and the Castellan in the vault offers a deal that
+// rules out the best ending, paying the dead at the muster bell.
+// Scripted-DM journeys reach each of its endings; shipped-modules.test.mjs
+// checks it qualifies at its declared difficulty, with its quoted figures.
+// The DM evaluation's cases and the live qualification, both written for it
+// (#138), are checked here too.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -21,7 +26,17 @@ import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { regionSweeps, requiredPath } from "../dist/balance-5e.js";
+import {
+  characterAtLevel,
+  GATE_CLASSES,
+  GATE_STYLE,
+  percentileCharacters,
+  playAdventure,
+  regionSweeps,
+  requiredPath,
+  WEAKEST_PERCENTILE,
+  XP_STYLE,
+} from "../dist/balance-5e.js";
 import {
   FIFTH_DM_CASES,
   offeredToolsMatchActions,
@@ -72,14 +87,31 @@ const passage = (from, to) =>
   );
 const feature = (roomId, id) =>
   room(roomId).features.find((entry) => entry.id === id);
+const fight = (id) => delve.encounters.find((entry) => entry.id === id);
+const topicsOf = (roomId) =>
+  room(roomId).creatures.flatMap(({ topics }) =>
+    topics.map(({ id, offeredWhile, offeredUntil }) => [
+      id,
+      offeredWhile,
+      offeredUntil,
+    ]),
+  );
 const level2 = testFighterAt(2);
+/** Whether the runtime refuses `action` in `state`. */
+const refused = (runtime, state, action) =>
+  runtime.handleAction(state, action).rejection !== undefined;
 
 // #233: Undead Fortitude made its Zombie too deadly at level 1. #442: the
 // weakest level-2 Rogue survived the old-well route 84.5%, under Medium's
 // 85%, so the expanded delve was declared Hard. #499: with Last Stand that
 // Rogue survives 88%, Medium's 85% with 3 points of slack, so it is Medium.
+// #601: the story's two paying endings, the victory first.
 test("the delve is a long level-2 Medium module of sixteen rooms in two regions, left by the gate or the shaft", () => {
   assert.equal(delve.title, "The Abandoned Delve");
+  assert.equal(
+    delve.objective,
+    "Bring up what you can of the old lord's hoard from under the ruined keep, and get out alive.",
+  );
   assert.deepEqual(delve.recommendedLevels, { min: 2, max: 2 });
   assert.equal(delve.difficulty, "medium");
   assert.equal(delve.long, true);
@@ -119,52 +151,138 @@ test("the delve is a long level-2 Medium module of sixteen rooms in two regions,
     ],
   );
   assert.deepEqual(
-    delve.endings.map(({ id, kind, xp }) => [id, kind, xp]),
+    delve.endings.map(({ id, kind, title, xp, onEscapeWhen }) => [
+      id,
+      kind,
+      title,
+      xp,
+      onEscapeWhen,
+    ]),
     [
-      ["out-with-the-loot", "escape-with-loot", 600],
-      ["out-empty-handed", "escape-without-loot", undefined],
-      ["lost-in-the-delve", "defeat", undefined],
+      [
+        "the-watch-stands-down",
+        "victory",
+        "The watch stands down",
+        600,
+        "watch-relieved",
+      ],
+      [
+        "out-with-the-loot",
+        "escape-with-loot",
+        "Out with the garrison's pay",
+        600,
+        undefined,
+      ],
+      [
+        "out-empty-handed",
+        "escape-without-loot",
+        "Out empty-handed",
+        undefined,
+        undefined,
+      ],
+      [
+        "lost-in-the-delve",
+        "defeat",
+        "Lost in the delve",
+        undefined,
+        undefined,
+      ],
     ],
   );
-  assert.deepEqual(delve.flags, ["goblin-freed", "delve-roused"]);
+  assert.deepEqual(delve.flags, [
+    "goblin-freed",
+    "delve-roused",
+    "posts-stand-aside",
+    "mags-dealt",
+    "castellan-freed",
+    "castellan-silent",
+    "watch-relieved",
+  ]);
   assert.deepEqual(delve.wanderingEncounter, {
     encounterId: "dead-delver",
     chance: 25,
   });
 });
 
-test("its fights: the ghoul is the only boss, Mags runs to the shaft when the crypts are roused, and a dead delver wanders", () => {
+// #601: every feature is a clue, a lever, a risk or a reward. Six that
+// carried nothing were cut and their words folded into the rooms; the
+// Muster Bell, the Standing Orders and the Door Grille were added.
+test("its 29 features each carry something: a discovery, a check, a use, a fight action or a hidden find", () => {
   assert.deepEqual(
-    delve.encounters.map(({ id, opponents, movesTo }) => [
+    delve.rooms.map(({ id, features }) => [
+      id,
+      features.map((entry) => entry.id),
+    ]),
+    [
+      ["broken-gate", ["chalk-marks"]],
+      ["gate-hall", ["muster-bell", "standing-orders"]],
+      ["guard-post", ["weapon-rack", "overturned-table"]],
+      ["barracks", ["footlocker"]],
+      ["storeroom", ["old-barrel"]],
+      ["dry-well", ["well-head", "windlass"]],
+      ["porters-lodge", ["peg-rail", "key-board"]],
+      ["fallen-kitchen", ["hearth", "bone-heap"]],
+      ["shrine", ["altar", "offering-box", "shrine-lamp"]],
+      ["web-crypt", ["cocoon"]],
+      ["shaft-bottom", ["knotted-rope", "door-grille"]],
+      ["vault", ["iron-chest", "coffer-stack"]],
+      ["well-bottom", ["silted-floor", "goblins-nest"]],
+      ["flooded-cistern", ["black-water", "drowned-delver"]],
+      ["ossuary", ["skull-wall", "mags-satchel"]],
+      ["lords-tomb", ["sarcophagus-lid", "effigy"]],
+    ],
+  );
+  const all = delve.rooms.flatMap(({ features, items }) =>
+    features.map((entry) => ({ ...entry, items })),
+  );
+  assert.equal(all.length, 29);
+  for (const { id, discovery, check, uses, fightAction, items } of all) {
+    assert.ok(
+      discovery !== undefined ||
+        check !== undefined ||
+        uses !== undefined ||
+        fightAction !== undefined ||
+        items.some(({ hiddenIn }) => hiddenIn === id),
+      id,
+    );
+  }
+});
+
+test("its fights: the Castellan is the only boss, the posts and the Castellan withdraw on their flags, Mags reacts and runs to the shaft when the delve is roused, and a dead delver wanders", () => {
+  assert.deepEqual(
+    delve.encounters.map(({ id, opponents, movesTo, presentUntil }) => [
       id,
       opponents.map(({ id: opponentId, statBlock, boss }) => [
         opponentId,
         statBlock.name,
         boss === true,
       ]),
-      movesTo,
+      movesTo ?? presentUntil,
     ]),
     [
-      ["guard-zombie", [["zombie", "Zombie", false]], undefined],
+      ["guard-zombie", [["zombie", "Zombie", false]], "posts-stand-aside"],
       [
         "barracks-skeletons",
         [
           ["skeleton-sergeant", "Skeleton", false],
           ["skeleton-guard", "Skeleton", false],
         ],
-        undefined,
+        "posts-stand-aside",
       ],
       ["kitchen-wolf", [["grey-wolf", "Wolf", false]], undefined],
       ["crypt-spider", [["giant-spider", "Giant Spider", false]], undefined],
-      ["vault-ghoul", [["ghoul", "Ghoul", true]], undefined],
+      ["vault-ghoul", [["ghoul", "Ghoul", true]], "castellan-freed"],
       [
         "ossuary-rival",
         [["mags-corrow", "Bandit", false]],
+        // A reaction-eligible encounter may keep its move (#601).
         { roomId: "shaft-bottom", when: "delve-roused" },
       ],
       ["dead-delver", [["dead-delver", "Zombie", false]], undefined],
     ],
   );
+  assert.equal(fight("vault-ghoul").opponents[0].name, "Castellan");
+  assert.deepEqual(fight("vault-ghoul").sets, { won: "castellan-silent" });
   assert.equal(delve.alarm.flag, "delve-roused");
   assert.deepEqual(delve.alarm.fights, [{ region: "crypts", round: 4 }]);
   // Nothing closes: the alarm only moves Mags, so no exit is cut off.
@@ -239,18 +357,6 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
     { type: "open", passage: "well-rope" },
     { type: "set", flag: "goblin-freed" },
   ]);
-  assert.deepEqual(
-    room("dry-well").creatures[0].topics.map(({ id, offeredWhile }) => [
-      id,
-      offeredWhile,
-    ]),
-    [
-      ["the-vault", undefined],
-      ["the-stair", undefined],
-      ["the-woman", "goblin-freed"],
-      ["the-tomb", "goblin-freed"],
-    ],
-  );
   assert.equal(passage("dry-well", "shrine").trap.id, "loose-step");
   assert.equal(passage("gate-hall", "storeroom").door.state, "stuck");
   const vault = passage("shaft-bottom", "vault").door;
@@ -265,7 +371,59 @@ test("two ways lead down, the shrine stair past the zombie and the goblin's well
   );
 });
 
-test("the sarcophagus opens three ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe", () => {
+// #601: who you take up with. The goblin talks until you come to terms
+// with Mags; Mags talks once you have, and until the goblin is freed.
+test("the goblin and Mags each tell half the story, and each falls silent once the other is helped", () => {
+  assert.deepEqual(topicsOf("dry-well"), [
+    ["the-vault", undefined, "mags-dealt"],
+    ["the-stair", undefined, "mags-dealt"],
+    ["the-woman", "goblin-freed", "mags-dealt"],
+    ["the-tomb", "goblin-freed", "mags-dealt"],
+    ["the-bell", "goblin-freed", "mags-dealt"],
+  ]);
+  assert.deepEqual(topicsOf("ossuary"), [
+    ["the-badge", "mags-dealt", "goblin-freed"],
+    ["where-badges-are", "mags-dealt", "goblin-freed"],
+    ["the-goblin", "mags-dealt", "goblin-freed"],
+    ["the-voice", "mags-dealt", "goblin-freed"],
+  ]);
+  // Mags reacts: every band can end in a fight, and each offers terms.
+  const { reaction, sets } = fight("ossuary-rival");
+  assert.deepEqual(sets, { peaceful: "mags-dealt" });
+  assert.equal(reaction.peacefulXp, 25);
+  assert.deepEqual(reaction.toll.coins, { gp: 2 });
+  assert.deepEqual(
+    reaction.parley.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["persuasion", 12],
+      ["deception", 13],
+      ["intimidation", 13],
+    ],
+  );
+  assert.deepEqual(
+    Object.entries(reaction.bands).map(([band, { options }]) => [
+      band,
+      options,
+    ]),
+    [
+      ["unfriendly", ["attack", "parley", "toll"]],
+      ["uncertain", ["attack", "parley", "toll"]],
+      ["indifferent", ["let-pass", "parley", "attack"]],
+      ["friendly", ["let-pass", "attack"]],
+    ],
+  );
+  // Hedda has the village's story, and bids against paying the dead.
+  assert.deepEqual(topicsOf("porters-lodge"), [
+    ["the-keep", undefined, undefined],
+    ["the-way-down", undefined, undefined],
+    ["the-garrison", undefined, undefined],
+    ["what-she-buys", undefined, undefined],
+    ["the-hoard", undefined, undefined],
+    ["what-walked-out", "castellan-freed", undefined],
+  ]);
+});
+
+test("the sarcophagus opens three ways, the goblin's directions help, and failing by 5 is noisy; the coffers fall on a foe, and the garrison's oath holds one fast", () => {
   const { check } = feature("lords-tomb", "sarcophagus-lid");
   assert.deepEqual(
     check.approaches.map(({ skill, dc, advantage }) => [
@@ -291,6 +449,11 @@ test("the sarcophagus opens three ways, the goblin's directions help, and failin
       band,
     );
   }
+  // The relief order is words, read once the lid is off (#601).
+  assert.match(
+    feature("lords-tomb", "sarcophagus-lid").discovery,
+    /read this at the muster bell: the watch is relieved\. Pay each man/u,
+  );
   const { fightAction } = feature("vault", "coffer-stack");
   assert.equal(fightAction.once, "adventure");
   assert.deepEqual(
@@ -303,15 +466,39 @@ test("the sarcophagus opens three ways, the goblin's directions help, and failin
       ["strength", 13],
     ],
   );
-  // Nothing removes the ghoul, so nothing it guards is ever lost.
-  assert.ok(
-    Object.values(fightAction.bands).every(({ effects = [] }) =>
-      effects.every(({ type }) => type !== "remove"),
-    ),
+  // #601, the owner's choice on #599: mind and voice against the Castellan.
+  const oath = feature("vault", "iron-chest").fightAction;
+  assert.equal(oath.once, "fight");
+  assert.deepEqual(
+    oath.check.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["religion", 13],
+      ["history", 13],
+      ["intimidation", 13],
+    ],
   );
+  assert.deepEqual(
+    Object.entries(oath.bands).map(([band, { effects }]) => [band, effects]),
+    [
+      ["failure", undefined],
+      ["success", [{ type: "condition", condition: "paralysed", turns: 2 }]],
+      [
+        "success-by-5",
+        [{ type: "condition", condition: "paralysed", turns: 3 }],
+      ],
+    ],
+  );
+  // Nothing removes the Castellan, so the roll he carries is never lost.
+  for (const action of [fightAction, oath]) {
+    assert.ok(
+      Object.values(action.bands).every(({ effects = [] }) =>
+        effects.every(({ type }) => type !== "remove"),
+      ),
+    );
+  }
 });
 
-test("its treasure is 98% of the long level-2 budget, with two potions and a scroll, and nothing to carry out lies unfought", () => {
+test("its treasure is 81% of the long level-2 budget, with two potions and a scroll, and nothing to carry out lies unfought without a badge", () => {
   const items = delve.rooms.flatMap(({ items: placed }) => placed);
   assert.deepEqual(
     items
@@ -337,8 +524,10 @@ test("its treasure is 98% of the long level-2 budget, with two potions and a scr
   assert.ok(items.every(({ hiddenIn }) => hiddenIn !== undefined));
   assert.equal(findableValue(delve), 16230);
   assert.equal(treasureBudget(2, true), 20000);
-  // The rooms reachable from the gate without entering a fight hold no
-  // treasure or coin, so a cautious run can't take loot and leave unfought.
+  // The rooms reachable from the gate without entering a fight or forcing
+  // a door hold no treasure or coin, so a cautious run can't take loot and
+  // leave unfought. A badge from the storeroom, behind its stuck door,
+  // stands the Guard Post and the Barracks aside (#601).
   const fightless = new Set();
   const frontier = [delve.startRoomId];
   while (frontier.length > 0) {
@@ -432,6 +621,7 @@ const TO_THE_WELL = [
   ["use", "well-head", "coil-of-rope"],
   ["talk", "the-woman"],
   ["talk", "the-tomb"],
+  ["talk", "the-bell"],
   ["move", "well-bottom"],
 ];
 
@@ -447,6 +637,8 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
       ["examine", "drowned-delver"],
       ["take", "delvers-savings"],
       ["move", "ossuary"],
+      // Mags reacts (#601); a seed where she is hostile is passed over.
+      ["react", "attack"],
       ["examine", "mags-satchel"],
       ["take", "satchel-gold"],
       ["move", "shaft-bottom"],
@@ -464,7 +656,7 @@ test("down the old well with the porter's rope: the goblin goes free and talks, 
   assert.deepEqual(xpOf(runtime, state), [
     ["Defeated Zombie", 50],
     ["Defeated Mags Corrow", 25],
-    ["Out with the loot", 600],
+    ["Out with the garrison's pay", 600],
   ]);
 });
 
@@ -476,6 +668,7 @@ test("with the goblin's directions, the sarcophagus gives up the death mask and 
       ...TO_THE_WELL,
       ["move", "flooded-cistern"],
       ["move", "ossuary"],
+      ["react", "attack"],
       ["move", "lords-tomb"],
       ["examine", "sarcophagus-lid", "investigation"],
       ["take", "death-mask"],
@@ -485,6 +678,431 @@ test("with the goblin's directions, the sarcophagus gives up the death mask and 
       status === "playing" && possessions.purse === 700,
   );
   assert.ok(state.inventory.includes("death-mask"));
+});
+
+// #601: the posts.
+test("a garrison badge stands the posts aside: the Guard Post and the Barracks are walked through unfought, for no XP", () => {
+  const badges = delve.rooms.flatMap(({ items }) =>
+    items.filter(({ sets }) => sets === "posts-stand-aside"),
+  );
+  assert.deepEqual(
+    badges.map(({ id, name, kind, hiddenIn }) => [id, name, kind, hiddenIn]),
+    [
+      ["garrison-badge", "Garrison Badge", "key", "old-barrel"],
+      ["drowned-badge", "Garrison Badge", "key", "black-water"],
+    ],
+  );
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ["move", "gate-hall"],
+      ["force", "swollen-door"],
+      ["move", "storeroom"],
+      ["examine", "old-barrel"],
+      ["take", "garrison-badge"],
+      ["move", "gate-hall"],
+      ["move", "barracks"],
+      ["examine", "footlocker"],
+      ["take", "soldiers-pay"],
+      ["move", "gate-hall"],
+      ["move", "guard-post"],
+      ["examine", "overturned-table"],
+      ["take", "guard-purse"],
+      ["move", "gate-hall"],
+      ["move", "broken-gate"],
+      ["leave", "broken-gate"],
+    ],
+    ({ status }) => status === "escaped",
+  );
+  assert.ok(state.flags.includes("posts-stand-aside"));
+  assert.deepEqual(state.clearedEncounterIds, []);
+  assert.equal(state.possessions.purse, 250 + 180);
+  // Withdrawn posts pay nothing.
+  assert.deepEqual(xpOf(runtime, state), [
+    ["Out with the garrison's pay", 600],
+  ]);
+});
+
+test("the second badge lies under the cistern's black water: a dive or a sharp eye brings it up, and a bad failure costs cold damage", () => {
+  const { check } = feature("flooded-cistern", "black-water");
+  assert.deepEqual(
+    check.approaches.map(({ skill, dc }) => [skill, dc]),
+    [
+      ["athletics", 12],
+      ["perception", 13],
+      ["investigation", 13],
+    ],
+  );
+  assert.deepEqual(check.bands["failure-by-5"].effects, [
+    {
+      type: "damage",
+      dice: 1,
+      sides: 6,
+      modifier: 0,
+      damageType: "cold",
+      defeatEndingId: "lost-in-the-delve",
+    },
+  ]);
+  assert.equal(check.bands.failure.effects, undefined);
+  assert.deepEqual(check.bands.success.effects, [
+    { type: "discovery", feature: "black-water" },
+    { type: "item", item: "drowned-badge" },
+  ]);
+  const { state } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_WELL,
+      ["move", "flooded-cistern"],
+      ["examine", "black-water", "athletics"],
+      ["take", "drowned-badge"],
+    ],
+    ({ status }) => status === "playing",
+  );
+  assert.ok(state.flags.includes("posts-stand-aside"));
+});
+
+// #601: who you take up with.
+test("coming to terms with Mags opens her mouth and shuts the goblin's", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ["move", "gate-hall"],
+      ["move", "guard-post"],
+      ["move", "dry-well"],
+      ["talk", "the-vault"],
+      ["move", "shrine"],
+      ["move", "shaft-bottom"],
+      ["move", "ossuary"],
+      ["react", "let-pass"],
+      ["talk", "the-badge"],
+      ["talk", "where-badges-are"],
+      ["move", "shaft-bottom"],
+      ["move", "shrine"],
+      ["move", "dry-well"],
+    ],
+    ({ status, roomId }) => status === "playing" && roomId === "dry-well",
+    { limit: 400 },
+  );
+  assert.ok(state.flags.includes("mags-dealt"));
+  assert.deepEqual(state.peacefulEncounterIds, ["ossuary-rival"]);
+  assert.ok(state.talkedTopicIds.includes("where-badges-are"));
+  // The goblin tells her new partner nothing, even what he would have
+  // told anyone before.
+  for (const topicId of ["the-vault", "the-stair"]) {
+    assert.ok(refused(runtime, state, { type: "talk", topicId }), topicId);
+  }
+});
+
+test("fetching the goblin up shuts Mags's mouth, even on terms", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_WELL,
+      ["move", "flooded-cistern"],
+      ["move", "ossuary"],
+      ["react", "let-pass"],
+    ],
+    ({ status }) => status === "playing",
+    { limit: 400 },
+  );
+  assert.ok(state.flags.includes("goblin-freed"));
+  assert.ok(state.flags.includes("mags-dealt"));
+  for (const [topicId] of topicsOf("ossuary")) {
+    assert.ok(refused(runtime, state, { type: "talk", topicId }), topicId);
+  }
+});
+
+// #601: the Castellan's deal.
+const TO_THE_GRILLE = [
+  ["move", "gate-hall"],
+  ["move", "guard-post"],
+  ["move", "dry-well"],
+  ["move", "shrine"],
+  ["examine", "altar"],
+  ["take", "bronze-key"],
+  ["move", "shaft-bottom"],
+  ["talk", "his-offer"],
+];
+
+test("the Castellan's deal: the chaplain's key through the grille lets him out with the Pay Roll, and the chest is left unguarded", () => {
+  assert.deepEqual(topicsOf("shaft-bottom"), [
+    ["who-he-is", undefined, "castellan-silent"],
+    ["the-dead", undefined, "castellan-silent"],
+    ["the-relief", undefined, "castellan-silent"],
+    ["his-offer", undefined, "castellan-silent"],
+  ]);
+  const grille = feature("shaft-bottom", "door-grille");
+  assert.deepEqual(
+    grille.uses.map(({ item, consumes, coins, effects }) => [
+      item,
+      consumes,
+      coins,
+      effects,
+    ]),
+    [
+      [
+        "bronze-key",
+        undefined,
+        undefined,
+        [
+          { type: "set", flag: "castellan-freed" },
+          { type: "set", flag: "castellan-silent" },
+        ],
+      ],
+    ],
+  );
+  assert.equal(grille.changed.when, "castellan-silent");
+  // The gate and Hedda show that something walked out.
+  assert.equal(
+    feature("broken-gate", "chalk-marks").changed.when,
+    "castellan-freed",
+  );
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_GRILLE,
+      ["use", "door-grille", "bronze-key"],
+      ["unlock", "vault-door"],
+      ["move", "vault"],
+      ["examine", "iron-chest"],
+      ["take", "coin-chest"],
+      ["take", "vault-garnet"],
+    ],
+    ({ status, roomId }) => status === "playing" && roomId === "vault",
+  );
+  assert.ok(state.flags.includes("castellan-freed"));
+  // The key is kept, and opens the door on an empty vault.
+  assert.ok(state.inventory.includes("bronze-key"));
+  assert.equal(state.encounter, undefined);
+  assert.ok(!state.clearedEncounterIds.includes("vault-ghoul"));
+  assert.equal(state.possessions.purse, 4500);
+  // He took the roll with him: relief is closed.
+  assert.ok(refused(runtime, state, { type: "take", itemId: "pay-roll" }));
+  assert.ok(refused(runtime, state, { type: "examine", targetId: "ghoul" }));
+  const left = runtime.handleAction(
+    runtime.handleAction(state, {
+      type: "move",
+      destinationId: "shaft-bottom",
+    }).state,
+    { type: "leave", roomId: "shaft-bottom" },
+  ).state;
+  assert.equal(left.endingId, "out-with-the-loot");
+  // He no longer answers at the grille.
+  assert.ok(
+    refused(
+      runtime,
+      runtime.handleAction(state, {
+        type: "move",
+        destinationId: "shaft-bottom",
+      }).state,
+      { type: "talk", topicId: "who-he-is" },
+    ),
+  );
+});
+
+// #601: the muster. The owner's price (#601): half the vault's coin, so
+// the vault alone pays it at every Treasure found setting.
+const TO_THE_BELL = [
+  ...TO_THE_WELL,
+  ["move", "flooded-cistern"],
+  ["move", "ossuary"],
+  ["react", "attack"],
+  ["move", "lords-tomb"],
+  ["examine", "sarcophagus-lid", "investigation"],
+  ["move", "ossuary"],
+  ["move", "shaft-bottom"],
+  ["talk", "the-relief"],
+  ["move", "shrine"],
+  ["examine", "altar"],
+  ["take", "bronze-key"],
+  ["move", "shaft-bottom"],
+  ["unlock", "vault-door"],
+  ["move", "vault"],
+  // Refusing the deal is a fight; the oath opens it.
+  ["use-feature", "iron-chest", "ghoul", "religion"],
+  ["examine", "ghoul"],
+  ["take", "pay-roll"],
+];
+const BACK_TO_THE_BELL = [
+  ["move", "shaft-bottom"],
+  ["move", "ossuary"],
+  ["move", "flooded-cistern"],
+  ["move", "well-bottom"],
+  ["move", "dry-well"],
+  ["move", "guard-post"],
+  ["move", "gate-hall"],
+];
+
+test("the muster bell rings at a look and rouses the delve; with the Pay Roll and half the vault's coin it stands the watch down", () => {
+  const bell = feature("gate-hall", "muster-bell");
+  assert.deepEqual(noisyBands(bell.check), [
+    ["failure", true],
+    ["success", true],
+  ]);
+  assert.deepEqual(
+    bell.uses.map(({ item, consumes, coins, effects }) => [
+      item,
+      consumes,
+      coins,
+      effects,
+    ]),
+    [
+      [
+        "pay-roll",
+        true,
+        { gp: 15, sp: 75 },
+        [
+          { type: "set", flag: "watch-relieved" },
+          { type: "set", flag: "posts-stand-aside" },
+        ],
+      ],
+    ],
+  );
+  // 15 gp and 75 sp are 2,250 cp: half of the chest's 30 gp and 150 sp.
+  const chest = room("vault").items.find(({ id }) => id === "coin-chest");
+  assert.deepEqual(chest.coins, { gp: 30, sp: 150 });
+  // The Castellan carries the roll.
+  assert.deepEqual(
+    room("vault")
+      .items.filter(({ hiddenIn }) => hiddenIn === "ghoul")
+      .map(({ id, kind }) => [id, kind]),
+    [["pay-roll", "key"]],
+  );
+  for (const band of ["failure", "success"]) {
+    const { state } = firstJourney(
+      delve,
+      level2,
+      [
+        ["move", "gate-hall"],
+        ["examine", "muster-bell"],
+      ],
+      ({ checks }) => checks.at(-1).band.startsWith(band),
+    );
+    assert.ok(state.flags.includes("delve-roused"), band);
+  }
+});
+
+test("the reliever: the goblin, the lord's order, the oath and the fight, then the muster pays the dead and the gate pays 600 XP", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    [
+      ...TO_THE_BELL,
+      ["examine", "iron-chest"],
+      ["take", "coin-chest"],
+      ...BACK_TO_THE_BELL,
+      ["use", "muster-bell", "pay-roll"],
+      ["move", "broken-gate"],
+      ["leave", "broken-gate"],
+    ],
+    ({ status, fightActions = [] }) =>
+      status === "victory" &&
+      fightActions.some(({ band }) => band.startsWith("success")),
+    { limit: 400 },
+  );
+  assert.equal(state.endingId, "the-watch-stands-down");
+  assert.ok(state.flags.includes("watch-relieved"));
+  assert.ok(state.flags.includes("posts-stand-aside"));
+  assert.deepEqual(
+    state.fightActions.map(({ featureId }) => featureId),
+    ["iron-chest"],
+  );
+  // The roll is used up, and half the chest went to the dead.
+  assert.ok(!state.inventory.includes("pay-roll"));
+  assert.equal(state.possessions.purse, 4500 - 2250);
+  assert.deepEqual(xpOf(runtime, state), [
+    ["Defeated Zombie", 50],
+    ["Defeated Mags Corrow", 25],
+    ["Defeated Castellan", 200],
+    ["The watch stands down", 600],
+  ]);
+});
+
+test("the muster is refused with too little coin, and the Pay Roll is kept", () => {
+  const { state, runtime } = firstJourney(
+    delve,
+    level2,
+    // The chest is left in the vault.
+    [...TO_THE_BELL, ...BACK_TO_THE_BELL],
+    ({ status, roomId }) => status === "playing" && roomId === "gate-hall",
+    { limit: 400 },
+  );
+  assert.equal(state.possessions.purse, 0);
+  const result = runtime.handleAction(state, {
+    type: "use-on",
+    featureId: "muster-bell",
+    itemId: "pay-roll",
+  });
+  assert.match(
+    result.rejection.reason,
+    /^Using the Pay Roll on the Muster Bell costs 22 gp 5 sp, /u,
+  );
+  assert.ok(result.state.inventory.includes("pay-roll"));
+  assert.ok(!result.state.flags.includes("watch-relieved"));
+});
+
+// #601, the clicker test: the gate's runs examine everything, take
+// everything, use every item a feature accepts and pay for any use they
+// can afford (src/balance-5e.ts), so the gate already is a player who
+// clicks every button. The best ending must need a choice it never makes:
+// refusing the Castellan's deal.
+test("the clicker never relieves the watch: a gate run that takes the Castellan's deal never ends in The watch stands down", () => {
+  const SEEDS = 50;
+  const DEAL = "door-grille:bronze-key";
+  const VICTORY = "the-watch-stands-down";
+  const judged = [
+    {},
+    ...delve.routes.map((route) => ({ route })),
+    ...regionSweeps(delve).map((sweep) => ({ sweep })),
+  ].map((options) => [GATE_STYLE, options]);
+  let dealt = 0;
+  for (const classId of GATE_CLASSES) {
+    const [{ dice }] = percentileCharacters({
+      percentiles: [WEAKEST_PERCENTILE],
+      classId,
+    });
+    const sheet = characterAtLevel(
+      dice,
+      2,
+      undefined,
+      false,
+      undefined,
+      classId,
+    );
+    // The judged cautious runs, and the direct style, which enters every
+    // room.
+    for (const [style, options] of [...judged, [XP_STYLE, {}]]) {
+      for (let seed = 0; seed < SEEDS; seed++) {
+        const run = playAdventure(
+          createFifthRuntime(delve, sheet),
+          style,
+          seed,
+          options,
+        );
+        const label = `${classId} ${style} ${options.route?.id ?? options.sweep?.region ?? "fewest fights"} seed ${seed}`;
+        if (run.uses.includes(DEAL)) {
+          dealt += 1;
+          assert.notEqual(run.endingId, VICTORY, label);
+          assert.ok(!run.uses.includes("muster-bell:pay-roll"), label);
+        }
+        if (style === GATE_STYLE) {
+          // No judged run reaches the best ending at all.
+          assert.notEqual(run.endingId, VICTORY, label);
+          // And one that walks a route out alive has always dealt: it
+          // reaches the Shaft Bottom holding the key.
+          if (options.route !== undefined && run.outcome !== "defeat") {
+            assert.ok(run.uses.includes(DEAL), label);
+          }
+        }
+      }
+    }
+  }
+  assert.ok(dealt > 0);
 });
 
 function scripted(responses) {
@@ -594,11 +1212,17 @@ const PUSH_DEEPER = [
 
 /**
  * The first seed from 0 on whose journey ends with `endingId` and, if
- * given, whose last state `wanted` accepts.
+ * given, whose last state `wanted` accepts. A seed on which the engine
+ * refuses a step (Mags hostile, so no reaction to answer) is passed over.
  */
 async function seedFor(sheet, steps, endingId, wanted = () => true) {
   for (let seed = 0; seed < 200; seed++) {
-    const { state } = await journey(sheet, seed, steps);
+    let state;
+    try {
+      ({ state } = await journey(sheet, seed, steps));
+    } catch {
+      continue;
+    }
     if (state.endingId === endingId && wanted(state)) {
       return seed;
     }
@@ -635,15 +1259,17 @@ test("scripted DM: pushing on to the vault and climbing the shaft escapes with a
 
 // #442: the vault's fight going on past round 4 rouses the crypts, and Mags
 // runs from the ossuary to the shaft bottom, where Ada meets her on the way
-// out.
+// out. She reacts (#601), and Ada attacks.
 test("scripted DM: a long fight in the vault rouses the crypts, and Mags waits at the shaft", async () => {
-  const seed = await seedFor(
-    STRONG,
-    PUSH_DEEPER,
-    "out-with-the-loot",
-    ({ flags }) => flags.includes("delve-roused"),
+  const steps = [
+    ...PUSH_DEEPER.slice(0, -1),
+    ["react", { option: "attack" }],
+    PUSH_DEEPER.at(-1),
+  ];
+  const seed = await seedFor(STRONG, steps, "out-with-the-loot", ({ flags }) =>
+    flags.includes("delve-roused"),
   );
-  const { state, runtime } = await journey(STRONG, seed, PUSH_DEEPER);
+  const { state, runtime } = await journey(STRONG, seed, steps);
   assert.deepEqual(state.clearedEncounterIds, [
     "guard-zombie",
     "vault-ghoul",

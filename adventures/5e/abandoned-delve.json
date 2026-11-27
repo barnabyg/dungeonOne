@@ -3,7 +3,7 @@
   "formatVersion": 48,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
-  "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
+  "objective": "Bring up what you can of the old lord's hoard from under the ruined keep, and get out alive.",
   "recommendedLevels": { "min": 2, "max": 2 },
   "difficulty": "medium",
   "long": true,
@@ -11,10 +11,18 @@
     { "id": "cellars", "name": "The Keep Cellars", "backdrop": "cellar" },
     { "id": "crypts", "name": "The Crypts", "backdrop": "crypt" }
   ],
-  "flags": ["goblin-freed", "delve-roused"],
+  "flags": [
+    "goblin-freed",
+    "delve-roused",
+    "posts-stand-aside",
+    "mags-dealt",
+    "castellan-freed",
+    "castellan-silent",
+    "watch-relieved"
+  ],
   "alarm": {
     "flag": "delve-roused",
-    "text": "Your noise carries through the crypts. Somewhere ahead, boots crunch over bone toward the shaft.",
+    "text": "The noise carries through the cellars and the crypts. Somewhere in the dark, boots crunch over bone toward the shaft.",
     "fights": [{ "region": "crypts", "round": 4 }]
   },
   "routes": [
@@ -51,8 +59,12 @@
         {
           "id": "chalk-marks",
           "name": "Chalk Marks",
-          "description": "Faded chalk marks left by an earlier treasure-hunter, and a fresher line beneath them.",
-          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\" Under them, in new chalk: \"M.C. went down the shaft — mine.\""
+          "description": "Chalk marks in three hands, the oldest almost rubbed away and the newest still white.",
+          "discovery": "The oldest hand, nearly gone: \"They don't follow. Stood at their posts and watched me run.\" Under it, a treasure-hunter's neat list: \"Dead man in the guard post. Loose step on the shrine stair. Key on the altar opens the vault. Webs: keep out.\" And in new chalk: \"M.C. went down the shaft — mine.\"",
+          "changed": {
+            "when": "castellan-freed",
+            "description": "Chalk marks in three hands. Across the stone beneath them a line of narrow grey footprints climbs the stair and goes out into the daylight."
+          }
         }
       ],
       "items": []
@@ -61,17 +73,62 @@
       "id": "gate-hall",
       "name": "Gate Hall",
       "at": [2, 1],
-      "description": "A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
+      "description": "A long hall of fallen banners. A bronze muster bell hangs from a beam at its middle, and a board of orders is nailed up beside the barracks arch, where bones clatter. A swollen door stands shut in one wall, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
       "region": "cellars",
       "backdrop": "hall",
-      "features": [],
+      "features": [
+        {
+          "id": "muster-bell",
+          "name": "Muster Bell",
+          "description": "A bronze bell as broad as a man's chest, hung from a beam on a strap gone thin with age. Words are cast into its rim. The lightest touch would set it swinging.",
+          "discovery": "Cast into the rim: \"Muster. Pay. Relief.\" The bell's note rolls down the stair and through the cellars, and for a moment every dead thing under the keep is listening for the roll to be called.",
+          "check": {
+            "skill": "sleight-of-hand",
+            "dc": 12,
+            "bands": {
+              "failure": {
+                "text": "The bell swings at your touch and tolls, slow and loud.",
+                "noisy": true,
+                "effects": [{ "type": "discovery", "feature": "muster-bell" }]
+              },
+              "success": {
+                "text": "You steady the clapper to read the rim, and the old strap slips through your fingers. The bell speaks once, deep and clear.",
+                "noisy": true,
+                "effects": [{ "type": "discovery", "feature": "muster-bell" }]
+              }
+            }
+          },
+          "changed": {
+            "when": "watch-relieved",
+            "description": "The muster bell hangs still. Along the wall beneath it rusted mail and old bones lie in neat rows, each with a pay packet folded in what was its hand."
+          },
+          "uses": [
+            {
+              "item": "pay-roll",
+              "text": "You ring the muster and read the roll aloud, name by name. The dead come to the bell from every dark corner of the keep, more of them than you ever saw at their posts, and fall in by ranks. You count each man's pay into his hand and tell them, in the old lord's name, that the watch is relieved. One by one they salute the bell, lie down along the wall, and are still.",
+              "consumes": true,
+              "coins": { "gp": 15, "sp": 75 },
+              "effects": [
+                { "type": "set", "flag": "watch-relieved" },
+                { "type": "set", "flag": "posts-stand-aside" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "standing-orders",
+          "name": "Standing Orders",
+          "description": "A board of orders nailed up beside the barracks arch, the ink gone brown.",
+          "discovery": "\"Standing orders of the garrison. The watch holds its posts until relieved. No man leaves his post. No one passes a post who does not wear the garrison's badge. The watch is relieved when the lord's order is read at the muster bell and each man has his pay in his hand.\" Nothing has been added below it."
+        }
+      ],
       "items": []
     },
     {
       "id": "guard-post",
       "name": "Guard Post",
       "at": [3, 2],
-      "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post. A narrow way leads on to an old well.",
+      "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard stands at its post beside the inner way, facing the hall. A narrow way leads on to an old well.",
       "region": "cellars",
       "encounterId": "guard-zombie",
       "features": [
@@ -85,7 +142,7 @@
           "id": "overturned-table",
           "name": "Overturned Table",
           "description": "A heavy table knocked onto its side, dice scattered beneath it.",
-          "discovery": "Among the scattered dice lies a leather purse, dropped by the guard when it fell to its last game."
+          "discovery": "Among the scattered dice lies a leather purse, and under it a sheaf of markers in three hands, each promising to settle \"on pay day\". None is crossed off."
         }
       ],
       "items": [
@@ -99,7 +156,7 @@
         {
           "id": "guard-purse",
           "name": "Guard's Purse",
-          "description": "A leather purse of old silver coins, the guard's stake.",
+          "description": "A leather purse of old silver coins, the guard's stake in a game played on credit.",
           "kind": "coin",
           "coins": { "sp": 18 },
           "hiddenIn": "overturned-table"
@@ -110,7 +167,7 @@
       "id": "barracks",
       "name": "Barracks",
       "at": [3, 1],
-      "description": "Rows of collapsed bunks. Two skeletons in rusted mail stand guard here still, beside a footlocker at the end of the room.",
+      "description": "Rows of collapsed bunks. Two skeletons in rusted mail stand guard at the far end, beside a footlocker.",
       "region": "cellars",
       "avoidable": true,
       "encounterId": "barracks-skeletons",
@@ -119,14 +176,14 @@
           "id": "footlocker",
           "name": "Footlocker",
           "description": "An iron-bound footlocker, its lid rusted half open.",
-          "discovery": "Wrapped in a mouldy cloak is a soldier's last pay: a little silver."
+          "discovery": "Wrapped in a mouldy cloak are a little silver and a tally stick notched for each month's pay owed: forty-one notches, the last cut shallow by a weak hand."
         }
       ],
       "items": [
         {
           "id": "soldiers-pay",
-          "name": "Soldier's Pay",
-          "description": "A little silver, wrapped in a mouldy cloak.",
+          "name": "Soldier's Silver",
+          "description": "A little silver, wrapped in a mouldy cloak with a tally of pay owed.",
           "kind": "coin",
           "coins": { "sp": 25 },
           "hiddenIn": "footlocker"
@@ -137,14 +194,14 @@
       "id": "storeroom",
       "name": "Storeroom",
       "at": [1, 1],
-      "description": "A dry storeroom of split barrels and empty shelves. One old barrel is still sealed.",
+      "description": "A dry storeroom of split barrels and empty shelves. One old barrel is still sealed, the garrison's tower branded on its lid.",
       "region": "cellars",
       "features": [
         {
           "id": "old-barrel",
           "name": "Old Barrel",
-          "description": "One barrel is still sealed.",
-          "discovery": "Packed in straw inside the barrel are a stoppered vial of red liquid, an oiled shortsword and a shield."
+          "description": "One barrel is still sealed, a tower branded on its lid.",
+          "discovery": "Packed in straw inside the barrel are a stoppered vial of red liquid, an oiled shortsword and a shield: a recruit's kit, never issued. Pinned to the oilcloth is a tin badge stamped with a tower."
         }
       ],
       "items": [
@@ -170,6 +227,14 @@
           "kind": "gear",
           "gear": "shield",
           "hiddenIn": "old-barrel"
+        },
+        {
+          "id": "garrison-badge",
+          "name": "Garrison Badge",
+          "description": "A tin badge stamped with a tower, bright from its oilcloth. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "kind": "key",
+          "hiddenIn": "old-barrel",
+          "sets": "posts-stand-aside"
         }
       ]
     },
@@ -177,7 +242,7 @@
       "id": "dry-well",
       "name": "Dry Well",
       "at": [3, 3],
-      "description": "A round chamber around a dry well under a rotted windlass, where a scrawny goblin chatters at anyone who comes near. A stair leads down to a shrine, and a webbed passage to a crypt.",
+      "description": "A round chamber around a dry well under an oak windlass, where a scrawny goblin chatters at anyone who comes near. A stair leads down to a shrine, and a webbed passage to a crypt.",
       "region": "cellars",
       "features": [
         {
@@ -203,7 +268,8 @@
         {
           "id": "windlass",
           "name": "Windlass",
-          "description": "An oak windlass over the well. Its rope rotted away long ago, but the axle still turns."
+          "description": "An oak windlass over the well. Its axle still turns.",
+          "discovery": "A hand's length of rope is still knotted to the axle. Its end is clean and pale: cut with a blade, and not a week ago."
         }
       ],
       "items": [],
@@ -216,26 +282,37 @@
             {
               "id": "the-vault",
               "name": "the vault",
-              "reply": "\"The dead never left. Bones in the barracks, a big spider in the crypt, and a dead thing in the vault past the shaft. The vault key? On the altar in the shrine.\""
+              "reply": "\"The dead never left. They stand where they were put: one in the guard post, bones in the barracks. They don't chase. There's a big spider in the crypt, and a thing in the vault past the shaft that talks through the door. The vault key? On the altar in the shrine. The dead can't go in there.\"",
+              "offeredUntil": "mags-dealt"
             },
             {
               "id": "the-stair",
               "name": "the stair",
               "check": { "skill": "persuasion", "dc": 12 },
               "reply": "\"Fine, fine. There's a loose step on the shrine stair. Step on it and the stair drops you. Look before you walk.\"",
-              "failure": "\"Get me out first, then I'll tell you things.\" The goblin sulks."
+              "failure": "\"Get me out first, then I'll tell you things.\" The goblin sulks.",
+              "offeredUntil": "mags-dealt"
             },
             {
               "id": "the-woman",
               "name": "the woman",
               "offeredWhile": "goblin-freed",
-              "reply": "\"One came down the shaft rope yesterday. Mags, she called herself. She's in the bone room with a hammer, taking teeth. Loud, and she'll run if she hears you.\""
+              "reply": "\"Mags. I showed her the way in for a fee, same as I showed the last one. She said she'd follow me down the well. I was halfway down when she cut the rope, and she had my fee back out of my pouch before she did it. She went round by the shaft. She's in the bone room now with a hammer, taking teeth.\"",
+              "offeredUntil": "mags-dealt"
             },
             {
               "id": "the-tomb",
               "name": "the tomb",
               "offeredWhile": "goblin-freed",
-              "reply": "\"The old lord's box opens if you press the carved hand on its side. Don't tell the dead I said.\""
+              "reply": "\"The old lord's box opens if you press the carved hand on its side. Don't tell the dead I said.\"",
+              "offeredUntil": "mags-dealt"
+            },
+            {
+              "id": "the-bell",
+              "name": "the bell",
+              "offeredWhile": "goblin-freed",
+              "reply": "\"The big bell in the hall is what they're waiting for. Ring it with nothing in your hand and all you do is wake everybody up. Ring it with their roll to read and their pay to count out, and they line up like it's pay day. Then they lie down. I've heard them practise it, nights, with nobody to call the names.\"",
+              "offeredUntil": "mags-dealt"
             }
           ]
         }
@@ -245,7 +322,7 @@
       "id": "porters-lodge",
       "name": "Porter's Lodge",
       "at": [1, 0],
-      "description": "A narrow lodge beside the gate hall, dry and lit by a stub of candle. Its door has a stout bar on the inside, and a cot stands under a row of pegs.",
+      "description": "A narrow lodge beside the gate hall, dry and lit by a stub of candle. Its door has a stout bar on the inside. A narrow cot with a straw mattress stands under a row of pegs, good enough for a night, and a board of key hooks hangs by the door.",
       "region": "cellars",
       "restSite": true,
       "features": [
@@ -256,14 +333,10 @@
           "discovery": "Under the cloak hangs a coil of good hemp rope."
         },
         {
-          "id": "porters-cot",
-          "name": "Porter's Cot",
-          "description": "A narrow cot with a straw mattress. It would do for a night."
-        },
-        {
           "id": "key-board",
           "name": "Key Board",
-          "description": "A board of iron hooks, every one empty. A label under the largest reads \"vault\"."
+          "description": "A board of iron hooks, each with a painted label. Every one is empty.",
+          "discovery": "The largest hook is labelled \"Vault: held by the castellan\". Pinned under the board is the garrison's roster: forty names, with a column headed \"Paid\" and another headed \"Relieved\". Both are blank from top to bottom. A line at the foot reads: \"Pay to be issued from the vault by the castellan at the relief.\""
         }
       ],
       "items": [
@@ -284,12 +357,33 @@
             {
               "id": "the-keep",
               "name": "the keep",
-              "reply": "\"Nobody's held this keep since the old lord was laid under it, and the dead down there never heard he'd gone. Bring me what you find. I pay fair for stones and trinkets.\""
+              "reply": "\"Nobody's held this keep since the old lord was laid under it, and the dead down there never heard he'd gone. They don't come up and they don't go hunting. They stand where they were posted and kill what walks past. Bring me what you find. I pay fair for stones and trinkets, and I'd pay well for the old lord's silver mask.\""
             },
             {
               "id": "the-way-down",
               "name": "the way down",
               "reply": "\"Most go down the shrine stair, past the dry well. There's a goblin stuck in that well, whining. A rope would fetch him up, and maybe show you where he got in.\""
+            },
+            {
+              "id": "the-garrison",
+              "name": "the garrison",
+              "reply": "\"Forty men, told to hold till they were relieved. The lord died, nobody relieved them, and the story in the village is nobody paid them either. My gran said you could hear them calling the roll at night, years after the last of them must have starved.\""
+            },
+            {
+              "id": "what-she-buys",
+              "name": "what she buys",
+              "reply": "\"Stones, trinkets, plate. And garrison badges, when I can get them: tin, with a tower on. They say the dead let a badge go by. I sold my last to a delver a week back, and he hasn't come up, so maybe they say wrong.\""
+            },
+            {
+              "id": "the-hoard",
+              "name": "the hoard",
+              "reply": "\"Some say that chest is the garrison's back pay and ought to go to them. Go to who? Dead men spend nothing. Coin in a dead hand is coin thrown down a well. Bring it up, and I'll see you get fair weight for every piece.\""
+            },
+            {
+              "id": "what-walked-out",
+              "name": "what walked out",
+              "offeredWhile": "castellan-freed",
+              "reply": "\"Something came up past my door a while since. Thin, grey, in a steward's gown, a roll of parchment under its arm. It wished me good day, very civil, and went out by the gate. I've had the bar down ever since. What did you let out?\""
             }
           ],
           "merchant": {
@@ -303,7 +397,7 @@
       "id": "fallen-kitchen",
       "name": "Fallen Kitchen",
       "at": [2, 2],
-      "description": "Half the kitchen roof has fallen in, and grey daylight shows through the hole. Something has made a den in the rubble by the hearth, and the floor is littered with bones.",
+      "description": "Half the kitchen roof has fallen in, and grey daylight shows through a hole too high to climb to. Something has made a den in the rubble by the hearth, and the floor is littered with bones.",
       "region": "cellars",
       "backdrop": "ruin",
       "encounterId": "kitchen-wolf",
@@ -311,18 +405,14 @@
         {
           "id": "hearth",
           "name": "Hearth",
-          "description": "A wide hearth, cold for years, with a spit still across it."
+          "description": "A wide hearth, cold for years, with a pot still on its hook.",
+          "discovery": "The pot holds a black crust and the buckles of a belt. Boot soles and harness straps lie cut into squares on the hearthstone. At the end, the garrison was boiling leather."
         },
         {
           "id": "bone-heap",
           "name": "Bone Heap",
           "description": "Gnawed bones heaped against the wall, sheep's and deer's and one that might be a man's.",
           "discovery": "Among the bones is a traveller's rotted belt, its purse still full of coin."
-        },
-        {
-          "id": "roof-hole",
-          "name": "Roof Hole",
-          "description": "A hole in the roof, open to the sky. It's too high to climb."
         }
       ],
       "items": [
@@ -349,25 +439,26 @@
           "id": "altar",
           "name": "Altar",
           "description": "A stone altar with two rusted iron candlesticks.",
-          "discovery": "Behind the candlesticks lies a heavy bronze key."
+          "discovery": "Behind the candlesticks lies a heavy bronze key, set square on a folded cloth as if left to be found. The dust around it shows no mark but your own."
         },
         {
           "id": "offering-box",
           "name": "Offering Box",
           "description": "A small oak box at the altar's foot, its lid carved with an open hand.",
-          "discovery": "Inside lies a roll of parchment, sealed with the shrine's open hand."
+          "discovery": "Inside lies a roll of parchment, sealed with the shrine's open hand, and under it a note in a priest's small script: \"The castellan will not read the order, nor open the chest. He has begun to eat the dead. I have turned the key on him and on the men's pay together, and laid it on the altar, where he cannot come. Let whoever takes it up finish what I could not.\""
         },
         {
           "id": "shrine-lamp",
           "name": "Shrine Lamp",
-          "description": "A bronze lamp on a chain. The dead have never come in here, and the air is calm."
+          "description": "A bronze lamp on a chain, still burning low.",
+          "discovery": "Scuffs of bare bone cross the passage outside and stop a pace short of the doorway, again and again. The dead have never come in here, and the air is calm."
         }
       ],
       "items": [
         {
           "id": "bronze-key",
           "name": "Bronze Key",
-          "description": "A heavy bronze key stamped with a lord's crest.",
+          "description": "A heavy bronze key stamped with a lord's crest, left on the altar by the keep's chaplain.",
           "kind": "key",
           "hiddenIn": "altar"
         },
@@ -395,7 +486,7 @@
           "id": "cocoon",
           "name": "Cocoon",
           "description": "A body wrapped in web, hanging from the ceiling.",
-          "discovery": "On the dead treasure-hunter's belt is a purse of coin."
+          "discovery": "On the dead treasure-hunter's belt are a purse of coin and a notebook. Its last page reads: \"Crew: the goblin, who knows the well and the cistern, for a tenth. The Corrow woman, a strong arm, for a quarter. She asks too often what we need the goblin for, once we are in.\""
         }
       ],
       "items": [
@@ -414,7 +505,7 @@
       "name": "Shaft Bottom",
       "at": [3, 5],
       "floor": -1,
-      "description": "The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault, and a passage lined with bones leads away into the dark.",
+      "description": "The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it stands the bronze door of the vault, a barred grille set in it at head height, and a passage lined with bones leads away into the dark.",
       "region": "crypts",
       "exit": true,
       "features": [
@@ -423,16 +514,69 @@
           "name": "Knotted Rope",
           "description": "A knotted rope, tied off somewhere far above.",
           "discovery": "The rope is sound. It would take your weight to the surface."
+        },
+        {
+          "id": "door-grille",
+          "name": "Door Grille",
+          "description": "A barred grille in the vault door, no wider than a hand. The dark behind it smells of old meat, and something on the far side is listening.",
+          "discovery": "Scratched into the bronze under the bars, small and neat, over and over: \"I kept it. I kept it. I kept it.\"",
+          "changed": {
+            "when": "castellan-silent",
+            "description": "A barred grille in the vault door, no wider than a hand. Nothing listens behind it now."
+          },
+          "uses": [
+            {
+              "item": "bronze-key",
+              "text": "You pass the chaplain's key through the bars. A grey hand takes it, and the lock turns from the inside. \"Stand away,\" says the voice, and you stand away. Something thin in the rags of a steward's gown slips out with a roll of parchment under its arm, bows to you, and goes up into the dark toward the keep without a sound. The door has swung shut behind it. The key is left hanging on the grille, and you take it back.",
+              "effects": [
+                { "type": "set", "flag": "castellan-freed" },
+                { "type": "set", "flag": "castellan-silent" }
+              ]
+            }
+          ]
         }
       ],
-      "items": []
+      "items": [],
+      "creatures": [
+        {
+          "id": "voice-at-the-grille",
+          "name": "Voice at the Grille",
+          "description": "Whatever is shut in the vault speaks through the door grille in a dry, courteous voice, as a man speaks who has had no one to talk to for a very long time.",
+          "topics": [
+            {
+              "id": "who-he-is",
+              "name": "who he is",
+              "reply": "\"I am the castellan of this keep. My lord gave the treasury into my hands, and I have kept it, every coin, through more years than you have lived. A priest locked this door on me for my trouble. You may call that gratitude.\"",
+              "offeredUntil": "castellan-silent"
+            },
+            {
+              "id": "the-dead",
+              "name": "the dead",
+              "reply": "\"Deserters. Thieves, to a man. They left their posts the hour my lord died and came clamouring at this door for money. Their pay is forfeit, and they know it. That is why they cannot rest.\" The voice does not say why deserters are still at their posts.",
+              "offeredUntil": "castellan-silent"
+            },
+            {
+              "id": "the-relief",
+              "name": "the relief",
+              "reply": "\"I have it by heart. 'When this order is read at the muster bell, and each man has his pay in his hand by the roll, the watch is relieved.' It was never read. I hold the roll. Without the roll there is no muster, and without the muster nothing in this keep will ever lie down.\" It sounds pleased.",
+              "offeredUntil": "castellan-silent"
+            },
+            {
+              "id": "his-offer",
+              "name": "his offer",
+              "reply": "\"You have the chaplain's key. I can smell the altar on it. Pass it through these bars and stand away from the door. I will go up into the air with my roll and trouble no one, and the chest is yours, all of it, with no fight to win. Open the door yourself instead, and you will have to take it from me.\"",
+              "offeredUntil": "castellan-silent"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "vault",
       "name": "Vault",
       "at": [3, 6],
       "floor": -1,
-      "description": "The lord's vault: a stone room with an iron chest against the far wall and a tall stack of coffers on a shelf above it. Something that was once a man crouches over the chest.",
+      "description": "The lord's vault: a stone room with an iron chest against the far wall and a tall stack of coffers on a shelf above it. Split bones litter the floor, and the lid of the chest is worn bright where something has lain across it for years.",
       "region": "crypts",
       "avoidable": true,
       "encounterId": "vault-ghoul",
@@ -440,8 +584,35 @@
         {
           "id": "iron-chest",
           "name": "Iron Chest",
-          "description": "A great iron chest, its lid broken open.",
-          "discovery": "Old gold and silver coins lie scattered across the bottom of the chest, and a dark red stone has rolled into one corner."
+          "description": "A great iron chest. Lines of small script are engraved across its lid: the garrison's oath.",
+          "discovery": "The chest is full of small leather packets, each tied with a tag bearing a soldier's name and a sum. Not one has been opened. A dark red stone has rolled into one corner.",
+          "fightAction": {
+            "once": "fight",
+            "check": {
+              "approaches": [
+                { "skill": "religion", "dc": 13 },
+                { "skill": "history", "dc": 13 },
+                { "skill": "intimidation", "dc": 13 }
+              ]
+            },
+            "bands": {
+              "failure": {
+                "text": "You stumble over the old words, and your foe laughs like paper tearing."
+              },
+              "success": {
+                "text": "\"We hold until relieved. We take our pay, and then we go.\" You read the garrison's oath from the lid, and the words he swore to keep and broke lock your foe where he stands.",
+                "effects": [
+                  { "type": "condition", "condition": "paralysed", "turns": 2 }
+                ]
+              },
+              "success-by-5": {
+                "text": "You read the garrison's oath from the lid like a sergeant calling the roll, and add his own name at the end of it. Your foe goes rigid, jaw working, every joint locked.",
+                "effects": [
+                  { "type": "condition", "condition": "paralysed", "turns": 3 }
+                ]
+              }
+            }
+          }
         },
         {
           "id": "coffer-stack",
@@ -489,8 +660,8 @@
       "items": [
         {
           "id": "coin-chest",
-          "name": "Old Coins",
-          "description": "Old gold and silver coins stamped with a forgotten lord's face.",
+          "name": "Garrison's Pay",
+          "description": "Old gold and silver in leather pay packets, each tagged with a soldier's name.",
           "kind": "coin",
           "coins": { "gp": 30, "sp": 150 },
           "hiddenIn": "iron-chest"
@@ -502,6 +673,13 @@
           "kind": "treasure",
           "treasure": "gem-50gp",
           "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "pay-roll",
+          "name": "Pay Roll",
+          "description": "A roll of parchment naming every man of the garrison and the pay owed him. Not one line is marked paid.",
+          "kind": "key",
+          "hiddenIn": "ghoul"
         }
       ]
     },
@@ -510,7 +688,7 @@
       "name": "Well Bottom",
       "at": [3, 3],
       "floor": -1,
-      "description": "The dry bottom of the well, a round pit of silt with a coin of daylight far above. A goblin has made a nest here, and a low arch leads on into the dark.",
+      "description": "The dry bottom of the well, a round pit of silt with a coin of daylight far above. A goblin has made a nest here, and a low arch of old brick leads down toward the sound of dripping water.",
       "region": "crypts",
       "features": [
         {
@@ -522,12 +700,8 @@
         {
           "id": "goblins-nest",
           "name": "Goblin's Nest",
-          "description": "A heap of rags and rat bones where the goblin slept. It smells as bad as it looks."
-        },
-        {
-          "id": "low-arch",
-          "name": "Low Arch",
-          "description": "A low arch of old brick, leading down. You hear water dripping beyond it."
+          "description": "A heap of rags and rat bones where the goblin slept. It smells as bad as it looks.",
+          "discovery": "The nest is a day old, no more: one gnawed rat and a single scrape in the silt. Under the rags lies a heap of old rope, one end cut clean. It came down with him."
         }
       ],
       "items": [
@@ -546,25 +720,53 @@
       "name": "Flooded Cistern",
       "at": [1, 3],
       "floor": -1,
-      "description": "Steps run down into a vaulted cistern, flooded to the third step with black, still water. A walkway runs round its edge to an arch at the far side.",
+      "description": "Worn steps, the lowest green and slick, run down into a vaulted cistern flooded with black, still water. A walkway runs round its edge to an arch at the far side.",
       "region": "crypts",
       "backdrop": "culvert",
       "features": [
         {
           "id": "black-water",
           "name": "Black Water",
-          "description": "Cold, still water. You can't see the bottom, and you'd rather not."
+          "description": "Cold, still water. A little way out from the steps the silt on the bottom has been stirred, as if something small was dropped there.",
+          "discovery": "It is a tin badge stamped with a tower, gone green in the water.",
+          "check": {
+            "approaches": [
+              { "skill": "athletics", "dc": 12 },
+              { "skill": "perception", "dc": 13 },
+              { "skill": "investigation", "dc": 13 }
+            ],
+            "bands": {
+              "failure-by-5": {
+                "text": "You go in over your head, and the cold closes on your chest like a fist. You come out with nothing but silt.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "cold",
+                    "defeatEndingId": "lost-in-the-delve"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "The silt clouds up, and when it settles you can find nothing in it."
+              },
+              "success": {
+                "text": "Your hand closes on something flat and cold in the silt.",
+                "effects": [
+                  { "type": "discovery", "feature": "black-water" },
+                  { "type": "item", "item": "drowned-badge" }
+                ]
+              }
+            }
+          }
         },
         {
           "id": "drowned-delver",
           "name": "Drowned Delver",
           "description": "A body in a delver's coat lies face down on the walkway, a pack still on its back.",
-          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver."
-        },
-        {
-          "id": "cistern-steps",
-          "name": "Cistern Steps",
-          "description": "Worn steps going down into the water. The lowest are green and slick."
+          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver, and a page of notes gone soft with damp: \"Bought a tin badge off the pedlar. Pinned it on and walked through the guard post, and the dead man looked straight through me. Dropped the cursed thing in the cistern. Going in after it.\""
         }
       ],
       "items": [
@@ -575,6 +777,14 @@
           "kind": "coin",
           "coins": { "sp": 30 },
           "hiddenIn": "drowned-delver"
+        },
+        {
+          "id": "drowned-badge",
+          "name": "Garrison Badge",
+          "description": "A tin badge stamped with a tower, green from the cistern. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "kind": "key",
+          "hiddenIn": "black-water",
+          "sets": "posts-stand-aside"
         }
       ]
     },
@@ -583,32 +793,28 @@
       "name": "Ossuary",
       "at": [1, 5],
       "floor": -1,
-      "description": "Skulls line every wall of a long vault, row on row, and the floor crunches with small bones. Someone has been at work here: skulls lie knocked from their rows, and a satchel lies dropped among them.",
+      "description": "Skulls line every wall of a long vault, row on row, and the floor crunches with small bones. Someone has been at work here: skulls lie knocked from their rows, and a satchel lies dropped among them. A passage lined with bones runs toward a glimmer of daylight, and a carved arch leads on to a tomb.",
       "region": "crypts",
       "encounterId": "ossuary-rival",
       "features": [
         {
           "id": "skull-wall",
           "name": "Skull Wall",
-          "description": "Hundreds of skulls, set in rows by the keep's long-dead masons. Many have been knocked about, their teeth pried out."
+          "description": "Hundreds of skulls, set in rows by the keep's long-dead masons. Many have been knocked about, their teeth pried out.",
+          "discovery": "The lowest rows are different: forty empty niches, cut when the keep still stood, each with a soldier's name chiselled beneath it. The garrison's places were made ready for them, and not one of them has ever come to lie down."
         },
         {
           "id": "mags-satchel",
           "name": "Mags's Satchel",
           "description": "A battered leather satchel, heavy and rattling.",
-          "discovery": "Inside are a handful of gold teeth and coins."
-        },
-        {
-          "id": "bone-passage",
-          "name": "Bone Passage",
-          "description": "A passage lined with bones runs toward a glimmer of daylight. Another arch leads on to a tomb."
+          "discovery": "Inside are a handful of gold teeth and coins, and a small rag purse with a goblin's toothmarks in its knot: somebody's fee, taken back."
         }
       ],
       "items": [
         {
           "id": "satchel-gold",
           "name": "Mags's Takings",
-          "description": "Gold teeth and old coins, worth a few gold pieces.",
+          "description": "Gold teeth and old coins, and a goblin's fee in a knotted rag.",
           "kind": "coin",
           "coins": { "gp": 8, "sp": 20 },
           "hiddenIn": "mags-satchel"
@@ -621,6 +827,43 @@
           "coins": { "sp": 9 },
           "hiddenIn": "mags-corrow"
         }
+      ],
+      "creatures": [
+        {
+          "id": "mags",
+          "name": "Mags Corrow",
+          "description": "A wiry grave-robber in a dusty coat, a hammer through her belt. She has things to say only to those she has come to terms with.",
+          "topics": [
+            {
+              "id": "the-badge",
+              "name": "the badge",
+              "reply": "\"The dead look for one thing: a tin badge with a tower on it, the garrison's. I watched a man walk through the guard post with one pinned to his coat, and the dead thing there never turned its head. Wear a badge and every post in this keep stands aside for you.\"",
+              "offeredWhile": "mags-dealt",
+              "offeredUntil": "goblin-freed"
+            },
+            {
+              "id": "where-badges-are",
+              "name": "where badges are",
+              "reply": "\"Two that I know of. One went into the stores with the spare kit: a sealed barrel in the storeroom off the gate hall, behind a door that's swollen shut. The other's on the bottom of the cistern, where the fool who wore it dropped it. He went in after it. He's still there.\"",
+              "offeredWhile": "mags-dealt",
+              "offeredUntil": "goblin-freed"
+            },
+            {
+              "id": "the-goblin",
+              "name": "the goblin",
+              "reply": "\"He'll tell you I cut his rope. He wanted half, for showing me a hole in the ground. Ropes are old down here. They part.\" She does not look at her satchel.",
+              "offeredWhile": "mags-dealt",
+              "offeredUntil": "goblin-freed"
+            },
+            {
+              "id": "the-voice",
+              "name": "the voice",
+              "reply": "\"There's something behind the bronze door that talks. Very polite. It wants the key from the shrine, and it'll promise you the chest for it. I didn't fetch it the key. I don't open doors for things that ask that nicely.\"",
+              "offeredWhile": "mags-dealt",
+              "offeredUntil": "goblin-freed"
+            }
+          ]
+        }
       ]
     },
     {
@@ -628,14 +871,14 @@
       "name": "Lord's Tomb",
       "at": [1, 6],
       "floor": -1,
-      "description": "A cold, high tomb. A stone effigy of the old lord lies on a great sarcophagus, his hands folded on his sword, and faded banners hang above him.",
+      "description": "A cold, high tomb. A stone effigy of the old lord lies on a great sarcophagus, his hands folded on his sword, under banners so faded their arms can hardly be read.",
       "region": "crypts",
       "features": [
         {
           "id": "sarcophagus-lid",
           "name": "Sarcophagus Lid",
           "description": "A heavy stone lid, carved with the old lord's arms. A carved hand on its side is worn smooth.",
-          "discovery": "Inside, the old lord's bones wear a silver death mask, and a handful of old coins rests on his breastbone.",
+          "discovery": "Inside, the old lord's bones wear a silver death mask, and a handful of old coins rests on his breastbone. Under his folded hands lies a sealed order, never opened. It falls to dust as you lift it, but not before you have read it: \"To my castellan. When I am laid here, read this at the muster bell: the watch is relieved. Pay each man what he is owed from the vault, by the roll, and let them go.\"",
           "check": {
             "approaches": [
               { "skill": "athletics", "dc": 14 },
@@ -680,12 +923,8 @@
         {
           "id": "effigy",
           "name": "Effigy",
-          "description": "A stone lord, stern and long-nosed, his sword on his breast. Someone has chipped the gilt from his crown."
-        },
-        {
-          "id": "faded-banners",
-          "name": "Faded Banners",
-          "description": "Banners so faded their arms can hardly be read. They stir in a draught from the ossuary."
+          "description": "A stone lord, stern and long-nosed, his sword on his breast. Someone has chipped the gilt from his crown.",
+          "discovery": "Cut round the plinth: \"His last command was that his castellan read the relief at the bell and pay the men from the vault. He died trusting it done.\""
         }
       ],
       "items": [
@@ -901,10 +1140,11 @@
         {
           "id": "zombie",
           "monster": "zombie",
-          "description": "The dead guard turns, jaw hanging, and shambles at you."
+          "description": "The dead guard's head turns to your chest, finds no badge there, and it comes at you with its fists."
         }
       ],
-      "defeatEndingId": "lost-in-the-delve"
+      "defeatEndingId": "lost-in-the-delve",
+      "presentUntil": "posts-stand-aside"
     },
     {
       "id": "barracks-skeletons",
@@ -913,7 +1153,7 @@
           "id": "skeleton-sergeant",
           "monster": "skeleton",
           "name": "Tall Skeleton",
-          "description": "A tall skeleton in rusted mail raises a shortsword."
+          "description": "A tall skeleton in rusted mail looks you over for a badge, finds none, and raises a shortsword."
         },
         {
           "id": "skeleton-guard",
@@ -922,7 +1162,8 @@
           "description": "A bent skeleton clatters up from a bunk beside it."
         }
       ],
-      "defeatEndingId": "lost-in-the-delve"
+      "defeatEndingId": "lost-in-the-delve",
+      "presentUntil": "posts-stand-aside"
     },
     {
       "id": "kitchen-wolf",
@@ -953,11 +1194,14 @@
         {
           "id": "ghoul",
           "monster": "ghoul",
-          "description": "The ghoul looks up from the chest, a fistful of old coins in its claws, and springs.",
-          "boss": true
+          "description": "A gaunt thing in the rags of a steward's gown uncurls from the lid of the chest, a roll of parchment in one claw. \"I kept it,\" it says, and springs.",
+          "boss": true,
+          "name": "Castellan"
         }
       ],
-      "defeatEndingId": "lost-in-the-delve"
+      "defeatEndingId": "lost-in-the-delve",
+      "presentUntil": "castellan-freed",
+      "sets": { "won": "castellan-silent" }
     },
     {
       "id": "ossuary-rival",
@@ -966,11 +1210,62 @@
           "id": "mags-corrow",
           "monster": "bandit",
           "name": "Mags Corrow",
-          "description": "A wiry woman in a dusty coat drops her hammer, snatches up a scimitar and snarls. \"Find your own dead.\""
+          "description": "A wiry woman in a dusty coat turns on her heel to face you, a tooth-puller's hammer in one hand and a scimitar within reach of the other."
         }
       ],
       "defeatEndingId": "lost-in-the-delve",
-      "movesTo": { "roomId": "shaft-bottom", "when": "delve-roused" }
+      "movesTo": { "roomId": "shaft-bottom", "when": "delve-roused" },
+      "reaction": {
+        "peacefulXp": 25,
+        "parley": {
+          "approaches": [
+            { "skill": "persuasion", "dc": 12 },
+            { "skill": "deception", "dc": 13 },
+            { "skill": "intimidation", "dc": 13 }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "\"Thought so.\" Mags drops the hammer and comes at you with the scimitar.",
+              "outcome": "fight"
+            },
+            "failure": {
+              "text": "Mags's hand closes on her scimitar. \"Try again, and better.\"",
+              "shift": -1
+            },
+            "success": {
+              "text": "Mags weighs you up and lets the scimitar lie. \"Go on. I'm listening.\"",
+              "shift": 1
+            },
+            "success-by-5": {
+              "text": "Mags laughs, short and dry. \"All right. There's bones enough for two. We'll call it terms.\"",
+              "outcome": "let-pass"
+            }
+          }
+        },
+        "toll": {
+          "coins": { "gp": 2 },
+          "text": "Mags bites one of the coins and pockets the rest. \"Terms it is. Find me by the skulls if you want to know what I know.\""
+        },
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "parley", "toll"],
+            "text": "\"Find your own dead. Or put two gold in my hand and we'll talk about sharing these.\""
+          },
+          "uncertain": {
+            "options": ["attack", "parley", "toll"],
+            "text": "Mags looks you up and down. \"I got here first. Two gold says we don't have to argue about it.\""
+          },
+          "indifferent": {
+            "options": ["let-pass", "parley", "attack"],
+            "text": "Mags shrugs and turns back to the skulls. \"Plenty of teeth for everyone. Keep out of my rows, and ask if you want to know a thing or two.\""
+          },
+          "friendly": {
+            "options": ["let-pass", "attack"],
+            "text": "Mags grins, a gold tooth of her own showing. \"Company with a pulse, at last. Leave my rows be and we're friends. Ask me what you like.\""
+          }
+        }
+      },
+      "sets": { "peaceful": "mags-dealt" }
     },
     {
       "id": "dead-delver",
@@ -988,10 +1283,18 @@
   "wanderingEncounter": { "encounterId": "dead-delver", "chance": 25 },
   "endings": [
     {
+      "id": "the-watch-stands-down",
+      "kind": "victory",
+      "onEscapeWhen": "watch-relieved",
+      "title": "The watch stands down",
+      "text": "You climb back into the daylight lighter than you might have been. Behind you the muster bell hangs still. Forty men have had their pay and their relief, and nothing under the keep will rise again.",
+      "xp": 600
+    },
+    {
       "id": "out-with-the-loot",
       "kind": "escape-with-loot",
-      "title": "Out with the loot",
-      "text": "You climb back into the daylight with the dungeon's treasure on your back.",
+      "title": "Out with the garrison's pay",
+      "text": "You climb back into the daylight with what you took from under the keep on your back. Below you, the watch still stands.",
       "xp": 600
     },
     {
@@ -1004,7 +1307,7 @@
       "id": "lost-in-the-delve",
       "kind": "defeat",
       "title": "Lost in the delve",
-      "text": "You fall in the dark under the ruined keep, and the dead keep you. Your adventuring ends here."
+      "text": "You fall in the dark under the ruined keep, and rise again to stand a post of your own. Your adventuring ends here."
     }
   ]
 }
