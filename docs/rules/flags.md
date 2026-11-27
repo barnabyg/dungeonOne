@@ -77,7 +77,7 @@ one of its flags, which only **noise** sets. Nothing else may set it: no `sets`,
   counted on, and a passage it closes can't be the only way to an essential room
   or every exit.
 
-### Features and topics that change with flags
+### Features, uses and topics that change with flags
 
 - A feature may have another description while a flag is set (`changed`:
   `{ "when", "description" }`). Its discovery and check are unchanged.
@@ -85,6 +85,13 @@ one of its flags, which only **noise** sets. Nothing else may set it: no `sets`,
   only until one is (`offeredUntil`), or both. A topic not offered can't be
   asked. One already asked and since withdrawn keeps what the creature said, but
   can't be asked or retried.
+- A creature with topics, none of them offered now, and no shop is left off the
+  room's list of who is here, and its room record keeps what it said.
+- A feature's use of an item may likewise be offered only once a flag is set
+  (`offeredWhile`), only until one is (`offeredUntil`), or both. A use not
+  offered isn't listed and is refused like an item the feature doesn't take.
+  Reachability counts a way a use opens only while the use is surely offered,
+  and the gate never counts on a use with a flag condition.
 - A surrendered opponent hands over what it carries only through a topic's
   `gives`, so such a topic can't be withdrawn and may wait only on a flag set
   for sure.

@@ -44,7 +44,7 @@ export const CONTENT_TESTS = new Map([
     "the Abandoned Delve's handoff run through the browser",
   ],
   [
-    "tests/issue-137-browser.test.mjs",
+    "tests/default-launch-browser.test.mjs",
     "the default launch's handoff run of the Abandoned Delve, which only the shipped modules reach",
   ],
   ["tests/issue-140.test.mjs", "the #140 release run of the Abandoned Delve"],

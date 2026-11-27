@@ -25,10 +25,11 @@ options say.
   is a weapon the module places or sells that the gate is trying, else the first
   unmastered in catalogue order. A caster picks each level's cantrips and spells
   in its list's order (`withOwedChoices`).
-- **Objective and required path.** A module's objective is its victory if it has
-  one, or else getting out with loot (treasure or coin). The required path is
-  the route to it through the fewest fights, then the fewest moves: to the
-  victory fight, or to the nearest loot and out by the nearest exit. Every other
+- **Objective and required path.** A module's objective is its victory won in a
+  fight if it has one, or else getting out with loot (treasure or coin, or only
+  the item its escape with loot needs). The required path is the route to it
+  through the fewest fights, then the fewest moves: to the victory fight, or to
+  the nearest loot and out by the nearest exit. Every other
   room, and its fight, is optional. No style talks, so the gate judges the route
   a player who never talks must take: the nearest loot is the nearest such a
   player can reach, and a module whose objective only talking reaches fails as

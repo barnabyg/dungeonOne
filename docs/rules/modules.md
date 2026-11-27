@@ -13,7 +13,9 @@ file. The shape, in short:
   `difficulty` (easy, medium or hard), `startRoomId`, `rooms`, `passages`,
   `encounters` (at most 30, wandering ones included) and `endings` (victory,
   escape with loot, escape without loot, defeat; a victory or escape may award
-  `xp`). Optional: `long: true`; `regions` (1–10, each `id`, `name`, an optional
+  `xp`; one victory or escape with loot may be marked `objective: true`, the
+  ending the module's objective names; an escape with loot may name a
+  `needsItem`, the treasure or coin that must be found for it). Optional: `long: true`; `regions` (1–10, each `id`, `name`, an optional
   `backdrop` and an optional `wandering` table: `chance` on a d100 every `every`
   moves, 1–6 `entries` of `encounterId` and `omen`); `flags` (1–30 ids); an
   `alarm` (`flag`, `text`, optional `fights`: `{ region, round }` pairs);
@@ -34,7 +36,8 @@ file. The shape, in short:
   [the authoring guide](../module-authoring.md).
 - **Feature:** optional `discovery`, `check`, `sets` (a flag), `changed`
   (`{ when, description }`), `uses` (up to four `{ item, text, effects }`,
-  optionally `consumes: true` and `coins`, a price paid from the purse) and `fightAction` (`{ once, check, bands }`,
+  optionally `consumes: true`, `coins` (a price paid from the purse) and
+  `offeredWhile` or `offeredUntil` (a flag)) and `fightAction` (`{ once, check, bands }`,
   `once` being `fight` or `adventure`).
 - **Item:** `kind` is a potion (Healing or Greater Healing), `key`, `tool`,
   `treasure` (a catalogue gem or art object), `coin` (`coins` in gp, sp and cp),

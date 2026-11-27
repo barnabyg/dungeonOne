@@ -266,13 +266,11 @@ Ada is a level-5 Fighter (44 HP, AC 14) with a mace and Extra Attack.
 - **Article slips.** Two finds read with a doubled or misplaced article:
   "You take the The King's Hanger and stow it." and "You take the Mags's
   Takings". The handoff test doesn't pin either wording.
-- **The Delve's Leave warning** (#601). A module's objective is its victory
-  when it has one, so leaving the Delve before the watch is relieved warns
-  "Objective not met" and names "The watch stands down", the robber's run
-  included: it earns its 600 XP all the same.
-- **The Door Grille after the fight** (#601). A use can't be withdrawn, so
-  the grille still offers Use Bronze Key once the Castellan is dead, with
-  the deal's words.
+- **The Delve after #607–#611.** Its Leave warning names "Out with the
+  garrison's pay", never the relief; that escape needs the vault's chest, so
+  the posts' coin alone is "Out without the pay"; the grille's deal and the
+  Voice at the Grille go once the Castellan is fought, freed or dead; and the
+  relief and the escape share one 600 XP award.
 - **Fragile seeds.** A change to these modules' foes, the fight rules, the
   wandering tables or the dice order moves the seeds; the handoff test fails
   when it does.
