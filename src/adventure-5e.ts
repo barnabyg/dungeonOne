@@ -110,7 +110,9 @@
  * A feature may accept items the character carries (`uses`, #400): each
  * names its item, its words, whether the item is used up, and effects as a
  * band's. A way a use opens counts toward reachability only once the
- * feature's room and the item are reached for sure.
+ * feature's room and the item are reached for sure. A use may cost coin
+ * (`coins`, #600), paid from the purse; a way only such a use opens is
+ * never counted on.
  *
  * A module may declare an alarm (#401): one of its flags, which only noise
  * sets: a sneak that fails by 5 or more, a fight in one of its `fights`
@@ -268,7 +270,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 47;
+export const FIFTH_ADVENTURE_FORMAT = 48;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -618,12 +620,14 @@ export const removes = (action: FeatureFightAction): boolean =>
  * Using an item on a feature (#400): the item, the words said, whether the
  * item is used up, and the effects, as a band's: a discovery, an item
  * revealed, damage, a passage opened or closed, or a flag set. Each use is
- * made once.
+ * made once. A use may cost coin (#600), spent from the purse as a toll
+ * is: a way only such a use opens is never counted on.
  */
 export type FeatureUse = Readonly<{
   item: string;
   text: string;
   consumes?: true;
+  coins?: Coins;
   effects: readonly CheckEffect[];
 }>;
 
@@ -2739,7 +2743,7 @@ function validateModule(
                 const use = knownKeys(
                   value,
                   ["item", "text", "effects"],
-                  ["consumes"],
+                  ["consumes", "coins"],
                   on,
                 );
                 if (use.consumes !== undefined && use.consumes !== true) {
@@ -2749,6 +2753,9 @@ function validateModule(
                   item: id(use.item, `${on} item`),
                   text: text(use.text, `${on} text`),
                   ...(use.consumes === true ? { consumes: true as const } : {}),
+                  ...(use.coins === undefined
+                    ? {}
+                    : { coins: coins(use.coins, `${on} coins`) }),
                   effects: list(use.effects, `${on} effects`, MAX_EFFECTS).map(
                     (entry, number) =>
                       effect(entry, `${on} effect ${number + 1}`),
@@ -4078,7 +4085,8 @@ function validateModule(
    * The uses of items on features (#400) that can be counted on, each with
    * its feature's room and its item's: an item in plain sight or hidden in a
    * feature with no check (not one a band may never reveal, nor one an
-   * opponent carries), that nothing else uses up first.
+   * opponent carries), that nothing else uses up first, and that costs no
+   * coin (#600), as the character may not have it.
    */
   const usingUp = [
     ...[...featureById.values()].flatMap(({ uses }) =>
@@ -4098,8 +4106,9 @@ function validateModule(
           item.hiddenIn === undefined
             ? undefined
             : featureById.get(item.hiddenIn);
-        return (item.hiddenIn !== undefined &&
-          (holder === undefined || holder.check !== undefined)) ||
+        return use.coins !== undefined ||
+          (item.hiddenIn !== undefined &&
+            (holder === undefined || holder.check !== undefined)) ||
           usingUp.filter((id) => id === use.item).length >
             (use.consumes === true ? 1 : 0)
           ? []

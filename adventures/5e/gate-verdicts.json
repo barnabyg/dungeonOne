@@ -2,27 +2,27 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "96f25e413982a84f60d1424ee429a4f0a42b1c1876ccbdf22ea831533aeb4b47",
+      "hash": "c1d2d9dba3de48fe972c808a4bc44ac87aa59c70b81df5b3635a056a5f6fa65b",
       "qualified": true
     },
     "bramblecote-cider-house": {
-      "hash": "edacedcc763a40a5d48842aeab9800bfcb2555e4cd513f6762b5d1f00dbd49c0",
+      "hash": "42a8f809301fa23ce5aafee7fa46a6003c09e277370b72332ad72ecc5fe87bc3",
       "qualified": true
     },
     "coldwater-weirgate": {
-      "hash": "5c8a27b540b332cbad66dbf99dae4e72f9155df58d12f804ae82ffdddce09a85",
+      "hash": "fe972179ae42b3913f651c2f9587c38478fead619549983d711f221ec810a8ac",
       "qualified": true
     },
     "last-shift-at-cinder-mint": {
-      "hash": "9c475e6af8ab9b1f792ebc83dc479150d9724ff3bcd6c0a5d262ab4ac0f0b249",
+      "hash": "e0ee11a7000712b2fc33387db536a07d3276f9de08153c6a4f2cce62232bc1cb",
       "qualified": true
     },
     "thornwood-lodge": {
-      "hash": "fb6faf3905163f65204c963fd1221abcc21c333732c3c326aaf5c167eac023f5",
+      "hash": "4da20b8d22a3e638a0c9bd4378ff56ae4b67549633f464449bd24305d8d9577e",
       "qualified": true
     },
     "well-of-the-hollow-moon": {
-      "hash": "de00d4b9f5a8fc19f9e6929c254cf6c3f8f2e72173389c2da19ac09f35035b84",
+      "hash": "a68b531d503f4070dd6cc500be3b94d3253f1d6e26be7a593ae59085a4f8af0a",
       "qualified": true
     }
   }

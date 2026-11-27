@@ -81,13 +81,19 @@
 ## Using an item on a feature
 
 A feature may accept items the character carries (`uses`: up to four, each
-`{ "item", "text", "effects", "consumes" }`, one per item): fitting a stone
-snake into a door, throwing meat to a chained beast.
+`{ "item", "text", "effects", "consumes", "coins" }`, one per item): fitting a
+stone snake into a door, throwing meat to a chained beast.
 
 - Each use has the module's words, may use the item up (`"consumes": true`), and
   has 1–6 effects drawn from a band's: a discovery, an item revealed, damage
   (which can end the adventure in its defeat), a passage opened (a hidden one)
   or closed, or a flag set.
+- A use may cost coin (`"coins"`: `{ "gp", "sp", "cp" }`, as a toll's), paid
+  from the purse, which holds the coin found in this adventure. The price
+  follows the item's name wherever the use is offered ("Use Stone Snake (2 gp)").
+  With too little coin the use is refused without effect, and the item is kept.
+  The coin rolls back with the adventure, as a toll's does. Treasure is still
+  never used up.
 - A use takes no roll, is made once and is remembered (`featureUses`).
 - The engine refuses, without effect, a use in a fight, on a feature not here,
   of an item not carried or not accepted, and one already made.

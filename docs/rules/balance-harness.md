@@ -41,7 +41,9 @@ options say.
   flag is set; the plan then goes to the nearest room where something not yet
   done sets it for sure (as the validator counts it). It never plans through a
   way a flag has closed. A way only an item used on a feature opens: the plan
-  fetches the item first, then goes to the feature and uses it. A hidden passage
+  fetches the item first, then goes to the feature and uses it. A way only a use
+  that costs coin opens is never planned on until the use has been made; a run
+  pays for a use it can afford when it stands at the feature. A hidden passage
   only talking opens is never passable.
 - **Styles.** Each picks only actions `projectActions` offers as available.
   _direct_ enters every room and fights every fight, healing below a quarter of
