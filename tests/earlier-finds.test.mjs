@@ -102,3 +102,77 @@ test("a find a check's band would reveal says it is gone", () => {
   assert.doesNotMatch(text, /You find the Silver Ring/u);
   assert.equal(takes(runtime, looked.state).includes("silver-ring"), false);
 });
+
+// A find taken on this visit (#619): the feature's words still describe it,
+// so each showing of them says it was taken, in the examine result, on the
+// feature's card and in the line on coming back.
+const TAKEN_PURSE =
+  "Water Butt: A barrel of rainwater by the door. A purse lies in the mud behind it. You have taken the Lost Purse.";
+
+function acted(runtime, state, action, ...rolls) {
+  const result = runtime.handleAction(state, action, uncheckedDice(...rolls));
+  assert.equal(result.rejection, undefined, result.rejection?.reason);
+  return result;
+}
+
+test("a find taken on this visit is said to be taken wherever its feature's words show (#619)", () => {
+  const runtime = createFifthRuntime(goblinYard, TEST_FIGHTER);
+  const looked = examined(runtime, runtime.createSession(), "water-butt");
+  assert.doesNotMatch(renderFifthResult(looked), /You have taken/u);
+  const took = acted(runtime, looked.state, {
+    type: "take",
+    itemId: "lost-purse",
+  });
+  assert.equal(
+    renderFifthResult(examined(runtime, took.state, "water-butt")),
+    TAKEN_PURSE,
+  );
+  const card = runtime
+    .projectRoom(took.state)
+    .features.find(({ id }) => id === "water-butt");
+  assert.equal(
+    card.discovery,
+    "A purse lies in the mud behind it. You have taken the Lost Purse.",
+  );
+  // Sneak into the cellar, slip back out, and come back to the yard.
+  const sneaked = acted(
+    runtime,
+    took.state,
+    { type: "sneak", destinationId: "cellar" },
+    20,
+  );
+  const back = acted(
+    runtime,
+    sneaked.state,
+    { type: "move", destinationId: "yard" },
+    20,
+  );
+  assert.match(
+    renderFifthResult(back),
+    /You’re back\. Water Butt: A purse lies in the mud behind it\. You have taken the Lost Purse\./u,
+  );
+});
+
+test("a feature with a find still there says nothing of taking (#619)", () => {
+  const runtime = createFifthRuntime(goblinYard, TEST_FIGHTER);
+  const looked = examined(runtime, runtime.createSession(), "water-butt");
+  const again = examined(runtime, looked.state, "water-butt");
+  assert.doesNotMatch(renderFifthResult(again), /taken/u);
+  const card = runtime
+    .projectRoom(looked.state)
+    .features.find(({ id }) => id === "water-butt");
+  assert.equal(card.discovery, "A purse lies in the mud behind it.");
+});
+
+test("a find a band revealed and this visit took is said to be taken (#619)", () => {
+  const runtime = createFifthRuntime(gradedCellar, TEST_FIGHTER);
+  const found = examined(runtime, runtime.createSession(), "rubble-heap", 20);
+  const took = acted(runtime, found.state, {
+    type: "take",
+    itemId: "silver-ring",
+  });
+  assert.match(
+    renderFifthResult(examined(runtime, took.state, "rubble-heap")),
+    /You have taken the Silver Ring\.$/u,
+  );
+});

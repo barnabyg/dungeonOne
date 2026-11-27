@@ -1249,6 +1249,11 @@ export type FifthEvent =
        * visit, by name: its words may still describe them.
        */
       gone?: readonly string[];
+      /**
+       * Every find its words revealed, taken on this visit (#619), by name:
+       * its words still describe them.
+       */
+      taken?: readonly string[];
     }>
   | Readonly<{
       type: "taken";
@@ -1904,6 +1909,14 @@ function goneText(names: readonly string[]): string {
   return names.length === 1
     ? `The ${names[0]!} is gone: you carried it off on an earlier visit.`
     : `The ${listed(names, "and")} are gone: you carried them off on an earlier visit.`;
+}
+
+/**
+ * What a feature's words are followed by once every find they revealed is
+ * taken on this visit (#619): they still describe the finds.
+ */
+function takenText(names: readonly string[]): string {
+  return `You have taken the ${listed(names, "and")}.`;
 }
 
 const EMPTY_PARAMETERS = {
@@ -3492,10 +3505,13 @@ export function renderFifthEvent(
       const described = [`${event.name}: ${event.description}`, event.discovery]
         .filter(Boolean)
         .join(" ");
-      const said =
-        event.gone === undefined
-          ? described
-          : `${described} ${goneText(event.gone)}`;
+      const said = [
+        described,
+        event.gone === undefined ? undefined : goneText(event.gone),
+        event.taken === undefined ? undefined : takenText(event.taken),
+      ]
+        .filter(Boolean)
+        .join(" ");
       if (event.found.length === 0) {
         return said;
       }
@@ -6921,6 +6937,23 @@ export function createFifthRuntime(
           (!state.inventory.includes(item.id) &&
             !state.usedItemIds.includes(item.id))),
     );
+
+  /**
+   * The finds a feature's words revealed, by name, once every one of them
+   * is taken on this visit (#619); none while any is still there. A checked
+   * feature's are those its band revealed.
+   */
+  const takenFrom = (
+    state: FifthState,
+    featureId: string,
+  ): readonly string[] => {
+    const finds = hiddenIn(state, featureId, true).filter(
+      (item) => !hasCheck(featureId) || revealedIn(state).items.has(item.id),
+    );
+    return finds.length > 0 && finds.every(({ id }) => foundHere(state, id))
+      ? finds.map(({ name }) => name)
+      : [];
+  };
 
   /**
    * Whether an item has been offered by a surrendered opponent (#238): the
@@ -11011,12 +11044,14 @@ export function createFifthRuntime(
             const discovery = revealedIn(state).discoveries.has(feature.id)
               ? feature.discovery
               : undefined;
+            const taken = takenFrom(state, feature.id);
             return {
               state,
               events: [
                 {
                   ...looked,
                   ...(discovery === undefined ? {} : { discovery }),
+                  ...(taken.length === 0 ? {} : { taken }),
                 },
               ],
             };
@@ -11082,6 +11117,9 @@ export function createFifthRuntime(
                   (item) => item.hiddenIn === feature.id && carriedOff(item),
                 )
                 .map(({ name }) => name);
+          // What was found here and taken on this visit (#619).
+          const taken =
+            feature.body || first ? [] : takenFrom(state, feature.id);
           return {
             state: first
               ? {
@@ -11098,6 +11136,7 @@ export function createFifthRuntime(
                 ...(discovery === undefined ? {} : { discovery }),
                 found: found.map(({ name }) => name),
                 ...(gone.length === 0 ? {} : { gone }),
+                ...(taken.length === 0 ? {} : { taken }),
               },
             ],
           };
@@ -12557,11 +12596,18 @@ export function createFifthRuntime(
           : revealedIn(state).discoveries.has(id)
             ? discovery
             : undefined;
+      // Its words may describe finds taken since (#619).
+      const taken = found === undefined || body ? [] : takenFrom(state, id);
       return {
         id,
         name,
         description,
-        ...(found === undefined ? {} : { discovery: found }),
+        ...(found === undefined
+          ? {}
+          : {
+              discovery:
+                taken.length === 0 ? found : `${found} ${takenText(taken)}`,
+            }),
       };
     });
   const named = ({ id, name, description }: Named): Named => ({
