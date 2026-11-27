@@ -47,7 +47,7 @@ Formats are throwaway until the owner declares a stable release in a new ADR. Th
 
 ## Designing a module
 
-Read [`docs/module-authoring.md`](docs/module-authoring.md) first, propose every layout as a sketch file, and check it with `npm.cmd run map -- <module-id | path>`.
+Read [`docs/module-authoring.md`](docs/module-authoring.md) first, for a new module or a rework. Design story first, in its stages, each approved by the owner before the next. Propose every layout as a sketch file, and check it with `npm.cmd run map -- <module-id | path>`.
 
 ## Player testing handoff
 

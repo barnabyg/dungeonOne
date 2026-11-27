@@ -42,6 +42,18 @@ _Avoid_: Path (the required path), Branch, Track
 The kind of strength a way past an obstacle tests: might (force, break, a fight for the key), skill (thieves' tools, sneaking), mind (an Intelligence or Wisdom check) or voice (talking). See the authoring guide.
 _Avoid_: Route family (a route is declared), Approach (a check's option)
 
+**Clicker**:
+The gate's judged runs seen as a player: they examine everything, take everything, use every item a feature accepts and choose nothing. A module's best ending must be out of the clicker's reach. See the authoring guide.
+_Avoid_: Bot, Completionist
+
+**Revelation**:
+A fact about a module's story that the player is meant to work out, such as who a guard really serves. Each has three sources or more.
+_Avoid_: Secret (the one fact that reframes the premise), Clue (a source for a revelation)
+
+**Feature tag**:
+What a feature is for: a clue (a source for a revelation), a lever (it changes the world), a risk (a thoughtless try costs) or a reward (loot). A feature may have two; one with none is cut.
+_Avoid_: Feature type, Category
+
 **Region sweep**:
 The gate's run through one region of a long module, visiting every room not marked avoidable before going on to the objective; it is judged one difficulty lower.
 _Avoid_: Clear, Full run, Exploration
