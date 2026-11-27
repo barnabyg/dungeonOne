@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 49,
+  "formatVersion": 50,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Bring up what you can of the old lord's hoard from under the ruined keep, and get out alive.",
@@ -73,7 +73,11 @@
       "id": "gate-hall",
       "name": "Gate Hall",
       "at": [2, 1],
-      "description": "A long hall of fallen banners. A bronze muster bell hangs from a beam at its middle, and a board of orders is nailed up beside the barracks arch, where bones clatter. A swollen door stands shut in one wall, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
+      "description": "A long hall of fallen banners. A bronze muster bell hangs from a beam at its middle, and a board of orders is nailed up beside the barracks arch. A swollen door stands shut in one wall, and a passage leads to the guard post. A porter's door stands at the near end, and daylight falls through a rubble-strewn arch at the far end.",
+      "presence": {
+        "encounter": "barracks-skeletons",
+        "text": "Bones clatter beyond the barracks arch."
+      },
       "region": "cellars",
       "backdrop": "hall",
       "features": [
@@ -167,7 +171,11 @@
       "id": "barracks",
       "name": "Barracks",
       "at": [3, 1],
-      "description": "Rows of collapsed bunks. Two skeletons in rusted mail stand guard at the far end, beside a footlocker.",
+      "description": "Rows of collapsed bunks, and a footlocker at the far end.",
+      "presence": {
+        "encounter": "barracks-skeletons",
+        "text": "Two skeletons in rusted mail stand guard beside it."
+      },
       "region": "cellars",
       "avoidable": true,
       "encounterId": "barracks-skeletons",
@@ -231,7 +239,7 @@
         {
           "id": "garrison-badge",
           "name": "Garrison Badge",
-          "description": "A tin badge stamped with a tower, bright from its oilcloth. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "description": "A tin badge stamped with a tower, bright from its oilcloth. Carrying it marks you as one of the garrison.",
           "kind": "key",
           "hiddenIn": "old-barrel",
           "sets": "posts-stand-aside"
@@ -766,7 +774,7 @@
           "id": "drowned-delver",
           "name": "Drowned Delver",
           "description": "A body in a delver's coat lies face down on the walkway, a pack still on its back.",
-          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver, and a page of notes gone soft with damp: \"Bought a tin badge off the pedlar. Pinned it on and walked through the guard post, and the dead man looked straight through me. Dropped the cursed thing in the cistern. Going in after it.\""
+          "discovery": "In the pack, wrapped in a wet stocking, is a little hoard of silver, and a page of notes gone soft with damp: \"Bought a tin badge off the pedlar. Kept it in my pocket and walked through the guard post, and the dead man looked straight through me. Dropped the cursed thing in the cistern. Going in after it.\""
         }
       ],
       "items": [
@@ -781,7 +789,7 @@
         {
           "id": "drowned-badge",
           "name": "Garrison Badge",
-          "description": "A tin badge stamped with a tower, green from the cistern. Pinned to a coat, it marks the wearer as one of the garrison.",
+          "description": "A tin badge stamped with a tower, green from the cistern. Carrying it marks you as one of the garrison.",
           "kind": "key",
           "hiddenIn": "black-water",
           "sets": "posts-stand-aside"
@@ -837,7 +845,7 @@
             {
               "id": "the-badge",
               "name": "the badge",
-              "reply": "\"The dead look for one thing: a tin badge with a tower on it, the garrison's. I watched a man walk through the guard post with one pinned to his coat, and the dead thing there never turned its head. Wear a badge and every post in this keep stands aside for you.\"",
+              "reply": "\"The dead look for one thing: a tin badge with a tower on it, the garrison's. I watched a man walk through the guard post with one in his pocket, and the dead thing there never turned its head. Carry a badge and every post in this keep stands aside for you.\"",
               "offeredWhile": "mags-dealt",
               "offeredUntil": "goblin-freed"
             },
@@ -961,7 +969,11 @@
     {
       "id": "hall-to-barracks",
       "between": ["gate-hall", "barracks"],
-      "description": "An arch. Bones clatter beyond it."
+      "description": "An arch.",
+      "presence": {
+        "encounter": "barracks-skeletons",
+        "text": "Bones clatter beyond it."
+      }
     },
     {
       "id": "hall-to-storeroom",
@@ -1000,7 +1012,11 @@
     {
       "id": "hall-to-kitchen",
       "between": ["gate-hall", "fallen-kitchen"],
-      "description": "A rubble-strewn arch toward daylight. Something growls beyond it."
+      "description": "A rubble-strewn arch toward daylight.",
+      "presence": {
+        "encounter": "kitchen-wolf",
+        "text": "Something growls beyond it."
+      }
     },
     {
       "id": "guard-post-to-well",
@@ -1101,7 +1117,11 @@
     {
       "id": "cistern-to-ossuary",
       "between": ["flooded-cistern", "ossuary"],
-      "description": "The walkway round the cistern, to an arch. Something taps beyond it."
+      "description": "The walkway round the cistern, to an arch.",
+      "presence": {
+        "encounter": "ossuary-rival",
+        "text": "Something taps beyond it."
+      }
     },
     {
       "id": "ossuary-to-tomb",

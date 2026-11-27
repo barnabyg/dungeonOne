@@ -64,10 +64,12 @@ cancel).
   takes the same way as going in (a door must be open; a trap on the way springs
   first), then rolls Stealth against the highest passive Perception among the
   fight's opponents. Meeting it leaves the character **unseen**: the fight has
-  not begun. Missing it starts the fight.
+  not begun, and the opponents' descriptions, written for the moment it begins,
+  wait for it; the arrival and the opponents' card name them and say they have
+  not noticed the character. Missing it starts the fight.
 - **Ambush (SRD 5.2 surprise).** Unseen, the character may ambush: every
-  opponent is surprised and rolls initiative with disadvantage. There is no
-  surprise round.
+  opponent is surprised and rolls initiative with disadvantage, and their
+  descriptions follow. There is no surprise round.
 - **Sneaking past.** Unseen, the character may leave by any open way, back the
   way it came included, or leave the adventure from an exit room. The fight is
   **bypassed**: still there, its opponents keep what they carry, and coming back

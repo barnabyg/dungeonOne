@@ -1,6 +1,7 @@
-// #530, browser → API: the opponents waiting in a room get a card at the top
-// of Here while their fight has not begun. Sneaked in unseen, it names each
-// opponent with its icon, says "Hasn't seen you" and holds the room's only
+// The opponents waiting in a room (#530), browser → API: they get a card at
+// the top of Here while their fight has not begun. Sneaked in unseen, it
+// names each opponent with its icon, holding its description for the fight
+// (#620), says "Hasn't seen you" and holds the room's only
 // Ambush, which starts the fight with them surprised and gives way to the
 // fight panel. Reacting, it shows the band in words and the band's options,
 // and a parley that moves the band updates it. The card is stronger than
@@ -100,7 +101,7 @@ test(
   `unseen, the rat's card says so and holds the only Ambush (seed ${sneakSeed})`,
   { timeout: 120000 },
   async () => {
-    const directory = await mkdtemp(join(tmpdir(), "issue-530-unseen-"));
+    const directory = await mkdtemp(join(tmpdir(), "waiting-unseen-"));
     const libraryPath = join(directory, "characters.json");
     await writeFile(libraryPath, JSON.stringify(libraryAt(1)));
     const server = await startFifthBrowserServer({
@@ -127,7 +128,8 @@ test(
       assert.equal(shown.first, "thing opponents-card");
       assert.deepEqual(shown.card, {
         state: "Hasn't seen you",
-        opponents: [{ name: rat.name, icon: true, text: rat.description }],
+        // Unseen (#620), its description waits for the fight.
+        opponents: [{ name: rat.name, icon: true, text: undefined }],
         buttons: [["ambush", "rat-cellar"]],
       });
       assert.equal(await actionButton(page, "ambush").count(), 1);
@@ -193,7 +195,7 @@ test(
   `reacting, the bandit's card shows her band and its options, and a parley moves it (seed ${parleySeed})`,
   { timeout: 120000 },
   async () => {
-    const directory = await mkdtemp(join(tmpdir(), "issue-530-reacting-"));
+    const directory = await mkdtemp(join(tmpdir(), "waiting-reacting-"));
     const libraryPath = join(directory, "characters.json");
     await writeFile(libraryPath, JSON.stringify(beaLibrary(RICH)));
     const server = await startFifthBrowserServer({

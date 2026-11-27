@@ -256,7 +256,7 @@ test(
         [
           "Toll Hall",
           "Fight with Sergeant Larrow: won.",
-          "Toll Chest: Under the day's takings lies a stoppered vial of red liquid.",
+          "Toll Chest: Under the day's takings lies a stoppered vial of red liquid. You have taken the Potion of Healing and Day's Takings.",
           "Sergeant Larrow's body: Grate Key and Sergeant Larrow's Coins",
         ].join("\n"),
       );

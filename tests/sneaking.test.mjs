@@ -1,4 +1,4 @@
-// #302: sneaking past a fight. A successful sneak leaves the character unseen
+// Sneaking past a fight (#302). A successful sneak leaves the character unseen
 // in the fight's room: it may spring an ambush, or go on through another
 // passage, leaving the fight bypassed, unresolved and met again on coming
 // back. A bypassed fight gives only the XP its module authors, once; and the
@@ -20,12 +20,14 @@ import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthEvent,
+  renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
-import { dice } from "./fixtures/engine-dice.mjs";
+import { dice, uncheckedDice } from "./fixtures/engine-dice.mjs";
 import {
+  goblinYard,
   moduleFile,
   ratRun,
   ratRunFile,
@@ -136,7 +138,7 @@ test("an ambush from unseen surprises every opponent", () => {
   assert.deepEqual(types(result.events).slice(0, 2), ["ambush", "initiative"]);
   assert.equal(
     renderFifthEvent(result.state, result.events[0]),
-    "You spring your ambush: Giant Rat is surprised and rolls initiative with disadvantage.",
+    "You spring your ambush: Giant Rat is surprised and rolls initiative with disadvantage. A rat the size of a dog rears up from the sacks, teeth bared.",
   );
   const rat = result.events[1].order.find(
     ({ combatantId }) => combatantId === "giant-rat",
@@ -479,4 +481,49 @@ test("the gate reports stealth-first beside its checks, and its XP limit counts 
     renderGateResult(ratRun, result),
     /^ {2}Stealth-first, reported \(not judged\): the level 1, 5th percentile Fighter playing stealth-first survived \d+\.\d% of 8 runs with its weakest kit, [a-z-]+ \(.*\); over every kit and level it completed \d+\.\d%, slipped past \d\.\d fights and earned \d+\.\d XP a run\.$/mu,
   );
+});
+
+// Sneaking into a fight's room (#620): while the character is unseen, its
+// opponents have not turned to face it, so the arrival and the opponents'
+// card hold their descriptions, written for the moment the fight begins.
+// Springing the ambush, or failing the sneak, shows them.
+
+const yard = createFifthRuntime(goblinYard, TEST_FIGHTER);
+const goblin = goblinYard.encounters.find(({ id }) => id === "lone-goblin")
+  .opponents[0];
+const SNEAK_CELLAR = { type: "sneak", destinationId: "cellar" };
+
+function actedIn(state, action, ...rolls) {
+  const result = yard.handleAction(
+    state,
+    action,
+    uncheckedDice(...rolls, ...Array(40).fill(10)),
+  );
+  assert.equal(result.rejection, undefined, result.rejection?.reason);
+  return result;
+}
+
+test("a successful sneak's arrival holds the opponents' descriptions (#620)", () => {
+  const sneaked = actedIn(yard.createSession(), SNEAK_CELLAR, 20);
+  const text = renderFifthResult(sneaked);
+  assert.match(text, /has not noticed you/u);
+  assert.equal(text.includes(goblin.description), false, text);
+  const waiting = yard.projectRoom(sneaked.state).waiting;
+  assert.equal(waiting.state, "unseen");
+  assert.deepEqual(
+    waiting.opponents.map(({ name, description }) => [name, description]),
+    [[goblin.name, undefined]],
+  );
+
+  // Springing the ambush shows them: the fight begins.
+  const ambushed = actedIn(sneaked.state, {
+    type: "ambush",
+    roomId: "cellar",
+  });
+  assert.ok(renderFifthResult(ambushed).includes(goblin.description));
+});
+
+test("a failed sneak's arrival shows the opponents' descriptions (#620)", () => {
+  const seen = actedIn(yard.createSession(), SNEAK_CELLAR, 1);
+  assert.ok(renderFifthResult(seen).includes(goblin.description));
 });

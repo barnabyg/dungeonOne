@@ -137,6 +137,7 @@ import {
   type FlagOutcome,
   type MetEncounter,
   type FifthPassage,
+  type Presence,
   type FifthRoom,
   type FifthTopic,
   type FifthTrap,
@@ -1231,7 +1232,10 @@ export type FifthEvent =
       roomId: string;
       name: string;
       description: string;
-      /** The descriptions of the opponents whose fight begins here. */
+      /**
+       * The descriptions of the opponents whose fight begins here: none
+       * while they have not noticed the character (#620).
+       */
       opponents: readonly string[];
       /** Their ids, in the same order. */
       opponentIds: readonly string[];
@@ -1249,6 +1253,11 @@ export type FifthEvent =
        * visit, by name: its words may still describe them.
        */
       gone?: readonly string[];
+      /**
+       * Every find its words revealed, taken on this visit (#619), by name:
+       * its words still describe them.
+       */
+      taken?: readonly string[];
     }>
   | Readonly<{
       type: "taken";
@@ -1600,6 +1609,12 @@ export type FifthEvent =
       encounterId: string;
       room: string;
       surprised: readonly string[];
+      /**
+       * The opponents' descriptions, held from the arrival while they had
+       * not noticed the character (#620), and their ids in the same order.
+       */
+      opponents?: readonly string[];
+      opponentIds?: readonly string[];
     }>
   /**
    * Slipping out of a fight's room unseen (#302): the fight is bypassed,
@@ -1904,6 +1919,14 @@ function goneText(names: readonly string[]): string {
   return names.length === 1
     ? `The ${names[0]!} is gone: you carried it off on an earlier visit.`
     : `The ${listed(names, "and")} are gone: you carried them off on an earlier visit.`;
+}
+
+/**
+ * What a feature's words are followed by once every find they revealed is
+ * taken on this visit (#619): they still describe the finds.
+ */
+function takenText(names: readonly string[]): string {
+  return `You have taken the ${listed(names, "and")}.`;
 }
 
 const EMPTY_PARAMETERS = {
@@ -3415,7 +3438,10 @@ export function renderFifthEvent(
       }`;
     }
     case "ambush":
-      return `You spring your ambush: ${listed(event.surprised, "and")} ${event.surprised.length === 1 ? "is surprised and rolls" : "are surprised and roll"} initiative with disadvantage.`;
+      return [
+        `You spring your ambush: ${listed(event.surprised, "and")} ${event.surprised.length === 1 ? "is surprised and rolls" : "are surprised and roll"} initiative with disadvantage.`,
+        ...(event.opponents ?? []),
+      ].join(" ");
     case "reaction": {
       const { roll } = event;
       const one = event.reactors.length === 1;
@@ -3492,10 +3518,13 @@ export function renderFifthEvent(
       const described = [`${event.name}: ${event.description}`, event.discovery]
         .filter(Boolean)
         .join(" ");
-      const said =
-        event.gone === undefined
-          ? described
-          : `${described} ${goneText(event.gone)}`;
+      const said = [
+        described,
+        event.gone === undefined ? undefined : goneText(event.gone),
+        event.taken === undefined ? undefined : takenText(event.taken),
+      ]
+        .filter(Boolean)
+        .join(" ");
       if (event.found.length === 0) {
         return said;
       }
@@ -3953,10 +3982,12 @@ function lineIcons(
   };
   switch (event.type) {
     case "entered":
-    case "arrived": {
-      let at = text.length - event.opponents.join(" ").length;
-      event.opponents.forEach((description, index) => {
-        mark(at, lookup.opponent(state, event.opponentIds[index]!));
+    case "arrived":
+    case "ambush": {
+      const described = event.opponents ?? [];
+      let at = text.length - described.join(" ").length;
+      described.forEach((description, index) => {
+        mark(at, lookup.opponent(state, event.opponentIds![index]!));
         at += description.length + 1;
       });
       break;
@@ -5018,13 +5049,19 @@ export type RoomView = Readonly<{
   /**
    * The encounter waiting here before its fight begins (#530): the
    * character unseen by it, or its opponents reacting, by the reaction's
-   * band as a parley left it. Its standing opponents, each with its icon. A
+   * band as a parley left it. Its standing opponents, each with its icon,
+   * and its description once they have noticed the character (#620). A
    * lurking encounter's opponents stay hidden until they spring.
    */
   waiting?: Readonly<{
     id: string;
     state: "unseen" | ReactionBand;
-    opponents: readonly (Named & Readonly<{ icon: GameIconId }>)[];
+    opponents: readonly Readonly<{
+      id: string;
+      name: string;
+      description?: string;
+      icon: GameIconId;
+    }>[];
   }>;
   /**
    * Creatures to talk to, with what each topic drew from them so far, and
@@ -6923,6 +6960,23 @@ export function createFifthRuntime(
     );
 
   /**
+   * The finds a feature's words revealed, by name, once every one of them
+   * is taken on this visit (#619); none while any is still there. A checked
+   * feature's are those its band revealed.
+   */
+  const takenFrom = (
+    state: FifthState,
+    featureId: string,
+  ): readonly string[] => {
+    const finds = hiddenIn(state, featureId, true).filter(
+      (item) => !hasCheck(featureId) || revealedIn(state).items.has(item.id),
+    );
+    return finds.length > 0 && finds.every(({ id }) => foundHere(state, id))
+      ? finds.map(({ name }) => name)
+      : [];
+  };
+
+  /**
    * Whether an item has been offered by a surrendered opponent (#238): the
    * topic that gives it has been answered with its reply.
    */
@@ -6990,11 +7044,44 @@ export function createFifthRuntime(
     (passage.closeWhen !== undefined &&
       state.flags.includes(passage.closeWhen)) ||
     (passage.openWhen !== undefined && !state.flags.includes(passage.openWhen));
+  /**
+   * Whether encounter `id` is unsettled and in one of `roomIds` now (#621),
+   * for the words of its presence.
+   */
+  const presentIn = (
+    state: FifthState,
+    id: string,
+    roomIds: readonly string[],
+  ) =>
+    !settled(state, id) &&
+    roomIds.some((roomId) => encounterIn(state, roomId)?.id === id);
+  /** `description` with the words of `presence` while they hold (#621). */
+  const withPresence = (
+    state: FifthState,
+    description: string,
+    presence: Presence | undefined,
+    roomIds: readonly string[],
+  ) =>
+    presence !== undefined && presentIn(state, presence.encounter, roomIds)
+      ? `${description} ${presence.text}`
+      : description;
+  /** A room's words now: with its encounter's presence (#621) nearby. */
+  const roomWords = (state: FifthState, place: FifthRoom) =>
+    withPresence(state, place.description, place.presence, [
+      place.id,
+      ...(passagesOut.get(place.id) ?? []).map(({ to }) => to),
+    ]);
+  /**
+   * A passage's words, from the character's side, to room `to`: with its
+   * encounter's presence (#621) while it is beyond, in room `to`.
+   */
+  const passageWords = (state: FifthState, passage: FifthPassage, to: string) =>
+    withPresence(state, passage.description, passage.presence, [to]);
   const exits = (state: FifthState): readonly Named[] =>
     ways(state).map(({ passage, to }) => ({
       id: to,
       name: roomById(to).name,
-      description: passage.description,
+      description: passageWords(state, passage, to),
     }));
   /** The way from the character's room to the next room, `to` (#458). */
   const directionTo = (state: FifthState, to: string) =>
@@ -9542,7 +9629,7 @@ export function createFifthRuntime(
     const next: FifthState = lurked.hidden
       ? cleared(lurked.state, "unseenBy")
       : lurked.state;
-    let description = destination.description;
+    let description = roomWords(next, destination);
     if (state.visitedRoomIds.includes(destination.id)) {
       const remembered = describedFeatures(next).findLast(
         ({ discovery }) => discovery !== undefined,
@@ -9566,8 +9653,14 @@ export function createFifthRuntime(
         roomId: destination.id,
         name: destination.name,
         description,
-        opponents: metHere.map(({ description }) => description),
-        opponentIds: metHere.map(({ id }) => id),
+        // Unnoticed (#620), the opponents have not turned to face the
+        // character: their descriptions wait for the fight.
+        ...(sneakedIn && !lurked.hidden
+          ? { opponents: [], opponentIds: [] }
+          : {
+              opponents: metHere.map(({ description }) => description),
+              opponentIds: metHere.map(({ id }) => id),
+            }),
       },
       ...(lurked.event === undefined ? [] : [lurked.event]),
     ];
@@ -10294,6 +10387,9 @@ export function createFifthRuntime(
               encounterId: fight.id,
               room: room(state).name,
               surprised: opponents(state).map(({ name }) => name),
+              // Held from the arrival while unseen (#620).
+              opponents: standing(state).map(({ description }) => description),
+              opponentIds: standing(state).map(({ id }) => id),
             },
           ],
           { opponents: true },
@@ -11011,12 +11107,14 @@ export function createFifthRuntime(
             const discovery = revealedIn(state).discoveries.has(feature.id)
               ? feature.discovery
               : undefined;
+            const taken = takenFrom(state, feature.id);
             return {
               state,
               events: [
                 {
                   ...looked,
                   ...(discovery === undefined ? {} : { discovery }),
+                  ...(taken.length === 0 ? {} : { taken }),
                 },
               ],
             };
@@ -11082,6 +11180,9 @@ export function createFifthRuntime(
                   (item) => item.hiddenIn === feature.id && carriedOff(item),
                 )
                 .map(({ name }) => name);
+          // What was found here and taken on this visit (#619).
+          const taken =
+            feature.body || first ? [] : takenFrom(state, feature.id);
           return {
             state: first
               ? {
@@ -11098,6 +11199,7 @@ export function createFifthRuntime(
                 ...(discovery === undefined ? {} : { discovery }),
                 found: found.map(({ name }) => name),
                 ...(gone.length === 0 ? {} : { gone }),
+                ...(taken.length === 0 ? {} : { taken }),
               },
             ],
           };
@@ -12557,11 +12659,18 @@ export function createFifthRuntime(
           : revealedIn(state).discoveries.has(id)
             ? discovery
             : undefined;
+      // Its words may describe finds taken since (#619).
+      const taken = found === undefined || body ? [] : takenFrom(state, id);
       return {
         id,
         name,
         description,
-        ...(found === undefined ? {} : { discovery: found }),
+        ...(found === undefined
+          ? {}
+          : {
+              discovery:
+                taken.length === 0 ? found : `${found} ${takenText(taken)}`,
+            }),
       };
     });
   const named = ({ id, name, description }: Named): Named => ({
@@ -12608,8 +12717,12 @@ export function createFifthRuntime(
           waiting: {
             id: fight!.id,
             state: unseen ? "unseen" : band!,
+            // Unseen (#620), an opponent's description, written for the
+            // fight, waits for it.
             opponents: standing(state).map((opponent) => ({
-              ...named(opponent),
+              ...(unseen
+                ? { id: opponent.id, name: opponent.name }
+                : named(opponent)),
               icon: opponent.icon,
             })),
           },
@@ -12639,7 +12752,7 @@ export function createFifthRuntime(
       room: {
         id: current.id,
         name: current.name,
-        description: current.description,
+        description: roomWords(state, current),
         ...regionOf(current),
         features: describedFeatures(state).map(
           ({ id, name, description, discovery }) => ({
@@ -13204,7 +13317,7 @@ export function createFifthRuntime(
     return {
       id: current.id,
       name: current.name,
-      description: current.description,
+      description: roomWords(state, current),
       ...(isRestSite(current) ? { restSite: true as const } : {}),
       ...regionOf(current),
       ...backdropOf(current),
@@ -13212,14 +13325,10 @@ export function createFifthRuntime(
         ? {}
         : { alarm: "The alarm is raised." }),
       exits: ways(state).map(
-        ({
-          passage,
-          passage: { hidden, openWhen, door, trap, description },
-          to,
-        }) => ({
+        ({ passage, passage: { hidden, openWhen, door, trap }, to }) => ({
           id: to,
           name: roomById(to).name,
-          description,
+          description: passageWords(state, passage, to),
           direction: directionTo(state, to),
           ...(to === state.previousRoomId ? { cameFrom: true as const } : {}),
           ...(state.visitedRoomIds.includes(to)

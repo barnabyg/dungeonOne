@@ -95,6 +95,10 @@ with each discarded die struck through.
   still describe it, so examining the feature that hid it says the find is gone
   and why ("The Lost Purse is gone: you carried it off on an earlier visit."),
   as does a check's band that would have revealed it. A body says nothing of it.
+- **Taken on this visit.** Once every find a feature's words revealed has been
+  taken, its words are followed by "You have taken the Garrison Badge." in the
+  examine result, on its card and in the line on coming back. A feature with a
+  find still there says nothing of the sort.
 - **XP rate.** Every award credited when the adventure settles (encounters,
   partial XP, sparing and ending XP) is multiplied by the XP rate setting (×
   0.5, × 1 by default, × 1.5 or × 2) and rounded down, each award on its own.

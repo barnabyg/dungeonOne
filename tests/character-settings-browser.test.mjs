@@ -111,10 +111,12 @@ test(
         await page.locator("#method-hint").textContent(),
         "Point buy: spend up to 27 points on scores from 8 to 15. Choose a class, buy your ability scores, then make your other choices.",
       );
-      assert.equal(
-        await page.locator("#points-status").textContent(),
-        "Points spent: 27 of 27.",
-      );
+      // The page shows "Points spent: …" until the server has priced the
+      // scores, so wait for the answer.
+      await page
+        .locator("#points-status")
+        .filter({ hasText: "Points spent: 27 of 27." })
+        .waitFor();
       assert.deepEqual(
         await page.locator("#place-wisdom option").allTextContents(),
         [
