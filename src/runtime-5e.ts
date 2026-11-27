@@ -3425,7 +3425,7 @@ export function renderFifthEvent(
           : `You try to sneak into the ${event.room}. ${check} ${watcher.name} notices you (passive Perception ${watcher.passivePerception}): your foes are not surprised.`;
       }
       return roll.success
-        ? `You sneak into the ${event.room}. ${check} ${unaware}. Ambush ${one ? "it" : "them"}, and ${one ? "it is" : "they are"} surprised; or slip past through another way.`
+        ? `You sneak into the ${event.room}. ${check} ${unaware}. Ambush ${one ? "it" : "them"}, and ${one ? "it is surprised and rolls" : "they are surprised and roll"} initiative with disadvantage; or slip past through another way.`
         : `You try to sneak into the ${event.room}. ${check} ${watcher.name} notices you (passive Perception ${watcher.passivePerception}): no one is surprised.`;
     }
     case "lurk": {

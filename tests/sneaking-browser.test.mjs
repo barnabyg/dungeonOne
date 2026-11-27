@@ -1,4 +1,4 @@
-// #301, browser → API → storage: Ada sneaks into the rat cellar and the
+// Sneaking (#301), browser → API → storage: Ada sneaks into the rat cellar and the
 // goblin's den, sees each surprise card and the surprised opponents tagged
 // in the initiative table, wins, and the library credits what she earned.
 import assert from "node:assert/strict";
@@ -71,7 +71,7 @@ test(
         if (action === "sneak") {
           assert.match(
             card,
-            /^You sneak into the [^\n]+\. Stealth check: d20 \d+ \+ 2 = \d+ against DC \d+\. Success\. The best passive Perception is [^\n]+: [^\n]+ has not noticed you\. Ambush it, and it is surprised; or slip past through another way\./u,
+            /^You sneak into the [^\n]+\. Stealth check: d20 \d+ \+ 2 = \d+ against DC \d+\. Success\. The best passive Perception is [^\n]+: [^\n]+ has not noticed you\. Ambush it, and it is surprised and rolls initiative with disadvantage; or slip past through another way\./u,
           );
           continue;
         }
