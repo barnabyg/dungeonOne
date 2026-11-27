@@ -26,8 +26,26 @@ import {
 } from "./text-view-5e.js";
 import { FifthTraceRun, type FifthTrace } from "./trace-5e.js";
 
-export const BLIND_PLAYER_PROMPT_VERSION = "blind-player-v1";
-export const BLIND_PLAY_DEFAULT_MAX_ACTIONS = 150;
+export const BLIND_PLAYER_PROMPT_VERSION = "blind-player-v2";
+/** The steps a run is given for each of the module's rooms (#625)... */
+export const BLIND_PLAY_STEPS_PER_ROOM = 15;
+/** ...and the fewest it is given, however small the module. */
+export const BLIND_PLAY_MIN_MAX_ACTIONS = 150;
+/**
+ * After this many round trips in a row between the same two rooms, the
+ * player is told it is going back and forth (#623), once...
+ */
+export const BLIND_PLAY_LOOP_WARNING = 3;
+/** ...and after this many the run stops as looping. */
+export const BLIND_PLAY_LOOP_STOP = 6;
+
+/** The most steps a run of `adventure` is given unless told otherwise (#625). */
+export function blindPlayDefaultMaxActions(adventure: FifthAdventure): number {
+  return Math.max(
+    BLIND_PLAY_MIN_MAX_ACTIONS,
+    BLIND_PLAY_STEPS_PER_ROOM * adventure.rooms.length,
+  );
+}
 /** How many of the latest steps the player is shown again, word for word. */
 const RECENT_STEPS = 6;
 const MAX_NOTES = 1_200;
@@ -35,7 +53,7 @@ const MAX_FIELD = 600;
 
 export const BLIND_PLAYER_PROMPT = [
   "You are playing a text adventure game for the first time. You know nothing about it beyond what the game shows you, and you play one character, alone.",
-  "Each turn you are shown the job you were given, your own notes, what happened in your last few steps, and the room as it stands with a numbered list of actions. Choose one action by its number. An action marked with a dash and a reason is not available.",
+  "Each turn you are shown the job you were given, your own notes, the rooms you know with how often you have entered each and the ways on you have not yet taken from it, what happened in your last few steps, what you carry, and the room as it stands with a numbered list of actions. Choose one action by its number. An Examine you have already made is marked as such. An action marked with a dash and a reason is not available.",
   "Play as a curious, sensible person would: try to understand the place and the people in it, look after your character, and decide for yourself what is worth doing. You may leave when you judge it right to.",
   "With each choice, keep an honest journal. Say what you now think is going on here, and what you want next and why. If anything confused you, contradicted something you were told, promised something that was not there, or seemed to have no purpose, say exactly what; if nothing did, leave that empty. Say whether this last step told you anything new.",
   "Your notes are your only memory beyond the last few steps. Rewrite them each turn to hold what you have learned, what you carry that matters, and what you mean to do.",
@@ -78,8 +96,12 @@ export type BlindPlayReport = Readonly<{
   character: Readonly<{ name: string; class: string; level: number }>;
   seed: number;
   model?: Readonly<{ provider: string; model: string }>;
+  /** The most steps the run was given. */
+  maxActions: number;
   /** Why the run stopped. */
-  stopped: "ended" | "action-limit" | "no-action" | "model-error";
+  stopped: "ended" | "action-limit" | "looping" | "no-action" | "model-error";
+  /** Where the run went round in circles, when that stopped it (#623). */
+  loop?: BlindLoop;
   /** The model's error, when that is what stopped the run. */
   error?: string;
   ending?: Readonly<{ id: string; title: string; kind: string }>;
@@ -94,21 +116,133 @@ export type BlindPlayReport = Readonly<{
   trace: FifthTrace;
 }>;
 
+/**
+ * Round trips in a row between the same two rooms (#623): the rooms, how
+ * many, and the steps from the first move of the run to the last.
+ */
+export type BlindLoop = Readonly<{
+  between: readonly [string, string];
+  roundTrips: number;
+  fromStep: number;
+  toStep: number;
+}>;
+
 export type BlindPlayOptions = Readonly<{
   adventure: FifthAdventure;
   character: CharacterSheet;
   seed: number;
   model: StructuredModel;
+  /** The most steps; by default `blindPlayDefaultMaxActions(adventure)`. */
   maxActions?: number;
   settings?: GameSettings;
 }>;
 
 /**
+ * Where the player has been (#623): each room entered, in the order first
+ * entered, with how often, and the rooms it has gone on to from each.
+ */
+type Travels = {
+  /** The rooms entered in order, a room again each time it is re-entered. */
+  readonly entries: { id: string; name: string; step: number }[];
+  /** The ways on seen in each room, by the room each leads to. */
+  readonly exits: Map<
+    string,
+    readonly Readonly<{ id: string; name: string }>[]
+  >;
+  /** The rooms gone on to from each room. */
+  readonly taken: Map<string, Set<string>>;
+};
+
+/** "6 round trips between Alcove and Cellar, steps 2–13" (#623). */
+export function describeLoop({
+  between: [first, second],
+  roundTrips: count,
+  fromStep,
+  toStep,
+}: BlindLoop): string {
+  return `${count} round trips between ${first} and ${second}, steps ${fromStep}–${toStep}`;
+}
+
+/**
+ * The round trips in a row between the latest two rooms entered (#623),
+ * and the index in `entries` of the room the run of them starts from.
+ */
+function roundTrips(entries: Travels["entries"]): {
+  count: number;
+  start: number;
+} {
+  const n = entries.length;
+  if (n < 3) {
+    return { count: 0, start: n - 1 };
+  }
+  const latest = entries[n - 1]!.id;
+  const before = entries[n - 2]!.id;
+  let length = 2;
+  while (
+    length < n &&
+    entries[n - 1 - length]!.id === (length % 2 === 0 ? latest : before)
+  ) {
+    length += 1;
+  }
+  return { count: Math.floor((length - 1) / 2), start: n - length };
+}
+
+/** The rooms the player knows, as its view lists them (#623). */
+function knownRooms(travels: Travels, here: string): string[] {
+  const rooms = [...new Map(travels.entries.map(({ id, name }) => [id, name]))];
+  return [
+    "Rooms you know:",
+    ...rooms.map(([id, name]) => {
+      const entered = travels.entries.filter((entry) => entry.id === id).length;
+      const taken = travels.taken.get(id) ?? new Set<string>();
+      const untaken = (travels.exits.get(id) ?? []).filter(
+        (exit) => !taken.has(exit.id),
+      );
+      return `  ${name}${id === here ? " (you are here)" : ""}: entered ${entered === 1 ? "once" : `${entered} times`}; ${
+        untaken.length === 0
+          ? "every way on taken"
+          : `not yet taken: ${untaken.map((exit) => exit.name).join(", ")}`
+      }`;
+    }),
+  ];
+}
+
+/**
+ * What the character holds, as the page's "You carry" lists it (#624): its
+ * gear worn, in hand and stowed, its ammunition, and everything else it
+ * carries, scrolls, wands and caster items among them, each with what the
+ * page says of it.
+ */
+function carrying(session: FifthSession): string[] {
+  const { gear, inventory } = session.runtime.projectRoom(session.state);
+  const shown = (
+    items: readonly Readonly<{ name: string; magic?: string }>[],
+    state: string,
+  ) =>
+    items.map(
+      ({ name, magic }) =>
+        `  ${name} (${state})${magic === undefined ? "" : `: ${magic}`}`,
+    );
+  const lines = [
+    ...shown(gear.worn, "worn"),
+    ...shown(gear.held, "in hand"),
+    ...shown(gear.stowed, "stowed"),
+    ...gear.ammunition.map(({ name, count }) => `  ${name} (${count})`),
+    ...inventory.map(
+      ({ name, description, value, charges }) =>
+        `  ${name}${value === undefined ? "" : ` (worth ${value})`}${charges === undefined ? "" : ` (${charges})`}: ${description}`,
+    ),
+  ];
+  return lines.length === 0 ? [] : ["You carry:", ...lines];
+}
+
+/**
  * What the page shows of the room as it stands: its description, the ways
  * on, each feature with what examining it revealed, who is here and what
- * lies here; then the status line and the action bar.
+ * lies here; then the rooms the player knows, what it carries, the status
+ * line and the action bar.
  */
-function screen(session: FifthSession): string {
+function screen(session: FifthSession, travels: Travels): string {
   const room = session.runtime.projectRoom(session.state);
   const listed = (
     title: string,
@@ -144,7 +278,9 @@ function screen(session: FifthSession): string {
       "Lying here:",
       room.items.map(({ name, description }) => ({ name, text: description })),
     ),
-    renderView(session),
+    ...knownRooms(travels, room.id),
+    ...carrying(session),
+    renderView(session, { blind: true }),
   ].join("\n");
 }
 
@@ -242,7 +378,8 @@ export async function runBlindPlay(
   options: BlindPlayOptions,
 ): Promise<BlindPlayReport> {
   const { adventure, character, seed, model } = options;
-  const maxActions = options.maxActions ?? BLIND_PLAY_DEFAULT_MAX_ACTIONS;
+  const maxActions =
+    options.maxActions ?? blindPlayDefaultMaxActions(adventure);
   if (!Number.isInteger(maxActions) || maxActions < 1) {
     throw new Error("maxActions must be a whole number of at least 1.");
   }
@@ -261,14 +398,25 @@ export async function runBlindPlay(
     `Your job, as you were told it: ${adventure.objective}`,
     ...session.history[0]!.cards.map((card) => renderCard(card, false)),
   ].join("\n");
-  const roomName = () => runtime.projectRoom(session.state).name;
+  const here = () => runtime.projectRoom(session.state);
+  const roomName = () => here().name;
   const steps: BlindStep[] = [];
   const recent: string[] = [];
   const roomsVisited = [roomName()];
   const usage = { calls: 0, inputTokens: 0, outputTokens: 0 };
+  const travels: Travels = {
+    entries: [{ id: here().id, name: roomName(), step: 0 }],
+    exits: new Map(),
+    taken: new Map(),
+  };
   let notes = "";
   let stopped: BlindPlayReport["stopped"] = "ended";
   let error: string | undefined;
+  let loop: BlindLoop | undefined;
+  /** A warning that the player is going back and forth, for its next view. */
+  let warning: string | undefined;
+  /** Where the run of round trips last warned of began, in `entries`. */
+  let warnedFrom: number | undefined;
 
   const ask = async (request: StructuredRequest) => {
     const answer = await model.ask(request);
@@ -300,9 +448,20 @@ export async function runBlindPlay(
       stopped = "no-action";
       break;
     }
+    const before = here();
+    travels.exits.set(
+      before.id,
+      before.exits.map(({ id, name }) => ({ id, name })),
+    );
+    const view = screen(session, travels);
     let answer: unknown;
     try {
-      answer = await ask(decisionRequest(shown(screen(session)), choices));
+      answer = await ask(
+        decisionRequest(
+          shown(warning === undefined ? view : `${warning}\n\n${view}`),
+          choices,
+        ),
+      );
     } catch (failure) {
       stopped = "model-error";
       error = (failure as Error).message;
@@ -314,13 +473,14 @@ export async function runBlindPlay(
       error = `The player chose ${JSON.stringify(choice)}, which is not an available action.`;
       break;
     }
+    warning = undefined;
     const decided = answer as Record<string, unknown>;
-    const view = views[choice - 1]!;
-    const room = roomName();
+    const chosen = views[choice - 1]!;
+    const room = before.name;
     const fighting =
       runtime.projectFight(session.state).encounter !== undefined;
-    const action = actionText(view);
-    const { card } = run.click(runtime.actionOf(view)!);
+    const action = actionText(chosen);
+    const { card } = run.click(runtime.actionOf(chosen)!);
     const result = renderCard(card, false);
     notes = clipped(decided.notes, MAX_NOTES);
     steps.push({
@@ -338,11 +498,41 @@ export async function runBlindPlay(
     if (recent.length > RECENT_STEPS) {
       recent.shift();
     }
-    if (
-      session.state.status === "playing" &&
-      !roomsVisited.includes(roomName())
-    ) {
+    if (session.state.status !== "playing") {
+      continue;
+    }
+    if (!roomsVisited.includes(roomName())) {
       roomsVisited.push(roomName());
+    }
+    const after = here();
+    if (after.id === before.id) {
+      continue;
+    }
+    const taken = travels.taken.get(before.id) ?? new Set<string>();
+    travels.taken.set(before.id, taken.add(after.id));
+    travels.entries.push({
+      id: after.id,
+      name: after.name,
+      step: steps.length,
+    });
+    const trips = roundTrips(travels.entries);
+    const [first, second] = [
+      travels.entries[trips.start]!,
+      travels.entries[trips.start + 1]!,
+    ];
+    if (trips.count >= BLIND_PLAY_LOOP_STOP) {
+      stopped = "looping";
+      loop = {
+        between: [first.name, second.name],
+        roundTrips: trips.count,
+        fromStep: second.step,
+        toStep: steps.length,
+      };
+      break;
+    }
+    if (trips.count >= BLIND_PLAY_LOOP_WARNING && warnedFrom !== trips.start) {
+      warnedFrom = trips.start;
+      warning = `Take note: you have gone back and forth between ${first.name} and ${second.name} ${trips.count} times in a row.`;
     }
   }
 
@@ -358,7 +548,9 @@ export async function runBlindPlay(
           shown(
             ended
               ? renderEnding(session)
-              : `You were stopped after ${steps.length} steps, before the adventure ended.`,
+              : loop !== undefined
+                ? `You were stopped after ${steps.length} steps, going back and forth between ${loop.between[0]} and ${loop.between[1]}, before the adventure ended.`
+                : `You were stopped after ${steps.length} steps, before the adventure ended.`,
           ),
         ),
       );
@@ -387,7 +579,9 @@ export async function runBlindPlay(
     },
     seed,
     ...(model.identity === undefined ? {} : { model: model.identity }),
+    maxActions,
     stopped,
+    ...(loop === undefined ? {} : { loop }),
     ...(error === undefined ? {} : { error }),
     ...(ended && ending !== undefined
       ? { ending: { id: ending.id, title: ending.title, kind: ending.kind } }
@@ -404,6 +598,7 @@ export async function runBlindPlay(
 const STOPPED: Readonly<Record<BlindPlayReport["stopped"], string>> = {
   ended: "The adventure ended.",
   "action-limit": "Stopped at the action limit, before any ending.",
+  looping: "Stopped: the player was going round in circles, before any ending.",
   "no-action": "Stopped: the game offered no available action.",
   "model-error": "Stopped: the player model failed.",
 };
@@ -440,9 +635,9 @@ export function renderBlindPlayReport(report: BlindPlayReport): string {
     "",
     `- **Player:** ${report.model === undefined ? "a scripted player" : `${report.model.model} (${report.model.provider})`}, prompt ${report.promptVersion}`,
     `- **Character:** ${report.character.name}, a level-${report.character.level} ${report.character.class}, seed ${report.seed}`,
-    `- **How it stopped:** ${STOPPED[report.stopped]}${report.error === undefined ? "" : ` ${report.error}`}`,
+    `- **How it stopped:** ${STOPPED[report.stopped]}${report.loop === undefined ? "" : ` ${describeLoop(report.loop)}.`}${report.error === undefined ? "" : ` ${report.error}`}`,
     `- **Ending:** ${report.ending === undefined ? "none" : `${report.ending.title} (${report.ending.kind})`}`,
-    `- **Steps:** ${steps.length}, in ${report.roomsVisited.length} of ${report.module.rooms} rooms`,
+    `- **Steps:** ${steps.length} of at most ${report.maxActions}, in ${report.roomsVisited.length} of ${report.module.rooms} rooms`,
     `- **Model use:** ${report.usage.calls} calls, ${report.usage.inputTokens} tokens in, ${report.usage.outputTokens} out`,
     "",
     "## What the player made of it",

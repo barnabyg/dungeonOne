@@ -10,13 +10,15 @@ import { join } from "node:path";
 
 import {
   BLIND_PLAYER_PROMPT,
+  blindPlayDefaultMaxActions,
   renderBlindPlayReport,
   runBlindPlay,
 } from "../dist/blind-play-5e.js";
 import { createOpenAiStructuredModel } from "../dist/openai-structured-model.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { verifyFifthTraceFile, writeFifthTrace } from "../dist/trace-5e.js";
-import { goblinYard } from "./fixtures/modules.mjs";
+import { goblinYard, ratlessTunnels } from "./fixtures/modules.mjs";
+import { scrollBarrow } from "./fixtures/scroll-barrow.mjs";
 
 /**
  * A player that takes, in order, the action each pattern names on the
@@ -241,6 +243,116 @@ test("the report leads with what the player made of it, where it was puzzled and
   );
   assert.match(text, /- \*\*Inn Yard:\*\* 1 of 3 steps/u);
   assert.match(text, /^### 1\. Inn Yard: Examine Water Butt$/mu);
+});
+
+// Where the player has been, and going round in circles (#623).
+
+const ALCOVE = /(\d+)\. Go to Alcove/u;
+const STAIR = /(\d+)\. Go to Foot of the Stair/u;
+/** `trips` round trips from the Foot of the Stair to the Alcove and back. */
+const backAndForth = (trips) =>
+  Array.from({ length: trips }, () => [ALCOVE, STAIR]).flat();
+
+const tunnels = (model, options = {}) =>
+  play(model, { adventure: ratlessTunnels, ...options });
+
+test("the player is shown the rooms it knows, how often it entered each and the ways on it has not taken (#623)", async () => {
+  const model = scriptedPlayer(backAndForth(2));
+  await tunnels(model, { maxActions: 3 });
+  assert.ok(
+    model.requests[0].input.includes(
+      "Rooms you know:\n  Foot of the Stair (you are here): entered once; not yet taken: Alcove, Rat-Gnawed Cellar\n",
+    ),
+  );
+  const third = model.requests[2].input;
+  assert.ok(
+    third.includes(
+      "Rooms you know:\n  Foot of the Stair (you are here): entered 2 times; not yet taken: Rat-Gnawed Cellar\n  Alcove: entered once; every way on taken\n",
+    ),
+    third,
+  );
+});
+
+test("three round trips between two rooms warn the player once, in its next view (#623)", async () => {
+  const model = scriptedPlayer(backAndForth(4));
+  const report = await tunnels(model, { maxActions: 8 });
+  const warning =
+    "Take note: you have gone back and forth between Foot of the Stair and Alcove 3 times in a row.";
+  assert.deepEqual(
+    model.requests
+      .filter(({ name }) => name === "play")
+      .map(({ input }) => input.includes(warning)),
+    [false, false, false, false, false, false, true, false],
+  );
+  assert.equal(report.stopped, "action-limit");
+});
+
+test("six round trips stop the run as looping, and the report says where (#623)", async () => {
+  const model = scriptedPlayer([
+    /(\d+)\. Examine Rusted Lantern/u,
+    ...backAndForth(6),
+  ]);
+  const report = await tunnels(model);
+  // The moves begin at the second step; the twelfth makes six round trips.
+  assert.equal(report.stopped, "looping");
+  assert.deepEqual(report.loop, {
+    between: ["Foot of the Stair", "Alcove"],
+    roundTrips: 6,
+    fromStep: 2,
+    toStep: 13,
+  });
+  assert.equal(report.steps.length, 13);
+  assert.match(
+    model.requests.at(-1).input,
+    /You were stopped after 13 steps, going back and forth between Foot of the Stair and Alcove/u,
+  );
+  assert.match(
+    renderBlindPlayReport(report),
+    /\*\*How it stopped:\*\* Stopped: the player was going round in circles, before any ending\. 6 round trips between Foot of the Stair and Alcove, steps 2–13\./u,
+  );
+});
+
+// What the page shows that the command-line adapter does not (#624).
+
+test("the player is shown what it carries as the page lists it, and an Examine already made is marked (#624)", async () => {
+  const model = scriptedPlayer([
+    /(\d+)\. Examine Scratched Lintel/u,
+    /(\d+)\. Take Rolled Parchment/u,
+    /(\d+)\. Examine Scratched Lintel/u,
+  ]);
+  await play(model, { adventure: scrollBarrow, maxActions: 3 });
+  const [first, , third] = model.requests;
+  assert.ok(
+    first.input.includes(
+      "You carry:\n  Leather armour (worn)\n  Mace (in hand)\n==",
+    ),
+  );
+  assert.ok(first.input.includes(". Examine Scratched Lintel\n"));
+  assert.match(
+    third.input,
+    /\n {2}Spell Scroll \(Mage Armor\): A spell scroll of Mage Armor \(1st level\)/u,
+  );
+  assert.match(
+    third.input,
+    /\d+\. Examine Scratched Lintel \(already examined\)\n/u,
+  );
+  // The carried list replaces the command-line adapter's own line.
+  assert.doesNotMatch(third.input, /^Carrying:/mu);
+});
+
+// How many steps a run is given (#625).
+
+test("a run is given 15 steps a room, at least 150, unless --max-actions says otherwise (#625)", async () => {
+  const rooms = (count) => ({ rooms: Array.from({ length: count }) });
+  assert.equal(blindPlayDefaultMaxActions(rooms(2)), 150);
+  assert.equal(blindPlayDefaultMaxActions(rooms(10)), 150);
+  assert.equal(blindPlayDefaultMaxActions(rooms(16)), 240);
+  assert.equal(blindPlayDefaultMaxActions(rooms(24)), 360);
+  const given = await play(scriptedPlayer([WATER_BUTT]), { maxActions: 1 });
+  assert.equal(given.maxActions, 1);
+  assert.match(renderBlindPlayReport(given), /\*\*Steps:\*\* 1 of at most 1,/u);
+  const fallback = await play(scriptedPlayer(TO_THE_END));
+  assert.equal(fallback.maxActions, 150);
 });
 
 // The provider adapter, with a stand-in client.
