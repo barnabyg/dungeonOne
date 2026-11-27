@@ -166,9 +166,15 @@ steps tell the player nothing.
   the loop with a scripted player.
 - **What the player sees.** The job as told, the room as the page shows it (its
   description, ways on, features with what examining revealed, creatures and
-  items), the action bar, its last six steps and its own notes. The AI DM is
-  off, so the module's own words are what is tested. It chooses one available
-  action a turn.
+  items), the rooms it knows with how often it has entered each and the ways
+  on it has not yet taken from it, what it carries as the page's "You carry"
+  lists it, the action bar with an Examine already made marked, its last six
+  steps and its own notes. The AI DM is off, so the module's own words are
+  what is tested. It chooses one available action a turn.
+- **Going round in circles.** After three round trips in a row between the
+  same two rooms the player is told so, once; after six the run stops as
+  `looping`, and the report names the rooms and the steps. Only moves count:
+  examining, taking or fighting between them does not break the run.
 - **The journal.** With each choice the player says what it thinks is going on,
   what it wants next and why, what puzzled it, and whether its last step told
   it anything new. At the end it is asked what was really going on, why it
@@ -182,4 +188,5 @@ steps tell the player nothing.
   three before changing a module on what one says.
 - **The character** is the test Fighter at `--level` (the module's lowest
   recommended level unless given), or the first character in `--library`. A
-  run stops at an ending or after `--max-actions` steps (150 unless given).
+  run stops at an ending, on looping, or after `--max-actions` steps: unless
+  given, 15 a room and at least 150.

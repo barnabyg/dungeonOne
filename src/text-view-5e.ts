@@ -135,8 +135,17 @@ export function actionText({
   return `${retry === undefined ? "" : "Try again: "}${ACTION_LABELS[action]}${mode === undefined ? "" : `(${mode}) at `}${spell === undefined ? "" : `${spell.name}${spell.damageType === undefined ? "" : ` ${spell.damageTypeUse === "dealt" ? "of" : "against"} ${spell.damageType}`}${spell.curseName === undefined ? "" : ` (${spell.curseName})`}${spell.item === undefined ? (spell.slotLevel === undefined ? "" : ` (level ${spell.slotLevel} slot)`) : ` from ${spell.item.name}${spell.slotLevel === undefined ? "" : ` at level ${spell.slotLevel}`}`} at `}${item === undefined ? "" : `${item.name} on `}${feature === undefined ? "" : `${feature.name} against `}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`;
 }
 
-export function renderView(session: FifthSession): string {
+export function renderView(
+  session: FifthSession,
+  /**
+   * The blind player's view (#624): the carried list is left to its own
+   * fuller list, and an Examine already made is marked, as the page marks
+   * it. The command-line adapter passes nothing.
+   */
+  options: Readonly<{ blind?: boolean }> = {},
+): string {
   const { runtime, state } = session;
+  const blind = options.blind === true;
   const room = runtime.projectRoom(state);
   const fight = runtime.projectFight(state).encounter;
   const actions = runtime.projectActions(state);
@@ -154,12 +163,15 @@ export function renderView(session: FifthSession): string {
             )
             .join("; ")}`,
         ]),
-    ...(room.inventory.length === 0
+    ...(blind || room.inventory.length === 0
       ? []
       : [`Carrying: ${room.inventory.map(({ name }) => name).join(", ")}`]),
     ...(room.purse === undefined ? [] : [`Purse: ${room.purse}`]),
     "Actions:",
-    ...actions.map((view, index) => `  ${index + 1}. ${actionText(view)}`),
+    ...actions.map(
+      (view, index) =>
+        `  ${index + 1}. ${actionText(view)}${blind && view.examined === true ? " (already examined)" : ""}`,
+    ),
   ].join("\n");
 }
 

@@ -6,7 +6,10 @@ import path from "node:path";
 
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
-  BLIND_PLAY_DEFAULT_MAX_ACTIONS,
+  BLIND_PLAY_MIN_MAX_ACTIONS,
+  BLIND_PLAY_STEPS_PER_ROOM,
+  blindPlayDefaultMaxActions,
+  describeLoop,
   renderBlindPlayReport,
   runBlindPlay,
 } from "../dist/blind-play-5e.js";
@@ -26,7 +29,8 @@ const USAGE = [
   "",
   "The character is Ada, the test Fighter, at --level (default: the module's",
   "lowest recommended level), or the first character in --library.",
-  `It stops at an ending or after --max-actions steps (default ${BLIND_PLAY_DEFAULT_MAX_ACTIONS}).`,
+  `It stops at an ending, after --max-actions steps (default ${BLIND_PLAY_STEPS_PER_ROOM} a room,`,
+  `at least ${BLIND_PLAY_MIN_MAX_ACTIONS}), or when it goes back and forth between two rooms.`,
   "The journal, the report and a replayable trace are written to --output",
   "(default: .scratch/blind-play/<module>-seed<seed>-<time>/).",
 ].join("\n");
@@ -34,7 +38,7 @@ const USAGE = [
 class UsageError extends Error {}
 
 function parseArguments(args) {
-  const parsed = { seed: 0, maxActions: BLIND_PLAY_DEFAULT_MAX_ACTIONS };
+  const parsed = { seed: 0 };
   const names = {
     "--module": "module",
     "--model": "model",
@@ -114,14 +118,16 @@ async function main() {
     );
   }
   const character = await characterFor(options, adventure);
+  const maxActions =
+    options.maxActions ?? blindPlayDefaultMaxActions(adventure);
   process.stdout.write(
-    `Blind play: ${adventure.title}, ${character.name} (level ${character.level} ${character.class}), seed ${options.seed}, player ${options.model}, at most ${options.maxActions} steps.\n`,
+    `Blind play: ${adventure.title}, ${character.name} (level ${character.level} ${character.class}), seed ${options.seed}, player ${options.model}, at most ${maxActions} steps.\n`,
   );
   const report = await runBlindPlay({
     adventure,
     character,
     seed: options.seed,
-    maxActions: options.maxActions,
+    maxActions,
     model: createOpenAiStructuredModel({
       apiKey,
       model: options.model,
@@ -156,7 +162,7 @@ async function main() {
   const puzzled = report.steps.filter(({ puzzled: text }) => text !== "");
   process.stdout.write(
     [
-      `Stopped: ${report.stopped}${report.error === undefined ? "" : ` (${report.error})`}.`,
+      `Stopped: ${report.stopped}${report.loop === undefined ? "" : ` (${describeLoop(report.loop)})`}${report.error === undefined ? "" : ` (${report.error})`}.`,
       `Ending: ${report.ending === undefined ? "none" : report.ending.title}.`,
       `Steps: ${report.steps.length}, in ${report.roomsVisited.length} of ${report.module.rooms} rooms. Puzzled at ${puzzled.length}.`,
       `Model use: ${report.usage.calls} calls, ${report.usage.inputTokens} tokens in, ${report.usage.outputTokens} out.`,
