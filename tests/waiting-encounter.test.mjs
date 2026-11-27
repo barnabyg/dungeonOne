@@ -1,8 +1,9 @@
-// #530: the room view names the encounter waiting in the room before its
-// fight begins, for the page's opponent card: unseen by it after a sneak,
-// or its opponents reacting, by the band as a parley left it, with each
-// standing opponent's icon and description. It goes once the fight begins,
-// and a lurking encounter's opponents never show before they spring.
+// The encounter waiting in the room before its fight begins (#530), for the
+// page's opponent card: unseen by it after a sneak, or its opponents
+// reacting, by the band as a parley left it, with each standing opponent's
+// icon, and its description once they have noticed the character (#620).
+// It goes once the fight begins, and a lurking encounter's opponents never
+// show before they spring.
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -49,7 +50,12 @@ test("unseen after a sneak, the encounter waits until the ambush begins the figh
   assert.deepEqual(runtime.projectRoom(unseen).waiting, {
     id: fight.id,
     state: "unseen",
-    opponents: shown(ratTunnels, fight.id),
+    // Unseen (#620), their descriptions wait for the fight.
+    opponents: shown(ratTunnels, fight.id).map(({ id, name, icon }) => ({
+      id,
+      name,
+      icon,
+    })),
   });
   assert.ok(shown(ratTunnels, fight.id)[0].icon);
   const ambushed = accepted(

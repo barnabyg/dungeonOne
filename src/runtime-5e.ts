@@ -1231,7 +1231,10 @@ export type FifthEvent =
       roomId: string;
       name: string;
       description: string;
-      /** The descriptions of the opponents whose fight begins here. */
+      /**
+       * The descriptions of the opponents whose fight begins here: none
+       * while they have not noticed the character (#620).
+       */
       opponents: readonly string[];
       /** Their ids, in the same order. */
       opponentIds: readonly string[];
@@ -1605,6 +1608,12 @@ export type FifthEvent =
       encounterId: string;
       room: string;
       surprised: readonly string[];
+      /**
+       * The opponents' descriptions, held from the arrival while they had
+       * not noticed the character (#620), and their ids in the same order.
+       */
+      opponents?: readonly string[];
+      opponentIds?: readonly string[];
     }>
   /**
    * Slipping out of a fight's room unseen (#302): the fight is bypassed,
@@ -3428,7 +3437,10 @@ export function renderFifthEvent(
       }`;
     }
     case "ambush":
-      return `You spring your ambush: ${listed(event.surprised, "and")} ${event.surprised.length === 1 ? "is surprised and rolls" : "are surprised and roll"} initiative with disadvantage.`;
+      return [
+        `You spring your ambush: ${listed(event.surprised, "and")} ${event.surprised.length === 1 ? "is surprised and rolls" : "are surprised and roll"} initiative with disadvantage.`,
+        ...(event.opponents ?? []),
+      ].join(" ");
     case "reaction": {
       const { roll } = event;
       const one = event.reactors.length === 1;
@@ -3969,10 +3981,12 @@ function lineIcons(
   };
   switch (event.type) {
     case "entered":
-    case "arrived": {
-      let at = text.length - event.opponents.join(" ").length;
-      event.opponents.forEach((description, index) => {
-        mark(at, lookup.opponent(state, event.opponentIds[index]!));
+    case "arrived":
+    case "ambush": {
+      const described = event.opponents ?? [];
+      let at = text.length - described.join(" ").length;
+      described.forEach((description, index) => {
+        mark(at, lookup.opponent(state, event.opponentIds![index]!));
         at += description.length + 1;
       });
       break;
@@ -5034,13 +5048,19 @@ export type RoomView = Readonly<{
   /**
    * The encounter waiting here before its fight begins (#530): the
    * character unseen by it, or its opponents reacting, by the reaction's
-   * band as a parley left it. Its standing opponents, each with its icon. A
+   * band as a parley left it. Its standing opponents, each with its icon,
+   * and its description once they have noticed the character (#620). A
    * lurking encounter's opponents stay hidden until they spring.
    */
   waiting?: Readonly<{
     id: string;
     state: "unseen" | ReactionBand;
-    opponents: readonly (Named & Readonly<{ icon: GameIconId }>)[];
+    opponents: readonly Readonly<{
+      id: string;
+      name: string;
+      description?: string;
+      icon: GameIconId;
+    }>[];
   }>;
   /**
    * Creatures to talk to, with what each topic drew from them so far, and
@@ -9599,8 +9619,14 @@ export function createFifthRuntime(
         roomId: destination.id,
         name: destination.name,
         description,
-        opponents: metHere.map(({ description }) => description),
-        opponentIds: metHere.map(({ id }) => id),
+        // Unnoticed (#620), the opponents have not turned to face the
+        // character: their descriptions wait for the fight.
+        ...(sneakedIn && !lurked.hidden
+          ? { opponents: [], opponentIds: [] }
+          : {
+              opponents: metHere.map(({ description }) => description),
+              opponentIds: metHere.map(({ id }) => id),
+            }),
       },
       ...(lurked.event === undefined ? [] : [lurked.event]),
     ];
@@ -10327,6 +10353,9 @@ export function createFifthRuntime(
               encounterId: fight.id,
               room: room(state).name,
               surprised: opponents(state).map(({ name }) => name),
+              // Held from the arrival while unseen (#620).
+              opponents: standing(state).map(({ description }) => description),
+              opponentIds: standing(state).map(({ id }) => id),
             },
           ],
           { opponents: true },
@@ -12654,8 +12683,12 @@ export function createFifthRuntime(
           waiting: {
             id: fight!.id,
             state: unseen ? "unseen" : band!,
+            // Unseen (#620), an opponent's description, written for the
+            // fight, waits for it.
             opponents: standing(state).map((opponent) => ({
-              ...named(opponent),
+              ...(unseen
+                ? { id: opponent.id, name: opponent.name }
+                : named(opponent)),
               icon: opponent.icon,
             })),
           },
