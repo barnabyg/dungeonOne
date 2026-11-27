@@ -8,11 +8,59 @@ learn them again. The module format and what the validator refuses are in
 [rules/balance-gate.md](rules/balance-gate.md); the game's terms are in
 [`CONTEXT.md`](../CONTEXT.md).
 
+## Design in stages, story first
+
+A module is designed story first, and so is a rework of a shipped one. Each
+stage is a short proposal the owner approves before the next begins. Stages 1 to
+4 name no cell, DC or coin.
+
+| Stage                 | Propose                                                                                                                             | Done when                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1. Premise            | Three pitches of a paragraph each: who wants what, what happens if the character does nothing, and the one question play answers.   | Each pitch can be told without naming a room, and the owner has picked one.                                               |
+| 2. Cast and secret    | Three to five actors, each with what it wants, what it knows and what it will do; one secret that changes how the premise reads.    | Every actor can end for the character or against it, depending on play.                                                   |
+| 3. Beats and choices  | Five to seven beats; two or three choices, each with what it changes in later rooms and in the ending.                              | Two players who choose differently get summaries that read as different adventures.                                       |
+| 4. Clue web           | Each revelation with its sources; every feature with its tag (see [Features and words](#features-and-words)).                       | Every revelation has three sources or more, and the best ending needs a costly act that only the clues explain.           |
+| 5. Design ticket      | The map and the numbers (see [The design ticket](#the-design-ticket)).                                                              | The layout, estimator and validator pass, and the owner has made the ticket's decisions.                                  |
+| 6. Build and playtest | The module, in its own ticket.                                                                                                      | Its tests and [the clicker test](#the-clicker-test) pass, and the owner has played it through with a fresh character.     |
+
+The objective text is the job as the character is told it. The best ending is
+left to be found (see the objective rule under
+[Settled authoring rules](#settled-authoring-rules)).
+
+### What the engine can carry
+
+Check every promise in stages 2 to 4 against these before the owner approves it.
+The detail is in [rules/flags.md](rules/flags.md),
+[rules/checks.md](rules/checks.md) and
+[rules/talk-and-stealth.md](rules/talk-and-stealth.md).
+
+- **A flag is how a choice changes the world.** A flag opens or closes a
+  passage, places or withdraws an encounter not yet met, offers or withdraws a
+  topic or a use, and picks the ending on leaving. The engine sets one from a
+  feature examined, an item taken, a room entered, a fight's outcome, a check's
+  band or an item used on a feature. A topic sets none, so a bargain is struck
+  by using an item on a feature.
+- **A mindless opponent obeys and never answers.** A reaction, a parley or a
+  toll on an Undead is refused. Give such an actor a behaviour the player can
+  read and a lever that changes it, as the Delve's posts stand aside for a
+  badge.
+- **Giving something up.** A use may cost coin. Treasure is never used up, and
+  no flag removes an item: one leaves play only with the opponent that carries
+  it.
+- **Every available act is a button.** Knowledge can't hide a choice, so make
+  the choice cost something and let the clues say what it buys.
+- **Examining is free.** There is no clock, so a feature costs the player
+  nothing unless it is a risk.
+
 ## The design ticket
 
-A module starts as a design ticket, which pauses for the owner's approval before
-any content is written. The proposal on the ticket has:
+Stage 5 is a design ticket, which pauses for the owner's approval before any
+content is written. The proposal on the ticket has:
 
+- [ ] the approved premise, secret, cast, choices and clue web, and **what
+      checking them against the engine changed**;
+- [ ] every feature with its tag and what it carries, and every flag with what
+      sets it and what uses it;
 - [ ] the rooms, their regions and the routes through them;
 - [ ] **the layout as a sketch file and its rendered map**, passing the layout
       rules (see below): paste the sketch's JSON and the console grid into the
@@ -21,18 +69,34 @@ any content is written. The proposal on the ticket has:
       mechanics used, the treasure against the budget, and the XP;
 - [ ] each obstacle on the way to the main prize, with its ways past and their
       families (see [Ways past an obstacle](#ways-past-an-obstacle));
-- [ ] a list of the decisions the owner must make.
+- [ ] a list of the decisions the owner must make, each with a recommendation.
 
 Record the owner's approval and any changes on the ticket. Build the module in a
-separate ticket from the approved sketch.
+separate ticket from the approved design.
 
-## Writing good rooms
+## Features and words
 
 Every room automatically gets a first impression from its description and one visible feature, creature or item when the browser has an AI key. Write the room description as something a player can perceive on arrival. Keep secrets in discoveries, checks or dialogue topics. The engine uses revealed discoveries for return visits.
 
-- **2–4 finds per room.** Give a room two to four things to search or examine
-  (hidden loot, a clue, a hazard) and a sensory line before adding rooms or
-  fights.
+- **Every feature is a clue, a lever, a risk or a reward,** and may be two. A
+  _clue_ is a source for a revelation. A _lever_ changes the world: it opens a
+  way, sets a flag or gives an item another feature needs. A _risk_ costs
+  something when it is tried without thought. A _reward_ is loot. Cut a feature
+  that is none of these and fold its words into the room's description. Keep
+  reward-only features few: they are what a player clicks through.
+- **Three sources for every revelation,** in more than one region and of more
+  than one kind: a feature, a creature's topic, the way an actor behaves. Put a
+  source for what the best ending needs in the first rooms.
+- **A risk makes a thoughtless click cost.** A feature's check is rolled the
+  first time it is examined, so looking is trying: a noisy band raises the
+  alarm, and a failure by 5 can hurt.
+- **Words are true whenever they can be shown.** A description, a discovery or
+  a reply appears in every state in which its feature or topic is offered. What
+  it asserts, such as that the character holds a key, that a purse is full or
+  that someone waits in the next room, must hold in all of them. Word it so
+  that it does, or give it a flag: `changed` on a feature, `offeredWhile` and
+  `offeredUntil` on a topic or a use. The engine itself says when a find was
+  carried off on an earlier visit.
 - **Teach a pattern, then vary it.** Introduce a trap or secret safely, then
   repeat it with a twist, using features, checks, hidden passages and traps.
 - **Loops and a second route.** Give the way to the objective more than one
@@ -68,8 +132,28 @@ around, such as a strongroom or a vault.
 - **Might is loud.** Mark every band of a break or force `"noisy": true`,
   success included. A noisy band needs the module to have an alarm, so give it
   one whose effects make the noise cost something. The quiet ways then stay worth finding.
+- **The best ending has a way that isn't might too.** Where it takes a fight,
+  give the fight an action that mind or voice makes, as the Delve's oath
+  (Religion, History or Intimidation) leaves the Castellan paralysed.
 - **The gate doesn't check this.** It never talks, and its objective is the
   nearest loot, not the main prize. The design ticket lists the ways instead.
+
+## The clicker test
+
+The balance gate's judged runs examine every feature, take every item, use every
+item a feature accepts and pay for any use they can afford. They are the
+_clicker_: a player who presses every button and chooses nothing.
+
+- **The clicker never reaches the best ending.** A module whose best ending is
+  found in play has a test that no judged run ends in it, as
+  `tests/abandoned-delve.test.mjs` has. Build that ending on a choice the
+  clicker makes the other way: it always takes the Castellan's deal, which
+  closes the relief.
+- **The clicker trips every risk.** It rings the bell and takes every badge, so
+  the gate's figures are the module at its loudest. Measure them at the build
+  before declaring a difficulty.
+- **Play it through with a fresh character.** A character who has played the
+  module holds its loot and awards in the ledger, and finds neither again.
 
 ## The map
 
