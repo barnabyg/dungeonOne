@@ -137,6 +137,7 @@ import {
   type FlagOutcome,
   type MetEncounter,
   type FifthPassage,
+  type Presence,
   type FifthRoom,
   type FifthTopic,
   type FifthTrap,
@@ -7043,11 +7044,44 @@ export function createFifthRuntime(
     (passage.closeWhen !== undefined &&
       state.flags.includes(passage.closeWhen)) ||
     (passage.openWhen !== undefined && !state.flags.includes(passage.openWhen));
+  /**
+   * Whether encounter `id` is unsettled and in one of `roomIds` now (#621),
+   * for the words of its presence.
+   */
+  const presentIn = (
+    state: FifthState,
+    id: string,
+    roomIds: readonly string[],
+  ) =>
+    !settled(state, id) &&
+    roomIds.some((roomId) => encounterIn(state, roomId)?.id === id);
+  /** `description` with the words of `presence` while they hold (#621). */
+  const withPresence = (
+    state: FifthState,
+    description: string,
+    presence: Presence | undefined,
+    roomIds: readonly string[],
+  ) =>
+    presence !== undefined && presentIn(state, presence.encounter, roomIds)
+      ? `${description} ${presence.text}`
+      : description;
+  /** A room's words now: with its encounter's presence (#621) nearby. */
+  const roomWords = (state: FifthState, place: FifthRoom) =>
+    withPresence(state, place.description, place.presence, [
+      place.id,
+      ...(passagesOut.get(place.id) ?? []).map(({ to }) => to),
+    ]);
+  /**
+   * A passage's words, from the character's side, to room `to`: with its
+   * encounter's presence (#621) while it is beyond, in room `to`.
+   */
+  const passageWords = (state: FifthState, passage: FifthPassage, to: string) =>
+    withPresence(state, passage.description, passage.presence, [to]);
   const exits = (state: FifthState): readonly Named[] =>
     ways(state).map(({ passage, to }) => ({
       id: to,
       name: roomById(to).name,
-      description: passage.description,
+      description: passageWords(state, passage, to),
     }));
   /** The way from the character's room to the next room, `to` (#458). */
   const directionTo = (state: FifthState, to: string) =>
@@ -9595,7 +9629,7 @@ export function createFifthRuntime(
     const next: FifthState = lurked.hidden
       ? cleared(lurked.state, "unseenBy")
       : lurked.state;
-    let description = destination.description;
+    let description = roomWords(next, destination);
     if (state.visitedRoomIds.includes(destination.id)) {
       const remembered = describedFeatures(next).findLast(
         ({ discovery }) => discovery !== undefined,
@@ -12718,7 +12752,7 @@ export function createFifthRuntime(
       room: {
         id: current.id,
         name: current.name,
-        description: current.description,
+        description: roomWords(state, current),
         ...regionOf(current),
         features: describedFeatures(state).map(
           ({ id, name, description, discovery }) => ({
@@ -13283,7 +13317,7 @@ export function createFifthRuntime(
     return {
       id: current.id,
       name: current.name,
-      description: current.description,
+      description: roomWords(state, current),
       ...(isRestSite(current) ? { restSite: true as const } : {}),
       ...regionOf(current),
       ...backdropOf(current),
@@ -13291,14 +13325,10 @@ export function createFifthRuntime(
         ? {}
         : { alarm: "The alarm is raised." }),
       exits: ways(state).map(
-        ({
-          passage,
-          passage: { hidden, openWhen, door, trap, description },
-          to,
-        }) => ({
+        ({ passage, passage: { hidden, openWhen, door, trap }, to }) => ({
           id: to,
           name: roomById(to).name,
-          description,
+          description: passageWords(state, passage, to),
           direction: directionTo(state, to),
           ...(to === state.previousRoomId ? { cameFrom: true as const } : {}),
           ...(state.visitedRoomIds.includes(to)

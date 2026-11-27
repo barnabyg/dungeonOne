@@ -270,7 +270,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 49;
+export const FIFTH_ADVENTURE_FORMAT = 50;
 /** The `kind` every adventure module file declares. */
 export const FIFTH_ADVENTURE_KIND = "dungeon-one-5e-adventure";
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
@@ -396,6 +396,23 @@ export const isConditional = (encounter: FifthEncounter): boolean =>
   encounter.presentWhile !== undefined ||
   encounter.presentUntil !== undefined ||
   encounter.movesTo !== undefined;
+
+/** Words of an encounter's presence (#621), as authored at `where`. */
+function readPresence(
+  value: unknown,
+  where: string,
+): Readonly<{ presence?: Presence }> {
+  if (value === undefined) {
+    return {};
+  }
+  const presence = knownKeys(value, ["encounter", "text"], [], where);
+  return {
+    presence: {
+      encounter: id(presence.encounter, `${where} encounter`),
+      text: text(presence.text, `${where} text`, 200),
+    },
+  };
+}
 
 /**
  * Every room each placed encounter may be in (#398): its own room, while
@@ -1055,6 +1072,15 @@ export type FifthCreature = Readonly<{
 /** The most minutes one trade may take. */
 const MAX_TRADE_MINUTES = 60;
 
+/**
+ * Words of an encounter's presence (#621), such as a sound beyond a door,
+ * added to a room's or a passage's description only while `encounter` is
+ * unsettled (not won, nor ended peacefully) and there: in the room or a
+ * room next to it, or in the room the passage leads to from the character's
+ * side.
+ */
+export type Presence = Readonly<{ encounter: string; text: string }>;
+
 export type FifthRoom = Readonly<{
   id: string;
   name: string;
@@ -1063,6 +1089,8 @@ export type FifthRoom = Readonly<{
   /** Its floor on the room map (#455): 0 unless authored, up positive. */
   floor: number;
   description: string;
+  /** Words shown only while an encounter is there (#621). */
+  presence?: Presence;
   /** The fight that begins when the character enters. */
   encounterId?: string;
   /** The character may leave the adventure from here. */
@@ -1174,6 +1202,8 @@ export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
+  /** Words shown only while an encounter is there (#621). */
+  presence?: Presence;
   /** What carries it between floors (#455): only between adjacent floors. */
   vertical?: VerticalKind;
   hidden?: true;
@@ -2740,6 +2770,7 @@ function validateModule(
         "backdrop",
         "sets",
         "avoidable",
+        "presence",
       ],
       where,
     );
@@ -3076,6 +3107,7 @@ function validateModule(
       at: readCell(room.at, `${where} (${String(room.id)}) at`),
       floor: readFloor(room.floor, `${where} (${String(room.id)}) floor`),
       description: text(room.description, `${where} description`),
+      ...readPresence(room.presence, `${where} (${String(room.id)}) presence`),
       ...(room.encounterId === undefined
         ? {}
         : { encounterId: room.encounterId as string }),
@@ -3439,7 +3471,15 @@ function validateModule(
       const passage = knownKeys(
         entry,
         ["id", "between", "description"],
-        ["vertical", "door", "trap", "hidden", "openWhen", "closeWhen"],
+        [
+          "vertical",
+          "door",
+          "trap",
+          "hidden",
+          "openWhen",
+          "closeWhen",
+          "presence",
+        ],
         where,
       );
       if (
@@ -3480,6 +3520,10 @@ function validateModule(
         id: id(passage.id, `${where} id`),
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
+        ...readPresence(
+          passage.presence,
+          `${where} (${String(passage.id)}) presence`,
+        ),
         ...(passage.vertical === undefined
           ? {}
           : { vertical: passage.vertical as VerticalKind }),
@@ -3500,6 +3544,36 @@ function validateModule(
     },
   );
   unique(passages, "passage");
+  // Words of an encounter's presence (#621) name one that can be there.
+  {
+    const placed = encounterPlacements({ rooms, encounters });
+    const canBeIn = (encounter: string, roomIds: readonly string[]) =>
+      placed.some(
+        (placement) =>
+          placement.encounterId === encounter &&
+          roomIds.includes(placement.roomId),
+      );
+    for (const { id: roomId, presence } of rooms) {
+      const near = [
+        roomId,
+        ...passages.flatMap(({ between: [from, to] }) =>
+          from === roomId ? [to] : to === roomId ? [from] : [],
+        ),
+      ];
+      if (presence !== undefined && !canBeIn(presence.encounter, near)) {
+        fail(
+          `room ${roomId} presence names encounter ${presence.encounter}, which is never in it or a room next to it.`,
+        );
+      }
+    }
+    for (const { id: passageId, between, presence } of passages) {
+      if (presence !== undefined && !canBeIn(presence.encounter, between)) {
+        fail(
+          `passage ${passageId} presence names encounter ${presence.encounter}, which is never in either room it joins.`,
+        );
+      }
+    }
+  }
   // Features, items, doors, traps, creatures, topics and the opponents whose
   // bodies can be searched share one namespace: each is an action's target.
   distinct(

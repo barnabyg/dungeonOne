@@ -1698,3 +1698,57 @@ test("breaking the vault door open rouses the crypts, which brings Mags to the s
   assert.equal(at("shaft-bottom"), "ossuary-rival");
   assert.equal(at("ossuary"), undefined);
 });
+
+// #621: the sounds beyond its arches and the Barracks's guards are words of
+// those fights' presence, gone once a fight is settled or has moved away.
+test("the delve's sounds and guards go with their fights (#621)", () => {
+  const runtime = createFifthRuntime(delve, STRONG);
+  const begun = runtime.handleAction(runtime.createSession(), {
+    type: "begin",
+  }).state;
+  const at = (state, roomId) => ({ ...state, roomId });
+  const words = (state, roomId) => {
+    const view = runtime.projectRoom(at(state, roomId));
+    return [
+      view.description,
+      ...view.exits.map(({ name, description }) => `${name}: ${description}`),
+    ].join("\n");
+  };
+  const unsettled = [
+    ["gate-hall", "Bones clatter beyond the barracks arch."],
+    ["gate-hall", "Barracks: An arch. Bones clatter beyond it."],
+    [
+      "gate-hall",
+      "Fallen Kitchen: A rubble-strewn arch toward daylight. Something growls beyond it.",
+    ],
+    [
+      "barracks",
+      "Rows of collapsed bunks, and a footlocker at the far end. Two skeletons in rusted mail stand guard beside it.",
+    ],
+    [
+      "flooded-cistern",
+      "Ossuary: The walkway round the cistern, to an arch. Something taps beyond it.",
+    ],
+  ];
+  for (const [roomId, line] of unsettled) {
+    assert.ok(words(begun, roomId).includes(line), `${roomId}: ${line}`);
+  }
+  // Won, stood aside or gone to the shaft, the fights are silent.
+  const settled = {
+    ...begun,
+    clearedEncounterIds: ["kitchen-wolf"],
+    flags: [...begun.flags, "posts-stand-aside", "delve-roused"],
+  };
+  for (const [roomId] of unsettled) {
+    assert.doesNotMatch(
+      words(settled, roomId),
+      /clatter|growls|taps|skeletons/u,
+      roomId,
+    );
+  }
+  assert.ok(
+    words(settled, "barracks").startsWith(
+      "Rows of collapsed bunks, and a footlocker at the far end.\n",
+    ),
+  );
+});

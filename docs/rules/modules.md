@@ -30,7 +30,8 @@ file. The shape, in short:
 - **Room:** `id`, `name`, `description`, its map cell `at` (`[x, y]`, −50 to 50)
   and optional `floor` (−9 to 9); optional `region`, `backdrop` (in place of its
   region's), `exit`, `restSite: true` (where a long rest may be taken),
-  `avoidable: true` (left out of its region's sweep), `encounterId`, up to 12
+  `avoidable: true` (left out of its region's sweep), `presence` (below),
+  `encounterId`, up to 12
   `features` and 12 `items`, and up to 6 `creatures`. The map's layout rules are
   in [exploring.md](exploring.md) and
   [the authoring guide](../module-authoring.md).
@@ -55,7 +56,15 @@ file. The shape, in short:
   (`find: { dc }`, as the search rolls Perception or Investigation; a `disarm`
   check, `trigger` text, a saving throw, damage of an SRD 5.2 type and a defeat
   ending), `hidden: true`, `vertical` (`stairs`, `ladder` or `shaft`),
-  `openWhen` and `closeWhen` (flags).
+  `openWhen` and `closeWhen` (flags), and `presence` (below).
+- **Presence (format 50).** A room or a passage may have `presence:
+{ encounter, text }`: words added after its description only while that
+  encounter is unsettled (not won, nor ended peacefully) and there, in the room
+  or a room next to it, or, for a passage, in the room it leads to from the
+  character's side. A sound beyond a
+  door ("Something growls beyond it.") or guards at their post go once the fight
+  is won, has withdrawn or has moved away. The validator refuses one whose
+  encounter is never in reach.
 - **Check:** a `skill` (any in `SKILLS` in `src/class-5e.ts`: SRD 5.2's skills
   but Performance) or `ability`, with a `dc` from 5 to 30; or `approaches`, 2–4
   such, each a different skill, ability or tool. An approach may have

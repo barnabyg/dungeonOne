@@ -95,8 +95,10 @@ Every room automatically gets a first impression from its description and one vi
   it asserts, such as that the character holds a key, that a purse is full or
   that someone waits in the next room, must hold in all of them. Word it so
   that it does, or give it a flag: `changed` on a feature, `offeredWhile` and
-  `offeredUntil` on a topic or a use. The engine itself says when a find was
-  carried off on an earlier visit.
+  `offeredUntil` on a topic or a use. Put words about a fight's opponents in a
+  room's or a passage's `presence`, which goes with the fight. The engine itself
+  says when a find was taken, on this visit or an earlier one, and holds an
+  opponent's description while it has not noticed the character.
 - **Teach a pattern, then vary it.** Introduce a trap or secret safely, then
   repeat it with a twist, using features, checks, hidden passages and traps.
 - **Loops and a second route.** Give the way to the objective more than one

@@ -612,7 +612,8 @@ test(
       /You force the Swollen Door open\./u,
       /The alarm is raised by forcing the Swollen Door \(success\)\./u,
       /You take the Garrison Badge\./u,
-      /Barracks — [^\n]*Two skeletons in rusted mail stand guard/u,
+      // With a badge the skeletons stand aside, and their words go (#621).
+      /Barracks — Rows of collapsed bunks, and a footlocker at the far end\.\n/u,
       /You take the Soldier's Silver and put 2 gp 5 sp in your purse\./u,
       /Guard Post — [^\n]*A dead guard stands at its post/u,
       /You take the Guard's Purse and put 1 gp 8 sp in your purse\./u,
